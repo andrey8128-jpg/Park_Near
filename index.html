@@ -13,6 +13,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
+    <!-- Telegram Login Widget -->
+    <script src="https://telegram.org/js/telegram-widget.js?22"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -252,30 +255,31 @@
             border-radius: 14px;
             padding: 14px 18px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            max-width: 220px;
+            max-width: 280px;
             display: none;
         }
         #profileCard.visible { display: block; }
-        .profile-row { display: flex; align-items: center; gap: 10px; }
+        .profile-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .profile-avatar {
-            width: 36px; height: 36px; border-radius: 50%;
+            width: 44px; height: 44px; border-radius: 50%;
             background: linear-gradient(135deg, #007AFF, #5856D6);
             color: white; display: flex; align-items: center;
-            justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0;
+            justify-content: center; font-weight: 600; font-size: 18px; flex-shrink: 0;
         }
         .profile-info { flex: 1; min-width: 0; }
-        .profile-name { font-size: 14px; font-weight: 600; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .profile-username { font-size: 12px; color: #8E8E93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .profile-login-btn {
-            width: 100%; padding: 10px; background: #007AFF; color: white;
-            border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
-            cursor: pointer; font-family: inherit; margin-top: 10px;
+        .profile-name { font-size: 15px; font-weight: 600; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .profile-username { font-size: 13px; color: #8E8E93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .telegram-login-container {
+            margin-top: 10px;
         }
+        
         .profile-logout-btn {
-            width: 100%; padding: 8px; background: transparent; color: #FF3B30;
-            border: none; font-size: 13px; font-weight: 500; cursor: pointer;
-            font-family: inherit; margin-top: 6px;
+            width: 100%; padding: 10px; background: transparent; color: #FF3B30;
+            border: 1px solid #FF3B30; border-radius: 10px; font-size: 14px; 
+            font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 10px;
         }
+        .profile-logout-btn:active { background: #FF3B30; color: white; }
 
         /* ===== iOS List ===== */
         .ios-list {
@@ -316,10 +320,13 @@
             cursor: pointer;
             transition: transform 0.2s;
         }
-        .list-star.active {
-            color: #FF9500;
-        }
+        .list-star.active { color: #FF9500; }
         .list-star:active { transform: scale(1.3); }
+        
+        /* Статусы парковок */
+        .status-free { background: #34C759 !important; }
+        .status-busy { background: #FF3B30 !important; }
+        .status-unknown { background: #007AFF !important; }
 
         /* ===== iOS Modal ===== */
         #modal {
@@ -350,6 +357,30 @@
         .modal-btn-primary { background: #007AFF; color: white; }
         .modal-btn-secondary { background: #E5E5EA; color: #000; }
         .modal-btn-danger { background: #FF3B30; color: white; }
+        
+        /* Селектор статуса */
+        .status-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .status-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .status-btn.free { background: #34C759; color: white; }
+        .status-btn.busy { background: #FF3B30; color: white; }
+        .status-btn.unknown { background: #007AFF; color: white; }
+        .status-btn.selected {
+            border-color: #000;
+            transform: scale(1.05);
+        }
 
         /* ===== iOS Toast ===== */
         #toast {
@@ -388,9 +419,7 @@
         .profile-big-username { font-size: 14px; color: #8E8E93; }
         
         /* ===== Home Marker ===== */
-        .home-marker {
-            background: #FF9500 !important;
-        }
+        .home-marker { background: #FF9500 !important; }
         .parking-counter {
             background: #FF9500;
             color: white;
@@ -399,6 +428,14 @@
             font-size: 11px;
             font-weight: 600;
             margin-left: 6px;
+        }
+        
+        /* Telegram Login Widget стили */
+        .telegram-login {
+            width: 100%;
+        }
+        .telegram-login iframe {
+            width: 100% !important;
         }
     </style>
 </head>
@@ -411,7 +448,7 @@
 
     <!-- Выпадающее меню типов карты -->
     <div class="map-type-dropdown">
-        <button class="map-type-toggle" onclick="toggleMapTypeMenu()" id="mapTypeToggle">️</button>
+        <button class="map-type-toggle" onclick="toggleMapTypeMenu()" id="mapTypeToggle">🗺️</button>
         <div class="map-type-menu" id="mapTypeMenu">
             <div class="map-type-option active" data-type="map" onclick="setMapType('map')">
                 <span>🗺️</span> Схема
@@ -420,7 +457,7 @@
                 <span>🛰️</span> Спутник
             </div>
             <div class="map-type-option" data-type="hybrid" onclick="setMapType('hybrid')">
-                <span>️</span> Гибрид
+                <span>🌍</span> Гибрид
             </div>
         </div>
     </div>
@@ -430,15 +467,25 @@
 
     <!-- Карточка профиля -->
     <div id="profileCard">
-        <div class="profile-row">
-            <div class="profile-avatar" id="profileAvatar">?</div>
-            <div class="profile-info">
-                <div class="profile-name" id="profileName">Гость</div>
-                <div class="profile-username" id="profileUsername">Не авторизован</div>
+        <div id="notLoggedIn">
+            <div style="text-align: center; padding: 10px 0;">
+                <div style="font-size: 40px; margin-bottom: 10px;">👤</div>
+                <div style="font-size: 14px; color: #8E8E93; margin-bottom: 15px;">
+                    Войдите через Telegram<br>для доступа к функциям
+                </div>
+                <div class="telegram-login-container" id="telegramLogin"></div>
             </div>
         </div>
-        <button class="profile-login-btn" id="loginBtn" onclick="showLoginPrompt()">Войти</button>
-        <button class="profile-logout-btn" id="logoutBtn" style="display:none;" onclick="logout()">Выйти</button>
+        <div id="loggedIn" style="display: none;">
+            <div class="profile-row">
+                <div class="profile-avatar" id="profileAvatar">?</div>
+                <div class="profile-info">
+                    <div class="profile-name" id="profileName">Загрузка...</div>
+                    <div class="profile-username" id="profileUsername">@username</div>
+                </div>
+            </div>
+            <button class="profile-logout-btn" onclick="logout()">🚪 Выйти</button>
+        </div>
     </div>
 
     <!-- Bottom Sheet -->
@@ -454,7 +501,7 @@
     <!-- Tab Bar -->
     <div id="tabBar">
         <div class="tabItem active" onclick="switchTab('map', this)">
-            <div class="tab-icon">️</div>
+            <div class="tab-icon">🗺️</div>
             <div class="tab-label">Карта</div>
         </div>
         <div class="tabItem" onclick="switchTab('history', this)">
@@ -466,7 +513,7 @@
             <div class="tab-label">Избранное</div>
         </div>
         <div class="tabItem" onclick="switchTab('profile', this)">
-            <div class="tab-icon">👤</div>
+            <div class="tab-icon"></div>
             <div class="tab-label">Профиль</div>
         </div>
     </div>
@@ -487,15 +534,15 @@
         // FIREBASE
         // ============================
         const firebaseConfig = {
-    apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
-    authDomain: "parknear-bef41.firebaseapp.com",
-    databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "parknear-bef41",
-    storageBucket: "parknear-bef41.firebasestorage.app",
-    messagingSenderId: "1066552333578",
-    appId: "1:1066552333578:web:e60e333cf877852eba16f3",
-    measurementId: "G-1HNBMVYWCT"
-};
+            apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
+            authDomain: "parknear-bef41.firebaseapp.com",
+            databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "parknear-bef41",
+            storageBucket: "parknear-bef41.firebasestorage.app",
+            messagingSenderId: "1066552333578",
+            appId: "1:1066552333578:web:e60e333cf877852eba16f3",
+            measurementId: "G-1HNBMVYWCT"
+        };
         
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -533,8 +580,10 @@
             return new Promise((resolve) => {
                 ymaps.geocode(coords, { results: 1 }).then(function (res) {
                     const address = res.geoObjects.get(0);
-                    const street = address.getAddressLine().split(',')[1]?.trim() || 'Улица';
-                    const houseNumber = address.getAddressLine().split(',')[2]?.trim() || '';
+                    const addressLine = address.getAddressLine();
+                    const parts = addressLine.split(',');
+                    const street = parts[1]?.trim() || 'Улица';
+                    const houseNumber = parts[2]?.trim() || '';
                     
                     const streetKey = street.replace(/\s+/g, '').toLowerCase();
                     
@@ -552,6 +601,114 @@
                     resolve(`${fallbackLetter}1 Парковка`);
                 });
             });
+        }
+
+        // ============================
+        // TELEGRAM AUTH
+        // ============================
+        // Создаём Telegram Login Widget при загрузке
+        window.addEventListener('load', function() {
+            initTelegramLogin();
+            loadUserFromStorage();
+        });
+
+        function initTelegramLogin() {
+            const container = document.getElementById('telegramLogin');
+            // Замените YOUR_BOT_NAME на имя вашего бота (без @)
+            // Для примера используем placeholder
+            container.innerHTML = `
+                <div style="text-align: center;">
+                    <button onclick="openTelegramLogin()" style="
+                        background: #0088cc;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 10px;
+                        font-size: 15px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin: 0 auto;
+                    ">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
+                        </svg>
+                        Войти через Telegram
+                    </button>
+                    <p style="font-size: 12px; color: #8E8E93; margin-top: 10px;">
+                        Быстрый вход без пароля
+                    </p>
+                </div>
+            `;
+        }
+
+        function openTelegramLogin() {
+            // Для полноценной работы нужен Telegram бот
+            // Здесь упрощённая версия через prompt
+            const username = prompt('Введите ваш Telegram username (без @):');
+            if (!username) return;
+            
+            const firstName = prompt('Ваше имя:') || 'Пользователь';
+            const lastName = prompt('Фамилия (необязательно):') || '';
+            
+            // Создаём пользователя
+            const user = {
+                id: 'tg_' + Date.now(),
+                username: username,
+                firstName: firstName,
+                lastName: lastName,
+                photoUrl: '',
+                authDate: new Date().toISOString()
+            };
+            
+            // Сохраняем в Firebase
+            database.ref('users/' + user.id).set(user)
+                .then(() => {
+                    currentUser = user;
+                    localStorage.setItem('tgUser', JSON.stringify(user));
+                    updateProfileUI();
+                    showToast(`Добро пожаловать, ${firstName}!`);
+                })
+                .catch(err => {
+                    showToast('Ошибка: ' + err.message);
+                });
+        }
+
+        function loadUserFromStorage() {
+            const saved = localStorage.getItem('tgUser');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                updateProfileUI();
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('tgUser');
+            updateProfileUI();
+            showToast('Вы вышли');
+            switchTab('map', document.querySelector('.tabItem'));
+        }
+
+        function updateProfileUI() {
+            const notLoggedIn = document.getElementById('notLoggedIn');
+            const loggedIn = document.getElementById('loggedIn');
+            const avatar = document.getElementById('profileAvatar');
+            const name = document.getElementById('profileName');
+            const username = document.getElementById('profileUsername');
+
+            if (currentUser) {
+                notLoggedIn.style.display = 'none';
+                loggedIn.style.display = 'block';
+                avatar.textContent = getInitials(currentUser.firstName);
+                name.textContent = currentUser.firstName + ' ' + (currentUser.lastName || '');
+                username.textContent = '@' + currentUser.username;
+            } else {
+                notLoggedIn.style.display = 'block';
+                loggedIn.style.display = 'none';
+            }
         }
 
         // ============================
@@ -573,7 +730,6 @@
                         userLocation = [position.coords.latitude, position.coords.longitude];
                         map.setCenter(userLocation, 16);
                         
-                        // Добавляем метку пользователя
                         const userPlacemark = new ymaps.Placemark(userLocation, {
                             hintContent: 'Вы здесь'
                         }, {
@@ -590,7 +746,8 @@
             // Кнопка добавления
             document.getElementById("addBtn").onclick = async function() {
                 if (!currentUser) {
-                    showToast('Войдите для добавления');
+                    showToast('Войдите через Telegram');
+                    switchTab('profile', document.querySelectorAll('.tabItem')[3]);
                     return;
                 }
                 if (drawing) { finishDrawing(); return; }
@@ -623,7 +780,6 @@
                     (position) => {
                         const coords = [position.coords.latitude, position.coords.longitude];
                         map.setCenter(coords, 16);
-                        map.geoObjects.remove(userLocation ? map.geoObjects.get(0) : null);
                         
                         const userPlacemark = new ymaps.Placemark(coords, {
                             hintContent: 'Вы здесь'
@@ -663,7 +819,6 @@
             showToast(names[type]);
         }
 
-        // Закрытие меню при клике вне
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.map-type-dropdown')) {
                 document.getElementById('mapTypeMenu').classList.remove('show');
@@ -672,64 +827,7 @@
         });
 
         // ============================
-        // АВТОРИЗАЦИЯ
-        // ============================
-        function showLoginPrompt() {
-            const username = prompt('Введите ваш Telegram username (без @):');
-            if (!username) return;
-            const firstName = prompt('Ваше имя:') || 'Пользователь';
-            
-            currentUser = { id: 'tg_' + Date.now(), username: username, firstName: firstName, lastName: '' };
-            localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            updateProfileUI();
-            showToast('Добро пожаловать, ' + firstName + '!');
-        }
-
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('tgUser');
-            updateProfileUI();
-            showToast('Вы вышли');
-            switchTab('map', document.querySelector('.tabItem'));
-        }
-
-        function updateProfileUI() {
-            const card = document.getElementById('profileCard');
-            const avatar = document.getElementById('profileAvatar');
-            const name = document.getElementById('profileName');
-            const username = document.getElementById('profileUsername');
-            const loginBtn = document.getElementById('loginBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-
-            if (currentUser) {
-                card.classList.add('visible');
-                avatar.textContent = getInitials(currentUser.firstName);
-                name.textContent = currentUser.firstName;
-                username.textContent = '@' + currentUser.username;
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = 'block';
-            } else {
-                card.classList.add('visible');
-                avatar.textContent = '?';
-                name.textContent = 'Гость';
-                username.textContent = 'Не авторизован';
-                loginBtn.style.display = 'block';
-                logoutBtn.style.display = 'none';
-            }
-        }
-
-        window.addEventListener('load', () => {
-            const saved = localStorage.getItem('tgUser');
-            if (saved) {
-                currentUser = JSON.parse(saved);
-                updateProfileUI();
-            } else {
-                updateProfileUI();
-            }
-        });
-
-        // ============================
-        // ПАРКОВКИ
+        // ПАРКОВКИ СО СТАТУСОМ
         // ============================
         async function finishDrawing() {
             drawing = false;
@@ -751,13 +849,15 @@
             const places = prompt("Количество мест:") || "0";
 
             const parking = {
-                name, places: Number(places),
+                name, 
+                places: Number(places),
                 coordinates: points,
                 owner: currentUser.id,
                 ownerName: currentUser.firstName,
                 ownerUsername: currentUser.username,
                 created: new Date().toISOString(),
-                center: centerPoint
+                center: centerPoint,
+                status: 'unknown' // По умолчанию "Неизвестно"
             };
 
             const id = database.ref("parkings").push().key;
@@ -778,15 +878,54 @@
                     map.geoObjects.removeAll();
                     Object.keys(data).forEach(id => {
                         const p = data[id];
+                        const statusColor = getStatusColor(p.status);
                         const polygon = new ymaps.Polygon([p.coordinates], 
-                            { hintContent: p.name, balloonContent: `<b>${p.name}</b><br>Мест: ${p.places}` },
-                            { fillColor: "#34C759", fillOpacity: 0.35, strokeColor: "#34C759", strokeWidth: 3 }
+                            { 
+                                hintContent: p.name, 
+                                balloonContent: `
+                                    <b>${p.name}</b><br>
+                                    Мест: ${p.places}<br>
+                                    Статус: ${getStatusText(p.status)}
+                                ` 
+                            },
+                            { 
+                                fillColor: statusColor, 
+                                fillOpacity: 0.4, 
+                                strokeColor: statusColor, 
+                                strokeWidth: 3 
+                            }
                         );
                         polygon.events.add('click', () => showParkingModal(id, p));
                         map.geoObjects.add(polygon);
                     });
                 }
             });
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'free': return '#34C759';    // Зелёный
+                case 'busy': return '#FF3B30';    // Красный
+                default: return '#007AFF';        // Синий (unknown)
+            }
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'free': return '✅ Свободно';
+                case 'busy': return '❌ Занято';
+                default: return '❓ Неизвестно';
+            }
+        }
+
+        function updateParkingStatus(id, status) {
+            database.ref("parkings/" + id + "/status").set(status)
+                .then(() => {
+                    showToast('Статус обновлён');
+                    loadParkings();
+                    closeModal();
+                })
+                .catch(err => showToast('Ошибка: ' + err.message));
         }
 
         // ============================
@@ -839,7 +978,7 @@
                         Math.pow(p.center[0] - homeCoords[0], 2) + 
                         Math.pow(p.center[1] - homeCoords[1], 2)
                     );
-                    if (distance < radius / 111000) { // примерный перевод метров в градусы
+                    if (distance < radius / 111000) {
                         count++;
                     }
                 }
@@ -848,9 +987,11 @@
         }
 
         // ============================
-        // МОДАЛЬНОЕ ОКНО
+        // МОДАЛЬНОЕ ОКНО СО СТАТУСОМ
         // ============================
         function showParkingModal(id, parking) {
+            const currentStatus = parking.status || 'unknown';
+            
             document.getElementById('modalBody').innerHTML = `
                 <div class="modal-title">🅿️ ${parking.name}</div>
                 <div class="modal-info-row">
@@ -865,18 +1006,40 @@
                     <span class="modal-info-label">Дата</span>
                     <span class="modal-info-value">${formatDate(parking.created)}</span>
                 </div>
-                <div class="modal-actions">
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Статус</span>
+                    <span class="modal-info-value">${getStatusText(currentStatus)}</span>
+                </div>
+                
+                <div style="margin-top: 16px; font-weight: 600; margin-bottom: 10px;">Изменить статус:</div>
+                <div class="status-selector">
+                    <button class="status-btn free ${currentStatus === 'free' ? 'selected' : ''}" 
+                            onclick="updateParkingStatus('${id}', 'free')">
+                        ✅ Свободно
+                    </button>
+                    <button class="status-btn busy ${currentStatus === 'busy' ? 'selected' : ''}" 
+                            onclick="updateParkingStatus('${id}', 'busy')">
+                        ❌ Занято
+                    </button>
+                    <button class="status-btn unknown ${currentStatus === 'unknown' ? 'selected' : ''}" 
+                            onclick="updateParkingStatus('${id}', 'unknown')">
+                        ❓ Неизвестно
+                    </button>
+                </div>
+                
+                <div class="modal-actions" style="margin-top: 20px;">
                     <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
-                    <button class="modal-btn modal-btn-primary" onclick="markAsHome('${id}')">🏠 Мой дом</button>
+                    <button class="modal-btn modal-btn-primary" onclick="markAsHome('${parking.center}', '${parking.name}')">
+                        🏠 Мой дом
+                    </button>
                 </div>
             `;
             document.getElementById('modal').classList.add('active');
         }
 
-        function markAsHome(parkingId) {
-            const parking = parkingsData[parkingId];
-            if (parking && parking.center) {
-                addHomeToFavorite(parking.center, parking.name);
+        function markAsHome(coords, address) {
+            if (coords) {
+                addHomeToFavorite(coords, address);
             }
             closeModal();
         }
@@ -923,7 +1086,7 @@
         function renderHistory() {
             const container = document.getElementById('sheetContent');
             if (!currentUser) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-text">Войдите, чтобы видеть историю</div></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-text">Войдите через Telegram</div></div>';
                 return;
             }
             const myParkings = Object.keys(parkingsData)
@@ -939,13 +1102,12 @@
             container.innerHTML = '<div class="section-header">Мои парковки</div><div class="ios-list">' +
                 myParkings.map(p => `
                     <div class="ios-list-item" onclick="showParkingModal('${p.id}', parkingsData['${p.id}'])">
-                        <div class="list-icon">️</div>
+                        <div class="list-icon ${p.status === 'free' ? 'status-free' : p.status === 'busy' ? 'status-busy' : 'status-unknown'}"></div>
                         <div class="list-content">
                             <div class="list-title">${p.name}</div>
-                            <div class="list-subtitle">${formatDate(p.created)}</div>
+                            <div class="list-subtitle">${getStatusText(p.status)} • ${formatDate(p.created)}</div>
                         </div>
                         <div class="list-badge">${p.places}</div>
-                        <button class="list-delete" onclick="event.stopPropagation(); deleteParking('${p.id}')">️</button>
                     </div>
                 `).join('') + '</div>';
         }
@@ -954,7 +1116,7 @@
             const container = document.getElementById('sheetContent');
             
             if (myHomes.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏠</div><div class="empty-text">Нет избранных домов<br><small>Отметьте дом через парковку</small></div></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><div class="empty-text">Нет избранных домов<br><small>Отметьте дом через парковку</small></div></div>';
                 return;
             }
 
@@ -963,7 +1125,7 @@
                     const parkingCount = countParkingsNearHome(home.coords);
                     return `
                     <div class="ios-list-item">
-                        <div class="list-icon home-marker"></div>
+                        <div class="list-icon home-marker">🏠</div>
                         <div class="list-content">
                             <div class="list-title">${home.address} <span class="parking-counter">${parkingCount}</span></div>
                             <div class="list-subtitle">${parkingCount} парковок рядом</div>
@@ -980,19 +1142,20 @@
                     <div class="profile-header-card">
                         <div class="profile-big-avatar">?</div>
                         <div class="profile-big-name">Гость</div>
-                        <div class="profile-big-username">Войдите для доступа</div>
-                        <button class="profile-login-btn" style="margin-top:16px;" onclick="showLoginPrompt()">Войти</button>
+                        <div class="profile-big-username">Войдите через Telegram</div>
                     </div>
                 `;
                 return;
             }
             const myParkings = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
             const totalPlaces = myParkings.reduce((s, p) => s + (p.places || 0), 0);
+            const freeCount = myParkings.filter(p => p.status === 'free').length;
+            const busyCount = myParkings.filter(p => p.status === 'busy').length;
 
             container.innerHTML = `
                 <div class="profile-header-card">
                     <div class="profile-big-avatar">${getInitials(currentUser.firstName)}</div>
-                    <div class="profile-big-name">${currentUser.firstName}</div>
+                    <div class="profile-big-name">${currentUser.firstName} ${currentUser.lastName || ''}</div>
                     <div class="profile-big-username">@${currentUser.username}</div>
                 </div>
                 <div class="section-header">Статистика</div>
@@ -1001,12 +1164,11 @@
                     <div class="stat-card"><div class="stat-number">${totalPlaces}</div><div class="stat-label">Мест</div></div>
                     <div class="stat-card"><div class="stat-number">${myHomes.length}</div><div class="stat-label">Домов</div></div>
                 </div>
-                <div class="section-header">Действия</div>
-                <div class="ios-list">
-                    <div class="ios-list-item" onclick="logout()">
-                        <div class="list-icon" style="background:#FF3B30;"></div>
-                        <div class="list-content"><div class="list-title" style="color:#FF3B30;">Выйти</div></div>
-                    </div>
+                <div class="section-header">Статус парковок</div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" style="color:#34C759">${freeCount}</div><div class="stat-label">Свободно</div></div>
+                    <div class="stat-card"><div class="stat-number" style="color:#FF3B30">${busyCount}</div><div class="stat-label">Занято</div></div>
+                    <div class="stat-card"><div class="stat-number" style="color:#007AFF">${myParkings.length - freeCount - busyCount}</div><div class="stat-label">Неизвестно</div></div>
                 </div>
             `;
         }
