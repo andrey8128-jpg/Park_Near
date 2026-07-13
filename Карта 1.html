@@ -2,359 +2,430 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Parking Map</title>
 
-    <!-- Яндекс Карты -->
+    <!-- Яндекс Карты (ВАШ КЛЮЧ ВСТРОЕН) -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
 
-    <!-- Firebase -->
+    <!-- Firebase (Compat версия для простой работы в HTML) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- Telegram Login Widget -->
-    <script async src="https://telegram.org/js/telegram-widget.js?22" 
-            data-telegram-login="YOUR_BOT_USERNAME" 
-            data-size="large" 
-            data-radius="20" 
-            data-auth-url="https://YOUR_DOMAIN.COM/auth.html"
-            data-request-access="write"></script>
-
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            overflow: hidden;
-            height: 100vh;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        #map { 
-            width: 100%; 
-            height: 100%; 
-            position: absolute; 
-            top: 0; left: 0; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            background: #F2F2F7;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            color: #000;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
             z-index: 1;
         }
 
-        #addBtn {
-            position: absolute; 
-            top: 20px; 
-            left: 50%; 
-            transform: translateX(-50%);
-            z-index: 900; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; 
+        /* ===== iOS Segmented Control (типы карты) ===== */
+        .map-type-control {
+            position: absolute;
+            top: 60px;
+            left: 16px;
+            right: 16px;
+            z-index: 900;
+            display: flex;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 10px;
+            padding: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .map-type-btn {
+            flex: 1;
+            padding: 8px 12px;
             border: none;
-            padding: 14px 28px;
-            border-radius: 50px; 
-            font-size: 15px; 
-            font-weight: 600;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 500;
+            color: #000;
+            border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            transition: all 0.2s ease;
+            font-family: inherit;
         }
-        #addBtn.drawing { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .map-type-btn.active {
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+            font-weight: 600;
+        }
 
-        /* Блок авторизации */
-        #authWindow {
-            position: absolute; 
-            top: 15px; 
-            right: 15px; 
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            padding: 20px; 
-            width: 280px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            text-align: center;
-        }
-        #authWindow h3 { 
-            margin-bottom: 15px; 
-            color: #667eea; 
-            font-size: 18px; 
-        }
-        
-        /* Кнопка Telegram */
-        .telegram-btn {
-            background: linear-gradient(135deg, #0088cc 0%, #00a8e6 100%);
+        /* ===== Кнопка добавления ===== */
+        #addBtn {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            z-index: 900;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #007AFF;
             color: white;
             border: none;
-            padding: 14px 24px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 28px;
+            font-weight: 300;
             cursor: pointer;
-            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(0, 136, 204, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .telegram-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 136, 204, 0.4);
-        }
-        .telegram-btn svg {
-            width: 24px;
-            height: 24px;
-        }
-        
-        .logout-btn {
-            background: #f5f5f5;
-            color: #666;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-        }
-        
-        #userInfo { 
-            margin-top: 15px; 
-            font-size: 13px; 
-            padding: 10px; 
-            background: #f5f5f5; 
-            border-radius: 10px;
-            word-break: break-all;
+        #addBtn:active { transform: scale(0.92); }
+        #addBtn.drawing {
+            background: #FF3B30;
+            box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4);
         }
 
-        #bottomMenu {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 75px;
-            background: rgba(255, 255, 255, 0.98);
-            z-index: 1000; display: flex;
-            border-radius: 25px 25px 0 0;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
+        /* ===== iOS Bottom Sheet ===== */
+        #bottomSheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 70vh;
+            background: rgba(249, 249, 249, 0.95);
+            backdrop-filter: saturate(180%) blur(30px);
+            -webkit-backdrop-filter: saturate(180%) blur(30px);
+            border-radius: 20px 20px 0 0;
+            z-index: 1000;
+            transform: translateY(calc(100% - 80px));
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
         }
-        .menuItem {
-            flex: 1; display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            font-size: 12px; color: #888; cursor: pointer;
-        }
-        .menuItem .icon { font-size: 24px; margin-bottom: 4px; }
-        .menuItem.active { color: #667eea; }
+        #bottomSheet.expanded { transform: translateY(0); }
 
-        .page-panel {
-            position: absolute; bottom: 75px; left: 0; right: 0;
-            max-height: 55vh;
-            background: rgba(255, 255, 255, 0.98);
-            border-radius: 25px 25px 0 0;
-            z-index: 999; padding: 25px 20px;
+        .sheet-handle {
+            width: 36px;
+            height: 5px;
+            background: #C7C7CC;
+            border-radius: 3px;
+            margin: 10px auto;
+            cursor: grab;
+        }
+
+        .sheet-header {
+            padding: 10px 20px 15px;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+        }
+        .sheet-title { font-size: 20px; font-weight: 700; color: #000; }
+        .sheet-subtitle { font-size: 13px; color: #8E8E93; margin-top: 4px; }
+
+        .sheet-content {
+            padding: 10px 0;
             overflow-y: auto;
-            transform: translateY(100%);
-            transition: transform 0.4s ease;
-        }
-        .page-panel.active { transform: translateY(0); }
-        .page-panel h2 { color: #667eea; margin-bottom: 20px; font-size: 22px; }
-        .page-panel .close-btn {
-            float: right; background: #f5f5f5; border: none;
-            width: 32px; height: 32px; border-radius: 50%;
-            font-size: 18px; cursor: pointer;
+            max-height: calc(70vh - 100px);
         }
 
-        .parking-card {
-            background: white; border-radius: 15px; padding: 15px;
-            margin-bottom: 12px; box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-            display: flex; align-items: center; gap: 12px;
+        /* ===== iOS Tab Bar ===== */
+        #tabBar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 83px;
+            background: rgba(249, 249, 249, 0.92);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            z-index: 1001;
+            display: flex;
+            border-top: 0.5px solid rgba(0,0,0,0.1);
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        .parking-icon {
-            width: 45px; height: 45px;
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            border-radius: 12px; display: flex; align-items: center;
-            justify-content: center; font-size: 22px; flex-shrink: 0;
+        .tabItem {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .parking-info { flex: 1; }
-        .parking-info h4 { color: #333; margin-bottom: 4px; font-size: 14px; }
-        .parking-info p { color: #888; font-size: 12px; }
-        .delete-btn { background: #ff4757; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
-        .empty-state { text-align: center; padding: 30px 20px; color: #999; }
+        .tabItem .tab-icon { font-size: 24px; margin-bottom: 4px; transition: transform 0.2s; }
+        .tabItem .tab-label { font-size: 10px; color: #8E8E93; font-weight: 500; }
+        .tabItem.active .tab-label { color: #007AFF; font-weight: 600; }
+        .tabItem.active .tab-icon { transform: scale(1.1); }
 
+        /* ===== iOS Profile Card ===== */
+        #profileCard {
+            position: absolute;
+            top: 120px;
+            right: 16px;
+            z-index: 900;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 14px;
+            padding: 14px 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            max-width: 220px;
+            display: none;
+        }
+        #profileCard.visible { display: block; }
+        .profile-row { display: flex; align-items: center; gap: 10px; }
+        .profile-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white; display: flex; align-items: center;
+            justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0;
+        }
+        .profile-info { flex: 1; min-width: 0; }
+        .profile-name { font-size: 14px; font-weight: 600; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .profile-username { font-size: 12px; color: #8E8E93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .profile-login-btn {
+            width: 100%; padding: 10px; background: #007AFF; color: white;
+            border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+            cursor: pointer; font-family: inherit; margin-top: 10px;
+        }
+        .profile-logout-btn {
+            width: 100%; padding: 8px; background: transparent; color: #FF3B30;
+            border: none; font-size: 13px; font-weight: 500; cursor: pointer;
+            font-family: inherit; margin-top: 6px;
+        }
+
+        /* ===== iOS List ===== */
+        .ios-list {
+            background: #fff;
+            border-radius: 12px;
+            margin: 0 16px 12px;
+            overflow: hidden;
+        }
+        .ios-list-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 0.5px solid rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .ios-list-item:last-child { border-bottom: none; }
+        .ios-list-item:active { background: #E5E5EA; }
+        .list-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: #34C759; display: flex; align-items: center;
+            justify-content: center; font-size: 20px; flex-shrink: 0;
+        }
+        .list-content { flex: 1; min-width: 0; }
+        .list-title { font-size: 15px; font-weight: 600; color: #000; margin-bottom: 2px; }
+        .list-subtitle { font-size: 13px; color: #8E8E93; }
+        .list-badge {
+            background: #007AFF; color: white; padding: 3px 8px;
+            border-radius: 10px; font-size: 12px; font-weight: 600;
+        }
+        .list-delete {
+            color: #FF3B30; background: none; border: none;
+            font-size: 18px; cursor: pointer; padding: 4px 8px;
+        }
+
+        /* ===== iOS Modal ===== */
         #modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6); z-index: 2000;
-            display: none; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.4); z-index: 2000;
+            display: none; align-items: flex-end; justify-content: center;
         }
         #modal.active { display: flex; }
-        .modal-content {
-            background: white; border-radius: 20px; padding: 25px;
-            max-width: 380px; width: 90%;
+        .modal-sheet {
+            background: #F2F2F7; border-radius: 20px 20px 0 0;
+            padding: 20px; width: 100%; max-width: 500px; max-height: 70vh;
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .modal-content h3 { color: #667eea; margin-bottom: 15px; }
-        .modal-stat { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
-        .modal-buttons button { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
-
-        .profile-header {
-            text-align: center; padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px; color: white; margin-bottom: 20px;
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-handle { width: 36px; height: 5px; background: #C7C7CC; border-radius: 3px; margin: 0 auto 16px; }
+        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
+        .modal-info-row {
+            display: flex; justify-content: space-between; padding: 12px 0;
+            border-bottom: 0.5px solid rgba(0,0,0,0.08); font-size: 15px;
         }
-        .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: white; padding: 12px; border-radius: 12px; text-align: center; }
-        .stat-box .number { font-size: 22px; font-weight: 700; color: #667eea; }
-        .stat-box .label { font-size: 11px; color: #888; margin-top: 4px; }
+        .modal-info-label { color: #8E8E93; }
+        .modal-info-value { font-weight: 600; color: #000; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn {
+            flex: 1; padding: 14px; border: none; border-radius: 12px;
+            font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .modal-btn-primary { background: #007AFF; color: white; }
+        .modal-btn-secondary { background: #E5E5EA; color: #000; }
 
+        /* ===== iOS Toast ===== */
         #toast {
-            position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-100px);
-            background: rgba(0,0,0,0.85); color: white; padding: 12px 24px;
-            border-radius: 50px; font-size: 14px; z-index: 3000;
-            transition: transform 0.4s ease;
+            position: fixed; top: 60px; left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.8); color: white; padding: 12px 20px;
+            border-radius: 20px; font-size: 14px; font-weight: 500; z-index: 3000;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: #8E8E93; }
+        .empty-icon { font-size: 50px; margin-bottom: 12px; opacity: 0.5; }
+        .empty-text { font-size: 15px; }
+        .sheet-content::-webkit-scrollbar { width: 0; }
+        .section-header {
+            padding: 8px 20px 6px; font-size: 13px; font-weight: 600;
+            color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 16px; margin-bottom: 16px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 14px 10px; text-align: center; }
+        .stat-number { font-size: 24px; font-weight: 700; color: #007AFF; }
+        .stat-label { font-size: 11px; color: #8E8E93; margin-top: 4px; font-weight: 500; }
+        .profile-header-card {
+            background: #fff; border-radius: 12px; margin: 0 16px 16px;
+            padding: 20px; text-align: center;
+        }
+        .profile-big-avatar {
+            width: 70px; height: 70px; border-radius: 50%;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white; display: flex; align-items: center;
+            justify-content: center; font-size: 28px; font-weight: 600; margin: 0 auto 12px;
+        }
+        .profile-big-name { font-size: 18px; font-weight: 700; color: #000; margin-bottom: 4px; }
+        .profile-big-username { font-size: 14px; color: #8E8E93; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
-    <button id="addBtn">➕ Добавить парковку</button>
 
-    <div id="authWindow">
-        <h3>👤 Вход через Telegram</h3>
-        
-        <!-- Кнопка Telegram Login -->
-        <div id="telegramLogin"></div>
-        
-        <button class="logout-btn" onclick="logout()" style="display:none;" id="logoutBtn">
-            Выйти
-        </button>
-        
-        <p id="userInfo"> Не авторизован</p>
+    <!-- Переключатель типов карты -->
+    <div class="map-type-control">
+        <button class="map-type-btn active" data-type="map" onclick="setMapType('map')">Схема</button>
+        <button class="map-type-btn" data-type="satellite" onclick="setMapType('satellite')">Спутник</button>
+        <button class="map-type-btn" data-type="hybrid" onclick="setMapType('hybrid')">Гибрид</button>
     </div>
 
-    <div id="bottomMenu">
-        <div class="menuItem active" onclick="openPage('map', this)">
-            <div class="icon">🗺️</div><span>Карта</span>
+    <!-- Кнопка добавления -->
+    <button id="addBtn">+</button>
+
+    <!-- Карточка профиля -->
+    <div id="profileCard">
+        <div class="profile-row">
+            <div class="profile-avatar" id="profileAvatar">?</div>
+            <div class="profile-info">
+                <div class="profile-name" id="profileName">Гость</div>
+                <div class="profile-username" id="profileUsername">Не авторизован</div>
+            </div>
         </div>
-        <div class="menuItem" onclick="openPage('history', this)">
-            <div class="icon">🕘</div><span>История</span>
+        <button class="profile-login-btn" id="loginBtn" onclick="showLoginPrompt()">Войти через Telegram</button>
+        <button class="profile-logout-btn" id="logoutBtn" style="display:none;" onclick="logout()">Выйти</button>
+    </div>
+
+    <!-- Bottom Sheet -->
+    <div id="bottomSheet">
+        <div class="sheet-handle" onclick="toggleSheet()"></div>
+        <div class="sheet-header">
+            <div class="sheet-title" id="sheetTitle">Карта</div>
+            <div class="sheet-subtitle" id="sheetSubtitle">Найдите парковку рядом</div>
         </div>
-        <div class="menuItem" onclick="openPage('profile', this)">
-            <div class="icon">👤</div><span>Профиль</span>
+        <div class="sheet-content" id="sheetContent"></div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div id="tabBar">
+        <div class="tabItem active" onclick="switchTab('map', this)">
+            <div class="tab-icon">🗺️</div>
+            <div class="tab-label">Карта</div>
+        </div>
+        <div class="tabItem" onclick="switchTab('history', this)">
+            <div class="tab-icon">🕘</div>
+            <div class="tab-label">История</div>
+        </div>
+        <div class="tabItem" onclick="switchTab('favorites', this)">
+            <div class="tab-icon">⭐</div>
+            <div class="tab-label">Избранное</div>
+        </div>
+        <div class="tabItem" onclick="switchTab('profile', this)">
+            <div class="tab-icon">👤</div>
+            <div class="tab-label">Профиль</div>
         </div>
     </div>
 
-    <div class="page-panel" id="historyPanel">
-        <button class="close-btn" onclick="closePanel('history')">✕</button>
-        <h2>🕘 История</h2>
-        <div id="historyList"></div>
+    <!-- Modal -->
+    <div id="modal" onclick="closeModal(event)">
+        <div class="modal-sheet" id="modalContent" onclick="event.stopPropagation()">
+            <div class="modal-handle"></div>
+            <div id="modalBody"></div>
+        </div>
     </div>
 
-    <div class="page-panel" id="profilePanel">
-        <button class="close-btn" onclick="closePanel('profile')">✕</button>
-        <h2>👤 Профиль</h2>
-        <div id="profileContent"></div>
-    </div>
-
-    <div id="modal"><div class="modal-content" id="modalContent"></div></div>
+    <!-- Toast -->
     <div id="toast"></div>
 
     <script>
-        // FIREBASE
+        // ============================
+        // FIREBASE (ВАШИ ДАННЫЕ)
+        // ============================
         const firebaseConfig = {
-            apiKey: "YOUR_FIREBASE_API_KEY",
-            authDomain: "your-project.firebaseapp.com",
-            databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-            projectId: "your-project",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
+            apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
+            authDomain: "parknear-bef41.firebaseapp.com",
+            databaseURL: "https://parknear-bef41-default-rtdb.firebaseio.com",
+            projectId: "parknear-bef41",
+            storageBucket: "parknear-bef41.firebasestorage.app",
+            messagingSenderId: "1066552333578",
+            appId: "1:1066552333578:web:e60e333cf877852eba16f3",
+            measurementId: "G-1HNBMVYWCT"
         };
+        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
 
-        // Telegram Login Widget
-        let currentUser = null;
+        // ============================
+        // СОСТОЯНИЕ
+        // ============================
+        let map, currentMapType = 'map';
+        let drawing = false, points = [], tempPolygon = null;
+        let parkingsData = {}, myFavorites = [], currentUser = null;
+        let sheetExpanded = false;
 
-        function onTelegramAuth(user) {
-            // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
-            currentUser = user;
-            
-            // Сохраняем в Firebase
-            database.ref("users/" + user.id).set({
-                telegramId: user.id,
-                username: user.username || user.first_name,
-                firstName: user.first_name,
-                lastName: user.last_name || '',
-                photoUrl: user.photo_url || '',
-                lastLogin: new Date().toISOString()
-            });
-
-            // Показываем информацию
-            document.getElementById("userInfo").innerHTML = 
-                `✅ ${user.first_name} ${user.last_name || ''}<br>@${user.username || 'telegram'}`;
-            document.getElementById("logoutBtn").style.display = "block";
-            document.getElementById("telegramLogin").style.display = "none";
-            
-            showToast(`👋 Добро пожаловать, ${user.first_name}!`);
-            renderProfile();
-        }
-
-        function logout() {
-            currentUser = null;
-            document.getElementById("userInfo").innerHTML = "🔒 Не авторизован";
-            document.getElementById("logoutBtn").style.display = "none";
-            document.getElementById("telegramLogin").style.display = "block";
-            showToast('👋 Вы вышли');
-        }
-
-        // Создаем кнопку Telegram Login
-        function createTelegramButton() {
-            const container = document.getElementById('telegramLogin');
-            container.innerHTML = `
-                <button class="telegram-btn" onclick="openTelegramAuth()">
-                    <svg viewBox="0 0 24 24" fill="white">
-                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
-                    </svg>
-                    Войти через Telegram
-                </button>
-            `;
-        }
-
-        function openTelegramAuth() {
-            // Открываем Telegram авторизацию
-            const botUsername = 'YOUR_BOT_USERNAME'; // ЗАМЕНИТЕ!
-            const domain = 'YOUR_DOMAIN.COM'; // ЗАМЕНИТЕ!
-            
-            // Используем Telegram Login Widget
-            const authUrl = `https://oauth.telegram.org/auth?bot_id=YOUR_BOT_ID&origin=${encodeURIComponent('https://' + domain)}&return_to=${encodeURIComponent('https://' + domain)}`;
-            
-            // Для простоты открываем в новом окне
-            window.open(authUrl, 'TelegramAuth', 'width=500,height=600');
-        }
-
-        // Проверяем авторизацию при загрузке
-        window.addEventListener('load', function() {
-            createTelegramButton();
-            
-            // Проверяем localStorage
-            const savedUser = localStorage.getItem('telegramUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                document.getElementById("userInfo").innerHTML = 
-                    `✅ ${currentUser.first_name}<br>@${currentUser.username || 'telegram'}`;
-                document.getElementById("logoutBtn").style.display = "block";
-                document.getElementById("telegramLogin").style.display = "none";
-            }
-        });
-
-        // Утилиты
+        // ============================
+        // УТИЛИТЫ
+        // ============================
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
-        // ЯНДЕКС КАРТА
-        let map, drawing = false, points = [], tempPolygon = null, parkingsData = {};
+        function formatDate(iso) {
+            const d = new Date(iso);
+            return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
 
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        // ============================
+        // ЯНДЕКС КАРТА
+        // ============================
         ymaps.ready(initMap);
 
         function initMap() {
@@ -365,12 +436,16 @@
             });
 
             document.getElementById("addBtn").onclick = function() {
+                if (!currentUser) {
+                    showToast('Войдите для добавления');
+                    return;
+                }
                 if (drawing) { finishDrawing(); return; }
                 drawing = true;
                 points = [];
-                this.innerHTML = " Завершить";
                 this.classList.add('drawing');
-                showToast('📍 Ставьте точки на карте');
+                this.textContent = '✕';
+                showToast('Ставьте точки на карте');
             };
 
             map.events.add("click", function(e) {
@@ -378,8 +453,8 @@
                 points.push(e.get("coords"));
                 if (tempPolygon) map.geoObjects.remove(tempPolygon);
                 tempPolygon = new ymaps.Polygon([points], {}, {
-                    fillColor: "#667eea", fillOpacity: 0.4,
-                    strokeColor: "#667eea", strokeWidth: 3
+                    fillColor: "#007AFF", fillOpacity: 0.3,
+                    strokeColor: "#007AFF", strokeWidth: 3
                 });
                 map.geoObjects.add(tempPolygon);
             });
@@ -387,20 +462,88 @@
             loadParkings();
         }
 
+        function setMapType(type) {
+            currentMapType = type;
+            document.querySelectorAll('.map-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+
+            if (type === 'map') map.setType('yandex#map');
+            else if (type === 'satellite') map.setType('yandex#satellite');
+            else if (type === 'hybrid') map.setType('yandex#hybrid');
+
+            showToast(type === 'map' ? 'Схема' : type === 'satellite' ? 'Спутник' : 'Гибрид');
+        }
+
+        // ============================
+        // АВТОРИЗАЦИЯ
+        // ============================
+        function showLoginPrompt() {
+            const username = prompt('Введите ваш Telegram username (без @):');
+            if (!username) return;
+            const firstName = prompt('Ваше имя:') || 'Пользователь';
+            
+            currentUser = { id: 'tg_' + Date.now(), username: username, firstName: firstName, lastName: '' };
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            updateProfileUI();
+            showToast('Добро пожаловать, ' + firstName + '!');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('tgUser');
+            updateProfileUI();
+            showToast('Вы вышли');
+            switchTab('map', document.querySelector('.tabItem'));
+        }
+
+        function updateProfileUI() {
+            const card = document.getElementById('profileCard');
+            const avatar = document.getElementById('profileAvatar');
+            const name = document.getElementById('profileName');
+            const username = document.getElementById('profileUsername');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (currentUser) {
+                card.classList.add('visible');
+                avatar.textContent = getInitials(currentUser.firstName);
+                name.textContent = currentUser.firstName;
+                username.textContent = '@' + currentUser.username;
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+            } else {
+                card.classList.add('visible');
+                avatar.textContent = '?';
+                name.textContent = 'Гость';
+                username.textContent = 'Не авторизован';
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+            }
+        }
+
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('tgUser');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                updateProfileUI();
+            } else {
+                updateProfileUI();
+            }
+        });
+
+        // ============================
+        // ПАРКОВКИ
+        // ============================
         function finishDrawing() {
             drawing = false;
             const btn = document.getElementById("addBtn");
-            btn.innerHTML = "➕ Добавить парковку";
             btn.classList.remove('drawing');
+            btn.textContent = '+';
 
             if (points.length < 3) {
-                showToast('❌ Минимум 3 точки');
+                showToast('Минимум 3 точки');
                 if (tempPolygon) map.geoObjects.remove(tempPolygon);
-                return;
-            }
-
-            if (!currentUser) {
-                showToast(' Войдите через Telegram');
                 return;
             }
 
@@ -408,23 +551,22 @@
             const places = prompt("Количество мест:") || "0";
 
             const parking = {
-                name: name,
-                places: Number(places),
+                name, places: Number(places),
                 coordinates: points,
                 owner: currentUser.id,
-                ownerName: currentUser.first_name + ' ' + (currentUser.last_name || ''),
-                ownerUsername: currentUser.username || '',
+                ownerName: currentUser.firstName,
+                ownerUsername: currentUser.username,
                 created: new Date().toISOString()
             };
 
             const id = database.ref("parkings").push().key;
             database.ref("parkings/" + id).set(parking)
                 .then(() => {
-                    showToast('✅ Сохранено');
+                    showToast('Сохранено!');
                     if (tempPolygon) map.geoObjects.remove(tempPolygon);
                     loadParkings();
                 })
-                .catch(error => showToast('❌ ' + error.message));
+                .catch(error => showToast('Ошибка: ' + error.message));
         }
 
         function loadParkings() {
@@ -437,7 +579,7 @@
                         const p = data[id];
                         const polygon = new ymaps.Polygon([p.coordinates], 
                             { hintContent: p.name },
-                            { fillColor: "#11998e", fillOpacity: 0.4, strokeColor: "#11998e", strokeWidth: 3 }
+                            { fillColor: "#34C759", fillOpacity: 0.35, strokeColor: "#34C759", strokeWidth: 3 }
                         );
                         polygon.events.add('click', () => showParkingModal(id, p));
                         map.geoObjects.add(polygon);
@@ -446,99 +588,188 @@
             });
         }
 
+        // ============================
+        // МОДАЛЬНОЕ ОКНО И ИЗБРАННОЕ
+        // ============================
         function showParkingModal(id, parking) {
-            document.getElementById('modalContent').innerHTML = `
-                <h3>🅿️ ${parking.name}</h3>
-                <div class="modal-stat"><span>Мест:</span><strong>${parking.places}</strong></div>
-                <div class="modal-stat"><span>Добавил:</span><strong>${parking.ownerName || 'Аноним'}</strong></div>
-                <div class="modal-stat"><span>Telegram:</span><strong>@${parking.ownerUsername || 'неизвестно'}</strong></div>
-                <div class="modal-buttons">
-                    <button onclick="closeModal()">Закрыть</button>
+            const isFav = myFavorites.includes(id);
+            document.getElementById('modalBody').innerHTML = `
+                <div class="modal-title">🅿️ ${parking.name}</div>
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Мест</span>
+                    <span class="modal-info-value">${parking.places}</span>
+                </div>
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Добавил</span>
+                    <span class="modal-info-value">@${parking.ownerUsername || 'аноним'}</span>
+                </div>
+                <div class="modal-info-row">
+                    <span class="modal-info-label">Дата</span>
+                    <span class="modal-info-value">${formatDate(parking.created)}</span>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
+                    <button class="modal-btn modal-btn-primary" onclick="toggleFavorite('${id}')">
+                        ${isFav ? 'Убрать' : 'В избранное'}
+                    </button>
                 </div>
             `;
             document.getElementById('modal').classList.add('active');
         }
 
-        function closeModal() {
-            document.getElementById('modal').classList.remove('active');
+        function closeModal(e) {
+            if (!e || e.target.id === 'modal') {
+                document.getElementById('modal').classList.remove('active');
+            }
+        }
+
+        function toggleFavorite(id) {
+            if (!currentUser) { showToast('Войдите'); return; }
+            const idx = myFavorites.indexOf(id);
+            if (idx > -1) {
+                myFavorites.splice(idx, 1);
+                showToast('Убрано из избранного');
+            } else {
+                myFavorites.push(id);
+                showToast('Добавлено в избранное');
+            }
+            closeModal();
+            if (document.querySelector('.tabItem:nth-child(3)').classList.contains('active')) {
+                renderFavorites();
+            }
+        }
+
+        // ============================
+        // НАВИГАЦИЯ
+        // ============================
+        function switchTab(tab, el) {
+            document.querySelectorAll('.tabItem').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+
+            const titles = {
+                map: ['Карта', 'Найдите парковку рядом'],
+                history: ['История', 'Ваши добавленные парковки'],
+                favorites: ['Избранное', 'Сохраненные парковки'],
+                profile: ['Профиль', 'Ваша информация']
+            };
+            document.getElementById('sheetTitle').textContent = titles[tab][0];
+            document.getElementById('sheetSubtitle').textContent = titles[tab][1];
+
+            if (tab === 'map') {
+                document.getElementById('bottomSheet').classList.remove('expanded');
+                sheetExpanded = false;
+            } else {
+                document.getElementById('bottomSheet').classList.add('expanded');
+                sheetExpanded = true;
+                if (tab === 'history') renderHistory();
+                if (tab === 'favorites') renderFavorites();
+                if (tab === 'profile') renderProfile();
+            }
+        }
+
+        function toggleSheet() {
+            sheetExpanded = !sheetExpanded;
+            document.getElementById('bottomSheet').classList.toggle('expanded', sheetExpanded);
         }
 
         function renderHistory() {
+            const container = document.getElementById('sheetContent');
             if (!currentUser) {
-                document.getElementById('historyList').innerHTML = '<div class="empty-state"><p>Войдите через Telegram</p></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><div class="empty-text">Войдите, чтобы видеть историю</div></div>';
                 return;
             }
-            
-            const container = document.getElementById('historyList');
             const myParkings = Object.keys(parkingsData)
-                .filter(id => parkingsData[id].owner == currentUser.id)
+                .filter(id => parkingsData[id].owner === currentUser.id)
                 .map(id => ({ id, ...parkingsData[id] }))
                 .sort((a, b) => new Date(b.created) - new Date(a.created));
 
             if (myParkings.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>Нет парковок</p></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Вы еще не добавляли парковки</div></div>';
                 return;
             }
-            container.innerHTML = myParkings.map(p => `
-                <div class="parking-card">
-                    <div class="parking-icon">🅿️</div>
-                    <div class="parking-info"><h4>${p.name}</h4><p>${p.places} мест</p></div>
-                    <button class="delete-btn" onclick="deleteParking('${p.id}')">🗑️</button>
-                </div>
-            `).join('');
+
+            container.innerHTML = '<div class="section-header">Мои парковки</div><div class="ios-list">' +
+                myParkings.map(p => `
+                    <div class="ios-list-item" onclick="showParkingModal('${p.id}', parkingsData['${p.id}'])">
+                        <div class="list-icon">🅿️</div>
+                        <div class="list-content">
+                            <div class="list-title">${p.name}</div>
+                            <div class="list-subtitle">${formatDate(p.created)}</div>
+                        </div>
+                        <div class="list-badge">${p.places}</div>
+                        <button class="list-delete" onclick="event.stopPropagation(); deleteParking('${p.id}')">🗑️</button>
+                    </div>
+                `).join('') + '</div>';
         }
 
-        function deleteParking(id) {
-            if (!confirm('Удалить?')) return;
-            database.ref("parkings/" + id).remove().then(() => {
-                showToast('🗑️ Удалено');
-                loadParkings();
-                renderHistory();
-            });
+        function renderFavorites() {
+            const container = document.getElementById('sheetContent');
+            const favParkings = myFavorites.filter(id => parkingsData[id]).map(id => ({ id, ...parkingsData[id] }));
+
+            if (favParkings.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-text">Нет избранных парковок</div></div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="section-header">Избранное</div><div class="ios-list">' +
+                favParkings.map(p => `
+                    <div class="ios-list-item" onclick="showParkingModal('${p.id}', parkingsData['${p.id}'])">
+                        <div class="list-icon" style="background:#FF9500;">⭐</div>
+                        <div class="list-content">
+                            <div class="list-title">${p.name}</div>
+                            <div class="list-subtitle">@${p.ownerUsername || 'аноним'}</div>
+                        </div>
+                        <div class="list-badge">${p.places}</div>
+                    </div>
+                `).join('') + '</div>';
         }
 
         function renderProfile() {
-            const container = document.getElementById('profileContent');
+            const container = document.getElementById('sheetContent');
             if (!currentUser) {
-                container.innerHTML = '<div class="empty-state"><p>Войдите через Telegram</p></div>';
+                container.innerHTML = `
+                    <div class="profile-header-card">
+                        <div class="profile-big-avatar">?</div>
+                        <div class="profile-big-name">Гость</div>
+                        <div class="profile-big-username">Войдите для доступа</div>
+                        <button class="profile-login-btn" style="margin-top:16px;" onclick="showLoginPrompt()">Войти</button>
+                    </div>
+                `;
                 return;
             }
-            const myParkings = Object.values(parkingsData).filter(p => p.owner == currentUser.id);
+            const myParkings = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
+            const totalPlaces = myParkings.reduce((s, p) => s + (p.places || 0), 0);
+
             container.innerHTML = `
-                <div class="profile-header">
-                    <div class="profile-avatar">👤</div>
-                    <h3>${currentUser.first_name} ${currentUser.last_name || ''}</h3>
-                    <p>@${currentUser.username || 'telegram'}</p>
+                <div class="profile-header-card">
+                    <div class="profile-big-avatar">${getInitials(currentUser.firstName)}</div>
+                    <div class="profile-big-name">${currentUser.firstName}</div>
+                    <div class="profile-big-username">@${currentUser.username}</div>
                 </div>
-                <div class="profile-stats">
-                    <div class="stat-box"><div class="number">${myParkings.length}</div><div class="label">Парковок</div></div>
-                    <div class="stat-box"><div class="number">${myParkings.reduce((s,p)=>s+(p.places||0),0)}</div><div class="label">Мест</div></div>
-                    <div class="stat-box"><div class="number">${Object.keys(myParkings).length}</div><div class="label">Всего</div></div>
+                <div class="section-header">Статистика</div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number">${myParkings.length}</div><div class="stat-label">Парковок</div></div>
+                    <div class="stat-card"><div class="stat-number">${totalPlaces}</div><div class="stat-label">Мест</div></div>
+                    <div class="stat-card"><div class="stat-number">${myFavorites.length}</div><div class="stat-label">Избранных</div></div>
+                </div>
+                <div class="section-header">Действия</div>
+                <div class="ios-list">
+                    <div class="ios-list-item" onclick="logout()">
+                        <div class="list-icon" style="background:#FF3B30;">🚪</div>
+                        <div class="list-content"><div class="list-title" style="color:#FF3B30;">Выйти</div></div>
+                    </div>
                 </div>
             `;
         }
 
-        function openPage(page, el) {
-            document.querySelectorAll(".menuItem").forEach(i => i.classList.remove("active"));
-            el.classList.add("active");
-            document.querySelectorAll(".page-panel").forEach(p => p.classList.remove("active"));
-            
-            if (page !== 'map') {
-                document.getElementById(page + 'Panel').classList.add("active");
-                if (page === 'history') renderHistory();
-                if (page === 'profile') renderProfile();
-            }
+        function deleteParking(id) {
+            if (!confirm('Удалить парковку?')) return;
+            database.ref("parkings/" + id).remove().then(() => {
+                showToast('Удалено');
+                loadParkings();
+                renderHistory();
+            });
         }
-
-        function closePanel(page) {
-            document.getElementById(page + 'Panel').classList.remove('active');
-            document.querySelectorAll(".menuItem").forEach(i => i.classList.remove("active"));
-            document.querySelector('.menuItem:first-child').classList.add("active");
-        }
-
-        document.getElementById('modal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
     </script>
 </body>
 </html>
