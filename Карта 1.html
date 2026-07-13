@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Map</title>
+
+    <!-- Яндекс Карты -->
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- Telegram Login Widget -->
+    <script async src="https://telegram.org/js/telegram-widget.js?22" 
+            data-telegram-login="YOUR_BOT_USERNAME" 
+            data-size="large" 
+            data-radius="20" 
+            data-auth-url="https://YOUR_DOMAIN.COM/auth.html"
+            data-request-access="write"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #map { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; left: 0; 
+            z-index: 1;
+        }
+
+        #addBtn {
+            position: absolute; 
+            top: 20px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            z-index: 900; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px; 
+            font-size: 15px; 
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        #addBtn.drawing { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+
+        /* Блок авторизации */
+        #authWindow {
+            position: absolute; 
+            top: 15px; 
+            right: 15px; 
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 20px; 
+            width: 280px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        #authWindow h3 { 
+            margin-bottom: 15px; 
+            color: #667eea; 
+            font-size: 18px; 
+        }
+        
+        /* Кнопка Telegram */
+        .telegram-btn {
+            background: linear-gradient(135deg, #0088cc 0%, #00a8e6 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 136, 204, 0.3);
+        }
+        .telegram-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 136, 204, 0.4);
+        }
+        .telegram-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .logout-btn {
+            background: #f5f5f5;
+            color: #666;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        #userInfo { 
+            margin-top: 15px; 
+            font-size: 13px; 
+            padding: 10px; 
+            background: #f5f5f5; 
+            border-radius: 10px;
+            word-break: break-all;
+        }
+
+        #bottomMenu {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 75px;
+            background: rgba(255, 255, 255, 0.98);
+            z-index: 1000; display: flex;
+            border-radius: 25px 25px 0 0;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
+        }
+        .menuItem {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            font-size: 12px; color: #888; cursor: pointer;
+        }
+        .menuItem .icon { font-size: 24px; margin-bottom: 4px; }
+        .menuItem.active { color: #667eea; }
+
+        .page-panel {
+            position: absolute; bottom: 75px; left: 0; right: 0;
+            max-height: 55vh;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 25px 25px 0 0;
+            z-index: 999; padding: 25px 20px;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.4s ease;
+        }
+        .page-panel.active { transform: translateY(0); }
+        .page-panel h2 { color: #667eea; margin-bottom: 20px; font-size: 22px; }
+        .page-panel .close-btn {
+            float: right; background: #f5f5f5; border: none;
+            width: 32px; height: 32px; border-radius: 50%;
+            font-size: 18px; cursor: pointer;
+        }
+
+        .parking-card {
+            background: white; border-radius: 15px; padding: 15px;
+            margin-bottom: 12px; box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .parking-icon {
+            width: 45px; height: 45px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            border-radius: 12px; display: flex; align-items: center;
+            justify-content: center; font-size: 22px; flex-shrink: 0;
+        }
+        .parking-info { flex: 1; }
+        .parking-info h4 { color: #333; margin-bottom: 4px; font-size: 14px; }
+        .parking-info p { color: #888; font-size: 12px; }
+        .delete-btn { background: #ff4757; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+        .empty-state { text-align: center; padding: 30px 20px; color: #999; }
+
+        #modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            display: none; align-items: center; justify-content: center;
+        }
+        #modal.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 20px; padding: 25px;
+            max-width: 380px; width: 90%;
+        }
+        .modal-content h3 { color: #667eea; margin-bottom: 15px; }
+        .modal-stat { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-buttons button { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
+
+        .profile-header {
+            text-align: center; padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px; color: white; margin-bottom: 20px;
+        }
+        .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: white; padding: 12px; border-radius: 12px; text-align: center; }
+        .stat-box .number { font-size: 22px; font-weight: 700; color: #667eea; }
+        .stat-box .label { font-size: 11px; color: #888; margin-top: 4px; }
+
+        #toast {
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85); color: white; padding: 12px 24px;
+            border-radius: 50px; font-size: 14px; z-index: 3000;
+            transition: transform 0.4s ease;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <button id="addBtn">➕ Добавить парковку</button>
+
+    <div id="authWindow">
+        <h3>👤 Вход через Telegram</h3>
+        
+        <!-- Кнопка Telegram Login -->
+        <div id="telegramLogin"></div>
+        
+        <button class="logout-btn" onclick="logout()" style="display:none;" id="logoutBtn">
+            Выйти
+        </button>
+        
+        <p id="userInfo"> Не авторизован</p>
+    </div>
+
+    <div id="bottomMenu">
+        <div class="menuItem active" onclick="openPage('map', this)">
+            <div class="icon">🗺️</div><span>Карта</span>
+        </div>
+        <div class="menuItem" onclick="openPage('history', this)">
+            <div class="icon">🕘</div><span>История</span>
+        </div>
+        <div class="menuItem" onclick="openPage('profile', this)">
+            <div class="icon">👤</div><span>Профиль</span>
+        </div>
+    </div>
+
+    <div class="page-panel" id="historyPanel">
+        <button class="close-btn" onclick="closePanel('history')">✕</button>
+        <h2>🕘 История</h2>
+        <div id="historyList"></div>
+    </div>
+
+    <div class="page-panel" id="profilePanel">
+        <button class="close-btn" onclick="closePanel('profile')">✕</button>
+        <h2>👤 Профиль</h2>
+        <div id="profileContent"></div>
+    </div>
+
+    <div id="modal"><div class="modal-content" id="modalContent"></div></div>
+    <div id="toast"></div>
+
+    <script>
+        // FIREBASE
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Telegram Login Widget
+        let currentUser = null;
+
+        function onTelegramAuth(user) {
+            // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
+            currentUser = user;
+            
+            // Сохраняем в Firebase
+            database.ref("users/" + user.id).set({
+                telegramId: user.id,
+                username: user.username || user.first_name,
+                firstName: user.first_name,
+                lastName: user.last_name || '',
+                photoUrl: user.photo_url || '',
+                lastLogin: new Date().toISOString()
+            });
+
+            // Показываем информацию
+            document.getElementById("userInfo").innerHTML = 
+                `✅ ${user.first_name} ${user.last_name || ''}<br>@${user.username || 'telegram'}`;
+            document.getElementById("logoutBtn").style.display = "block";
+            document.getElementById("telegramLogin").style.display = "none";
+            
+            showToast(`👋 Добро пожаловать, ${user.first_name}!`);
+            renderProfile();
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById("userInfo").innerHTML = "🔒 Не авторизован";
+            document.getElementById("logoutBtn").style.display = "none";
+            document.getElementById("telegramLogin").style.display = "block";
+            showToast('👋 Вы вышли');
+        }
+
+        // Создаем кнопку Telegram Login
+        function createTelegramButton() {
+            const container = document.getElementById('telegramLogin');
+            container.innerHTML = `
+                <button class="telegram-btn" onclick="openTelegramAuth()">
+                    <svg viewBox="0 0 24 24" fill="white">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
+                    </svg>
+                    Войти через Telegram
+                </button>
+            `;
+        }
+
+        function openTelegramAuth() {
+            // Открываем Telegram авторизацию
+            const botUsername = 'YOUR_BOT_USERNAME'; // ЗАМЕНИТЕ!
+            const domain = 'YOUR_DOMAIN.COM'; // ЗАМЕНИТЕ!
+            
+            // Используем Telegram Login Widget
+            const authUrl = `https://oauth.telegram.org/auth?bot_id=YOUR_BOT_ID&origin=${encodeURIComponent('https://' + domain)}&return_to=${encodeURIComponent('https://' + domain)}`;
+            
+            // Для простоты открываем в новом окне
+            window.open(authUrl, 'TelegramAuth', 'width=500,height=600');
+        }
+
+        // Проверяем авторизацию при загрузке
+        window.addEventListener('load', function() {
+            createTelegramButton();
+            
+            // Проверяем localStorage
+            const savedUser = localStorage.getItem('telegramUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById("userInfo").innerHTML = 
+                    `✅ ${currentUser.first_name}<br>@${currentUser.username || 'telegram'}`;
+                document.getElementById("logoutBtn").style.display = "block";
+                document.getElementById("telegramLogin").style.display = "none";
+            }
+        });
+
+        // Утилиты
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ЯНДЕКС КАРТА
+        let map, drawing = false, points = [], tempPolygon = null, parkingsData = {};
+
+        ymaps.ready(initMap);
+
+        function initMap() {
+            map = new ymaps.Map("map", {
+                center: [55.7558, 37.6173],
+                zoom: 13,
+                controls: ["zoomControl", "geolocationControl"]
+            });
+
+            document.getElementById("addBtn").onclick = function() {
+                if (drawing) { finishDrawing(); return; }
+                drawing = true;
+                points = [];
+                this.innerHTML = " Завершить";
+                this.classList.add('drawing');
+                showToast('📍 Ставьте точки на карте');
+            };
+
+            map.events.add("click", function(e) {
+                if (!drawing) return;
+                points.push(e.get("coords"));
+                if (tempPolygon) map.geoObjects.remove(tempPolygon);
+                tempPolygon = new ymaps.Polygon([points], {}, {
+                    fillColor: "#667eea", fillOpacity: 0.4,
+                    strokeColor: "#667eea", strokeWidth: 3
+                });
+                map.geoObjects.add(tempPolygon);
+            });
+
+            loadParkings();
+        }
+
+        function finishDrawing() {
+            drawing = false;
+            const btn = document.getElementById("addBtn");
+            btn.innerHTML = "➕ Добавить парковку";
+            btn.classList.remove('drawing');
+
+            if (points.length < 3) {
+                showToast('❌ Минимум 3 точки');
+                if (tempPolygon) map.geoObjects.remove(tempPolygon);
+                return;
+            }
+
+            if (!currentUser) {
+                showToast(' Войдите через Telegram');
+                return;
+            }
+
+            const name = prompt("Название парковки:") || "Парковка";
+            const places = prompt("Количество мест:") || "0";
+
+            const parking = {
+                name: name,
+                places: Number(places),
+                coordinates: points,
+                owner: currentUser.id,
+                ownerName: currentUser.first_name + ' ' + (currentUser.last_name || ''),
+                ownerUsername: currentUser.username || '',
+                created: new Date().toISOString()
+            };
+
+            const id = database.ref("parkings").push().key;
+            database.ref("parkings/" + id).set(parking)
+                .then(() => {
+                    showToast('✅ Сохранено');
+                    if (tempPolygon) map.geoObjects.remove(tempPolygon);
+                    loadParkings();
+                })
+                .catch(error => showToast('❌ ' + error.message));
+        }
+
+        function loadParkings() {
+            database.ref("parkings").once("value").then(snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    parkingsData = data;
+                    map.geoObjects.removeAll();
+                    Object.keys(data).forEach(id => {
+                        const p = data[id];
+                        const polygon = new ymaps.Polygon([p.coordinates], 
+                            { hintContent: p.name },
+                            { fillColor: "#11998e", fillOpacity: 0.4, strokeColor: "#11998e", strokeWidth: 3 }
+                        );
+                        polygon.events.add('click', () => showParkingModal(id, p));
+                        map.geoObjects.add(polygon);
+                    });
+                }
+            });
+        }
+
+        function showParkingModal(id, parking) {
+            document.getElementById('modalContent').innerHTML = `
+                <h3>🅿️ ${parking.name}</h3>
+                <div class="modal-stat"><span>Мест:</span><strong>${parking.places}</strong></div>
+                <div class="modal-stat"><span>Добавил:</span><strong>${parking.ownerName || 'Аноним'}</strong></div>
+                <div class="modal-stat"><span>Telegram:</span><strong>@${parking.ownerUsername || 'неизвестно'}</strong></div>
+                <div class="modal-buttons">
+                    <button onclick="closeModal()">Закрыть</button>
+                </div>
+            `;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        function renderHistory() {
+            if (!currentUser) {
+                document.getElementById('historyList').innerHTML = '<div class="empty-state"><p>Войдите через Telegram</p></div>';
+                return;
+            }
+            
+            const container = document.getElementById('historyList');
+            const myParkings = Object.keys(parkingsData)
+                .filter(id => parkingsData[id].owner == currentUser.id)
+                .map(id => ({ id, ...parkingsData[id] }))
+                .sort((a, b) => new Date(b.created) - new Date(a.created));
+
+            if (myParkings.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>Нет парковок</p></div>';
+                return;
+            }
+            container.innerHTML = myParkings.map(p => `
+                <div class="parking-card">
+                    <div class="parking-icon">🅿️</div>
+                    <div class="parking-info"><h4>${p.name}</h4><p>${p.places} мест</p></div>
+                    <button class="delete-btn" onclick="deleteParking('${p.id}')">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteParking(id) {
+            if (!confirm('Удалить?')) return;
+            database.ref("parkings/" + id).remove().then(() => {
+                showToast('🗑️ Удалено');
+                loadParkings();
+                renderHistory();
+            });
+        }
+
+        function renderProfile() {
+            const container = document.getElementById('profileContent');
+            if (!currentUser) {
+                container.innerHTML = '<div class="empty-state"><p>Войдите через Telegram</p></div>';
+                return;
+            }
+            const myParkings = Object.values(parkingsData).filter(p => p.owner == currentUser.id);
+            container.innerHTML = `
+                <div class="profile-header">
+                    <div class="profile-avatar">👤</div>
+                    <h3>${currentUser.first_name} ${currentUser.last_name || ''}</h3>
+                    <p>@${currentUser.username || 'telegram'}</p>
+                </div>
+                <div class="profile-stats">
+                    <div class="stat-box"><div class="number">${myParkings.length}</div><div class="label">Парковок</div></div>
+                    <div class="stat-box"><div class="number">${myParkings.reduce((s,p)=>s+(p.places||0),0)}</div><div class="label">Мест</div></div>
+                    <div class="stat-box"><div class="number">${Object.keys(myParkings).length}</div><div class="label">Всего</div></div>
+                </div>
+            `;
+        }
+
+        function openPage(page, el) {
+            document.querySelectorAll(".menuItem").forEach(i => i.classList.remove("active"));
+            el.classList.add("active");
+            document.querySelectorAll(".page-panel").forEach(p => p.classList.remove("active"));
+            
+            if (page !== 'map') {
+                document.getElementById(page + 'Panel').classList.add("active");
+                if (page === 'history') renderHistory();
+                if (page === 'profile') renderProfile();
+            }
+        }
+
+        function closePanel(page) {
+            document.getElementById(page + 'Panel').classList.remove('active');
+            document.querySelectorAll(".menuItem").forEach(i => i.classList.remove("active"));
+            document.querySelector('.menuItem:first-child').classList.add("active");
+        }
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>
