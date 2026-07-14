@@ -1,5 +1,4 @@
-<!DOCTYPE: 100%;
-            height: calc( html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -21,7 +20,6 @@
         }
         body.dark { background: #000; color: #fff; }
 
-        /* Стеклянная плашка ParkNear */
         .app-header {
             position: fixed;
             top: 0; left: 0; right: 0;
@@ -44,205 +42,106 @@
         .app-title span { color: #007AFF; font-weight: 800; }
 
         #map {
-            width: 100%;
-            height: calc(100vh - 60px - 8100vh - 60px - 83px);
-            position: fixed;
-            top3px);
             position: fixed;
             top: 60px;
-            left: 0: 60px;
             left: 0;
-        }
-
-        /* Водяные знаки;
+            right: 0;
+            bottom: 83px;
         }
 
         /* Водяные знаки Яндекса */
-        .ymaps-watermarks Яндекса */
         .ymaps-watermarks {
             position: fixed;
-            bottom:  {
-            position: fixed;
             bottom: 90px;
-            left: 10px90px;
             left: 10px;
-            z-index: 1001;;
             z-index: 1001;
             pointer-events: none;
         }
-       
-            pointer-events: none;
-        }
         .ymaps-logo {
-            width: 80 .ymaps-logo {
             width: 80px;
-            height: 25px;px;
             height: 25px;
-            background: rgba(255, 2
-            background: rgba(255, 255, 255, 0.955, 255, 0.9);
-            border-radius: 4px;
-           );
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 4px;
             display: flex;
             align-items: center;
- display: flex;
-            align-items: center;
             justify-content: center;
-            font-size:             justify-content: center;
             font-size: 11px;
-            font-weight: 6011px;
             font-weight: 600;
             color: #000;
-0;
-            color: #000;
-            box-shadow: 0 2px 4px            box-shadow: 0 2px 4px rgba(0,0,0,0.2); rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             margin-bottom: 5px;
         }
-            margin-bottom: 5px;
-        }
-        .ymaps-copyright {
-            font-size
         .ymaps-copyright {
             font-size: 10px;
-            color: rgba(: 10px;
             color: rgba(0,0,0,0.6);
-           0,0,0,0.6);
-            background: rgba(255, 255 background: rgba(255, 255, 255, 0.8);
-, 255, 0.8);
+            background: rgba(255, 255, 255, 0.8);
             padding: 2px 6px;
-                       padding: 2px 6px;
             border-radius: 3px;
-            display: inline border-radius: 3px;
             display: inline-block;
-        }
-
-        /* Кнопки управления-block;
         }
 
         /* Кнопки управления */
         .controls {
-            position: fixed */
-        .controls {
             position: fixed;
             top: 80px;
-;
-            top: 80px;
             left: 16px;
-            z-index            left: 16px;
             z-index: 900;
-            display: flex;: 900;
             display: flex;
-            flex-direction: column;
-            gap: 
             flex-direction: column;
             gap: 10px;
         }
-        .btn {10px;
-        }
         .btn {
             width: 44px;
-
-            width: 44px;
             height: 44px;
-            border-radius            height: 44px;
             border-radius: 12px;
-            background: rgba(: 12px;
-            background: rgba(255, 255, 25255, 255, 255, 0.85);
-            backdrop-filter5, 0.85);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
-            border: none: blur(10px);
             border: none;
             font-size: 20px;
-;
-            font-size: 20px;
             cursor: pointer;
-            box-shadow: 0            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0, 2px 8px rgba(0,0,0,0.15);
-            display: flex0,0.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             display: flex;
-            align-items: center;
-            justify-content;
             align-items: center;
             justify-content: center;
         }
-        .btn:active: center;
-        }
         .btn:active { transform: scale(0.95); }
 
- { transform: scale(0.95); }
-
-        /* Плашка изменения слоя карты */
         /* Плашка изменения слоя карты */
         .map-type-panel {
-            position: fixed        .map-type-panel {
             position: fixed;
             top: 80px;
-           ;
-            top: 80px;
             right: 16px;
-            z-index: right: 16px;
             z-index: 900;
-            background: rgba(2 900;
-            background: rgba(255, 255, 25555, 255, 255, 0.9);
-            backdrop-filter: blur, 0.9);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(20px);
-            border-radius: 1(20px);
             border-radius: 12px;
             padding: 8px;
-2px;
-            padding: 8px;
-            box-shadow: 0 4px 20            box-shadow: 0 4px 20px rgba(0,0,0,0.2px rgba(0,0,0,0.2);
-            display: none;
-            min-width:);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             display: none;
             min-width: 150px;
         }
-        150px;
-        }
-        body.dark .map-type-panel { background: rgba(4 body.dark .map-type-panel { background: rgba(44, 44, 46, 04, 44, 46, 0.9); }
-        .map-type-panel.show {.9); }
+        body.dark .map-type-panel { background: rgba(44, 44, 46, 0.9); }
         .map-type-panel.show { display: block; }
-        .map-type-btn { display: block; }
         .map-type-btn {
             display: block;
-            width: 1
-            display: block;
             width: 100%;
-            padding: 10px 00%;
             padding: 10px 16px;
             border: none;
-           16px;
-            border: none;
             background: transparent;
-            border-radius: 8px background: transparent;
             border-radius: 8px;
             font-size: 14px;
-;
-            font-size: 14px;
             font-weight: 500;
-            cursor            font-weight: 500;
             cursor: pointer;
             text-align: left;
-           : pointer;
-            text-align: left;
             margin-bottom: 4px;
-            color: inherit margin-bottom: 4px;
             color: inherit;
         }
-        .map-type-btn:last-child;
-        }
         .map-type-btn:last-child { margin-bottom: 0; }
-        .map { margin-bottom: 0; }
-        .map-type-btn.active { background: #007AFF;-type-btn.active { background: #007AFF; color: #fff; }
-
-        /* Кноп color: #fff; }
+        .map-type-btn.active { background: #007AFF; color: #fff; }
 
         /* Кнопка добавления */
         #addBtn {
-           ка добавления */
-        #addBtn {
             position: fixed;
-            bottom: 100 position: fixed;
             bottom: 100px;
             right: 20px;
             z-index: 900;
@@ -250,477 +149,238 @@
             height: 56px;
             border-radius: 50%;
             background: #007AFF;
-           px;
-            right: 20px;
-            z-index: 900;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: #007AFF;
             color: #fff;
-            border: none; color: #fff;
             border: none;
             font-size: 28px;
-           
-            font-size: 28px;
             cursor: pointer;
-            box-shadow: 0  cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,124px 12px rgba(0,122,255,0.4);
-           2,255,0.4);
+            box-shadow: 0 4px 12px rgba(0,122,255,0.4);
             display: flex;
             align-items: center;
- display: flex;
-            align-items: center;
             justify-content: center;
-            transition: all             justify-content: center;
             transition: all 0.3s;
         }
-        #add0.3s;
-        }
-        #addBtn.drawing { background: #FF3B30Btn.drawing { background: #FF3B30; }
-
-        /* Нижняя панель */; }
+        #addBtn.drawing { background: #FF3B30; }
 
         /* Нижняя панель */
         .tabBar {
-            position: fixed
-        .tabBar {
             position: fixed;
-            bottom: 0; left: 0;
             bottom: 0; left: 0; right: 0;
-            height: 8; right: 0;
             height: 83px;
-            background: rgba(2553px;
-            background: rgba(255, 255, 255, , 255, 255, 0.85);
-            backdrop-filter: blur(0.85);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
-            z-index: 1020px);
             z-index: 1000;
             display: flex;
-            border00;
-            display: flex;
-            border-top: 0.5px solid rgba(0,-top: 0.5px solid rgba(0,0,0,0.1);
-            padding-bottom0,0,0.1);
+            border-top: 0.5px solid rgba(0,0,0,0.1);
             padding-bottom: env(safe-area-inset-bottom);
-        }: env(safe-area-inset-bottom);
         }
-        body.dark .tabBar { background
-        body.dark .tabBar { background: rgba(28, 28, 3: rgba(28, 28, 30, 0.85); border-top-color:0, 0.85); border-top-color: rgba(255,255,25 rgba(255,255,255,0.1); }
-        .tab {5,0.1); }
+        body.dark .tabBar { background: rgba(28, 28, 30, 0.85); border-top-color: rgba(255,255,255,0.1); }
         .tab {
             flex: 1;
-            display: flex
-            flex: 1;
             display: flex;
-            flex-direction: column;
-            align-items;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-           : center;
-            justify-content: center;
             cursor: pointer;
         }
-        .tab . cursor: pointer;
-        }
-        .tab .icon { font-size: 24px; margin-bottomicon { font-size: 24px; margin-bottom: 4px; }
-        .tab .label: 4px; }
-        .tab .label { font-size: 10px; color: # { font-size: 10px; color: #8E8E93; }
-        .tab8E8E93; }
-        .tab.active .label { color: #007AFF.active .label { color: #007AFF; font-weight: 600; }
-
-       ; font-weight: 600; }
+        .tab .icon { font-size: 24px; margin-bottom: 4px; }
+        .tab .label { font-size: 10px; color: #8E8E93; }
+        .tab.active .label { color: #007AFF; font-weight: 600; }
 
         /* Полноэкранная панель */
-        .panel /* Полноэкранная панель */
         .panel {
             position: fixed;
-            top:  {
-            position: fixed;
-            top: 0; left: 0; right: 0;0; left: 0; right: 0; bottom: 0;
-            background: inherit bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: inherit;
-            z-index: 2000;;
             z-index: 2000;
             transform: translateY(100%);
-
-            transform: translateY(100%);
             transition: transform 0.3s;
-                       transition: transform 0.3s;
             display: flex;
-            flex-direction: column;
- display: flex;
             flex-direction: column;
         }
-        .panel.active { transform: translateY(        }
         .panel.active { transform: translateY(0); }
         .panel-header {
-0); }
-        .panel-header {
-            padding: 16px 20px;            padding: 16px 20px;
-            display: flex;
-            justify-content: space
+            padding: 16px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-between;
-            align-items: center;
-            border-bottom: 0.5px solid rgba(0,-bottom: 0.5px solid rgba(0,0,0,0.1);
-       0,0,0.1);
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
         }
-        body.dark .panel-header { border-bottom-color }
-        body.dark .panel-header { border-bottom-color: rgba(255,255,2: rgba(255,255,255,0.1); }
-        .panel55,0.1); }
-        .panel-title { font-size: 24px; font-weight-title { font-size: 24px; font-weight: 700; }
-        .panel-close: 700; }
-        .panel-close { color: #007AFF; background: none { color: #007AFF; background: none; border: none; font-size: 17px; border: none; font-size: 17px; cursor: pointer; }
-        .panel; cursor: pointer; }
-        .panel-content { flex: 1; overflow-y: auto;-content { flex: 1; overflow-y: auto; padding: 20px; }
-
-        /* Toast padding: 20px; }
+        body.dark .panel-header { border-bottom-color: rgba(255,255,255,0.1); }
+        .panel-title { font-size: 24px; font-weight: 700; }
+        .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
 
         /* Toast */
         .toast {
-            position: fixed; */
-        .toast {
             position: fixed;
             top: 80px;
-            left
-            top: 80px;
             left: 50%;
-            transform: translateX(-: 50%;
             transform: translateX(-50%) translateY(-100px);
-           50%) translateY(-100px);
-            background: rgba(0,0,0,0. background: rgba(0,0,0,0.8);
-            color: #fff;
-           8);
+            background: rgba(0,0,0,0.8);
             color: #fff;
             padding: 12px 20px;
- padding: 12px 20px;
             border-radius: 20px;
-            z            border-radius: 20px;
             z-index: 4000;
-            transition:-index: 4000;
             transition: transform 0.3s;
-            font-size: transform 0.3s;
             font-size: 14px;
         }
-        . 14px;
-        }
-        .toast.show { transform: translateX(-50%) translateYtoast.show { transform: translateX(-50%) translateY(0); }
-
-        /* Кнопка входа */(0); }
+        .toast.show { transform: translateX(-50%) translateY(0); }
 
         /* Кнопка входа */
         .login-btn {
-            background: #0
-        .login-btn {
             background: #0088cc;
-            color: #fff;088cc;
             color: #fff;
             border: none;
-            padding: 1
-            border: none;
             padding: 16px 24px;
-            border-radius:6px 24px;
             border-radius: 12px;
-            font-size: 1 12px;
             font-size: 16px;
-            font-weight: 6006px;
             font-weight: 600;
             cursor: pointer;
-            width: ;
-            cursor: pointer;
             width: 100%;
-            margin: 20px100%;
             margin: 20px 0;
-            display: flex;
-            align 0;
             display: flex;
             align-items: center;
             justify-content: center;
--items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
             gap: 10px;
         }
 
         /* Списки */
-        .ios-list { background        /* Списки */
-        .ios-list { background: #fff; border-radius: 12px;: #fff; border-radius: 12px; margin-bottom: 12px; overflow: hidden; margin-bottom: 12px; overflow: hidden; }
-        body.dark .ios-list { background: # }
+        .ios-list { background: #fff; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
         body.dark .ios-list { background: #1C1C1E; }
-        .ios1C1C1E; }
         .ios-list-item {
-            padding: 14px -list-item {
             padding: 14px 16px;
             display: flex;
-           16px;
-            display: flex;
             align-items: center;
-            gap: 12 align-items: center;
             gap: 12px;
-            border-bottom: 0.5pxpx;
-            border-bottom: 0.5px solid rgba(0,0,0,0.1 solid rgba(0,0,0,0.1);
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
             cursor: pointer;
         }
-       );
-            cursor: pointer;
-        }
-        body.dark .ios-list-item { border-bottom-color: rgba body.dark .ios-list-item { border-bottom-color: rgba(255,255,255(255,255,255,0.1); }
-        .list-icon {,0.1); }
+        body.dark .ios-list-item { border-bottom-color: rgba(255,255,255,0.1); }
         .list-icon {
             width: 44px;
-
-            width: 44px;
             height: 44px;
-            border-radius            height: 44px;
             border-radius: 10px;
-            background: #3: 10px;
             background: #34C759;
-            display: flex;4C759;
             display: flex;
             align-items: center;
-            justify-content:
-            align-items: center;
             justify-content: center;
-            font-size: 22px; center;
             font-size: 22px;
             flex-shrink: 0;
         }
-            flex-shrink: 0;
-        }
         .list-content { flex: 1; }
-        .list-content { flex: 1; }
-        .list-title { font-size: 16
         .list-title { font-size: 16px; font-weight: 600; }
-px; font-weight: 600; }
-        .list-subtitle { font-size: 13        .list-subtitle { font-size: 13px; color: #8E8E93;px; color: #8E8E93; }
-
-        /* Модальное окно */
-        . }
+        .list-subtitle { font-size: 13px; color: #8E8E93; }
 
         /* Модальное окно */
         .modal {
             position: fixed;
-            top:modal {
-            position: fixed;
-            top: 0; left: 0; right: 0 0; left: 0; right: 0; bottom: 0;
-            background: rgba(; bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.4);
-0,0,0,0.4);
             z-index: 3000;
-                       z-index: 3000;
             display: none;
-            align-items: flex-end; display: none;
             align-items: flex-end;
             justify-content: center;
         }
-       
-            justify-content: center;
-        }
         .modal.active { display: flex; }
-        . .modal.active { display: flex; }
         .modal-sheet {
             background: inherit;
-            bordermodal-sheet {
-            background: inherit;
-            border-radius: 20px 20px 0-radius: 20px 20px 0 0;
-            padding: 20px; 0;
+            border-radius: 20px 20px 0 0;
             padding: 20px;
             width: 100%;
-            max
-            width: 100%;
             max-height: 85vh;
-            overflow-y:-height: 85vh;
             overflow-y: auto;
         }
-        .modal-handle { width auto;
-        }
-        .modal-handle { width: 36px; height: 5px;: 36px; height: 5px; background: #8E8E93; border-radius background: #8E8E93; border-radius: 3px; margin: 0 auto 1: 3px; margin: 0 auto 16px; opacity: 0.5; }
-6px; opacity: 0.5; }
-        .modal-title { font-size: 20px        .modal-title { font-size: 20px; font-weight: 700; margin-bottom:; font-weight: 700; margin-bottom: 16px; text-align: center; }
- 16px; text-align: center; }
+        .modal-handle { width: 36px; height: 5px; background: #8E8E93; border-radius: 3px; margin: 0 auto 16px; opacity: 0.5; }
+        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
         .modal-input {
-            width:         .modal-input {
             width: 100%;
-            padding: 12px100%;
             padding: 12px;
             border-radius: 10px;
-;
-            border-radius: 10px;
             border: none;
-            background: #E5            border: none;
             background: #E5E5EA;
-            font-size: 16E5EA;
             font-size: 16px;
-            margin-bottom: 16px;px;
             margin-bottom: 16px;
         }
-        body.dark .modal-input { background
-        }
-        body.dark .modal-input { background: #2C2C2E; color: #2C2C2E; color: #fff; }
-        .status-selector { display: #fff; }
-        .status-selector { display: flex; gap: 10px; margin:: flex; gap: 10px; margin: 16px 0; }
-        .status 16px 0; }
+        body.dark .modal-input { background: #2C2C2E; color: #fff; }
+        .status-selector { display: flex; gap: 10px; margin: 16px 0; }
         .status-btn {
             flex: 1;
-           -btn {
-            flex: 1;
             padding: 12px;
-            border:  padding: 12px;
             border: 2px solid transparent;
-            border-radius: 12px solid transparent;
             border-radius: 10px;
-            font-weight: 6000px;
             font-weight: 600;
-            cursor: pointer;
-            color: #;
             cursor: pointer;
             color: #fff;
-            font-size: 13px;fff;
             font-size: 13px;
         }
-        .status-btn.free { background:
-        }
         .status-btn.free { background: #34C759; }
-        . #34C759; }
-        .status-btn.busy { background: #FF3B3status-btn.busy { background: #FF3B30; }
-        .status-btn.unknown { background:0; }
+        .status-btn.busy { background: #FF3B30; }
         .status-btn.unknown { background: #007AFF; }
-        .status-btn #007AFF; }
-        .status-btn.selected { border-color: #000; transform.selected { border-color: #000; transform: scale(1.05); }
-        body: scale(1.05); }
-        body.dark .status-btn.selected { border-color: #fff.dark .status-btn.selected { border-color: #fff; }
-        .modal-actions { display: flex;; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 1 gap: 10px; margin-top: 10px; }
-        .modal-btn {
-0px; }
+        .status-btn.selected { border-color: #000; transform: scale(1.05); }
+        body.dark .status-btn.selected { border-color: #fff; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
         .modal-btn {
             flex: 1;
-            padding: 1            flex: 1;
             padding: 14px;
             border: none;
-            border4px;
-            border: none;
             border-radius: 12px;
-            font-weight:-radius: 12px;
             font-weight: 600;
             cursor: pointer;
- 600;
-            cursor: pointer;
             font-size: 15px;
-        }            font-size: 15px;
         }
-        .modal-btn-primary { background: #00
         .modal-btn-primary { background: #007AFF; color: #fff; }
-        .7AFF; color: #fff; }
-        .modal-btn-secondary { background: #E5E5EAmodal-btn-secondary { background: #E5E5EA; color: #000; }
-        body; color: #000; }
-        body.dark .modal-btn-secondary { background: #2C2.dark .modal-btn-secondary { background: #2C2C2E; color: #fff; }
-       C2E; color: #fff; }
-        .modal-btn-danger { background: #FF3B3 .modal-btn-danger { background: #FF3B30; color: #fff; }
-
-        /* Пере0; color: #fff; }
+        .modal-btn-secondary { background: #E5E5EA; color: #000; }
+        body.dark .modal-btn-secondary { background: #2C2C2E; color: #fff; }
+        .modal-btn-danger { background: #FF3B30; color: #fff; }
 
         /* Переключатель темы */
         .theme-toggle {
-ключатель темы */
-        .theme-toggle {
             display: flex;
-            align-items: center;            display: flex;
             align-items: center;
             justify-content: space-between;
-            padding:
-            justify-content: space-between;
             padding: 16px;
-            background: #fff; 16px;
             background: #fff;
-            border-radius: 12px;
-           
             border-radius: 12px;
             margin-bottom: 16px;
         }
- margin-bottom: 16px;
-        }
-        body.dark .theme-toggle { background: #1C        body.dark .theme-toggle { background: #1C1C1E; }
-        .switch { position1C1E; }
-        .switch { position: relative; display: inline-block; width: 5: relative; display: inline-block; width: 50px; height: 30px; }
-0px; height: 30px; }
-        .switch input { opacity: 0; width:        .switch input { opacity: 0; width: 0; height: 0; }
-        0; height: 0; }
+        body.dark .theme-toggle { background: #1C1C1E; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute;
-            cursor .slider {
-            position: absolute;
             cursor: pointer;
-            top: 0; left:: pointer;
-            top: 0; left: 0; right: 0; bottom: 0 0; right: 0; bottom: 0;
-            background: #ccc;
-            transition:;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: #ccc;
             transition: .4s;
-            border-radius: 34 .4s;
             border-radius: 34px;
         }
         .slider:before {
-px;
-        }
-        .slider:before {
             position: absolute;
             content: "";
-                       position: absolute;
-            content: "";
             height: 26px;
-            width:  height: 26px;
             width: 26px;
-            left: 2px;26px;
             left: 2px;
-            bottom: 2px;
-            background:
             bottom: 2px;
             background: #fff;
             transition: .4s;
- #fff;
-            transition: .4s;
             border-radius: 50%;
         }
-            border-radius: 50%;
-        }
-        input:checked + .slider { background: #34        input:checked + .slider { background: #34C759; }
-        input:checked + .C759; }
-        input:checked + .slider:before { transform: translateX(20px);slider:before { transform: translateX(20px); }
+        input:checked + .slider { background: #34C759; }
+        input:checked + .slider:before { transform: translateX(20px); }
 
         /* Статистика */
-        . }
-
-        /* Статистика */
-        .stats-grid { display: grid; grid-template-columns: repeatstats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10(3, 1fr); gap: 10px; margin-bottom: 16px; }px; margin-bottom: 16px; }
-        .stat-card { background: #fff; border
-        .stat-card { background: #fff; border-radius: 12px; padding: 14-radius: 12px; padding: 14px 10px; text-align: center; }px 10px; text-align: center; }
-        body.dark .stat-card { background: #1
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 14px 10px; text-align: center; }
         body.dark .stat-card { background: #1C1C1E; }
-        .stat-numberC1C1E; }
-        .stat-number { font-size: 24px; font-weight: { font-size: 24px; font-weight: 700; color: #007AFF 700; color: #007AFF; }
-        .stat-label { font-size: ; }
-        .stat-label { font-size: 11px; color: #8E8E911px; color: #8E8E93; margin-top: 4px; }
+        .stat-number { font-size: 24px; font-weight: 700; color: #007AFF; }
+        .stat-label { font-size: 11px; color: #8E8E93; margin-top: 4px; }
 
-3; margin-top: 4px; }
-
-        .empty-state { text-align: center; padding:        .empty-state { text-align: center; padding: 40px 20px; color: # 40px 20px; color: #8E8E93; }
-    </style8E8E93; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #8E8E93; }
     </style>
 </head>
 <body>
 
-    <div>
-</head>
-<body>
-
     <div class="app-header">
-        <div class="app class="app-header">
         <div class="app-title">Park<span>Near</span></div>
     </div>
 
@@ -728,644 +388,319 @@ px;
 
     <div class="ymaps-watermarks">
         <div class="ymaps-logo">Яндекс</div>
-        <div class="ymaps-title">Park<span>Near</span></div>
-    </div>
-
-    <div id="map"></div>
-
-    <div class="ymaps-watermarks">
-        <div class="ymaps-logo">Яндекс</div>
         <div class="ymaps-copyright">© Яндекс Карты</div>
--copyright">© Яндекс Карты</div>
     </div>
-
-    <div class="controls">    </div>
 
     <div class="controls">
-        <button class="btn" onclick="showMy
         <button class="btn" onclick="showMyLocation()">📍</button>
-        <buttonLocation()">📍</button>
-        <button class="btn" onclick="toggleMapType()"> class="btn" onclick="toggleMapType()">️</button>
+        <button class="btn" onclick="toggleMapType()">🗺️</button>
     </div>
 
-   ️</button>
-    </div>
-
-    <div class="map-type-panel" id="mapType <div class="map-type-panel" id="mapTypePanel">
-        <button class="map-type-btn activePanel">
+    <div class="map-type-panel" id="mapTypePanel">
         <button class="map-type-btn active" data-type="map" onclick="setMapType('map')">🗺️ Схема</button>
         <button class="map-type-btn" data-type="satellite" onclick="setMapType('satellite')">🛰️ Спутник</button>
-" data-type="map" onclick="setMapType('map')">🗺️ Схема</button>
-        <button class="map-type-btn" data-type="satellite" onclick="setMapType('satellite')">🛰️ Спутник</button>
-        <button class="map-type-btn" data-type="        <button class="map-type-btn" data-type="hybrid" onclick="setMapType('hybrid')">hybrid" onclick="setMapType('hybrid')">🌍 Гибрид</button>
-    </🌍 Гибрид</button>
+        <button class="map-type-btn" data-type="hybrid" onclick="setMapType('hybrid')">🌍 Гибрид</button>
     </div>
-
-    <button id="addBtn">+</div>
 
     <button id="addBtn">+</button>
 
-    <div class="panel" id="button>
-
     <div class="panel" id="panel">
         <div class="panel-header">
-panel">
-        <div class="panel-header">
-            <div class="panel-title" id="panelTitle            <div class="panel-title" id="panelTitle">Профиль</div>
-            <button class="">Профиль</div>
-            <button class="panel-close" onclick="closePanel()">Готово</panel-close" onclick="closePanel()">Готово</button>
-        </div>
-        <div classbutton>
+            <div class="panel-title" id="panelTitle">Профиль</div>
+            <button class="panel-close" onclick="closePanel()">Готово</button>
         </div>
         <div class="panel-content" id="panelContent"></div>
-="panel-content" id="panelContent"></div>
     </div>
-
-    <div class="tabBar    </div>
 
     <div class="tabBar">
-        <div class="tab active" onclick="">
         <div class="tab active" onclick="showMap()">
-            <div class="iconshowMap()">
             <div class="icon">🗺️</div>
-            <div">🗺️</div>
             <div class="label">Карта</div>
-        </ class="label">Карта</div>
         </div>
-        <div class="tab" onclick="div>
         <div class="tab" onclick="showPanel('history')">
-            <div class="iconshowPanel('history')">
             <div class="icon">🕘</div>
-            <div class">🕘</div>
             <div class="label">История</div>
-        </="label">История</div>
         </div>
-        <div class="tab" onclick="div>
         <div class="tab" onclick="showPanel('favorites')">
-            <div class="iconshowPanel('favorites')">
             <div class="icon">⭐</div>
-            <div class="label">⭐</div>
             <div class="label">Избранное</div>
-        </div>">Избранное</div>
         </div>
-        <div class="tab" onclick="showPanel
         <div class="tab" onclick="showPanel('profile')">
-            <div class="icon">('profile')">
-            <div class="icon"></div>
-            <div class="label</div>
+            <div class="icon">👤</div>
             <div class="label">Профиль</div>
         </div>
-">Профиль</div>
-        </div>
     </div>
-
-    <div class="modal"    </div>
 
     <div class="modal" id="modal" onclick="closeModal(event)">
-        id="modal" onclick="closeModal(event)">
-        <div class="modal-sheet" onclick="event.stopPropagation()"> <div class="modal-sheet" onclick="event.stopPropagation()">
-            <div class="modal-handle"></div>
-
+        <div class="modal-sheet" onclick="event.stopPropagation()">
             <div class="modal-handle"></div>
             <div id="modalBody"></div>
-                   <div id="modalBody"></div>
         </div>
-    </div>
-
-    <div </div>
     </div>
 
     <div class="toast" id="toast"></div>
 
-    class="toast" id="toast"></div>
-
     <script>
         // Firebase
-        const <script>
-        // Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSy firebaseConfig = {
-            apiKey: "AIzaSyATLX5t2lmibbuiSXLATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",_sWu_JnFFTb-nMqU",
-            authDomain: "parknear-bef41.firebaseapp
+            apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
             authDomain: "parknear-bef41.firebaseapp.com",
-            databaseURL: "https://parknear.com",
-            databaseURL: "https://parknear-bef41-default-rtdb.europe-west1-bef41-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "parknear.firebasedatabase.app",
+            databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "parknear-bef41",
-            storageBucket: "park-bef41",
             storageBucket: "parknear-bef41.firebasestorage.app",
-near-bef41.firebasestorage.app",
-            messagingSenderId: "1066552            messagingSenderId: "1066552333578",
-            appId: "333578",
-            appId: "1:10665523331:1066552333578:web:e60e333578:web:e60e333cf877852eba16f3cf877852eba16f3"
-        };
-        firebase.initializeApp(firebaseConfig);"
+            messagingSenderId: "1066552333578",
+            appId: "1:1066552333578:web:e60e333cf877852eba16f3"
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // С
-        const database = firebase.database();
-
         // Состояние
         let map = null;
-        letостояние
-        let map = null;
         let currentUser = null;
-        let parkingsData = {}; currentUser = null;
         let parkingsData = {};
         let myHomes = [];
-        let drawing
-        let myHomes = [];
         let drawing = false;
-        let editingParkingId = null; = false;
         let editingParkingId = null;
         let points = [];
-        let tempPolygon =
-        let points = [];
         let tempPolygon = null;
-        let streetCounters = {};
-
-        null;
-        let streetCounters = {};
 
         // Toast
         function showToast(msg) {
- // Toast
-        function showToast(msg) {
             const t = document.getElementById('toast');
-            t            const t = document.getElementById('toast');
             t.textContent = msg;
-            t.classList.add('show');.textContent = msg;
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 
             setTimeout(() => t.classList.remove('show'), 2500);
-        }
-
-        // И2500);
         }
 
         // Инициализация карты
         function initMap() {
-нициализация карты
-        function initMap() {
             map = new ymaps.Map("map", {
-            map = new ymaps.Map("map", {
-                center: [55.7558,                center: [55.7558, 37.6173],
-                zoom 37.6173],
+                center: [55.7558, 37.6173],
                 zoom: 10,
-                controls: ['zoomControl: 10,
                 controls: ['zoomControl'],
-                type: 'yandex#map'
-'],
                 type: 'yandex#map'
             });
 
             // Геолокация
-            if            });
-
-            // Геолокация
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrent (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
-                    const coords = [pos.coordsPosition(pos => {
                     const coords = [pos.coords.latitude, pos.coords.longitude];
-                    map.setCenter(coords.latitude, pos.coords.longitude];
                     map.setCenter(coords, 14);
-                    map.geoObjects.add(new, 14);
                     map.geoObjects.add(new ymaps.Placemark(coords, {
-                        hintContent: ymaps.Placemark(coords, {
                         hintContent: 'Вы здесь'
                     }, {
-                        'Вы здесь'
-                    }, {
                         preset: 'islands#blueCircleIcon'
-                    preset: 'islands#blueCircleIcon'
                     }));
-                }, () => {});
-            } }));
                 }, () => {});
             }
 
             // Клик по карте
-            map.events.add
-
-            // Клик по карте
             map.events.add("click", e => {
-                if (drawing ||("click", e => {
                 if (drawing || editingParkingId) {
-                    points.push(e.get(" editingParkingId) {
                     points.push(e.get("coords"));
-                    if (tempPolygon) map.geoObjectscoords"));
                     if (tempPolygon) map.geoObjects.remove(tempPolygon);
-                    tempPolygon = new ymaps.remove(tempPolygon);
                     tempPolygon = new ymaps.Polygon([points], {}, {
-                       .Polygon([points], {}, {
                         fillColor: "#007AFF",
-                        fillOpacity fillColor: "#007AFF",
                         fillOpacity: 0.3,
-                        strokeColor: "#: 0.3,
                         strokeColor: "#007AFF",
-                        strokeWidth: 007AFF",
                         strokeWidth: 3
-                    });
-                    map.geoObjects.add3
                     });
                     map.geoObjects.add(tempPolygon);
                 }
             });
 
-            //(tempPolygon);
-                }
-            });
-
             // Кнопка добавления
-            document.getElementById("addBtn Кнопка добавления
             document.getElementById("addBtn").onclick = function() {
-                if (!currentUser)").onclick = function() {
                 if (!currentUser) {
-                    showToast('Сначала войдите');
-                    {
                     showToast('Сначала войдите');
                     showPanel('profile');
                     return;
-                } showPanel('profile');
-                    return;
                 }
-                if (editingParkingId) {
-                    finish
                 if (editingParkingId) {
                     finishEditingShape();
                     return;
                 }
-               EditingShape();
-                    return;
-                }
                 if (drawing) {
-                    finishDrawing(); if (drawing) {
                     finishDrawing();
-                    return;
-                }
-                drawing = true
                     return;
                 }
                 drawing = true;
                 points = [];
-                this.classList.add(';
-                points = [];
                 this.classList.add('drawing');
-                this.textContent = '✕';drawing');
                 this.textContent = '✕';
                 showToast('Нажмите на карту');
-                showToast('Нажмите на карту');
-            };
-
-            // Загрузка пользователя
-
             };
 
             // Загрузка пользователя
             const saved = localStorage.getItem('tgUser');
-                       const saved = localStorage.getItem('tgUser');
-            if (saved) currentUser = JSON.parse(saved);
-
             if (saved) currentUser = JSON.parse(saved);
 
             loadParkings();
             loadHomes();
-        loadParkings();
-            loadHomes();
         }
-
-        if (typeof ymaps !== 'undefined') }
 
         if (typeof ymaps !== 'undefined') {
             ymaps.ready(initMap);
-        {
-            ymaps.ready(initMap);
         } else {
-            window.addEventListener('load', () => } else {
             window.addEventListener('load', () => {
-                if (typeof ymaps !== 'undefined') {
                 if (typeof ymaps !== 'undefined') ymaps.ready(initMap);
-                else showToast('Ошибка ymaps.ready(initMap);
                 else showToast('Ошибка загрузки карты');
             });
         }
 
-        // загрузки карты');
-            });
-        }
-
         // Переключение типа карты
-        function toggleMapType() { Переключение типа карты
         function toggleMapType() {
-            document.getElementById('mapTypePanel').classList.toggle('
             document.getElementById('mapTypePanel').classList.toggle('show');
         }
 
-        function setMapType(typeshow');
-        }
-
         function setMapType(type) {
-            document.querySelectorAll('.map-type-btn').forEach) {
             document.querySelectorAll('.map-type-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(btn => btn.classList.remove('active'));
-            document.querySelector(`.map-type-btn[data-type="${type}"]`).(`.map-type-btn[data-type="${type}"]`).classList.add('active');
-            if (type === 'classList.add('active');
+            document.querySelector(`.map-type-btn[data-type="${type}"]`).classList.add('active');
             if (type === 'map') map.setType('yandex#map');
-           map') map.setType('yandex#map');
-            else if (type === 'satellite') map.setType(' else if (type === 'satellite') map.setType('yandex#satellite');
-            else if (typeyandex#satellite');
-            else if (type === 'hybrid') map.setType('yandex#hy === 'hybrid') map.setType('yandex#hybrid');
+            else if (type === 'satellite') map.setType('yandex#satellite');
+            else if (type === 'hybrid') map.setType('yandex#hybrid');
             setTimeout(() => {
-               brid');
-            setTimeout(() => {
-                document.getElementById('mapTypePanel').classList.remove(' document.getElementById('mapTypePanel').classList.remove('show');
-            }, 300);
-       show');
+                document.getElementById('mapTypePanel').classList.remove('show');
             }, 300);
         }
-
-        // Завершение рисования новой }
 
         // Завершение рисования новой парковки
         function finishDrawing() {
-            drawing парковки
-        function finishDrawing() {
             drawing = false;
-            const btn = document.getElementById("add = false;
             const btn = document.getElementById("addBtn");
-            btn.classList.remove('drawing');
-           Btn");
             btn.classList.remove('drawing');
             btn.textContent = '+';
 
-            if (points.length < btn.textContent = '+';
-
             if (points.length < 3) {
-                showToast('Минимум  3) {
                 showToast('Минимум 3 точки');
-                if (tempPolygon) map.geo3 точки');
                 if (tempPolygon) map.geoObjects.remove(tempPolygon);
-                return;
-            }Objects.remove(tempPolygon);
                 return;
             }
 
-            const name = prompt("Название пар
-
             const name = prompt("Название парковки:") || "Парковка";
-            const placesковки:") || "Парковка";
             const places = prompt("Количество мест:") || "0";
 
- = prompt("Количество мест:") || "0";
-
-            const parking = {
-                name: name,
             const parking = {
                 name: name,
                 places: Number(places),
-                coordinates: points                places: Number(places),
                 coordinates: points,
                 owner: currentUser.id,
-                ownerName,
-                owner: currentUser.id,
                 ownerName: currentUser.firstName,
-                created: new Date().: currentUser.firstName,
                 created: new Date().toISOString(),
-                status: 'unknown'
-            };toISOString(),
                 status: 'unknown'
             };
 
-            const id = database.ref("parkings").push
-
             const id = database.ref("parkings").push().key;
-            database.ref("parkings/" +().key;
             database.ref("parkings/" + id).set(parking).then(() => {
-                id).set(parking).then(() => {
                 showToast('Сохранено!');
-                if (temp showToast('Сохранено!');
                 if (tempPolygon) map.geoObjects.remove(tempPolygon);
-                loadPolygon) map.geoObjects.remove(tempPolygon);
                 loadParkings();
             });
         }
 
-        //Parkings();
-            });
-        }
-
         // Редактирование фигуры
-        function startEditingShape(id) Редактирование фигуры
         function startEditingShape(id) {
             editingParkingId = id;
-            const {
-            editingParkingId = id;
             const p = parkingsData[id];
-            points = [... p = parkingsData[id];
             points = [...p.coordinates];
             loadParkings();
-            ifp.coordinates];
-            loadParkings();
             if (tempPolygon) map.geoObjects.remove(tempPolygon);
- (tempPolygon) map.geoObjects.remove(tempPolygon);
-            tempPolygon = new ymaps.Polygon([points],            tempPolygon = new ymaps.Polygon([points], {}, {
-                fillColor: "#007AFF", {}, {
+            tempPolygon = new ymaps.Polygon([points], {}, {
                 fillColor: "#007AFF",
                 fillOpacity: 0.3,
-
-                fillOpacity: 0.3,
                 strokeColor: "#007AFF",
-                               strokeColor: "#007AFF",
                 strokeWidth: 3
-            });
-            map.geoObjects strokeWidth: 3
             });
             map.geoObjects.add(tempPolygon);
 
-            const btn = document.getElementById(".add(tempPolygon);
-
             const btn = document.getElementById("addBtn");
             btn.classList.add('drawing');
-addBtn");
-            btn.classList.add('drawing');
             btn.textContent = '💾';
-            closeModal();            btn.textContent = '💾';
             closeModal();
-            showToast('Кликайте для новой фигуры');
-
             showToast('Кликайте для новой фигуры');
         }
 
         function finishEditingShape() {
-                   }
-
-        function finishEditingShape() {
             if (!editingParkingId) return;
-            if ( if (!editingParkingId) return;
             if (points.length < 3) {
-                showToast('Мpoints.length < 3) {
                 showToast('Минимум 3 точки');
-                cancelEditing();инимум 3 точки');
                 cancelEditing();
-                return;
-            }
-
-            database.ref("
                 return;
             }
 
             database.ref("parkings/" + editingParkingId).update({
-               parkings/" + editingParkingId).update({
                 coordinates: points
             }).then(() => {
-                coordinates: points
-            }).then(() => {
-                showToast('Фигура обновлена!');
                 showToast('Фигура обновлена!');
                 cancelEditing();
             });
         }
 
-        function cancelEditing();
-            });
-        }
-
         function cancelEditing() {
-            editingParkingId = null; cancelEditing() {
             editingParkingId = null;
-            if (tempPolygon) map.geoObjects.remove(temp
             if (tempPolygon) map.geoObjects.remove(tempPolygon);
             loadParkings();
-            const btnPolygon);
-            loadParkings();
             const btn = document.getElementById("addBtn");
-            btn.classList.remove = document.getElementById("addBtn");
             btn.classList.remove('drawing');
             btn.textContent = '+';
-       ('drawing');
-            btn.textContent = '+';
         }
-
-        // Загрузка парковок
-        function }
 
         // Загрузка парковок
         function loadParkings() {
-            database.ref("parkings loadParkings() {
             database.ref("parkings").on("value", snap => {
-                const data").on("value", snap => {
                 const data = snap.val();
                 if (data) {
- = snap.val();
-                if (data) {
                     parkingsData = data;
-                    map.geoObjects                    parkingsData = data;
                     map.geoObjects.removeAll();
-                    Object.keys(data).forEach(id => {.removeAll();
                     Object.keys(data).forEach(id => {
                         const p = data[id];
-                        const color
-                        const p = data[id];
-                        const color = p.status === 'free' ? '#3 = p.status === 'free' ? '#34C759' : p.status === 'busy4C759' : p.status === 'busy' ? '#FF3B30' : '#0' ? '#FF3B30' : '#007AFF';
-                        const poly = new ymaps07AFF';
+                        const color = p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF';
                         const poly = new ymaps.Polygon([p.coordinates], {
-                           .Polygon([p.coordinates], {
                             hintContent: p.name
                         }, {
-                            fillColor hintContent: p.name
-                        }, {
                             fillColor: color,
-                            fillOpacity: 0: color,
                             fillOpacity: 0.4,
-                            strokeColor: color,
-                           .4,
                             strokeColor: color,
                             strokeWidth: 3
                         });
-                        poly.events.add strokeWidth: 3
-                        });
-                        poly.events.add('click', () => showParkingModal(id, p));('click', () => showParkingModal(id, p));
-                        map.geoObjects.add(poly);
-                   
+                        poly.events.add('click', () => showParkingModal(id, p));
                         map.geoObjects.add(poly);
                     });
                 }
             });
         }
 
-        });
-                }
-            });
-        }
-
         // Модальное окно парковки
-        function showParking // Модальное окно парковки
         function showParkingModal(id, p) {
-            if (editingParkingModal(id, p) {
             if (editingParkingId && editingParkingId !== id) {
-                showToastId && editingParkingId !== id) {
                 showToast('Завершите редактирование');
                 return;
-('Завершите редактирование');
-                return;
             }
-            const isOwner = currentUser &&            }
             const isOwner = currentUser && p.owner === currentUser.id;
 
-            document.getElementById(' p.owner === currentUser.id;
-
             document.getElementById('modalBody').innerHTML = `
-                <div class="modalBody').innerHTML = `
-                <div class="modal-title">🅿️ ${p.name}</divmodal-title">🅿️ ${p.name}</div>
-                <input type="number" class="modal>
-                <input type="number" class="modal-input" id="editPlaces" value="${p.places}"-input" id="editPlaces" value="${p.places}" placeholder="Мест">
-                <div class="status placeholder="Мест">
+                <div class="modal-title">🅿️ ${p.name}</div>
+                <input type="number" class="modal-input" id="editPlaces" value="${p.places}" placeholder="Мест">
                 <div class="status-selector">
-                    <button class="status-btn free ${-selector">
-                    <button class="status-btn free ${p.status === 'free' ? 'selected' :p.status === 'free' ? 'selected' : ''}" onclick="updateField('${id}','status','free ''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
-                    <')">✅ Свободно</button>
-                    <button class="status-btn busy ${p.status === 'busybutton class="status-btn busy ${p.status === 'busy' ? 'selected' : ''}" onclick="updateField' ? 'selected' : ''}" onclick="updateField('${id}','status','busy')">❌ Занято('${id}','status','busy')">❌ Занято</button>
-                    <button class="status-btn unknown</button>
-                    <button class="status-btn unknown ${p.status === 'unknown' ? 'selected' : ${p.status === 'unknown' ? 'selected' : ''}" onclick="updateField('${id}','status','unknown ''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
-                </')">❓ Неизв.</button>
+                    <button class="status-btn free ${p.status === 'free' ? 'selected' : ''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
+                    <button class="status-btn busy ${p.status === 'busy' ? 'selected' : ''}" onclick="updateField('${id}','status','busy')">❌ Занято</button>
+                    <button class="status-btn unknown ${p.status === 'unknown' ? 'selected' : ''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
                 </div>
                 <div class="modal-actions">
-div>
-                <div class="modal-actions">
-                    ${isOwner ? `<button class="modal                    ${isOwner ? `<button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id-btn modal-btn-secondary" onclick="startEditingShape('${id}')">📝 Фигуру</}')">📝 Фигуру</button>` : ''}
-                    ${isOwner ? `<button>` : ''}
-                    ${isOwner ? `<button class="modal-btn modal-btn-primary" onclick="updateField('${id}','places',Number(document.getElementById('editbutton class="modal-btn modal-btn-primary" onclick="updatePlaces').value))">💾 Сохранить</buttonField('${id}','places',Number(document.getElementById('editPlaces').value))">💾 Сохранить</button>` : ''}
-                </div>
-                <>` : ''}
+                    ${isOwner ? `<button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">📝 Фигуру</button>` : ''}
+                    ${isOwner ? `<button class="modal-btn modal-btn-primary" onclick="updateField('${id}','places',Number(document.getElementById('editPlaces').value))">💾 Сохранить</button>` : ''}
                 </div>
                 <div class="modal-actions">
-                    ${isOwner ?div class="modal-actions">
-                    ${isOwner ? `<button class="modal-btn modal-btn-danger" onclick=" `<button class="modal-btn modal-btn-danger" onclick="deleteParking('${id}')">🗑️ УдалdeleteParking('${id}')">🗑️ Удалить</button>` : ''}
-                    <button classить</button>` : ''}
-                    <button class="modal-btn modal-btn-secondary" onclick="closeModal()">="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
-                </div>
-Закрыть</button>
+                    ${isOwner ? `<button class="modal-btn modal-btn-danger" onclick="deleteParking('${id}')">🗑️ Удалить</button>` : ''}
+                    <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
                 </div>
             `;
-            document.getElementById('modal').classList.add            `;
             document.getElementById('modal').classList.add('active');
         }
 
-        function deleteParking(id('active');
-        }
-
         function deleteParking(id) {
-            if (confirm('Удалить эту) {
             if (confirm('Удалить эту парковку?')) {
-                database.ref("park парковку?')) {
                 database.ref("parkings/" + id).remove().then(() => {
-ings/" + id).remove().then(() => {
-                    showToast('Парковка удалена');
-                    closeModal();
-                    loadParkings();
                     showToast('Парковка удалена');
                     closeModal();
                     loadParkings();
@@ -1373,375 +708,187 @@ ings/" + id).remove().then(() => {
             }
         }
 
-        function update                });
-            }
-        }
-
         function updateField(id, field, val) {
-            database.refField(id, field, val) {
-            database.ref("parkings/" + id + "/" + field).set("parkings/" + id + "/" + field).set(val).then(() => {
-                showToast('Обнов(val).then(() => {
+            database.ref("parkings/" + id + "/" + field).set(val).then(() => {
                 showToast('Обновлено');
-                loadParkings();
-                closeModal();лено');
                 loadParkings();
                 closeModal();
             });
         }
 
-        function closeModal(e)
-            });
-        }
-
         function closeModal(e) {
-            if (!e || e.target.id === ' {
             if (!e || e.target.id === 'modal') {
-                document.getElementById('modal').classList.removemodal') {
                 document.getElementById('modal').classList.remove('active');
-                if (editingParkingId) cancel('active');
                 if (editingParkingId) cancelEditing();
             }
         }
 
-        // ГеEditing();
-            }
-        }
-
         // Геолокация
-        function showMyLocationолокация
         function showMyLocation() {
             if (navigator.geolocation) {
-() {
-            if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
-                    const                navigator.geolocation.getCurrentPosition(pos => {
                     const coords = [pos.coords.latitude, pos.coords.longitude];
- coords = [pos.coords.latitude, pos.coords.longitude];
                     if (map) {
-                        map.setCenter(coords                    if (map) {
                         map.setCenter(coords, 14);
-                        map.geoObjects.add(new, 14);
                         map.geoObjects.add(new ymaps.Placemark(coords, {
-                            hintContent: ymaps.Placemark(coords, {
                             hintContent: 'Вы здесь'
                         }, {
-                            preset: 'Вы здесь'
-                        }, {
                             preset: 'islands#blueCircleIcon'
-                        })); 'islands#blueCircleIcon'
                         }));
-                        showToast('📍 Ваше место
                         showToast('📍 Ваше место');
                     }
-                }, () => showToast('');
-                    }
-                }, () => showToast(' Нет GPS'));
-            }
-        }
-
-        Нет GPS'));
+                }, () => showToast('Нет GPS'));
             }
         }
 
         // Панели
         function showPanel(type) {
- // Панели
-        function showPanel(type) {
-            document.getElementById('panel').classList.add('active');            document.getElementById('panel').classList.add('active');
+            document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent =
-
-            document.getElementById('panelTitle').textContent =
-                type === 'history' ? 'История'                type === 'history' ? 'История' :
-                type === 'favorites' ? 'Избран :
+                type === 'history' ? 'История' :
                 type === 'favorites' ? 'Избранное' : 'Профиль';
-
-            const content =ное' : 'Профиль';
 
             const content = document.getElementById('panelContent');
 
-            if (type === document.getElementById('panelContent');
-
             if (type === 'profile') {
                 if (!currentUser) {
- 'profile') {
-                if (!currentUser) {
                     content.innerHTML = `
-                        <div style="text                    content.innerHTML = `
-                        <div style="text-align:center; padding:40px 2-align:center; padding:40px 20px;">
-                            <div style="font-size:0px;">
-                            <div style="font-size:60px; margin-bottom:20px;">60px; margin-bottom:20px;"></div>
-                            <div style="</div>
-                            <div style="font-size:18px; font-weight:60font-size:18px; font-weight:600; margin-bottom:20px;">Вход через0; margin-bottom:20px;">Вход через Telegram</div>
-                            <button class=" Telegram</div>
+                        <div style="text-align:center; padding:40px 20px;">
+                            <div style="font-size:60px; margin-bottom:20px;">👤</div>
+                            <div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход через Telegram</div>
                             <button class="login-btn" onclick="loginWithTelegram()">
-                               login-btn" onclick="loginWithTelegram()">
-                                <svg width="24" height="24" <svg width="24" height="24" viewBox="0 0 24 24" viewBox="0 0 24 24" fill="white">
-                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.3 fill="white">
-                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.73 12-12S18.627 0 12 0zm5627 0 12 0zm5.562 8.161l-.562 8.161l-1.97 9.291c-.1.97 9.291c-.145.658-.537.145.658-.537.818-1.084.50818-1.084.508l-3-2.211-18l-3-2.211-1.447 1.394c-..447 1.394c-.161.161-.295.161.161-.295.295-.605.295l295-.605.295l.213-3.053 5.213-3.053 5.56-5.023c.2.56-5.023c.242-.213-.054-.342-.213-.054-.333-.373-.121l-33-.373-.121l-6.871 4.326-6.871 4.326-2.962-.924c-.62.962-.924c-.643-.204-.657-.643-.204-.657-.643.136-.953l143.136-.953l11.57-4.461c.1.57-4.461c.537-.194 1.00537-.194 1.006.131.832.936.131.832.932z"/>
-                                </svg>
-                               2z"/>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.342-.213-.333-.373.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
                                 </svg>
                                 Войти через Telegram
                             </button>
- Войти через Telegram
-                            </button>
-                        </div>
-                    `;
                         </div>
                     `;
                 } else {
-                    const myP = Object.values                } else {
-                    const myP = Object.values(parkingsData).filter(p => p.owner === currentUser(parkingsData).filter(p => p.owner === currentUser.id);
-                    const free = myP.filter(p.id);
+                    const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
                     const free = myP.filter(p => p.status === 'free').length;
-                    => p.status === 'free').length;
-                    const busy = myP.filter(p => p.status === const busy = myP.filter(p => p.status === 'busy').length;
-
-                    content.innerHTML = ` 'busy').length;
+                    const busy = myP.filter(p => p.status === 'busy').length;
 
                     content.innerHTML = `
-                        <div style="text-align:center;
                         <div style="text-align:center; padding:20px;">
-                            <div style=" padding:20px;">
-                            <div style="width:70px;height:70px;border-radiuswidth:70px;height:70px;border-radius:50%;background:linear-gradient(135:50%;background:linear-gradient(135deg,#007AFF,#5856Ddeg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px;">600;margin:0 auto 12px;">
-                                ${getInitials(currentUser.firstName)}
-
+                            <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px;">
                                 ${getInitials(currentUser.firstName)}
                             </div>
-                            <div style="                            </div>
-                            <div style="font-size:18px;font-weight:700font-size:18px;font-weight:700;">${currentUser.firstName}</div>
-                            <div style="color:#8E8E93;">@${currentUser.username}</div>
-                        </div>
-                        <div class="theme-toggle">;">${currentUser.firstName}</div>
+                            <div style="font-size:18px;font-weight:700;">${currentUser.firstName}</div>
                             <div style="color:#8E8E93;">@${currentUser.username}</div>
                         </div>
                         <div class="theme-toggle">
-                            <span>🌙 Темная
                             <span>🌙 Темная тема</span>
-                            <label class=" тема</span>
                             <label class="switch">
-                                <input type="checkbox" ${documentswitch">
-                                <input type="checkbox" ${document.body.classList.contains('dark') ? 'checked' : ''.body.classList.contains('dark') ? 'checked' : ''} onchange="toggleTheme()">
-                                <span class="} onchange="toggleTheme()">
+                                <input type="checkbox" ${document.body.classList.contains('dark') ? 'checked' : ''} onchange="toggleTheme()">
                                 <span class="slider"></span>
                             </label>
-slider"></span>
-                            </label>
                         </div>
-                        <div class                        </div>
                         <div class="stats-grid">
-                            <div class="="stats-grid">
-                            <div class="stat-card"><div class="stat-number">${myP.lengthstat-card"><div class="stat-number">${myP.length}</div><div class="stat-label">Парко}</div><div class="stat-label">Парковок</div></div>
-                            <div class="вок</div></div>
-                            <div class="stat-card"><div class="stat-number">${free}</divstat-card"><div class="stat-number">${free}</div><div class="stat-label">Свободно</><div class="stat-label">Свободно</div></div>
-                            <div class="stat-carddiv></div>
-                            <div class="stat-card"><div class="stat-number">${busy}</div><div"><div class="stat-number">${busy}</div><div class="stat-label">Занято</div></div class="stat-label">Занято</div></div>
+                            <div class="stat-card"><div class="stat-number">${myP.length}</div><div class="stat-label">Парковок</div></div>
+                            <div class="stat-card"><div class="stat-number">${free}</div><div class="stat-label">Свободно</div></div>
+                            <div class="stat-card"><div class="stat-number">${busy}</div><div class="stat-label">Занято</div></div>
                         </div>
-                        <button onclick>
-                        </div>
-                        <button onclick="logout()" style="width:100%;padding="logout()" style="width:100%;padding:14px;background:transparent;color:#FF3B:14px;background:transparent;color:#FF3B30;border:1px solid #FF3B330;border:1px solid #FF3B30;border-radius:12px;font-weight:60;border-radius:12px;font-weight:600;cursor:pointer;">🚪 Выйти00;cursor:pointer;">🚪 Выйти</button>
-                    `;
-                }
-           </button>
+                        <button onclick="logout()" style="width:100%;padding:14px;background:transparent;color:#FF3B30;border:1px solid #FF3B30;border-radius:12px;font-weight:600;cursor:pointer;">🚪 Выйти</button>
                     `;
                 }
             } else if (type === 'history') {
-                } else if (type === 'history') {
                 if (!currentUser) {
-                    content.innerHTML = '<div if (!currentUser) {
-                    content.innerHTML = '<div class="empty-state">🔒 Войдите</ class="empty-state">🔒 Войдите</div>';
-                } else {
-                    const list =div>';
+                    content.innerHTML = '<div class="empty-state">🔒 Войдите</div>';
                 } else {
                     const list = Object.keys(parkingsData)
-                        .filter(id Object.keys(parkingsData)
                         .filter(id => parkingsData[id].owner === currentUser.id)
- => parkingsData[id].owner === currentUser.id)
-                        .map(id => parkingsData[id]);
-
                         .map(id => parkingsData[id]);
 
                     if (list.length === 0) {
-                                           if (list.length === 0) {
-                        content.innerHTML = '<div class="empty-state"> content.innerHTML = '<div class="empty-state"> Пусто</div>';
-                    } else { Пусто</div>';
+                        content.innerHTML = '<div class="empty-state">Пусто</div>';
                     } else {
-                        content.innerHTML = '<div class="ios
                         content.innerHTML = '<div class="ios-list">' + list.map(p => `
-                           -list">' + list.map(p => `
                             <div class="ios-list-item">
-                                <div class="ios-list-item">
-                                <div class="list-icon" style="background:${p <div class="list-icon" style="background:${p.status === 'free' ? '#34C75.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF9' : p.status === 'busy' ? '#FF3B30' : '#007AFF'}3B30' : '#007AFF'}"></div>
-                                <div class=""></div>
+                                <div class="list-icon" style="background:${p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF'}">🅿️</div>
                                 <div class="list-content">
-                                    <div class="list-title">${list-content">
                                     <div class="list-title">${p.name}</div>
-                                    <div class="listp.name}</div>
-                                    <div class="list-subtitle">Мест: ${p.places}</div>-subtitle">Мест: ${p.places}</div>
+                                    <div class="list-subtitle">Мест: ${p.places}</div>
                                 </div>
                             </div>
-                                </div>
-                            </div>
-                        `).join('') + '</div
                         `).join('') + '</div>';
                     }
                 }
-            } else>';
-                    }
-                }
             } else if (type === 'favorites') {
- if (type === 'favorites') {
                 if (!myHomes.length) {
-                    content                if (!myHomes.length) {
-                    content.innerHTML = '<div class="empty-state">🏠.innerHTML = '<div class="empty-state">🏠 Нет домов</div>';
+                    content.innerHTML = '<div class="empty-state">🏠 Нет домов</div>';
                 } else {
-                    Нет домов</div>';
-                } else {
-                    content.innerHTML = '<div class="ios-list">' + my content.innerHTML = '<div class="ios-list">' + myHomes.map(h => `
-                        <div class="Homes.map(h => `
+                    content.innerHTML = '<div class="ios-list">' + myHomes.map(h => `
                         <div class="ios-list-item">
-                            <div class="list-iconios-list-item">
-                            <div class="list-icon" style="background:#FF9500;">" style="background:#FF9500;"></div>
-                            <div class="</div>
+                            <div class="list-icon" style="background:#FF9500;">🏠</div>
                             <div class="list-content">
                                 <div class="list-title">${h.address}</div>
                             </div>
                         </div>
                     `).join('') + '</div>';
                 }
-           list-content">
-                                <div class="list-title">${h.address}</div>
-                            </div>
-                        </div>
-                    `).join('') + '</div>';
-                }
             }
         }
 
         function closePanel() {
- }
-        }
-
-        function closePanel() {
-            document.getElementById('panel').classList.remove('active');
             document.getElementById('panel').classList.remove('active');
         }
-
-        function showMap() {
-            close        }
 
         function showMap() {
             closePanel();
-            document.querySelectorAll('.tab').forEach(t =>Panel();
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('.tab t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
         }
 
-:first-child').classList.add('active');
-        }
-
         // Вход через Telegram
-        function loginWithTelegram()        // Вход через Telegram
         function loginWithTelegram() {
-            const username = prompt('Введите ваш Telegram {
             const username = prompt('Введите ваш Telegram username (без @):');
-            if (username && username (без @):');
             if (username && username.trim()) {
-                const firstName = prompt('В username.trim()) {
                 const firstName = prompt('Ваше имя:') || 'Пользователь';
                 currentUser = {
                     id: 'tg_' + Date.now(),
                     username: username.replace('@', ''),
                     firstName: firstName
                 };
-                database.refаше имя:') || 'Пользователь';
-('users/' + currentUser.id).set(currentUser);
-                               currentUser = {
-                    id: 'tg_' + Date.now(),
-                    username: username.replace('@', ''),
-                    firstName: firstName
-                };
                 database.ref('users/' + currentUser.id).set(currentUser);
                 localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                showToast('Добро пожаловать, ' + firstName + showToast('Добро пожаловать, ' + firstName + '!');
+                showToast('Добро пожаловать, ' + firstName + '!');
                 showPanel('profile');
-            '!');
-                showPanel('profile');
-            }
-        }
-
-        function logout() {
             }
         }
 
         function logout() {
             currentUser = null;
-            localStorage.removeItem('tgUser'); currentUser = null;
             localStorage.removeItem('tgUser');
-            showToast('Вы вышли');
-            showPanel('
             showToast('Вы вышли');
             showPanel('profile');
         }
 
-        function loadprofile');
-        }
-
         function loadHomes() {
-            if (!currentUser) return;Homes() {
             if (!currentUser) return;
-            database.ref('homes/' + currentUser.id).on
             database.ref('homes/' + currentUser.id).on("value", snap => {
-                const d = snap("value", snap => {
                 const d = snap.val();
-                myHomes = d ? Object.val();
                 myHomes = d ? Object.values(d) : [];
             });
         }
 
-.values(d) : [];
-            });
-        }
-
         function getInitials(name) {
-            return        function getInitials(name) {
-            return name.split(' ').map(n => n[0]).join name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-       ('').toUpperCase().slice(0, 2);
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
         }
-
-        function toggleTheme() {
-            document.body }
 
         function toggleTheme() {
             document.body.classList.toggle('dark');
         }
 
-        // За.classList.toggle('dark');
-        }
-
         // Закрытие плашки типа карты при клике вне
-       крытие плашки типа карты при клике вне
         document.addEventListener('click', (e) => {
-            document.addEventListener('click', (e) => {
             const panel = document.getElementById('mapTypePanel');
-            const panel = document.getElementById('mapTypePanel');
-            const btn = e.target.closest('.btn'); const btn = e.target.closest('.btn');
-            if (btn && btn.textContent.includes
+            const btn = e.target.closest('.btn');
             if (btn && btn.textContent.includes('🗺️')) return;
-            if('🗺️')) return;
             if (!panel.contains(e.target)) {
-                panel.classList (!panel.contains(e.target)) {
                 panel.classList.remove('show');
             }
         });
-   .remove('show');
-            }
-        });
     </script>
-</body>
-</html>
- </script>
 </body>
 </html>
