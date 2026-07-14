@@ -5,12 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ParkNear</title>
     
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#007AFF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ParkNear">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     
     <style>
+        /* ... весь ваш CSS из предыдущего кода ... */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
@@ -28,7 +39,6 @@
         
         #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; background: #E5E5EA; }
         
-        /* Кнопка геолокации (новая) */
         #geoBtn {
             position: fixed; bottom: 170px; right: 20px; z-index: 900;
             width: 48px; height: 48px; border-radius: 50%;
@@ -40,7 +50,6 @@
         #geoBtn:active { transform: scale(0.9); background: #F2F2F7; }
         #geoBtn svg { width: 24px; height: 24px; fill: #007AFF; }
 
-        /* Кнопка добавления */
         #addBtn {
             position: fixed; bottom: 100px; right: 20px; z-index: 900;
             width: 56px; height: 56px; border-radius: 50%;
@@ -155,7 +164,6 @@
     
     <div id="map"></div>
     
-    <!-- Новая кнопка геолокации -->
     <button id="geoBtn" title="Моё местоположение">
         <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
     </button>
@@ -178,7 +186,14 @@
     </div>
 
     <script>
-        // 1. Инициализация Firebase
+        // Регистрация Service Worker для PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('Service Worker зарегистрирован:', reg.scope))
+                .catch(err => console.error('Ошибка регистрации SW:', err));
+        }
+
+        // ... весь ваш JavaScript код из предыдущей версии ...
         firebase.initializeApp({
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
             authDomain: "parknear-bef41.firebaseapp.com",
@@ -192,7 +207,6 @@
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
 
-        // 2. Инициализация Telegram Web App и авторизации
         function initAuth() {
             if (window.Telegram && window.Telegram.WebApp) {
                 const tg = window.Telegram.WebApp;
@@ -218,7 +232,6 @@
             }
         }
 
-        // 3. Инициализация Карты
         function initMap() {
             map = new ymaps.Map("map", {
                 center: [55.7558, 37.6173],
@@ -227,13 +240,11 @@
                 type: 'yandex#map'
             });
             
-            // Тестовый маркер
             const testPlacemark = new ymaps.Placemark([55.7558, 37.6173], {
                 balloonContent: '<strong>Тестовая парковка</strong><br>Если вы это видите, карта работает!'
             }, { preset: 'islands#redDotIcon' });
             map.geoObjects.add(testPlacemark);
 
-            // Обработчик кнопки добавления
             document.getElementById('addBtn').onclick = function() {
                 if (!currentUser) {
                     showPanel('profile');
@@ -243,11 +254,9 @@
                 openAddPanel(center);
             };
 
-            // 🌟 НОВЫЙ ОБРАБОТЧИК: Кнопка геолокации
             document.getElementById('geoBtn').onclick = function() {
                 if (!map) return;
                 
-                // Меняем иконку на спиннер во время поиска
                 const btn = document.getElementById('geoBtn');
                 const originalContent = btn.innerHTML;
                 btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
@@ -256,28 +265,21 @@
                     provider: 'browser',
                     mapStateAutoApply: true
                 }).then(function (result) {
-                    // Возвращаем иконку
                     btn.innerHTML = originalContent;
                     
-                    // Удаляем старую метку, если она была
                     if (myLocationPlacemark) {
                         map.geoObjects.remove(myLocationPlacemark);
                     }
                     
-                    // Получаем объект с геопозицией
                     myLocationPlacemark = result.geoObjects.get(0);
-                    
-                    // Настраиваем внешний вид метки "Вы здесь"
                     myLocationPlacemark.options.set('preset', 'islands#blueCircleDotIconWithCaption');
                     myLocationPlacemark.properties.set('caption', 'Вы здесь');
                     
-                    // Добавляем на карту
                     map.geoObjects.add(myLocationPlacemark);
                     
-                    // Плавно приближаем карту к пользователю
                     map.setBounds(myLocationPlacemark.properties.get('boundedBy'), {
                         checkZoomRange: true,
-                        duration: 500 // плавная анимация 0.5 сек
+                        duration: 500
                     });
                     
                 }).catch(function (err) {
@@ -298,7 +300,6 @@
             });
         }
 
-        // 4. Логика добавления парковки
         function openAddPanel(coords) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 'Новая парковка';
@@ -365,7 +366,6 @@
             });
         }
 
-        // 5. Работа с маркерами на карте
         function loadAllParkings() {
             database.ref('parkings').once('value')
                 .then(snapshot => {
@@ -409,7 +409,6 @@
             }
         }
 
-        // 6. Управление панелями
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 
