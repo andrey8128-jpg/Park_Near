@@ -393,7 +393,7 @@
                 if(drawing) { finishDrawingNew(); return; }
                 
                 drawing = true; points = [];
-                this.classList.add('drawing'); this.textContent = '✕';
+                this.classList.add('drawing'); this.textContent = '';
                 showToast('Нажмите на карту, чтобы поставить точки');
             };
 
@@ -610,7 +610,7 @@
         }
 
         function renderFavorites(c) {
-            if(!myHomes.length) { c.innerHTML='<div class="empty-state">🏠 Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
+            if(!myHomes.length) { c.innerHTML='<div class="empty-state"> Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
             c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;"></div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
         }
 
