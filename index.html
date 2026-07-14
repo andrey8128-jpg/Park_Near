@@ -13,46 +13,26 @@
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
             overflow: hidden; height: 100vh; height: 100dvh;
             background: #F2F2F7; color: #000;
-            transition: background 0.3s, color 0.3s;
         }
-        body.dark { background: #000; color: #fff; }
         .app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 60px;
-            background: rgba(255,255,255,0.45); backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            z-index: 1000; display: flex; align-items: center; justify-content: center;
-            border-bottom: 0.5px solid rgba(255,255,255,0.3);
-            padding-top: env(safe-area-inset-top);
+            background: #fff; z-index: 1000; display: flex; align-items: center; justify-content: center;
+            border-bottom: 1px solid #ddd; padding-top: env(safe-area-inset-top);
         }
-        body.dark .app-header { background: rgba(28,28,30,0.45); }
         .app-title { font-size: 22px; font-weight: 700; }
         .app-title span { color: #007AFF; font-weight: 800; }
         #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; }
-        .controls { position: fixed; top: 80px; left: 16px; z-index: 900; display: flex; flex-direction: column; gap: 10px; }
-        .btn {
-            width: 44px; height: 44px; border-radius: 12px;
-            background: rgba(255,255,255,0.85); backdrop-filter: blur(10px);
-            border: none; font-size: 20px; cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            display: flex; align-items: center; justify-content: center;
-        }
-        .btn:active { transform: scale(0.95); }
         #addBtn {
             position: fixed; bottom: 100px; right: 20px; z-index: 900;
             width: 56px; height: 56px; border-radius: 50%;
             background: #007AFF; color: #fff; border: none;
             font-size: 28px; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,122,255,0.4);
-            display: flex; align-items: center; justify-content: center;
         }
         .tabBar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
-            background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
-            z-index: 1000; display: flex;
-            border-top: 0.5px solid rgba(0,0,0,0.1);
-            padding-bottom: env(safe-area-inset-bottom);
+            background: #fff; z-index: 1000; display: flex;
+            border-top: 1px solid #ddd; padding-bottom: env(safe-area-inset-bottom);
         }
-        body.dark .tabBar { background: rgba(28,28,30,0.85); }
         .tab {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center; cursor: pointer;
@@ -66,65 +46,34 @@
             transform: translateY(100%); transition: transform 0.3s;
             display: flex; flex-direction: column;
         }
-        body.dark .panel { background: #000; }
         .panel.active { transform: translateY(0); }
         .panel-header {
             padding: 16px 20px; display: flex;
             justify-content: space-between; align-items: center;
-            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+            border-bottom: 1px solid #ddd; background: #fff;
         }
         .panel-title { font-size: 24px; font-weight: 700; }
         .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
 
-        /* Кнопки */
         .telegram-btn {
             display: flex; align-items: center; justify-content: center;
-            gap: 10px;
-            width: 100%; padding: 16px; border-radius: 12px;
+            gap: 10px; width: 100%; padding: 16px; border-radius: 12px;
             border: none; font-size: 16px; font-weight: 600;
             cursor: pointer; color: #fff; background: #0088cc;
             text-decoration: none; margin: 8px 0;
         }
-        .telegram-btn svg { width: 24px; height: 24px; }
         .guest-btn {
             width: 100%; padding: 16px; border-radius: 12px;
             border: 1px solid #007AFF; font-size: 16px; font-weight: 600;
             cursor: pointer; color: #007AFF; background: transparent; margin: 8px 0;
         }
-        .guest-btn:active { background: #007AFF; color: #fff; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #8E8E93; }
-        .theme-toggle {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 16px; background: #fff; border-radius: 12px; margin: 16px 0;
-        }
-        body.dark .theme-toggle { background: #1C1C1E; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background: #ccc; transition: .4s; border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute; content: ""; height: 26px; width: 26px;
-            left: 2px; bottom: 2px; background: #fff; transition: .4s; border-radius: 50%;
-        }
-        input:checked + .slider { background: #34C759; }
-        input:checked + .slider:before { transform: translateX(20px); }
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
-        .stat-card { background: #fff; border-radius: 12px; padding: 14px 10px; text-align: center; }
-        body.dark .stat-card { background: #1C1C1E; }
-        .stat-number { font-size: 24px; font-weight: 700; color: #007AFF; }
-        .stat-label { font-size: 11px; color: #8E8E93; margin-top: 4px; }
     </style>
 </head>
 <body>
 
     <div class="app-header"><div class="app-title">Park<span>Near</span></div></div>
     <div id="map"></div>
-    <div class="controls">
-        <button class="btn" onclick="showMyLocation()">📍</button>
-    </div>
     <button id="addBtn">+</button>
 
     <div class="panel" id="panel">
@@ -143,7 +92,7 @@
     </div>
 
     <script>
-        const firebaseConfig = {
+        firebase.initializeApp({
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
             authDomain: "parknear-bef41.firebaseapp.com",
             databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
@@ -151,85 +100,27 @@
             storageBucket: "parknear-bef41.firebasestorage.app",
             messagingSenderId: "1066552333578",
             appId: "1:1066552333578:web:e60e333cf877852eba16f3"
-        };
-        firebase.initializeApp(firebaseConfig);
+        });
         const database = firebase.database();
-
-        let map = null;
-        let currentUser = null;
-        let parkingsData = {};
+        let map, currentUser = null;
 
         function initMap() {
             map = new ymaps.Map("map", {
                 center: [55.7558, 37.6173], zoom: 10,
                 controls: ['zoomControl'], type: 'yandex#map'
             });
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    map.setCenter([pos.coords.latitude, pos.coords.longitude], 14);
-                }, () => {});
-            }
             const saved = localStorage.getItem('tgUser');
             if (saved) currentUser = JSON.parse(saved);
-            loadParkings();
-            // Проверка возврата из Telegram
-            checkTelegramCallback();
         }
-
         if (typeof ymaps !== 'undefined') ymaps.ready(initMap);
-        else window.addEventListener('load', () => { if (typeof ymaps !== 'undefined') ymaps.ready(initMap); });
+        else window.addEventListener('load', () => ymaps.ready(initMap));
 
-        function showMyLocation() {
-            if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => {
-                map.setCenter([pos.coords.latitude, pos.coords.longitude], 14);
-            });
-        }
-
-        function loadParkings() {
-            database.ref("parkings").on("value", snap => {
-                const data = snap.val();
-                if (data) parkingsData = data;
-            });
-        }
-
-        // Telegram Login через прямую ссылку
         function loginWithTelegram() {
-            const botName = 'parknear_bot';
-            const redirectUrl = window.location.href.split('#')[0];
-            const url = `https://t.me/${botName}?start=login_${btoa(redirectUrl)}`;
-            window.open(url, '_blank');
-        }
-
-        // Проверка возврата из Telegram
-        function checkTelegramCallback() {
-            const hash = window.location.hash;
-            if (hash.includes('tgAuthResult=')) {
-                try {
-                    const data = JSON.parse(decodeURIComponent(hash.split('tgAuthResult=')[1]));
-                    if (data.id) {
-                        currentUser = {
-                            id: data.id,
-                            username: data.username || '',
-                            firstName: data.first_name || 'Пользователь',
-                            lastName: data.last_name || '',
-                            photoUrl: data.photo_url || ''
-                        };
-                        database.ref('users/' + currentUser.id).set(currentUser);
-                        localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                        window.location.hash = '';
-                        showPanel('profile');
-                    }
-                } catch(e) {}
-            }
+            window.open('https://t.me/parknear_bot', '_blank');
         }
 
         function continueAsGuest() {
-            currentUser = {
-                id: 'guest_' + Date.now(),
-                username: 'guest',
-                firstName: 'Гость',
-                photoUrl: ''
-            };
+            currentUser = { id: 'guest_' + Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '' };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
             showPanel('profile');
         }
@@ -242,54 +133,36 @@
 
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent =
-                type === 'history' ? 'История' : type === 'favorites' ? 'Избранное' : 'Профиль';
+            document.getElementById('panelTitle').textContent = type === 'profile' ? 'Профиль' : type;
             const content = document.getElementById('panelContent');
 
             if (type === 'profile') {
                 if (!currentUser) {
+                    // ⬇️ ВОТ КНОПКИ ВХОДА ⬇️
                     content.innerHTML = `
                         <div style="text-align:center; padding:40px 20px;">
                             <div style="font-size:60px; margin-bottom:20px;">👤</div>
                             <div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход</div>
-                            <a class="telegram-btn" href="https://t.me/parknear_bot" target="_blank">
-                                <svg viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.342-.213-.333-.373.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
-                                Открыть Telegram
-                            </a>
-                            <p style="color:#8E8E93; font-size:13px; margin:8px 0;">Напишите боту /start для входа</p>
+                            <button class="telegram-btn" onclick="loginWithTelegram()">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.342-.213-.333-.373.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
+                                Войти через Telegram
+                            </button>
                             <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
                         </div>
                     `;
                 } else {
                     const isGuest = currentUser.id.startsWith('guest_');
-                    const displayName = currentUser.lastName
-                        ? `${currentUser.firstName} ${currentUser.lastName}`
-                        : currentUser.firstName;
-                    const userLogin = currentUser.username ? `@${currentUser.username}` : `ID: ${currentUser.id}`;
-
                     content.innerHTML = `
                         <div style="text-align:center; padding:20px;">
-                            <div style="width:70px;height:70px;border-radius:50%;background:#007AFF;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px;">
-                                ${getInitials(currentUser.firstName)}
-                            </div>
-                            <div style="font-size:18px;font-weight:700;">${displayName} ${isGuest?'(гость)':''}</div>
-                            <div style="color:#8E8E93;">${userLogin}</div>
-                            ${!isGuest ? '<div style="font-size:12px; color:#34C759;">🔗 Telegram аккаунт</div>' : ''}
+                            <div style="font-size:40px;">👤</div>
+                            <div style="font-size:18px; font-weight:700;">${currentUser.firstName} ${isGuest?'(гость)':''}</div>
+                            <div style="color:#8E8E93;">${currentUser.username}</div>
+                            <button onclick="logout()" style="width:100%;padding:14px;color:#FF3B30;background:transparent;border:1px solid #FF3B30;border-radius:12px;font-weight:600;margin-top:20px;">🚪 Выйти</button>
                         </div>
-                        <div class="theme-toggle">
-                            <span>🌙 Темная тема</span>
-                            <label class="switch">
-                                <input type="checkbox" ${document.body.classList.contains('dark')?'checked':''} onchange="toggleTheme()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <button onclick="logout()" style="width:100%;padding:14px;color:#FF3B30;background:transparent;border:1px solid #FF3B30;border-radius:12px;font-weight:600;">🚪 Выйти</button>
                     `;
                 }
-            } else if (type === 'history') {
-                content.innerHTML = '<div class="empty-state">История пуста</div>';
-            } else if (type === 'favorites') {
-                content.innerHTML = '<div class="empty-state">🏠 Нет избранного</div>';
+            } else {
+                content.innerHTML = '<div style="text-align:center;padding:40px;color:#8E8E93;">Пусто</div>';
             }
         }
 
@@ -299,8 +172,6 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
         }
-        function getInitials(name) { return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2); }
-        function toggleTheme() { document.body.classList.toggle('dark'); }
     </script>
 </body>
 </html>
