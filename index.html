@@ -64,7 +64,6 @@
             transition: filter 0.5s ease;
         }
         
-        /* 🌙 ТЁМНАЯ ТЕМА ТОЛЬКО ДЛЯ СХЕМЫ */
         body.dark-theme #map.yandex#map {
             filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
         }
@@ -368,6 +367,84 @@
         }
         .history-detail-label { color: var(--text-secondary); }
         .history-detail-value { font-weight: 500; }
+        
+        /* Стили для баллона с информацией о парковке */
+        .parking-balloon {
+            padding: 16px;
+            min-width: 280px;
+        }
+        .parking-balloon-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+        .parking-balloon-stats {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .parking-balloon-stat {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+        }
+        .parking-balloon-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .parking-balloon-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .parking-balloon-progress {
+            margin-bottom: 16px;
+        }
+        .parking-balloon-progress-bar {
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .parking-balloon-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .parking-balloon-progress-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .parking-balloon-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .parking-balloon-buttons button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .parking-balloon-buttons button:active {
+            opacity: 0.7;
+        }
+        .btn-balloon-edit {
+            background: #007AFF;
+            color: #fff;
+        }
+        .btn-balloon-delete {
+            background: #FF3B30;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -399,8 +476,8 @@
     </div>
 
     <div class="tabBar">
-        <div class="tab active" onclick="showMap()"><div class="icon">️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
+        <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon"></div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
         <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
@@ -423,7 +500,7 @@
             if (snapshot.val() === true) {
                 console.log('✅ Подключено к Firebase');
             } else {
-                console.log('❌ Отключено от Firebase');
+                console.log(' Отключено от Firebase');
             }
         });
         
@@ -558,7 +635,6 @@
             document.querySelectorAll('.map-type-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // Применяем тёмную тему только для схемы
             const mapEl = document.getElementById('map');
             if (type === 'yandex#map' && document.body.classList.contains('dark-theme')) {
                 mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
@@ -880,7 +956,6 @@
             
             newRef.set(parkingData)
                 .then(() => {
-                    // Сохраняем в историю создание
                     return database.ref(`parkings/${newRef.key}/history`).push({
                         action: 'created',
                         timestamp: Date.now(),
@@ -962,6 +1037,48 @@
             return `${day}.${month}.${year} ${hours}:${minutes}`;
         }
 
+        // Функция для создания контента баллона
+        function getParkingBalloonContent(parkingId, data) {
+            const totalSpots = data.totalSpots || 0;
+            const occupiedSpots = data.occupiedSpots || 0;
+            const freeSpots = totalSpots - occupiedSpots;
+            const color = getOccupancyColor(occupiedSpots, totalSpots);
+            const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+            const isAuthor = currentUser && currentUser.id === data.authorId;
+            
+            return `
+                <div class="parking-balloon">
+                    <div class="parking-balloon-title">${data.name}</div>
+                    <div class="parking-balloon-stats">
+                        <div class="parking-balloon-stat">
+                            <div class="parking-balloon-stat-value" style="color: #34C759;">${freeSpots}</div>
+                            <div class="parking-balloon-stat-label">Свободно</div>
+                        </div>
+                        <div class="parking-balloon-stat">
+                            <div class="parking-balloon-stat-value" style="color: #FF3B30;">${occupiedSpots}</div>
+                            <div class="parking-balloon-stat-label">Занято</div>
+                        </div>
+                        <div class="parking-balloon-stat">
+                            <div class="parking-balloon-stat-value" style="color: #007AFF;">${totalSpots}</div>
+                            <div class="parking-balloon-stat-label">Всего</div>
+                        </div>
+                    </div>
+                    <div class="parking-balloon-progress">
+                        <div class="parking-balloon-progress-bar">
+                            <div class="parking-balloon-progress-fill" style="width: ${occupancyPercent}%; background: ${color};"></div>
+                        </div>
+                        <div class="parking-balloon-progress-text">Загруженность: ${occupancyPercent}%</div>
+                    </div>
+                    ${isAuthor ? `
+                        <div class="parking-balloon-buttons">
+                            <button class="btn-balloon-edit" onclick="openOccupancyPanel('${parkingId}', event)">✏️ Редактировать</button>
+                            <button class="btn-balloon-delete" onclick="deleteParking('${parkingId}', event)">🗑 Удалить</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
         function addMarkerToMap(id, data) {
             if (mapMarkers[id]) return;
             
@@ -988,106 +1105,89 @@
                 });
             }
             
-            // Обработка кликов (одинарный и двойной)
+            // Устанавливаем контент баллона
+            placemark.balloon.setContent(getParkingBalloonContent(id, data));
+            
+            // Обработка клика - открываем баллон
             placemark.events.add('click', function(e) {
-                const now = Date.now();
-                const timeDiff = now - lastClickTime;
-                
-                if (lastClickParkingId === id && timeDiff < 300) {
-                    // Двойной клик - открываем редактор
-                    openOccupancyPanel(id, data);
-                    lastClickTime = 0;
-                    lastClickParkingId = null;
-                } else {
-                    // Одинарный клик - показываем краткую информацию
-                    const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
-                    const street = data.street || 'Улица не указана';
-                    
-                    placemark.balloon.setContent(`
-                        <div style="padding:12px;">
-                            <div style="font-size:16px;font-weight:700;margin-bottom:8px;">${data.name}</div>
-                            <div style="font-size:13px;color:#8E8E93;margin-bottom:4px;">📍 ${street}</div>
-                            <div style="font-size:13px;color:#8E8E93;margin-bottom:12px;">💰 ${isPaid}</div>
-                            <div style="display:flex;gap:12px;font-size:14px;">
-                                <span style="color:#34C759;">✓ Свободно: ${freeSpots}</span>
-                                <span style="color:#FF3B30;">✗ Занято: ${occupiedSpots}</span>
-                            </div>
-                            <div style="margin-top:8px;font-size:12px;color:#8E8E93;">Всего мест: ${totalSpots}</div>
-                            <div style="margin-top:8px;font-size:11px;color:#8E8E93;">Двойное нажатие для редактирования</div>
-                        </div>
-                    `);
-                    placemark.balloon.open();
-                    
-                    lastClickTime = now;
-                    lastClickParkingId = id;
-                    
-                    setTimeout(() => {
-                        lastClickTime = 0;
-                        lastClickParkingId = null;
-                    }, 300);
-                }
+                // Обновляем контент баллона перед открытием
+                placemark.balloon.setContent(getParkingBalloonContent(id, data));
+                placemark.balloon.open();
             });
             
             map.geoObjects.add(placemark);
             mapMarkers[id] = placemark;
         }
 
-        function openOccupancyPanel(parkingId, data) {
-            const totalSpots = data.totalSpots || 0;
-            const occupiedSpots = data.occupiedSpots || 0;
-            const freeSpots = totalSpots - occupiedSpots;
-            const color = getOccupancyColor(occupiedSpots, totalSpots);
-            const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+        function openOccupancyPanel(parkingId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
             
-            const isAuthor = currentUser && currentUser.id === data.authorId;
-            
-            document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = 'Парковка';
-            
-            document.getElementById('panelContent').innerHTML = `
-                <div class="occupancy-header">
-                    <div class="occupancy-title">${data.name}</div>
-                    <div class="occupancy-subtitle">${data.desc || 'Нет описания'}</div>
-                </div>
+            database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
                 
-                <div class="occupancy-stats">
-                    <div class="stat-card stat-total">
-                        <div class="stat-value">${totalSpots}</div>
-                        <div class="stat-label">Всего мест</div>
+                const totalSpots = data.totalSpots || 0;
+                const occupiedSpots = data.occupiedSpots || 0;
+                const freeSpots = totalSpots - occupiedSpots;
+                const color = getOccupancyColor(occupiedSpots, totalSpots);
+                const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+                
+                const isAuthor = currentUser && currentUser.id === data.authorId;
+                
+                document.getElementById('panel').classList.add('active');
+                document.getElementById('panelTitle').textContent = 'Парковка';
+                
+                document.getElementById('panelContent').innerHTML = `
+                    <div class="occupancy-header">
+                        <div class="occupancy-title">${data.name}</div>
+                        <div class="occupancy-subtitle">${data.desc || 'Нет описания'}</div>
                     </div>
-                    <div class="stat-card stat-free">
-                        <div class="stat-value">${freeSpots}</div>
-                        <div class="stat-label">Свободно</div>
+                    
+                    <div class="occupancy-stats">
+                        <div class="stat-card stat-total">
+                            <div class="stat-value">${totalSpots}</div>
+                            <div class="stat-label">Всего мест</div>
+                        </div>
+                        <div class="stat-card stat-free">
+                            <div class="stat-value">${freeSpots}</div>
+                            <div class="stat-label">Свободно</div>
+                        </div>
+                        <div class="stat-card stat-occupied">
+                            <div class="stat-value">${occupiedSpots}</div>
+                            <div class="stat-label">Занято</div>
+                        </div>
                     </div>
-                    <div class="stat-card stat-occupied">
-                        <div class="stat-value">${occupiedSpots}</div>
-                        <div class="stat-label">Занято</div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:${occupancyPercent}%;background:${color};"></div>
                     </div>
-                </div>
-                
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width:${occupancyPercent}%;background:${color};"></div>
-                </div>
-                <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-                    Загруженность: ${occupancyPercent}%
-                </div>
-                
-                <div class="occupancy-control">
-                    <label>Изменить количество занятых мест:</label>
-                    <div class="counter-row">
-                        <button class="counter-btn minus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, -1)">−</button>
-                        <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-                        <button class="counter-btn plus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, 1)">+</button>
+                    <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+                        Загруженность: ${occupancyPercent}%
                     </div>
-                </div>
-                
-                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')"> Удалить парковку</button>` : ''}
-                
-                <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
-            `;
+                    
+                    <div class="occupancy-control">
+                        <label>Изменить количество занятых мест:</label>
+                        <div class="counter-row">
+                            <button class="counter-btn minus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, -1)">−</button>
+                            <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
+                            <button class="counter-btn plus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, 1)">+</button>
+                        </div>
+                    </div>
+                    
+                    ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')"> Удалить парковку</button>` : ''}
+                    
+                    <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
+                `;
+            });
         }
 
-        function deleteParking(parkingId) {
+        function deleteParking(parkingId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
             if (!confirm('Вы уверены, что хотите удалить эту парковку? Это действие нельзя отменить.')) {
                 return;
             }
@@ -1128,13 +1228,11 @@
             
             const now = Date.now();
             
-            // Получаем данные автомобиля пользователя
             database.ref(`users/${currentUser.id}/car`).once('value').then(carSnapshot => {
                 const carData = carSnapshot.val() || {};
                 
                 database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
                     .then(() => {
-                        // Сохраняем в историю изменений
                         return database.ref(`parkings/${parkingId}/history`).push({
                             action: delta < 0 ? 'freed' : 'occupied',
                             timestamp: now,
@@ -1163,13 +1261,7 @@
                             addMarkerToMap(parkingId, data);
                         });
                         
-                        openOccupancyPanel(parkingId, {
-                            ...mapMarkers[parkingId] ? {} : {},
-                            totalSpots: totalSpots,
-                            occupiedSpots: newOccupied,
-                            name: document.querySelector('.occupancy-title').textContent,
-                            desc: document.querySelector('.occupancy-subtitle').textContent
-                        });
+                        openOccupancyPanel(parkingId);
                     })
                     .catch(err => {
                         console.error("Ошибка обновления:", err);
@@ -1307,7 +1399,7 @@
                             <p style="font-size:14px; color:var(--text-secondary); text-align:center; margin-bottom:20px;">
                                 ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
                             </p>
-                            <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
+                            <button class="btn-danger" onclick="logout()"> Выйти из аккаунта</button>
                         </div>
                     `;
                     
@@ -1320,7 +1412,6 @@
             const isDark = document.body.classList.toggle('dark-theme');
             localStorage.setItem('darkTheme', isDark);
             
-            // Применяем тёмную тему только если текущий тип карты - схема
             const mapEl = document.getElementById('map');
             const currentType = map.getType();
             
@@ -1466,13 +1557,12 @@
             }
             
             if (type === 'history') {
-                // Загружаем историю всех парковок
                 database.ref('parkings').once('value').then(parkingsSnapshot => {
                     const parkingsData = parkingsSnapshot.val();
                     if (!parkingsData) {
                         contentEl.innerHTML = `
                             <div class="empty-state">
-                                <div class="icon"></div>
+                                <div class="icon">🕘</div>
                                 <p>История пуста</p>
                             </div>`;
                         return;
@@ -1480,13 +1570,12 @@
                     
                     let html = '<div class="list-container">';
                     
-                    // Собираем все парковки
                     Object.keys(parkingsData).forEach(parkingId => {
                         const parking = parkingsData[parkingId];
                         if (parking && parking.name) {
                             html += `
                                 <div class="list-item" onclick="showParkingHistory('${parkingId}', '${parking.name.replace(/'/g, "\\'")}')">
-                                    <div class="list-icon">️</div>
+                                    <div class="list-icon">🅿️</div>
                                     <div class="list-info">
                                         <div class="list-title">${parking.name}</div>
                                         <div class="list-subtitle">Нажмите для просмотра истории изменений</div>
