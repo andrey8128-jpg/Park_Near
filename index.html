@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ParkNear</title>
     
-    <!-- Telegram Web App Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <!-- Yandex Maps -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     
     <style>
@@ -20,8 +17,6 @@
             overflow: hidden; height: 100vh; height: 100dvh;
             background: #F2F2F7; color: #000;
         }
-        
-        /* Header */
         .app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 60px;
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
@@ -31,10 +26,8 @@
         .app-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
         .app-title span { color: #007AFF; }
         
-        /* Map */
         #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; background: #E5E5EA; }
         
-        /* Add Button */
         #addBtn {
             position: fixed; bottom: 100px; right: 20px; z-index: 900;
             width: 56px; height: 56px; border-radius: 50%;
@@ -45,7 +38,6 @@
         }
         #addBtn:active { transform: scale(0.9); background: #0051D5; }
         
-        /* Tab Bar */
         .tabBar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
@@ -62,7 +54,6 @@
         .tab .label { font-size: 10px; color: #8E8E93; font-weight: 500; }
         .tab.active .label { color: #007AFF; font-weight: 600; }
         
-        /* Panel */
         .panel {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: #F2F2F7; z-index: 2000;
@@ -79,7 +70,6 @@
         .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; padding: 8px; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
         
-        /* Auth Buttons */
         .telegram-btn {
             display: flex; align-items: center; justify-content: center; gap: 10px;
             width: 100%; padding: 16px; border-radius: 12px; border: none;
@@ -93,7 +83,6 @@
             cursor: pointer; color: #007AFF; background: transparent; margin: 8px 0;
         }
         
-        /* Forms */
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; color: #8E8E93; margin-bottom: 6px; font-weight: 500; }
         .input-field {
@@ -104,7 +93,6 @@
         .input-field:focus { border-color: #007AFF; }
         textarea.input-field { resize: none; }
         
-        /* Action Buttons */
         .btn-primary {
             width: 100%; padding: 16px; border-radius: 12px; border: none;
             background: #007AFF; color: #fff; font-size: 16px; font-weight: 600;
@@ -117,7 +105,6 @@
             cursor: pointer; color: #FF3B30; background: transparent; margin-top: 24px;
         }
         
-        /* Lists & States */
         .list-container { display: flex; flex-direction: column; gap: 12px; }
         .list-item {
             background: #fff; padding: 16px; border-radius: 12px;
@@ -131,12 +118,8 @@
         .list-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
         .list-subtitle { font-size: 13px; color: #8E8E93; }
         
-        .empty-state, .loading-state {
-            text-align: center; padding: 60px 20px; color: #8E8E93;
-        }
+        .empty-state, .loading-state { text-align: center; padding: 60px 20px; color: #8E8E93; }
         .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-        .empty-state p { font-size: 15px; }
-        
         .spinner {
             width: 32px; height: 32px; border: 3px solid #E5E5EA;
             border-top-color: #007AFF; border-radius: 50%;
@@ -158,7 +141,7 @@
     </div>
     
     <div id="map"></div>
-    <button id="addBtn" title="Добавить парковку">+</button>
+    <button id="addBtn">+</button>
 
     <div class="panel" id="panel">
         <div class="panel-header">
@@ -188,16 +171,14 @@
         });
         const database = firebase.database();
         
-        // 2. Глобальные переменные
         let map, currentUser = null, mapMarkers = {};
 
-        // 3. Инициализация Telegram Web App и авторизации
+        // 2. Инициализация Telegram Web App и авторизации
         function initAuth() {
-            // Проверка запуска внутри Telegram
             if (window.Telegram && window.Telegram.WebApp) {
                 const tg = window.Telegram.WebApp;
                 tg.ready();
-                tg.expand(); // Разворачиваем на весь экран
+                tg.expand();
                 
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     const user = tg.initDataUnsafe.user;
@@ -212,23 +193,37 @@
                 }
             }
             
-            // Фоллбэк на localStorage (для браузера или гостя)
             if (!currentUser) {
                 const saved = localStorage.getItem('tgUser');
                 if (saved) currentUser = JSON.parse(saved);
             }
         }
 
-        // 4. Инициализация Карты
+        // 3. Инициализация Карты (ИСПРАВЛЕНО)
         function initMap() {
             map = new ymaps.Map("map", {
-                center: [55.7558, 37.6173], // Москва по умолчанию
+                center: [55.7558, 37.6173],
                 zoom: 12,
                 controls: ['zoomControl'],
                 type: 'yandex#map'
             });
             
-            // Загружаем все парковки из Firebase при старте
+            // ДОБАВЛЕНО: Тестовый маркер, чтобы вы сразу увидели, что карта работает
+            const testPlacemark = new ymaps.Placemark([55.7558, 37.6173], {
+                balloonContent: '<strong>Тестовая парковка</strong><br>Если вы это видите, карта работает корректно!'
+            }, { preset: 'islands#redDotIcon' });
+            map.geoObjects.add(testPlacemark);
+
+            // ИСПРАВЛЕНО: Обработчик кнопки вешается ТОЛЬКО после создания карты
+            document.getElementById('addBtn').onclick = function() {
+                if (!currentUser) {
+                    showPanel('profile');
+                    return;
+                }
+                const center = map.getCenter();
+                openAddPanel(center);
+            };
+
             loadAllParkings();
         }
         
@@ -240,16 +235,7 @@
             });
         }
 
-        // 5. Логика добавления парковки
-        document.getElementById('addBtn').addEventListener('click', () => {
-            if (!currentUser) {
-                showPanel('profile');
-                return;
-            }
-            const center = map.getCenter();
-            openAddPanel(center);
-        });
-
+        // 4. Логика добавления парковки
         function openAddPanel(coords) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 'Новая парковка';
@@ -264,7 +250,7 @@
                 </div>
                 <div class="form-group">
                     <label>Описание</label>
-                    <textarea id="parkDesc" class="input-field" rows="3" placeholder="Бесплатно, есть шлагбаум, освещение..."></textarea>
+                    <textarea id="parkDesc" class="input-field" rows="3" placeholder="Бесплатно, есть шлагбаум..."></textarea>
                 </div>
                 <button class="btn-primary" id="saveParkBtn" onclick="submitParking(${coords[0]}, ${coords[1]})">Сохранить</button>
             `;
@@ -285,50 +271,62 @@
 
             const newRef = database.ref('parkings').push();
             const parkingData = {
-                lat, lng, name, desc,
+                lat: parseFloat(lat), // ИСПРАВЛЕНО: гарантируем числовой тип
+                lng: parseFloat(lng),
+                name: name,
+                desc: desc,
                 authorId: currentUser.id,
                 authorName: currentUser.firstName,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
 
             newRef.set(parkingData).then(() => {
-                // Добавляем в историю пользователя
                 database.ref(`users/${currentUser.id}/history`).push({
                     parkingId: newRef.key,
-                    name, lat, lng, timestamp: firebase.database.ServerValue.TIMESTAMP
+                    name: name, lat: parseFloat(lat), lng: parseFloat(lng), 
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
                 
-                // Добавляем маркер на карту
                 addMarkerToMap(newRef.key, parkingData);
-                
                 closePanel();
                 showMap();
                 
-                // Вибрация через Telegram Web App (если доступно)
                 if (window.Telegram && window.Telegram.WebApp) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 }
             }).catch(err => {
-                alert('Ошибка сохранения: ' + err.message);
+                console.error("Ошибка Firebase:", err);
+                alert('Ошибка сохранения: ' + err.message + '\n\nПроверьте правила безопасности Firebase!');
                 btn.textContent = 'Сохранить';
                 btn.disabled = false;
             });
         }
 
-        // 6. Работа с маркерами на карте
+        // 5. Работа с маркерами на карте (ИСПРАВЛЕНО: добавлена обработка ошибок)
         function loadAllParkings() {
-            database.ref('parkings').once('value').then(snapshot => {
-                const data = snapshot.val();
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        addMarkerToMap(key, data[key]);
-                    });
-                }
-            });
+            database.ref('parkings').once('value')
+                .then(snapshot => {
+                    console.log("Данные из Firebase:", snapshot.val()); // Для отладки в консоли браузера
+                    const data = snapshot.val();
+                    if (data) {
+                        Object.keys(data).forEach(key => {
+                            const p = data[key];
+                            if (p && p.lat && p.lng) {
+                                addMarkerToMap(key, p);
+                            }
+                        });
+                    } else {
+                        console.log("База данных пуста (это нормально для нового проекта).");
+                    }
+                })
+                .catch(error => {
+                    console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
+                    alert("Нет доступа к базе данных. См. инструкцию ниже по изменению правил Firebase.");
+                });
         }
 
         function addMarkerToMap(id, data) {
-            if (mapMarkers[id]) return; // Уже добавлен
+            if (mapMarkers[id]) return;
             
             const placemark = new ymaps.Placemark([data.lat, data.lng], {
                 balloonContentHeader: `<strong>${data.name}</strong>`,
@@ -352,7 +350,7 @@
             }
         }
 
-        // 7. Управление панелями и вкладками
+        // 6. Управление панелями
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 
@@ -368,7 +366,6 @@
                 loadUserData(type, content);
             }
             
-            // Обновляем активную вкладку
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             const tabIndex = type === 'profile' ? 3 : type === 'history' ? 1 : 2;
             document.querySelectorAll('.tab')[tabIndex].classList.add('active');
@@ -399,7 +396,7 @@
                     </div>
                     <div style="padding: 0 20px;">
                         <p style="font-size:14px; color:#8E8E93; text-align:center; margin-bottom:20px;">
-                            ${isGuest ? 'Ваши данные сохраняются только в этом браузере. Для синхронизации войдите через Telegram.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
+                            ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
                         </p>
                         <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
                     </div>
@@ -431,7 +428,6 @@
                 }
                 
                 let html = '<div class="list-container">';
-                // Преобразуем объект в массив и сортируем по времени (новые сверху)
                 const items = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 
                 items.forEach(item => {
@@ -448,13 +444,13 @@
                 html += '</div>';
                 contentEl.innerHTML = html;
             }).catch(err => {
-                contentEl.innerHTML = `<div class="empty-state"><p>Ошибка загрузки: ${err.message}</p></div>`;
+                console.error("Ошибка загрузки истории:", err);
+                contentEl.innerHTML = `<div class="empty-state"><p>Ошибка загрузки. Проверьте правила Firebase.</p></div>`;
             });
         }
 
         function closePanel() { 
             document.getElementById('panel').classList.remove('active'); 
-            // Сбрасываем вкладки на "Карта" при закрытии панели
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
         }
@@ -463,9 +459,7 @@
             closePanel();
         }
 
-        // 8. Функции авторизации
         function openTelegramBot() {
-            // Если мы уже в Telegram Web App, показываем сообщение
             if (window.Telegram && window.Telegram.WebApp) {
                 window.Telegram.WebApp.showAlert('Для входа перезапустите приложение через бота @parknear_bot');
             } else {
