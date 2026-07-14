@@ -70,6 +70,15 @@
             left: 0; 
             z-index: 1;
         }
+        
+        /* Делаем водяные знаки Яндекса видимыми */
+        #map .ymaps-2-1-79-copyright,
+        #map .ymaps-2-1-79-logo,
+        #map .ymaps-copyright,
+        #map .ymaps-logo {
+            z-index: 100 !important;
+            opacity: 1 !important;
+        }
 
         .floating-controls { 
             position: fixed; 
@@ -200,7 +209,7 @@
     <div id="map"></div>
 
     <div class="floating-controls">
-        <button class="control-btn" onclick="showMyLocation()"></button>
+        <button class="control-btn" onclick="showMyLocation()">📍</button>
         <div style="position:relative;">
             <button class="control-btn" onclick="toggleMapTypeMenu()">🗺️</button>
             <div class="map-type-menu" id="mapTypeMenu">
@@ -223,7 +232,7 @@
 
     <div id="tabBar">
         <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">🗺️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon"></div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
         <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
     </div>
@@ -289,7 +298,9 @@
                 map = new ymaps.Map("map", { 
                     center: [55.7558, 37.6173], 
                     zoom: 10,
-                    controls: ['zoomControl', 'geolocationControl']
+                    controls: ['zoomControl', 'geolocationControl'],
+                    // Добавляем отступы чтобы водяные знаки были видны
+                    margin: [10, 10, 50, 10] // [верх, право, низ, лево] - низ 50px для водяных знаков
                 });
                 
                 console.log('Карта загружена');
@@ -438,7 +449,7 @@
             btn.classList.add('drawing'); 
             btn.textContent = '💾';
             closeModal();
-            showToast('Кликайте для новой фигуры. Нажмите ');
+            showToast('Кликайте для новой фигуры. Нажмите 💾');
         }
 
         function finishEditingShape() {
@@ -569,16 +580,16 @@
                 <input type="number" class="modal-input" id="editPlaces" value="${p.places}" placeholder="Количество мест">
                 <div class="status-selector">
                     <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
-                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')"> Занято</button>
+                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')">❌ Занято</button>
                     <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">📝 Изменить фигуру</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')"> Изменить фигуру</button>
                     <button class="modal-btn modal-btn-primary" onclick="updateField('${id}','places', Number(document.getElementById('editPlaces').value))">💾 Сохранить</button>
                 </div>
                 <div class="modal-actions">
                     <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
-                    <button class="modal-btn modal-btn-primary" onclick="markHome('${JSON.stringify(p.center)}', '${p.name}')">🏠 Мой дом</button>
+                    <button class="modal-btn modal-btn-primary" onclick="markHome('${JSON.stringify(p.center)}', '${p.name}')"> Мой дом</button>
                 </div>
             `;
             document.getElementById('modal').classList.add('active');
@@ -689,13 +700,13 @@
                             <div class="stat-card"><div class="stat-number">${busy}</div><div class="stat-label">Занято</div></div>
                         </div>
                         <div style="padding: 0 16px;">
-                            <button onclick="logout()" style="width:100%; padding:14px; background:transparent; color:#FF3B30; border:1px solid #FF3B30; border-radius:12px; font-weight:600; cursor:pointer;"> Выйти</button>
+                            <button onclick="logout()" style="width:100%; padding:14px; background:transparent; color:#FF3B30; border:1px solid #FF3B30; border-radius:12px; font-weight:600; cursor:pointer;">🚪 Выйти</button>
                         </div>
                     `;
                 }
             } else if(type === 'history') {
                 if(!currentUser) { 
-                    content.innerHTML = '<div class="empty-state">🔒 Войдите</div>'; 
+                    content.innerHTML = '<div class="empty-state"> Войдите</div>'; 
                     return; 
                 }
                 const list = Object.keys(parkingsData)
