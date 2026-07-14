@@ -41,7 +41,27 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        /* Карта с отступом снизу */
+        #map { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1;
+            /* Добавляем отступ снизу чтобы панель не перекрывала карту */
+            padding-bottom: calc(83px + env(safe-area-inset-bottom));
+        }
+        
+        /* Контейнер для карты чтобы масштабирование работало правильно */
+        .map-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: calc(83px + env(safe-area-inset-bottom));
+            z-index: 1;
+        }
 
         .floating-controls { position: absolute; top: 60px; left: 16px; right: 16px; z-index: 900; display: flex; gap: 10px; pointer-events: none; }
         .control-btn { 
@@ -65,7 +85,7 @@
         .map-type-option.active { background: #007AFF; color: white; }
 
         #addBtn { 
-            position: absolute; bottom: 100px; right: 20px; z-index: 900; 
+            position: absolute; bottom: calc(100px + env(safe-area-inset-bottom)); right: 20px; z-index: 900; 
             width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white; 
             border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,122,255,0.4); 
             display: flex; align-items: center; justify-content: center; transition: all 0.3s; 
@@ -132,7 +152,6 @@
         input:checked + .slider { background-color: #34C759; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Стили для виджета Telegram на странице профиля */
         .telegram-widget-wrapper {
             background: var(--card-bg);
             border-radius: 12px;
@@ -167,7 +186,10 @@
 </head>
 <body>
 
-    <div id="map"></div>
+    <!-- Контейнер карты с правильным отступом -->
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
 
     <div class="floating-controls">
         <button class="control-btn" onclick="showMyLocation()">📍</button>
@@ -193,9 +215,9 @@
 
     <div id="tabBar">
         <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openList('history')"><div class="tab-icon"></div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
-        <div class="tabItem" onclick="openList('profile')"><div class="tab-icon"></div><div class="tab-label">Профиль</div></div>
+        <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
     </div>
 
     <div id="modal" onclick="closeModal(event)">
@@ -252,28 +274,20 @@
         }
         function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
         function getStatusColor(s) { return s==='free'?'#34C759':s==='busy'?'#FF3B30':'#007AFF'; }
-        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':' Неизвестно'; }
+        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
 
-        // ============================
-        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM
-        // ============================
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
             if(saved) { currentUser = JSON.parse(saved); }
         });
 
-        // Функция для открытия Telegram напрямую
         function openTelegramDirectly() {
-            // Открываем бота в приложении Telegram
             window.location.href = `tg://resolve?domain=${TELEGRAM_BOT_NAME}&start=login`;
-            
-            // Если через 2 секунды пользователь всё ещё здесь, показываем инструкцию
             setTimeout(() => {
                 showToast('Если Telegram не открылся, нажмите кнопку ещё раз');
             }, 2000);
         }
 
-        // Функция загрузки виджета Telegram
         function loadTelegramWidget() {
             const container = document.getElementById('telegram-widget-direct');
             if (!container) return;
@@ -295,7 +309,6 @@
             container.appendChild(script);
         }
 
-        // Вызывается когда Telegram подтвердил вход через виджет
         function onTelegramAuthConfirmed(user) {
             const userData = {
                 id: 'tg_' + user.id,
@@ -325,9 +338,6 @@
             openList('profile');
         }
 
-        // ============================
-        // КАРТА И РИСОВАНИЕ
-        // ============================
         ymaps.ready(initMap);
 
         function initMap() {
@@ -454,8 +464,8 @@
         function showMyLocation() {
             if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { 
                 map.setCenter([p.coords.latitude, p.coords.longitude], 16); 
-                showToast(' Ваше место'); 
-            }, ()=>showToast(' Нет GPS'));
+                showToast('📍 Ваше место'); 
+            }, ()=>showToast('❌ Нет GPS'));
         }
 
         function loadParkings() {
@@ -566,7 +576,7 @@
         function renderHistory(c) {
             if(!currentUser) { c.innerHTML='<div class="empty-state">🔒 Войдите через Telegram</div>'; return; }
             const list = Object.keys(parkingsData).filter(id=>parkingsData[id].owner===currentUser.id).map(id=>({id,...parkingsData[id]})).sort((a,b)=>new Date(b.created)-new Date(a.created));
-            if(!list.length) { c.innerHTML='<div class="empty-state"> Пусто</div>'; return; }
+            if(!list.length) { c.innerHTML='<div class="empty-state">📋 Пусто</div>'; return; }
             c.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==="free"?"status-free":p.status==="busy"?"status-busy":"status-unknown"}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
         }
 
@@ -585,7 +595,6 @@
                             Нажмите кнопку ниже,<br>чтобы войти через Telegram
                         </div>
                         
-                        <!-- Кнопка прямого открытия Telegram -->
                         <button onclick="openTelegramDirectly()" style="
                             background: #0088cc; 
                             color: white; 
@@ -610,7 +619,6 @@
                             Открыть Telegram
                         </button>
                         
-                        <!-- Виджет Telegram (появится если домен настроен) -->
                         <div class="telegram-widget-wrapper">
                             <h3>Или войдите через виджет:</h3>
                             <div id="telegram-widget-direct"></div>
@@ -622,7 +630,6 @@
                     </div>
                 `;
                 
-                // Загружаем виджет после рендера
                 setTimeout(() => loadTelegramWidget(), 100);
                 return;
             }
@@ -661,7 +668,7 @@
                 </div>
                 
                 <div style="padding: 0 16px; margin-top: 20px;">
-                    <button class="logout-btn" onclick="logout()" style="border-radius: 12px; padding: 14px; width: 100%; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; font-weight: 600; cursor: pointer;"> Выйти из аккаунта</button>
+                    <button class="logout-btn" onclick="logout()" style="border-radius: 12px; padding: 14px; width: 100%; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; font-weight: 600; cursor: pointer;">🚪 Выйти из аккаунта</button>
                 </div>
             `;
         }
