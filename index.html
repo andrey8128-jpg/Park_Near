@@ -33,7 +33,6 @@
         
         #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; background: #E5E5EA; }
         
-        /* Переключатель слоёв карты */
         .map-type-switcher {
             position: fixed; top: 70px; right: 12px; z-index: 900;
             background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
@@ -144,11 +143,6 @@
             border: 1px solid #007AFF; font-size: 15px; font-weight: 600;
             cursor: pointer; color: #007AFF; background: transparent; margin-top: 8px;
         }
-        .btn-warning {
-            width: 100%; padding: 14px; border-radius: 12px;
-            border: none; font-size: 15px; font-weight: 600;
-            cursor: pointer; color: #fff; background: #FF9500; margin-top: 8px;
-        }
         
         .list-container { display: flex; flex-direction: column; gap: 12px; }
         .list-item {
@@ -190,16 +184,11 @@
             20%, 80% { opacity: 1; }
         }
         
-        /* Стили для окна занятости */
-        .occupancy-header {
-            text-align: center; padding: 10px 0 20px;
-        }
+        .occupancy-header { text-align: center; padding: 10px 0 20px; }
         .occupancy-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
         .occupancy-subtitle { font-size: 14px; color: #8E8E93; }
         
-        .occupancy-stats {
-            display: flex; gap: 12px; margin-bottom: 20px;
-        }
+        .occupancy-stats { display: flex; gap: 12px; margin-bottom: 20px; }
         .stat-card {
             flex: 1; background: #fff; border-radius: 12px;
             padding: 16px; text-align: center;
@@ -227,14 +216,11 @@
             border: 1px solid #C7C7CC; background: #fff;
             font-size: 24px; font-weight: 600; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
         }
         .counter-btn:active { background: #F2F2F7; }
         .counter-btn.minus { color: #FF3B30; border-color: #FF3B30; }
         .counter-btn.plus { color: #34C759; border-color: #34C759; }
-        .counter-value {
-            font-size: 32px; font-weight: 700; min-width: 60px; text-align: center;
-        }
+        .counter-value { font-size: 32px; font-weight: 700; min-width: 60px; text-align: center; }
         
         .progress-bar {
             height: 8px; background: #E5E5EA; border-radius: 4px;
@@ -256,6 +242,11 @@
         }
         .btn-finish { background: #34C759; color: #fff; }
         .btn-cancel { background: #FF3B30; color: #fff; }
+        
+        .error-message {
+            background: #FF3B30; color: #fff; padding: 12px 16px;
+            border-radius: 10px; margin: 12px 0; font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -266,7 +257,6 @@
     
     <div id="map"></div>
     
-    <!-- Переключатель слоёв карты -->
     <div class="map-type-switcher">
         <button class="map-type-btn active" data-type="yandex#map" onclick="switchMapType(this)">🗺️ Схема</button>
         <button class="map-type-btn" data-type="yandex#satellite" onclick="switchMapType(this)">🛰️ Спутник</button>
@@ -289,13 +279,14 @@
 
     <div class="tabBar">
         <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon"></div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
         <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
 
     <script>
-        firebase.initializeApp({
+        // Инициализация Firebase
+        const firebaseConfig = {
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
             authDomain: "parknear-bef41.firebaseapp.com",
             databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
@@ -303,15 +294,25 @@
             storageBucket: "parknear-bef41.firebasestorage.app",
             messagingSenderId: "1066552333578",
             appId: "1:1066552333578:web:e60e333cf877852eba16f3"
-        });
+        };
+        
+        firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        
+        // Проверка подключения к Firebase
+        database.ref('.info/connected').on('value', function(snapshot) {
+            if (snapshot.val() === true) {
+                console.log('✅ Подключено к Firebase');
+            } else {
+                console.log('❌ Отключено от Firebase');
+            }
+        });
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
         let drawingPolygon = null, isDrawingMode = false;
         
-        // Ограничение размера парковочной зоны (в метрах)
-        const MAX_ZONE_WIDTH = 100;  // максимальная ширина
-        const MAX_ZONE_LENGTH = 100; // максимальная длина
+        const MAX_ZONE_WIDTH = 100;
+        const MAX_ZONE_LENGTH = 100;
 
         function initAuth() {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -329,16 +330,21 @@
                         isGuest: false
                     };
                     localStorage.setItem('tgUser', JSON.stringify(currentUser));
+                    console.log('✅ Авторизован через Telegram:', currentUser.id);
                 }
             }
             
             if (!currentUser) {
                 const saved = localStorage.getItem('tgUser');
-                if (saved) currentUser = JSON.parse(saved);
+                if (saved) {
+                    currentUser = JSON.parse(saved);
+                    console.log('✅ Авторизован через localStorage:', currentUser.id);
+                } else {
+                    console.log('️ Пользователь не авторизован');
+                }
             }
         }
 
-        // Вычисление расстояния между двумя точками в метрах (Haversine)
         function getDistanceInMeters(lat1, lng1, lat2, lng2) {
             const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -350,22 +356,9 @@
             return R * c;
         }
 
-        // Проверка размера полигона
         function checkPolygonSize(coordinates) {
             if (!coordinates || coordinates.length < 3) return { valid: false, error: 'Минимум 3 точки' };
             
-            let maxDist = 0;
-            for (let i = 0; i < coordinates.length; i++) {
-                for (let j = i + 1; j < coordinates.length; j++) {
-                    const dist = getDistanceInMeters(
-                        coordinates[i][0], coordinates[i][1],
-                        coordinates[j][0], coordinates[j][1]
-                    );
-                    if (dist > maxDist) maxDist = dist;
-                }
-            }
-            
-            // Вычисляем примерные ширину и длину через bounding box
             const lats = coordinates.map(c => c[0]);
             const lngs = coordinates.map(c => c[1]);
             const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -384,7 +377,6 @@
             return { valid: true, width: widthM, length: lengthM };
         }
 
-        // Переключение типа карты
         function switchMapType(btn) {
             if (!map) return;
             const type = btn.dataset.type;
@@ -393,7 +385,6 @@
             btn.classList.add('active');
         }
 
-        // Начало режима рисования
         function startDrawingMode() {
             if (!map || !currentUser) return;
             isDrawingMode = true;
@@ -401,7 +392,6 @@
             document.getElementById('addBtn').classList.add('drawing');
             document.getElementById('addBtn').textContent = '✕';
             
-            // Создаём пустой полигон
             drawingPolygon = new ymaps.Polygon([[]], {}, {
                 editorDrawingCursor: "crosshair",
                 fillColor: '#007AFF22',
@@ -413,10 +403,8 @@
             map.geoObjects.add(drawingPolygon);
             drawingPolygon.editor.startDrawing();
             
-            // Показываем подсказку
             showMapHint('Нажимайте на карту для рисования зоны');
             
-            // Добавляем кнопки управления рисованием
             const controls = document.createElement('div');
             controls.className = 'drawing-controls';
             controls.id = 'drawingControls';
@@ -431,14 +419,14 @@
             }
         }
 
-        // Завершение рисования
         function finishDrawing() {
             if (!drawingPolygon) return;
             
             drawingPolygon.editor.stopDrawing();
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             
-            // Проверяем размер
+            console.log('📍 Координаты полигона:', coordinates);
+            
             const sizeCheck = checkPolygonSize(coordinates);
             if (!sizeCheck.valid) {
                 alert(sizeCheck.error);
@@ -446,7 +434,6 @@
                 return;
             }
             
-            // Убираем кнопки рисования
             const controls = document.getElementById('drawingControls');
             if (controls) controls.remove();
             
@@ -455,11 +442,9 @@
             
             isDrawingMode = false;
             
-            // Открываем панель с формой
             openAddPanelWithPolygon(coordinates, sizeCheck);
         }
 
-        // Отмена рисования
         function cancelDrawing() {
             if (drawingPolygon) {
                 map.geoObjects.remove(drawingPolygon);
@@ -540,7 +525,6 @@
                 type: 'yandex#map'
             });
             
-            // Обработчик кнопки добавления
             document.getElementById('addBtn').onclick = function() {
                 if (!currentUser) {
                     showPanel('profile');
@@ -553,7 +537,6 @@
                 }
             };
 
-            // Обработчик геолокации
             document.getElementById('geoBtn').onclick = function() {
                 if (!map) return;
                 
@@ -634,7 +617,6 @@
             });
         }
 
-        // Панель добавления парковки с нарисованным полигоном
         function openAddPanelWithPolygon(coordinates, sizeCheck) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 'Новая парковка';
@@ -663,10 +645,19 @@
             `;
         }
 
+        // ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ СОХРАНЕНИЯ
         function submitParkingWithPolygon() {
             const name = document.getElementById('parkName').value.trim();
             const desc = document.getElementById('parkDesc').value.trim();
             const totalSpots = parseInt(document.getElementById('parkSpots').value);
+            
+            console.log(' Данные формы:', { name, desc, totalSpots });
+            
+            if (!currentUser) {
+                alert('Ошибка: пользователь не авторизован');
+                console.error(' Пользователь не авторизован');
+                return;
+            }
             
             if (!name) {
                 alert('Пожалуйста, введите название парковки');
@@ -687,59 +678,99 @@
 
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             
-            // Вычисляем центр полигона
-            const centerLat = coordinates.reduce((sum, c) => sum + c[0], 0) / coordinates.length;
-            const centerLng = coordinates.reduce((sum, c) => sum + c[1], 0) / coordinates.length;
+            // Преобразуем координаты в простой массив чисел
+            const cleanCoordinates = coordinates.map(coord => [
+                parseFloat(coord[0]),
+                parseFloat(coord[1])
+            ]);
+            
+            const centerLat = cleanCoordinates.reduce((sum, c) => sum + c[0], 0) / cleanCoordinates.length;
+            const centerLng = cleanCoordinates.reduce((sum, c) => sum + c[1], 0) / cleanCoordinates.length;
 
-            const newRef = database.ref('parkings').push();
             const parkingData = {
-                lat: parseFloat(centerLat),
-                lng: parseFloat(centerLng),
-                coordinates: coordinates, // сохраняем все точки полигона
+                lat: centerLat,
+                lng: centerLng,
+                coordinates: cleanCoordinates,
                 totalSpots: totalSpots,
-                occupiedSpots: 0, // изначально все свободны
+                occupiedSpots: 0,
                 name: name,
                 desc: desc,
                 authorId: currentUser.id,
                 authorName: currentUser.firstName,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
+                timestamp: Date.now()
             };
 
-            newRef.set(parkingData).then(() => {
-                database.ref(`users/${currentUser.id}/history`).push({
-                    parkingId: newRef.key,
-                    name: name, 
-                    lat: parseFloat(centerLat), 
-                    lng: parseFloat(centerLng),
-                    totalSpots: totalSpots,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
+            console.log('💾 Данные для сохранения:', parkingData);
+            
+            // Сохраняем в Firebase
+            const newRef = database.ref('parkings').push();
+            
+            newRef.set(parkingData)
+                .then(() => {
+                    console.log('✅ Парковка сохранена в Firebase:', newRef.key);
+                    
+                    // Сохраняем в историю
+                    return database.ref(`users/${currentUser.id}/history`).push({
+                        parkingId: newRef.key,
+                        name: name, 
+                        lat: centerLat, 
+                        lng: centerLng,
+                        totalSpots: totalSpots,
+                        timestamp: Date.now()
+                    });
+                })
+                .then(() => {
+                    console.log('✅ История сохранена');
+                    
+                    addMarkerToMap(newRef.key, parkingData);
+                    
+                    if (drawingPolygon) {
+                        map.geoObjects.remove(drawingPolygon);
+                        drawingPolygon = null;
+                    }
+                    
+                    closePanel();
+                    showMap();
+                    
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                    
+                    alert('✅ Парковка успешно сохранена!');
+                })
+                .catch(err => {
+                    console.error("❌ Ошибка Firebase:", err);
+                    console.error("Код ошибки:", err.code);
+                    console.error("Сообщение:", err.message);
+                    
+                    let errorMsg = 'Ошибка сохранения: ';
+                    
+                    if (err.code === 'PERMISSION_DENIED') {
+                        errorMsg += 'Нет доступа к базе данных.\n\n' +
+                            'Проверьте правила Firebase:\n' +
+                            '1. Откройте консоль Firebase\n' +
+                            '2. Перейдите в Realtime Database → Rules\n' +
+                            '3. Установите:\n' +
+                            '{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}';
+                    } else if (err.code === 'NETWORK_ERROR') {
+                        errorMsg += 'Проблема с сетью. Проверьте подключение к интернету.';
+                    } else {
+                        errorMsg += err.message;
+                    }
+                    
+                    alert(errorMsg);
+                    
+                    btn.textContent = 'Сохранить парковку';
+                    btn.disabled = false;
                 });
-                
-                addMarkerToMap(newRef.key, parkingData);
-                
-                // Удаляем временный полигон
-                if (drawingPolygon) {
-                    map.geoObjects.remove(drawingPolygon);
-                    drawingPolygon = null;
-                }
-                
-                closePanel();
-                showMap();
-                
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                }
-            }).catch(err => {
-                console.error("Ошибка Firebase:", err);
-                alert('Ошибка сохранения: ' + err.message);
-                btn.textContent = 'Сохранить парковку';
-                btn.disabled = false;
-            });
         }
 
         function loadAllParkings() {
+            console.log(' Загрузка парковок из Firebase...');
+            
             database.ref('parkings').once('value')
                 .then(snapshot => {
+                    console.log('📦 Получено данных:', snapshot.numChildren());
                     const data = snapshot.val();
                     if (data) {
                         Object.keys(data).forEach(key => {
@@ -751,15 +782,17 @@
                     }
                 })
                 .catch(error => {
-                    console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
+                    console.error(" ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
+                    console.error("Код:", error.code);
+                    console.error("Сообщение:", error.message);
                 });
         }
 
         function getOccupancyColor(occupied, total) {
             const ratio = occupied / total;
-            if (ratio < 0.5) return '#34C759'; // зелёный - много свободных
-            if (ratio < 0.8) return '#FF9500'; // оранжевый - половина занята
-            return '#FF3B30'; // красный - почти всё занято
+            if (ratio < 0.5) return '#34C759';
+            if (ratio < 0.8) return '#FF9500';
+            return '#FF3B30';
         }
 
         function addMarkerToMap(id, data) {
@@ -772,7 +805,6 @@
             
             let placemark;
             
-            // Если есть координаты полигона - рисуем его
             if (data.coordinates && data.coordinates.length >= 3) {
                 placemark = new ymaps.Polygon([data.coordinates], {
                     balloonContentHeader: `<strong>${data.name}</strong>`,
@@ -793,7 +825,6 @@
                     strokeWidth: 2
                 });
             } else {
-                // Fallback для старых записей
                 placemark = new ymaps.Placemark([data.lat, data.lng], {
                     balloonContentHeader: `<strong>${data.name}</strong>`,
                     balloonContentBody: `
@@ -811,7 +842,6 @@
                 });
             }
             
-            // При клике на парковку открываем окно занятости
             placemark.events.add('click', function() {
                 openOccupancyPanel(id, data);
             });
@@ -820,7 +850,6 @@
             mapMarkers[id] = placemark;
         }
 
-        // Всплывающее окно управления занятостью
         function openOccupancyPanel(parkingId, data) {
             const totalSpots = data.totalSpots || 0;
             const occupiedSpots = data.occupiedSpots || 0;
@@ -882,18 +911,14 @@
                 return;
             }
             
-            // Обновляем в Firebase
             database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
                 .then(() => {
-                    // Обновляем UI
                     document.getElementById('currentOccupied').textContent = newOccupied;
                     
-                    // Вибрация
                     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.selectionChanged();
                     }
                     
-                    // Перерисовываем маркер на карте
                     database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
                         const data = snapshot.val();
                         if (mapMarkers[parkingId]) {
@@ -903,7 +928,6 @@
                         addMarkerToMap(parkingId, data);
                     });
                     
-                    // Обновляем панель
                     openOccupancyPanel(parkingId, {
                         ...data,
                         occupiedSpots: newOccupied
@@ -963,7 +987,7 @@
                 const isGuest = currentUser.id.startsWith('guest_');
                 contentEl.innerHTML = `
                     <div class="profile-header">
-                        <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width:80px;height:80px;border-radius:50%;">` : '👤'}</div>
+                        <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width:80px;height:80px;border-radius:50%;">` : ''}</div>
                         <div class="profile-name">${currentUser.firstName}</div>
                         <div class="profile-username">@${currentUser.username}</div>
                         ${isGuest ? '<span class="badge">Гостевой режим</span>' : '<span class="badge">Telegram</span>'}
@@ -995,7 +1019,7 @@
                 if (!data) {
                     contentEl.innerHTML = `
                         <div class="empty-state">
-                            <div class="icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
+                            <div class="icon">${type === 'favorites' ? '⭐' : ''}</div>
                             <p>Здесь пока пусто</p>
                         </div>`;
                     return;
