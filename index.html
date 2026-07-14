@@ -41,17 +41,22 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* Карта занимает весь экран */
+        /* Карта занимает ВЕСЬ экран */
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Плавающие кнопки управления */
-        .floating-controls { position: absolute; top: 60px; left: 16px; right: 16px; z-index: 900; display: flex; gap: 10px; }
+        /* Плавающие кнопки управления (сверху) */
+        .floating-controls { position: absolute; top: 60px; left: 16px; right: 16px; z-index: 900; display: flex; gap: 10px; pointer-events: none; }
         .control-btn { 
+            pointer-events: auto;
             width: 44px; height: 44px; border-radius: 12px; background: var(--card-bg); 
             backdrop-filter: blur(10px); border: none; font-size: 20px; cursor: pointer; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; 
+            transition: transform 0.2s;
         }
+        .control-btn:active { transform: scale(0.95); }
+        
         .map-type-menu { 
+            pointer-events: auto;
             position: absolute; top: 50px; left: 0; background: var(--card-bg); 
             backdrop-filter: blur(20px); border-radius: 12px; padding: 8px; 
             box-shadow: 0 4px 20px rgba(0,0,0,0.2); min-width: 180px; display: none; 
@@ -61,7 +66,7 @@
         .map-type-option { padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; }
         .map-type-option.active { background: #007AFF; color: white; }
 
-        /* Кнопка добавления */
+        /* Кнопка добавления / редактирования */
         #addBtn { 
             position: absolute; bottom: 100px; right: 20px; z-index: 900; 
             width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white; 
@@ -70,22 +75,7 @@
         }
         #addBtn.drawing { background: #FF3B30; }
 
-        /* Профиль на карте */
-        #profileCard { 
-            position: absolute; top: 120px; right: 16px; z-index: 900; 
-            background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 14px; 
-            padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 280px; display: none; 
-        }
-        #profileCard.visible { display: block; }
-        .profile-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .profile-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #007AFF, #5856D6); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
-        .profile-info { flex: 1; min-width: 0; }
-        .profile-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .profile-username { font-size: 13px; color: var(--secondary-text); }
-        .tg-login-btn { background: #0088cc; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .logout-btn { width: 100%; padding: 10px; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px; }
-
-        /* Нижняя панель навигации */
+        /* Нижняя панель навигации (поверх карты) */
         #tabBar { 
             position: absolute; bottom: 0; left: 0; right: 0; height: 83px; 
             background: var(--card-bg); z-index: 1001; display: flex; 
@@ -98,7 +88,7 @@
         .tabItem.active .tab-label { color: #007AFF; font-weight: 600; }
         .tabItem.active .tab-icon { transform: scale(1.3); filter: drop-shadow(0 2px 4px rgba(0,122,255,0.3)); }
 
-        /* Полноэкранный список (Список) */
+        /* Полноэкранная панель (Список / Профиль) */
         #fullScreenPanel { 
             position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
             background: var(--bg-color); z-index: 1000; transform: translateY(100%); 
@@ -106,7 +96,7 @@
             padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); 
         }
         #fullScreenPanel.active { transform: translateY(0); }
-        .panel-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--border-color); }
+        .panel-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--border-color); background: var(--bg-color); }
         .panel-title { font-size: 30px; font-weight: 700; }
         .close-panel-btn { color: #007AFF; font-size: 17px; background: none; border: none; cursor: pointer; font-weight: 500; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px 0; }
@@ -150,6 +140,14 @@
         input:checked + .slider { background-color: #34C759; }
         input:checked + .slider:before { transform: translateX(20px); }
 
+        /* Кнопка входа Telegram */
+        .tg-login-btn { 
+            background: #0088cc; color: white; border: none; padding: 14px 24px; 
+            border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; 
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px; 
+            width: 100%; max-width: 280px; box-shadow: 0 4px 12px rgba(0,136,204,0.3);
+        }
+
         #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; z-index: 3000; transition: transform 0.3s; }
         #toast.show { transform: translateX(-50%) translateY(0); }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--secondary-text); }
@@ -161,14 +159,14 @@
 </head>
 <body>
 
-    <!-- Карта -->
+    <!-- Карта (на заднем плане) -->
     <div id="map"></div>
 
     <!-- Управление картой (сверху) -->
     <div class="floating-controls">
         <button class="control-btn" onclick="showMyLocation()">📍</button>
         <div style="position:relative;">
-            <button class="control-btn" onclick="toggleMapTypeMenu()">🗺️</button>
+            <button class="control-btn" onclick="toggleMapTypeMenu()">️</button>
             <div class="map-type-menu" id="mapTypeMenu">
                 <div class="map-type-option active" data-type="map" onclick="setMapType('map')">Схема</div>
                 <div class="map-type-option" data-type="satellite" onclick="setMapType('satellite')">Спутник</div>
@@ -177,51 +175,27 @@
         </div>
     </div>
 
-    <!-- Кнопка добавления / редактирования -->
+    <!-- Кнопка добавления / сохранения фигуры -->
     <button id="addBtn">+</button>
 
-    <!-- Карточка профиля (на карте) -->
-    <div id="profileCard">
-        <div id="notLoggedIn">
-            <div style="text-align:center; padding:10px 0;">
-                <div style="font-size:40px; margin-bottom:10px;"></div>
-                <div style="font-size:14px; color:var(--secondary-text); margin-bottom:15px;">Войдите для доступа<br>к функциям приложения</div>
-                <button class="tg-login-btn" onclick="loginWithTelegram()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
-                    Войти через Telegram
-                </button>
-            </div>
-        </div>
-        <div id="loggedIn" style="display:none;">
-            <div class="profile-row">
-                <div class="profile-avatar" id="profileAvatar">?</div>
-                <div class="profile-info">
-                    <div class="profile-name" id="profileName">Загрузка...</div>
-                    <div class="profile-username" id="profileUsername">@username</div>
-                </div>
-            </div>
-            <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
-        </div>
-    </div>
-
-    <!-- Полноэкранная панель (Список) -->
+    <!-- Полноэкранная панель (для Списков и Профиля) -->
     <div id="fullScreenPanel">
         <div class="panel-header">
-            <div class="panel-title" id="panelTitle">Список</div>
-            <button class="close-panel-btn" onclick="closeFullScreenPanel()">Карта</button>
+            <div class="panel-title" id="panelTitle">Заголовок</div>
+            <button class="close-panel-btn" onclick="switchToMap()">Карта</button>
         </div>
         <div class="panel-content" id="panelContent"></div>
     </div>
 
-    <!-- Нижние иконки -->
+    <!-- Нижние иконки навигации -->
     <div id="tabBar">
-        <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">🗺️</div><div class="tab-label">Карта</div></div>
+        <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">️</div><div class="tab-label">Карта</div></div>
         <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
         <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
     </div>
 
-    <!-- Модальное окно -->
+    <!-- Модальное окно редактирования парковки -->
     <div id="modal" onclick="closeModal(event)">
         <div class="modal-sheet" id="modalContent" onclick="event.stopPropagation()">
             <div class="modal-handle"></div>
@@ -252,7 +226,7 @@
 
         let map, currentMapType = 'map', userLocation = null;
         let drawing = false, editingParkingId = null;
-        let points = [], tempPolygon = null, startDrawPoint = null;
+        let points = [], tempPolygon = null;
         let parkingsData = {}, myHomes = [], currentUser = null;
         let streetCounters = {};
 
@@ -270,7 +244,7 @@
             currentTheme = currentTheme === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', currentTheme);
             localStorage.setItem('appTheme', currentTheme);
-            // Обновляем карту под тему
+            // Перерисовываем карту для применения новой темы (если поддерживается API)
             if(map) map.setType(currentMapType); 
             const toggle = document.getElementById('themeSwitch');
             if(toggle) toggle.checked = currentTheme === 'dark';
@@ -290,43 +264,45 @@
         // ============================
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
-            if(saved) { currentUser = JSON.parse(saved); updateProfileUI(); }
+            if(saved) { currentUser = JSON.parse(saved); }
         });
 
         function loginWithTelegram() {
+            // Открываем бота
             window.open(`https://t.me/${TELEGRAM_BOT_NAME}?start=login`, '_blank');
+            
+            // Имитация входа (так как виджет не работает без HTTPS домена)
             setTimeout(() => {
                 const username = prompt('Введите ваш Telegram username (без @):');
                 if(!username) return;
                 const firstName = prompt('Ваше имя:') || 'Пользователь';
-                const userData = { id: 'tg_'+Date.now(), username, firstName, lastName:'', authDate: new Date().toISOString() };
+                
+                const userData = { 
+                    id: 'tg_'+Date.now(), 
+                    username, 
+                    firstName, 
+                    lastName:'', 
+                    authDate: new Date().toISOString() 
+                };
+                
                 database.ref('users/'+userData.id).set(userData).then(() => {
                     currentUser = userData;
                     localStorage.setItem('tgUser', JSON.stringify(userData));
-                    updateProfileUI();
                     showToast(`Привет, ${firstName}! 👋`);
+                    
+                    // Если мы сейчас в профиле, обновляем его
+                    if(document.getElementById('fullScreenPanel').classList.contains('active')) {
+                        openList('profile');
+                    }
                 });
             }, 1000);
         }
 
         function logout() {
-            currentUser = null; localStorage.removeItem('tgUser');
-            updateProfileUI(); showToast('Вы вышли'); closeFullScreenPanel();
-        }
-
-        function updateProfileUI() {
-            const nl = document.getElementById('notLoggedIn');
-            const ll = document.getElementById('loggedIn');
-            if(currentUser) {
-                nl.style.display='none'; ll.style.display='block';
-                document.getElementById('profileAvatar').textContent = getInitials(currentUser.firstName);
-                document.getElementById('profileName').textContent = currentUser.firstName;
-                document.getElementById('profileUsername').textContent = '@'+currentUser.username;
-                document.getElementById('profileCard').classList.add('visible');
-            } else {
-                nl.style.display='block'; ll.style.display='none';
-                document.getElementById('profileCard').classList.add('visible');
-            }
+            currentUser = null; 
+            localStorage.removeItem('tgUser');
+            showToast('Вы вышли'); 
+            openList('profile'); // Обновляем вид профиля
         }
 
         // ============================
@@ -337,7 +313,7 @@
         function initMap() {
             map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 13, controls: [] });
             
-            // Геолокация
+            // Геолокация при старте
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     userLocation = [pos.coords.latitude, pos.coords.longitude];
@@ -363,9 +339,9 @@
                 }
             });
 
-            // Кнопка "+"
+            // Кнопка "+" / "💾"
             document.getElementById("addBtn").onclick = async function() {
-                if(!currentUser) { showToast('Сначала войдите'); openList('profile'); return; }
+                if(!currentUser) { showToast('Сначала войдите в профиль'); openList('profile'); return; }
                 
                 // Завершение редактирования
                 if(editingParkingId) { finishEditingShape(); return; }
@@ -374,9 +350,9 @@
                 if(drawing) { finishDrawingNew(); return; }
                 
                 // Начало создания
-                drawing = true; points = []; startDrawPoint = null;
+                drawing = true; points = [];
                 this.classList.add('drawing'); this.textContent = '✕';
-                showToast('Нажмите на карту для начала рисования');
+                showToast('Нажмите на карту, чтобы поставить точки');
             };
 
             loadParkings(); loadHomes();
@@ -384,11 +360,7 @@
 
         function drawTempPolygon() {
             if(tempPolygon) map.geoObjects.remove(tempPolygon);
-            
-            // Если это прямоугольник и есть начальная точка
-            let coordsToDraw = points;
-            
-            tempPolygon = new ymaps.Polygon([coordsToDraw], {}, { 
+            tempPolygon = new ymaps.Polygon([points], {}, { 
                 fillColor: "#007AFF", fillOpacity: 0.3, strokeColor: "#007AFF", strokeWidth: 3 
             });
             map.geoObjects.add(tempPolygon);
@@ -413,10 +385,17 @@
             const name = prompt("Название:", autoName) || autoName;
             const places = prompt("Количество мест:") || "0";
             
-            const parking = { name, places:Number(places), coordinates:points, owner:currentUser.id, ownerName:currentUser.firstName, ownerUsername:currentUser.username, created:new Date().toISOString(), center, status:'unknown' };
+            const parking = { 
+                name, places:Number(places), coordinates:points, 
+                owner:currentUser.id, ownerName:currentUser.firstName, 
+                ownerUsername:currentUser.username, 
+                created:new Date().toISOString(), center, status:'unknown' 
+            };
             const id = database.ref("parkings").push().key;
             database.ref("parkings/"+id).set(parking).then(() => {
-                showToast('Сохранено!'); if(tempPolygon) map.geoObjects.remove(tempPolygon); loadParkings();
+                showToast('Сохранено!'); 
+                if(tempPolygon) map.geoObjects.remove(tempPolygon); 
+                loadParkings();
             });
         }
 
@@ -426,10 +405,10 @@
             const p = parkingsData[id];
             points = [...p.coordinates]; // Копируем текущие точки
             
-            loadParkings(); // Убираем старый полигон
+            loadParkings(); // Убираем старый полигон с карты
             if(tempPolygon) map.geoObjects.remove(tempPolygon);
             
-            // Рисуем временный
+            // Рисуем временный полигон
             drawTempPolygon();
             
             const btn = document.getElementById("addBtn");
@@ -467,8 +446,12 @@
             document.getElementById('mapTypeMenu').classList.remove('show');
         }
         document.addEventListener('click', e => { if(!e.target.closest('.floating-controls')) document.getElementById('mapTypeMenu').classList.remove('show'); });
+        
         function showMyLocation() {
-            if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { map.setCenter([p.coords.latitude, p.coords.longitude], 16); showToast('📍 Ваше место'); }, ()=>showToast('❌ Нет GPS'));
+            if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { 
+                map.setCenter([p.coords.latitude, p.coords.longitude], 16); 
+                showToast('📍 Ваше место'); 
+            }, ()=>showToast('❌ Нет GPS'));
         }
 
         // Загрузка парковок
@@ -480,7 +463,15 @@
                     map.geoObjects.removeAll();
                     Object.keys(data).forEach(id => {
                         const p = data[id];
-                        const poly = new ymaps.Polygon([p.coordinates], {hintContent:p.name, balloonContent:`<b>${p.name}</b><br>${getStatusText(p.status)}<br>Мест: ${p.places}`}, {fillColor:getStatusColor(p.status), fillOpacity:0.4, strokeColor:getStatusColor(p.status), strokeWidth:3});
+                        const poly = new ymaps.Polygon([p.coordinates], {
+                            hintContent:p.name, 
+                            balloonContent:`<b>${p.name}</b><br>${getStatusText(p.status)}<br>Мест: ${p.places}`
+                        }, {
+                            fillColor:getStatusColor(p.status), 
+                            fillOpacity:0.4, 
+                            strokeColor:getStatusColor(p.status), 
+                            strokeWidth:3
+                        });
                         poly.events.add('click', () => showParkingModal(id, p));
                         map.geoObjects.add(poly);
                     });
@@ -503,7 +494,7 @@
                 <div class="status-selector">
                     <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
                     <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')">❌ Занято</button>
-                    <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
+                    <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')"> Неизв.</button>
                 </div>
                 <div class="modal-actions">
                     <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">️ Изменить фигуру</button>
@@ -542,7 +533,10 @@
             if(!currentUser) return;
             database.ref(`homes/${currentUser.id}`).on("value", snap => {
                 const d = snap.val(); myHomes = d ? Object.values(d) : [];
-                if(document.querySelector('.tabItem:nth-child(2)').classList.contains('active') || document.querySelector('.tabItem:nth-child(3)').classList.contains('active')) renderCurrentList();
+                // Если открыт список избранного, обновляем его
+                if(document.getElementById('panelTitle').textContent === 'Избранное') {
+                    renderFavorites(document.getElementById('panelContent'));
+                }
             });
         }
 
@@ -575,55 +569,78 @@
             if(type==='profile') { title.textContent='Профиль'; renderProfile(content); }
         }
 
-        function closeFullScreenPanel() { switchToMap(); }
-        function renderCurrentList() {
-            // Перерисовка если панель открыта
-            const panel = document.getElementById('fullScreenPanel');
-            if(panel.classList.contains('active')) {
-                const title = document.getElementById('panelTitle').textContent;
-                if(title==='История') renderHistory(document.getElementById('panelContent'));
-                if(title==='Избранное') renderFavorites(document.getElementById('panelContent'));
-            }
-        }
-
         function renderHistory(c) {
-            if(!currentUser) { c.innerHTML='<div class="empty-state">🔒 Войдите</div>'; return; }
+            if(!currentUser) { c.innerHTML='<div class="empty-state">🔒 Войдите через Telegram</div>'; return; }
             const list = Object.keys(parkingsData).filter(id=>parkingsData[id].owner===currentUser.id).map(id=>({id,...parkingsData[id]})).sort((a,b)=>new Date(b.created)-new Date(a.created));
             if(!list.length) { c.innerHTML='<div class="empty-state">📋 Пусто</div>'; return; }
             c.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==="free"?"status-free":p.status==="busy"?"status-busy":"status-unknown"}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
         }
 
         function renderFavorites(c) {
-            if(!myHomes.length) { c.innerHTML='<div class="empty-state">🏠 Нет домов</div>'; return; }
+            if(!myHomes.length) { c.innerHTML='<div class="empty-state">🏠 Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
             c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;">🏠</div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
         }
 
-        function renderProfile(c) {
-            if(!currentUser) { c.innerHTML='<div class="empty-state">👤 Войдите</div>'; return; }
-            const myP = Object.values(parkingsData).filter(p=>p.owner===currentUser.id);
-            const free=myP.filter(p=>p.status==='free').length; const busy=myP.filter(p=>p.status==='busy').length;
-            c.innerHTML = `
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ ПРОФИЛЯ
+        function renderProfile(container) {
+            // Если пользователь НЕ авторизован - показываем кнопку входа сразу в панели
+            if (!currentUser) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 40px 20px;">
+                        <div style="font-size: 60px; margin-bottom: 20px;"></div>
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">Добро пожаловать!</div>
+                        <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 30px;">
+                            Войдите через Telegram,<br>чтобы сохранять парковки<br>и пользоваться всеми функциями
+                        </div>
+                        <button class="tg-login-btn" onclick="loginWithTelegram()" style="max-width: 250px; margin: 0 auto;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
+                            </svg>
+                            Войти через Telegram
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Если авторизован - показываем профиль
+            const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
+            const free = myP.filter(p => p.status === 'free').length;
+            const busy = myP.filter(p => p.status === 'busy').length;
+
+            container.innerHTML = `
                 <div style="background:var(--card-bg);border-radius:12px;margin:0 16px 16px;padding:20px;text-align:center;">
                     <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px;">${getInitials(currentUser.firstName)}</div>
                     <div style="font-size:18px;font-weight:700;">${currentUser.firstName}</div>
                     <div style="font-size:14px;color:var(--secondary-text);">@${currentUser.username}</div>
                 </div>
+                
                 <div class="theme-toggle-container">
                     <span class="theme-label">🌙 Темная тема</span>
-                    <label class="switch"><input type="checkbox" id="themeSwitch" ${currentTheme==='dark'?'checked':''} onchange="toggleTheme()"><span class="slider"></span></label>
+                    <label class="switch">
+                        <input type="checkbox" id="themeSwitch" ${currentTheme === 'dark' ? 'checked' : ''} onchange="toggleTheme()">
+                        <span class="slider"></span>
+                    </label>
                 </div>
-                <div class="section-header" style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статистика</div>
+
+                <div style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статистика</div>
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-number">${myP.length}</div><div class="stat-label">Парковок</div></div>
                     <div class="stat-card"><div class="stat-number">${myP.reduce((s,p)=>s+(p.places||0),0)}</div><div class="stat-label">Мест</div></div>
                     <div class="stat-card"><div class="stat-number">${myHomes.length}</div><div class="stat-label">Домов</div></div>
                 </div>
-                <div class="section-header" style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статусы</div>
+                
+                <div style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статусы</div>
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-number" style="color:#34C759">${free}</div><div class="stat-label">Свободно</div></div>
                     <div class="stat-card"><div class="stat-number" style="color:#FF3B30">${busy}</div><div class="stat-label">Занято</div></div>
                     <div class="stat-card"><div class="stat-number" style="color:#007AFF">${myP.length-free-busy}</div><div class="stat-label">Неизв.</div></div>
-                </div>`;
+                </div>
+                
+                <div style="padding: 0 16px; margin-top: 20px;">
+                    <button class="logout-btn" onclick="logout()" style="border-radius: 12px; padding: 14px; width: 100%; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; font-weight: 600; cursor: pointer;"> Выйти из аккаунта</button>
+                </div>
+            `;
         }
     </script>
 </body>
