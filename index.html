@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Park Near</title>
     
-    <!-- Telegram Web App Script (для автоматического получения данных) -->
+    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <style>
@@ -202,6 +201,46 @@
             align-items: center;
         }
 
+        /* Стили для запроса доступа */
+        .access-request {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 20px 16px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .access-request h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: var(--text-color);
+        }
+        .access-request p {
+            font-size: 14px;
+            color: var(--secondary-text);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .access-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .access-btn:active {
+            transform: scale(0.98);
+        }
+        .access-btn.secondary {
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
         #toast { 
             position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-100px); 
             background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; 
@@ -227,7 +266,7 @@
     <div class="floating-controls">
         <button class="control-btn" onclick="showMyLocation()">📍</button>
         <div style="position:relative;">
-            <button class="control-btn" onclick="toggleMapTypeMenu()">🗺️</button>
+            <button class="control-btn" onclick="toggleMapTypeMenu()">️</button>
             <div class="map-type-menu" id="mapTypeMenu">
                 <div class="map-type-option active" data-type="map" onclick="setMapType('map')">Схема</div>
                 <div class="map-type-option" data-type="satellite" onclick="setMapType('satellite')">Спутник</div>
@@ -288,6 +327,7 @@
         let tempPolygon = null;
         let streetCounters = {};
         let currentTheme = 'light';
+        let tgWebApp = null;
 
         function showToast(msg) {
             const t = document.getElementById('toast');
@@ -309,32 +349,95 @@
         }
 
         // ============================
-        // АВТОМАТИЧЕСКАЯ АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM MINI APP
+        // ЗАПРОС ДОСТУПА К ДАННЫМ TELEGRAM
         // ============================
+        async function requestTelegramAccess() {
+            if (!tgWebApp) {
+                showToast('Telegram Web App не доступен');
+                return false;
+            }
+
+            try {
+                // Запрашиваем разрешение на получение данных пользователя
+                // Это покажет системное окно Telegram с запросом доступа
+                
+                // Вариант 1: requestWriteAccess() - запрашивает доступ к имени и фото
+                const writeAccess = await tgWebApp.requestWriteAccess();
+                console.log('Write access:', writeAccess);
+                
+                // Вариант 2: requestContact() - запрашивает доступ к контакту (номер телефона)
+                // const contact = await tgWebApp.requestContact();
+                // console.log('Contact:', contact);
+                
+                if (writeAccess) {
+                    // Данные пользователя теперь доступны в initDataUnsafe
+                    const user = tgWebApp.initDataUnsafe?.user;
+                    
+                    if (user) {
+                        currentUser = {
+                            id: 'tg_' + user.id,
+                            telegramId: user.id,
+                            username: user.username || 'user' + user.id,
+                            firstName: user.first_name || 'Пользователь',
+                            lastName: user.last_name || '',
+                            photoUrl: user.photo_url || '',
+                            languageCode: user.language_code || 'ru',
+                            authDate: new Date().toISOString(),
+                            accessGranted: true
+                        };
+                        
+                        localStorage.setItem('tgUser', JSON.stringify(currentUser));
+                        database.ref('users/' + currentUser.id).set(currentUser);
+                        
+                        showToast(`✅ Доступ получен! Привет, ${currentUser.firstName}!`);
+                        return true;
+                    }
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('Ошибка запроса доступа:', error);
+                showToast('❌ Ошибка получения доступа');
+                return false;
+            }
+        }
+
+        // Автоматическая инициализация при загрузке
         function initTelegramAuth() {
             if (window.Telegram && Telegram.WebApp) {
-                const tg = Telegram.WebApp;
-                tg.ready();
-                tg.expand(); // Разворачиваем на весь экран
+                tgWebApp = Telegram.WebApp;
+                tgWebApp.ready();
+                tgWebApp.expand(); // Разворачиваем на весь экран
                 
-                const user = tg.initDataUnsafe?.user;
+                // Настраиваем цвета под тему Telegram
+                tgWebApp.setHeaderColor(tgWebApp.themeParams.bg_color || '#F2F2F7');
+                
+                // Проверяем, есть ли уже данные пользователя
+                const user = tgWebApp.initDataUnsafe?.user;
                 if (user) {
                     currentUser = {
                         id: 'tg_' + user.id,
                         telegramId: user.id,
                         username: user.username || 'user' + user.id,
-                        firstName: user.first_name,
+                        firstName: user.first_name || 'Пользователь',
                         lastName: user.last_name || '',
                         photoUrl: user.photo_url || '',
-                        authDate: new Date().toISOString()
+                        languageCode: user.language_code || 'ru',
+                        authDate: new Date().toISOString(),
+                        accessGranted: true
                     };
                     
                     localStorage.setItem('tgUser', JSON.stringify(currentUser));
                     database.ref('users/' + currentUser.id).set(currentUser);
                     
-                    showToast(`Добро пожаловать, ${currentUser.firstName}! 👋`);
+                    console.log('✅ Автоматический вход через Telegram Mini App');
+                    console.log('User:', currentUser);
                     return true;
                 }
+                
+                // Если данных нет, запрашиваем доступ
+                console.log('⚠️ Данные пользователя не получены, запрашиваем доступ...');
+                return false;
             }
             return false;
         }
@@ -369,7 +472,8 @@
                 firstName: user.first_name,
                 lastName: user.last_name || '',
                 photoUrl: user.photo_url || '',
-                authDate: new Date().toISOString()
+                authDate: new Date().toISOString(),
+                accessGranted: true
             };
             database.ref('users/' + currentUser.id).set(currentUser)
                 .then(() => {
@@ -379,8 +483,18 @@
                 });
         }
 
-        // Резервный вход через prompt
-        function loginWithTelegram() {
+        // Резервный вход через кнопку
+        async function loginWithTelegram() {
+            // Если мы внутри Telegram Mini App
+            if (tgWebApp) {
+                const success = await requestTelegramAccess();
+                if (success) {
+                    openList('profile');
+                    return;
+                }
+            }
+            
+            // Если в браузере - открываем бота
             const tgDeepLink = `tg://resolve?domain=${TELEGRAM_BOT_NAME}&start=login`;
             window.location.href = tgDeepLink;
             
@@ -485,17 +599,13 @@
         // ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ
         // ============================
         window.addEventListener('load', () => {
-            // 1. Пробуем Mini App (автоматический вход)
-            if (initTelegramAuth()) {
-                console.log('Вход через Telegram Mini App');
-                return;
-            }
+            // 1. Инициализируем Telegram Web App
+            const miniAppAuth = initTelegramAuth();
             
-            // 2. Пробуем загрузить сохраненного пользователя
+            // 2. Загружаем сохраненного пользователя
             const saved = localStorage.getItem('tgUser');
-            if (saved) {
+            if (saved && !currentUser) {
                 currentUser = JSON.parse(saved);
-                console.log('Восстановлен пользователь из localStorage');
             }
             
             // 3. Загружаем тему
@@ -503,6 +613,13 @@
             if(savedTheme) {
                 currentTheme = savedTheme;
                 document.documentElement.setAttribute('data-theme', currentTheme);
+            }
+            
+            // 4. Если мы в Mini App но данных нет - показываем запрос доступа
+            if (tgWebApp && !currentUser) {
+                console.log('📱 Открыто через Telegram, запрашиваем доступ...');
+                // Автоматически запрашиваем доступ через 500ms
+                setTimeout(() => requestTelegramAccess(), 500);
             }
         });
 
@@ -665,7 +782,7 @@
                 return; 
             }
             document.getElementById('modalBody').innerHTML = `
-                <div class="modal-title">️ ${p.name}</div>
+                <div class="modal-title">🅿️ ${p.name}</div>
                 <input type="number" class="modal-input" id="editPlaces" value="${p.places}" placeholder="Количество мест">
                 <div class="status-selector">
                     <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
@@ -678,7 +795,7 @@
                 </div>
                 <div class="modal-actions">
                     <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
-                    <button class="modal-btn modal-btn-primary" onclick="markHome('${JSON.stringify(p.center)}', '${p.name}')"> Мой дом</button>
+                    <button class="modal-btn modal-btn-primary" onclick="markHome('${JSON.stringify(p.center)}', '${p.name}')">🏠 Мой дом</button>
                 </div>
             `;
             document.getElementById('modal').classList.add('active');
@@ -701,7 +818,7 @@
                     address: name, 
                     created: new Date().toISOString()
                 }).then(() => { 
-                    showToast(' Добавлено'); 
+                    showToast('🏠 Добавлено'); 
                     loadHomes(); 
                     closeModal(); 
                 });
@@ -753,20 +870,28 @@
             
             if(type === 'profile') {
                 if (!currentUser) {
+                    // Показываем запрос доступа к данным Telegram
                     content.innerHTML = `
-                        <div style="text-align:center; padding: 40px 20px;">
-                            <div style="font-size: 60px; margin-bottom: 20px;">👤</div>
-                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">Вход через Telegram</div>
-                            <button class="tg-login-button" onclick="loginWithTelegram()">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
-                                </svg>
-                                Открыть Telegram
+                        <div class="access-request">
+                            <h3>🔐 Запрос доступа к данным</h3>
+                            <p>
+                                Для входа в приложение необходимо предоставить доступ к вашему профилю Telegram.<br><br>
+                                Мы получим:<br>
+                                • Ваше имя<br>
+                                • Username (никнейм)<br>
+                                • ID аккаунта<br>
+                                • Фото профиля
+                            </p>
+                            <button class="access-btn" onclick="loginWithTelegram()">
+                                ✅ Разрешить доступ
                             </button>
-                            <div class="telegram-widget-wrapper">
-                                <div style="font-size:13px;color:var(--secondary-text);margin-bottom:10px;">Или через виджет:</div>
-                                <div id="telegram-widget-direct"></div>
-                            </div>
+                            <button class="access-btn secondary" onclick="switchToMap()">
+                                Отмена
+                            </button>
+                        </div>
+                        <div class="telegram-widget-wrapper">
+                            <div style="font-size:13px;color:var(--secondary-text);margin-bottom:10px;">Или через виджет (браузер):</div>
+                            <div id="telegram-widget-direct"></div>
                         </div>
                     `;
                     loadTelegramWidget();
@@ -780,6 +905,7 @@
                             <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px;">${getInitials(currentUser.firstName)}</div>
                             <div style="font-size:18px;font-weight:700;">${currentUser.firstName}</div>
                             <div style="color:var(--secondary-text);">@${currentUser.username}</div>
+                            ${currentUser.accessGranted ? '<div style="color:#34C759;font-size:12px;margin-top:8px;">✅ Доступ предоставлен</div>' : ''}
                         </div>
                         <div class="theme-toggle-container">
                             <span>🌙 Темная тема</span>
