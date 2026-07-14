@@ -8,7 +8,6 @@
     <meta name="theme-color" content="#007AFF">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ParkNear">
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -30,107 +29,81 @@
         }
         
         body.dark-theme {
-            --bg-primary: #000000;
+            --bg-primary: #000;
             --bg-secondary: #1C1C1E;
-            --text-primary: #FFFFFF;
-            --text-secondary: #8E8E93;
-            --border-color: rgba(255,255,255,0.1);
+            --text-primary: #fff;
             --input-bg: #2C2C2E;
             --input-border: #3A3A3C;
             --card-shadow: rgba(0,0,0,0.3);
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
             overflow: hidden; height: 100vh; height: 100dvh;
             background: var(--bg-primary); color: var(--text-primary);
             transition: background 0.3s, color 0.3s;
         }
+        
+        .app-header, .tabBar, .panel-header {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(10px);
+        }
+        body.dark-theme .app-header, body.dark-theme .tabBar, body.dark-theme .panel-header {
+            background: rgba(28, 28, 30, 0.95);
+        }
+        
         .app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 60px;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
             z-index: 1000; display: flex; align-items: center; justify-content: center;
             border-bottom: 0.5px solid var(--border-color); padding-top: env(safe-area-inset-top);
         }
-        body.dark-theme .app-header {
-            background: rgba(28, 28, 30, 0.95);
-        }
-        .app-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+        .app-title { font-size: 20px; font-weight: 700; }
         .app-title span { color: #007AFF; }
         
         #map { 
             position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; 
-            background: #E5E5EA;
-            transition: filter 0.5s ease;
+            background: #E5E5EA; transition: filter 0.5s ease;
         }
-        
         body.dark-theme #map.yandex#map {
             filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
-        }
-        body.dark-theme #map.yandex#map .ymaps-2-1-79-map-pane img,
-        body.dark-theme #map.yandex#map .ymaps-2-1-79-ground-pane img {
-            filter: invert(1) hue-rotate(180deg);
         }
         
         .map-type-switcher {
             position: fixed; top: 70px; right: 12px; z-index: 900;
-            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            background: var(--bg-secondary); backdrop-filter: blur(10px);
             border-radius: 12px; overflow: hidden;
             box-shadow: 0 4px 12px var(--card-shadow);
-            display: flex; flex-direction: column;
-        }
-        body.dark-theme .map-type-switcher {
-            background: rgba(44,44,46,0.95);
         }
         .map-type-btn {
             padding: 10px 14px; border: none; background: transparent;
             font-size: 13px; font-weight: 600; cursor: pointer;
             color: var(--text-primary); border-bottom: 0.5px solid var(--border-color);
-            transition: background 0.2s;
         }
         .map-type-btn:last-child { border-bottom: none; }
-        .map-type-btn:active { background: var(--bg-primary); }
         .map-type-btn.active { background: #007AFF; color: #fff; }
 
-        #geoBtn {
-            position: fixed; bottom: 170px; right: 20px; z-index: 900;
-            width: 48px; height: 48px; border-radius: 50%;
-            background: var(--bg-secondary); color: #007AFF; border: none;
+        #geoBtn, #addBtn {
+            position: fixed; right: 20px; z-index: 900;
+            border-radius: 50%; border: none;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; box-shadow: 0 4px 12px var(--card-shadow);
-            transition: transform 0.2s, background 0.2s;
         }
-        #geoBtn:active { transform: scale(0.9); background: var(--bg-primary); }
+        #geoBtn { bottom: 170px; width: 48px; height: 48px; background: var(--bg-secondary); }
         #geoBtn svg { width: 24px; height: 24px; fill: #007AFF; }
-
-        #addBtn {
-            position: fixed; bottom: 100px; right: 20px; z-index: 900;
-            width: 56px; height: 56px; border-radius: 50%;
-            background: #007AFF; color: #fff; border: none;
-            font-size: 32px; line-height: 56px; text-align: center;
-            cursor: pointer; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
-            transition: transform 0.2s, background 0.2s;
-        }
-        #addBtn:active { transform: scale(0.9); background: #0051D5; }
-        #addBtn.drawing { background: #FF9500; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3); }
+        #addBtn { bottom: 100px; width: 56px; height: 56px; background: #007AFF; color: #fff; font-size: 32px; }
+        #addBtn.drawing { background: #FF9500; }
         
         .tabBar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
             z-index: 1000; display: flex;
             border-top: 0.5px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom);
-        }
-        body.dark-theme .tabBar {
-            background: rgba(28, 28, 30, 0.95);
         }
         .tab {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center; cursor: pointer;
-            transition: opacity 0.2s;
         }
-        .tab:active { opacity: 0.6; }
         .tab .icon { font-size: 24px; margin-bottom: 4px; }
-        .tab .label { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
+        .tab .label { font-size: 10px; color: var(--text-secondary); }
         .tab.active .label { color: #007AFF; font-weight: 600; }
         
         .panel {
@@ -142,165 +115,71 @@
         .panel.active { transform: translateY(0); }
         .panel-header {
             padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 0.5px solid var(--border-color); background: var(--bg-secondary);
-            backdrop-filter: blur(10px); padding-top: calc(16px + env(safe-area-inset-top));
+            border-bottom: 0.5px solid var(--border-color);
+            padding-top: calc(16px + env(safe-area-inset-top));
         }
         .panel-title { font-size: 17px; font-weight: 600; }
-        .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; padding: 8px; }
-        .panel-content { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
+        .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
         
-        .telegram-btn {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; padding: 16px; border-radius: 12px; border: none;
-            font-size: 16px; font-weight: 600; cursor: pointer; color: #fff;
-            background: #0088cc; margin: 8px 0; transition: opacity 0.2s;
-        }
-        .telegram-btn:active { opacity: 0.8; }
-        .guest-btn {
-            width: 100%; padding: 16px; border-radius: 12px;
-            border: 1px solid #007AFF; font-size: 16px; font-weight: 600;
-            cursor: pointer; color: #007AFF; background: transparent; margin: 8px 0;
-        }
-        
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
         .input-field {
             width: 100%; padding: 12px 16px; border-radius: 10px;
             border: 1px solid var(--input-border); background: var(--input-bg); 
             color: var(--text-primary); font-size: 16px;
-            outline: none; transition: border-color 0.2s; font-family: inherit;
+            outline: none; font-family: inherit; margin-bottom: 16px;
         }
         .input-field:focus { border-color: #007AFF; }
-        textarea.input-field { resize: none; }
-        select.input-field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
         
-        .btn-primary {
-            width: 100%; padding: 16px; border-radius: 12px; border: none;
-            background: #007AFF; color: #fff; font-size: 16px; font-weight: 600;
-            cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
-        }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-danger {
+        .btn-primary, .btn-secondary, .btn-danger {
             width: 100%; padding: 16px; border-radius: 12px;
-            border: 1px solid #FF3B30; font-size: 16px; font-weight: 600;
-            cursor: pointer; color: #FF3B30; background: transparent; margin-top: 24px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            margin-top: 8px;
         }
-        .btn-secondary {
-            width: 100%; padding: 14px; border-radius: 12px;
-            border: 1px solid #007AFF; font-size: 15px; font-weight: 600;
-            cursor: pointer; color: #007AFF; background: transparent; margin-top: 8px;
-        }
+        .btn-primary { background: #007AFF; color: #fff; border: none; }
+        .btn-secondary { background: transparent; color: #007AFF; border: 1px solid #007AFF; }
+        .btn-danger { background: transparent; color: #FF3B30; border: 1px solid #FF3B30; }
         
-        .list-container { display: flex; flex-direction: column; gap: 12px; }
-        .list-item {
-            background: var(--bg-secondary); padding: 16px; border-radius: 12px;
-            display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 1px 3px var(--card-shadow); cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .list-item:active { transform: scale(0.98); }
-        .list-icon { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border-radius: 50%; }
-        .list-info { flex: 1; }
-        .list-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-        .list-subtitle { font-size: 13px; color: var(--text-secondary); }
-        .list-time { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-        
-        .empty-state, .loading-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
-        .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-        .spinner {
-            width: 32px; height: 32px; border: 3px solid var(--bg-primary);
-            border-top-color: #007AFF; border-radius: 50%;
-            animation: spin 0.8s linear infinite; margin: 0 auto 16px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .profile-header { text-align: center; padding: 20px 0 30px; }
-        .profile-avatar { font-size: 64px; margin-bottom: 12px; }
-        .profile-avatar img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
-        .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-        .profile-username { font-size: 15px; color: var(--text-secondary); }
-        .badge { display: inline-block; padding: 4px 10px; background: #E5F1FF; color: #007AFF; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px; }
-        
-        .map-hint {
-            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
-            border-radius: 20px; font-size: 14px; z-index: 800;
-            animation: fadeInOut 3s ease-in-out;
-            white-space: nowrap;
-        }
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; }
-            20%, 80% { opacity: 1; }
-        }
-        
-        .occupancy-header { text-align: center; padding: 10px 0 20px; }
-        .occupancy-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-        .occupancy-subtitle { font-size: 14px; color: var(--text-secondary); }
-        
-        .occupancy-stats { display: flex; gap: 12px; margin-bottom: 20px; }
         .stat-card {
             flex: 1; background: var(--bg-secondary); border-radius: 12px;
             padding: 16px; text-align: center;
-            box-shadow: 0 1px 3px var(--card-shadow);
         }
         .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
-        .stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
-        .stat-total .stat-value { color: #007AFF; }
-        .stat-free .stat-value { color: #34C759; }
-        .stat-occupied .stat-value { color: #FF3B30; }
+        .stat-label { font-size: 12px; color: var(--text-secondary); }
         
-        .occupancy-control {
-            background: var(--bg-secondary); border-radius: 12px; padding: 20px;
-            box-shadow: 0 1px 3px var(--card-shadow);
+        .parking-balloon { padding: 16px; min-width: 280px; }
+        .parking-balloon-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+        .parking-balloon-stats { display: flex; gap: 8px; margin-bottom: 16px; }
+        .parking-balloon-stat {
+            flex: 1; text-align: center; padding: 8px;
+            background: var(--bg-primary); border-radius: 8px;
         }
-        .occupancy-control label {
-            display: block; font-size: 14px; font-weight: 600;
-            margin-bottom: 12px; text-align: center;
+        .parking-balloon-stat-value { font-size: 20px; font-weight: 700; }
+        .parking-balloon-stat-label { font-size: 11px; color: var(--text-secondary); }
+        .parking-balloon-progress-bar {
+            height: 6px; background: var(--bg-primary); border-radius: 3px;
+            overflow: hidden; margin-bottom: 8px;
         }
-        .counter-row {
-            display: flex; align-items: center; justify-content: center; gap: 20px;
-        }
-        .counter-btn {
-            width: 48px; height: 48px; border-radius: 50%;
-            border: 1px solid var(--input-border); background: var(--bg-secondary);
-            color: var(--text-primary); font-size: 24px; font-weight: 600; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .counter-btn:active { background: var(--bg-primary); }
-        .counter-btn.minus { color: #FF3B30; border-color: #FF3B30; }
-        .counter-btn.plus { color: #34C759; border-color: #34C759; }
-        .counter-value { font-size: 32px; font-weight: 700; min-width: 60px; text-align: center; }
-        
-        .progress-bar {
-            height: 8px; background: var(--bg-primary); border-radius: 4px;
-            margin: 16px 0; overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%; border-radius: 4px;
-            transition: width 0.3s, background 0.3s;
-        }
-        
-        .drawing-controls {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-            z-index: 900; display: flex; gap: 10px;
-        }
-        .drawing-controls button {
-            padding: 12px 20px; border-radius: 20px; border: none;
+        .parking-balloon-progress-fill { height: 100%; border-radius: 3px; }
+        .parking-balloon-progress-text { font-size: 13px; color: var(--text-secondary); text-align: center; }
+        .parking-balloon-buttons { display: flex; gap: 8px; margin-top: 16px; }
+        .parking-balloon-buttons button {
+            flex: 1; padding: 10px; border-radius: 8px; border: none;
             font-size: 14px; font-weight: 600; cursor: pointer;
-            box-shadow: 0 4px 12px var(--card-shadow);
         }
-        .btn-finish { background: #34C759; color: #fff; }
-        .btn-cancel { background: #FF3B30; color: #fff; }
+        .btn-balloon-edit { background: #007AFF; color: #fff; }
+        .btn-balloon-delete { background: #FF3B30; color: #fff; }
+        
+        .profile-header { text-align: center; padding: 20px 0 30px; }
+        .profile-avatar img { width: 80px; height: 80px; border-radius: 50%; }
+        .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .profile-username { font-size: 15px; color: var(--text-secondary); }
         
         .theme-toggle-row {
             display: flex; align-items: center; justify-content: space-between;
             padding: 16px; background: var(--bg-secondary); border-radius: 12px;
-            margin-bottom: 16px; box-shadow: 0 1px 3px var(--card-shadow);
+            margin-bottom: 16px;
         }
-        .theme-toggle-label { font-size: 16px; font-weight: 600; }
-        .theme-switch {
-            position: relative; width: 51px; height: 31px;
-        }
+        .theme-switch { position: relative; width: 51px; height: 31px; }
         .theme-switch input { opacity: 0; width: 0; height: 0; }
         .theme-slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -310,161 +189,100 @@
             position: absolute; content: ""; height: 27px; width: 27px;
             left: 2px; bottom: 2px; background-color: white;
             transition: .3s; border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         input:checked + .theme-slider { background-color: #34C759; }
         input:checked + .theme-slider:before { transform: translateX(20px); }
         
         .car-section {
             background: var(--bg-secondary); border-radius: 12px; padding: 20px;
-            margin-bottom: 16px; box-shadow: 0 1px 3px var(--card-shadow);
+            margin-bottom: 16px;
         }
-        .car-section-title {
-            font-size: 14px; font-weight: 600; color: var(--text-secondary);
-            margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        
         .car-summary {
             display: flex; align-items: center; justify-content: space-between;
             padding: 16px; background: var(--bg-primary); border-radius: 10px;
             margin-bottom: 12px;
         }
-        .car-summary-info { flex: 1; }
-        .car-summary-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-        .car-summary-subtitle { font-size: 13px; color: var(--text-secondary); }
         .car-summary-color {
             width: 32px; height: 32px; border-radius: 50%;
             border: 2px solid var(--border-color);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        .history-item-time {
-            font-size: 12px; color: var(--text-secondary); margin-top: 4px;
-        }
-        .history-item-time span {
-            color: #34C759; font-weight: 600;
-        }
-        
-        .color-preview {
-            display: inline-block; width: 20px; height: 20px;
-            border-radius: 50%; margin-right: 8px; vertical-align: middle;
-            border: 1px solid var(--border-color);
-        }
-
         .history-detail {
             background: var(--bg-secondary); border-radius: 12px; padding: 16px;
-            margin-bottom: 12px; box-shadow: 0 1px 3px var(--card-shadow);
+            margin-bottom: 12px;
         }
         .history-detail-header {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 12px; padding-bottom: 12px; border-bottom: 0.5px solid var(--border-color);
         }
-        .history-detail-title { font-size: 15px; font-weight: 600; }
-        .history-detail-time { font-size: 12px; color: var(--text-secondary); }
         .history-detail-row {
-            display: flex; justify-content: space-between; margin-bottom: 8px;
-            font-size: 14px;
+            display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;
         }
         .history-detail-label { color: var(--text-secondary); }
-        .history-detail-value { font-weight: 500; }
         
-        .parking-balloon {
-            padding: 16px;
-            min-width: 280px;
-        }
-        .parking-balloon-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: var(--text-primary);
-        }
-        .parking-balloon-stats {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-        .parking-balloon-stat {
-            flex: 1;
-            text-align: center;
-            padding: 8px;
-            background: var(--bg-primary);
-            border-radius: 8px;
-        }
-        .parking-balloon-stat-value {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        .parking-balloon-stat-label {
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-        .parking-balloon-progress {
-            margin-bottom: 16px;
-        }
-        .parking-balloon-progress-bar {
-            height: 6px;
-            background: var(--bg-primary);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-        .parking-balloon-progress-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.3s;
-        }
-        .parking-balloon-progress-text {
-            font-size: 13px;
-            color: var(--text-secondary);
-            text-align: center;
-        }
-        .parking-balloon-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        .parking-balloon-buttons button {
-            flex: 1;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            font-size: 14px;
-            font-weight: 600;
+        .list-item {
+            background: var(--bg-secondary); padding: 16px; border-radius: 12px;
+            display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
             cursor: pointer;
-            transition: opacity 0.2s;
         }
-        .parking-balloon-buttons button:active {
-            opacity: 0.7;
+        .list-icon { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border-radius: 50%; }
+        .list-info { flex: 1; }
+        .list-title { font-size: 16px; font-weight: 600; }
+        .list-subtitle { font-size: 13px; color: var(--text-secondary); }
+        
+        .counter-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 16px 0; }
+        .counter-btn {
+            width: 48px; height: 48px; border-radius: 50%;
+            border: 1px solid var(--input-border); background: var(--bg-secondary);
+            font-size: 24px; font-weight: 600; cursor: pointer;
         }
-        .btn-balloon-edit {
-            background: #007AFF;
-            color: #fff;
+        .counter-btn.minus { color: #FF3B30; border-color: #FF3B30; }
+        .counter-btn.plus { color: #34C759; border-color: #34C759; }
+        .counter-value { font-size: 32px; font-weight: 700; min-width: 60px; text-align: center; }
+        
+        .progress-bar { height: 8px; background: var(--bg-primary); border-radius: 4px; margin: 16px 0; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; }
+        
+        .drawing-controls {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            z-index: 900; display: flex; gap: 10px;
         }
-        .btn-balloon-delete {
-            background: #FF3B30;
-            color: #fff;
+        .drawing-controls button {
+            padding: 12px 20px; border-radius: 20px; border: none;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .btn-finish { background: #34C759; color: #fff; }
+        .btn-cancel { background: #FF3B30; color: #fff; }
+        
+        .empty-state, .loading-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .spinner {
+            width: 32px; height: 32px; border: 3px solid var(--bg-primary);
+            border-top-color: #007AFF; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .badge { display: inline-block; padding: 4px 10px; background: #E5F1FF; color: #007AFF; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .map-hint {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
+            border-radius: 20px; font-size: 14px; z-index: 800;
         }
     </style>
 </head>
 <body>
 
-    <div class="app-header">
-        <div class="app-title">Park<span>Near</span></div>
-    </div>
-    
+    <div class="app-header"><div class="app-title">Park<span>Near</span></div></div>
     <div id="map"></div>
     
     <div class="map-type-switcher">
-        <button class="map-type-btn active" data-type="yandex#map" onclick="switchMapType(this)">️ Схема</button>
+        <button class="map-type-btn active" data-type="yandex#map" onclick="switchMapType(this)">🗺️ Схема</button>
         <button class="map-type-btn" data-type="yandex#satellite" onclick="switchMapType(this)">🛰️ Спутник</button>
         <button class="map-type-btn" data-type="yandex#hybrid" onclick="switchMapType(this)">🌍 Гибрид</button>
     </div>
     
-    <button id="geoBtn" title="Моё местоположение">
-        <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-    </button>
-    
-    <button id="addBtn" title="Добавить парковку">+</button>
+    <button id="geoBtn"><svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></button>
+    <button id="addBtn">+</button>
 
     <div class="panel" id="panel">
         <div class="panel-header">
@@ -475,14 +293,14 @@
     </div>
 
     <div class="tabBar">
-        <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
+        <div class="tab active" onclick="showMap()"><div class="icon">️</div><div class="label">Карта</div></div>
         <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
-        <div class="tab" onclick="showPanel('profile')"><div class="icon"></div><div class="label">Профиль</div></div>
+        <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
 
     <script>
-        const firebaseConfig = {
+        firebase.initializeApp({
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
             authDomain: "parknear-bef41.firebaseapp.com",
             databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
@@ -490,108 +308,60 @@
             storageBucket: "parknear-bef41.firebasestorage.app",
             messagingSenderId: "1066552333578",
             appId: "1:1066552333578:web:e60e333cf877852eba16f3"
-        };
-        
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        
-        database.ref('.info/connected').on('value', function(snapshot) {
-            if (snapshot.val() === true) {
-                console.log('✅ Подключено к Firebase');
-            } else {
-                console.log('❌ Отключено от Firebase');
-            }
         });
+        const database = firebase.database();
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
         let drawingPolygon = null, isDrawingMode = false;
-        let lastClickTime = 0;
-        let lastClickParkingId = null;
         
-        const MAX_ZONE_WIDTH = 100;
-        const MAX_ZONE_LENGTH = 100;
-
         const carBrands = {
-            'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
-            'BMW': ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X3', 'X5', 'X6', 'X7', 'Z4', 'M3', 'M4', 'M5'],
-            'Mercedes-Benz': ['A-Class', 'B-Class', 'C-Class', 'E-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'AMG GT'],
-            'Volkswagen': ['Golf', 'Polo', 'Passat', 'Tiguan', 'Touareg', 'Jetta', 'Arteon', 'ID.3', 'ID.4'],
-            'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser', 'Highlander', 'Prius', 'Yaris', 'C-HR'],
-            'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Fit', 'Pilot', 'Odyssey'],
-            'Nissan': ['Altima', 'Maxima', 'Sentra', 'Rogue', 'Pathfinder', 'Murano', 'Leaf', 'GT-R'],
-            'Hyundai': ['Solaris', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Creta', 'i30'],
-            'Kia': ['Rio', 'Ceed', 'Optima', 'Sportage', 'Sorento', 'Stinger', 'Niro'],
-            'Mazda': ['Mazda2', 'Mazda3', 'Mazda6', 'CX-3', 'CX-5', 'CX-9', 'MX-5'],
-            'Ford': ['Focus', 'Fiesta', 'Mondeo', 'Kuga', 'Explorer', 'Mustang', 'F-150'],
-            'Chevrolet': ['Cruze', 'Malibu', 'Equinox', 'Tahoe', 'Camaro', 'Corvette'],
-            'Lada': ['Vesta', 'Granta', 'XRAY', 'Niva', 'Largus', '4x4'],
-            'Renault': ['Logan', 'Sandero', 'Duster', 'Kaptur', 'Arkana', 'Koleos'],
-            'Skoda': ['Octavia', 'Superb', 'Rapid', 'Kodiaq', 'Karoq', 'Fabia'],
-            'Peugeot': ['208', '308', '408', '508', '2008', '3008', '5008'],
-            'Citroen': ['C3', 'C4', 'C5', 'Berlingo', 'C3 Aircross', 'C5 Aircross'],
-            'Volvo': ['S60', 'S90', 'V60', 'V90', 'XC40', 'XC60', 'XC90'],
-            'Lexus': ['IS', 'ES', 'GS', 'LS', 'NX', 'RX', 'LX', 'UX'],
-            'Infiniti': ['Q30', 'Q50', 'Q60', 'QX30', 'QX50', 'QX60', 'QX80'],
-            'Porsche': ['911', 'Cayenne', 'Macan', 'Panamera', 'Taycan', 'Boxster', 'Cayman'],
-            'Land Rover': ['Range Rover', 'Range Rover Sport', 'Range Rover Evoque', 'Discovery', 'Defender'],
-            'Jeep': ['Wrangler', 'Grand Cherokee', 'Cherokee', 'Compass', 'Renegade'],
-            'Subaru': ['Impreza', 'Legacy', 'Outback', 'Forester', 'XV', 'WRX', 'BRZ'],
-            'Mitsubishi': ['Outlander', 'ASX', 'Pajero', 'Lancer', 'Eclipse Cross'],
-            'Suzuki': ['Vitara', 'Swift', 'SX4', 'Grand Vitara', 'Jimny'],
-            'Tesla': ['Model S', 'Model 3', 'Model X', 'Model Y', 'Cybertruck'],
+            'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8'],
+            'BMW': ['1 Series', '3 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5', 'X6'],
+            'Mercedes-Benz': ['A-Class', 'C-Class', 'E-Class', 'S-Class', 'GLA', 'GLC', 'GLE'],
+            'Volkswagen': ['Golf', 'Polo', 'Passat', 'Tiguan', 'Touareg'],
+            'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser', 'Highlander'],
+            'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V'],
+            'Nissan': ['Altima', 'Sentra', 'Rogue', 'Pathfinder'],
+            'Hyundai': ['Solaris', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe'],
+            'Kia': ['Rio', 'Ceed', 'Optima', 'Sportage', 'Sorento'],
+            'Mazda': ['Mazda3', 'Mazda6', 'CX-5', 'CX-9'],
+            'Ford': ['Focus', 'Mondeo', 'Kuga', 'Explorer'],
+            'Lada': ['Vesta', 'Granta', 'XRAY', 'Niva'],
+            'Renault': ['Logan', 'Sandero', 'Duster', 'Kaptur'],
+            'Skoda': ['Octavia', 'Superb', 'Rapid', 'Kodiaq'],
+            'Tesla': ['Model S', 'Model 3', 'Model X', 'Model Y'],
             'Другая': ['Другая модель']
         };
 
         const carColors = {
-            'Белый': '#FFFFFF',
-            'Чёрный': '#000000',
-            'Серебристый': '#C0C0C0',
-            'Серый': '#808080',
-            'Красный': '#FF0000',
-            'Синий': '#0000FF',
-            'Тёмно-синий': '#00008B',
-            'Зелёный': '#008000',
-            'Тёмно-зелёный': '#006400',
-            'Жёлтый': '#FFFF00',
-            'Оранжевый': '#FFA500',
-            'Коричневый': '#8B4513',
-            'Бежевый': '#F5F5DC',
-            'Золотой': '#FFD700',
-            'Бронзовый': '#CD7F32',
-            'Бордовый': '#800020',
-            'Фиолетовый': '#800080',
-            'Голубой': '#87CEEB',
-            'Розовый': '#FFC0CB',
-            'Другой': '#808080'
+            'Белый': '#FFFFFF', 'Чёрный': '#000000', 'Серебристый': '#C0C0C0',
+            'Серый': '#808080', 'Красный': '#FF0000', 'Синий': '#0000FF',
+            'Зелёный': '#008000', 'Жёлтый': '#FFFF00', 'Оранжевый': '#FFA500',
+            'Коричневый': '#8B4513', 'Бежевый': '#F5F5DC', 'Другой': '#808080'
         };
 
         function initAuth() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.ready();
-                tg.expand();
-                
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    const user = tg.initDataUnsafe.user;
-                    currentUser = {
-                        id: 'tg_' + user.id,
-                        username: user.username || 'tg_user',
-                        firstName: user.first_name || 'Пользователь',
-                        photoUrl: user.photo_url || '',
-                        isGuest: false
-                    };
-                    localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                }
-            }
-            
-            if (!currentUser) {
+            if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+                const user = window.Telegram.WebApp.initDataUnsafe.user;
+                currentUser = {
+                    id: 'tg_' + user.id,
+                    username: user.username || 'tg_user',
+                    firstName: user.first_name || 'Пользователь',
+                    photoUrl: user.photo_url || ''
+                };
+                localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            } else if (!currentUser) {
                 const saved = localStorage.getItem('tgUser');
                 if (saved) currentUser = JSON.parse(saved);
             }
             
-            const savedTheme = localStorage.getItem('darkTheme');
-            if (savedTheme === 'true') {
+            if (localStorage.getItem('darkTheme') === 'true') {
                 document.body.classList.add('dark-theme');
+            }
+            
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
             }
         }
 
@@ -599,32 +369,8 @@
             const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        function checkPolygonSize(coordinates) {
-            if (!coordinates || coordinates.length < 3) return { valid: false, error: 'Минимум 3 точки' };
-            
-            const lats = coordinates.map(c => c[0]);
-            const lngs = coordinates.map(c => c[1]);
-            const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-            const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-            
-            const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng);
-            const lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
-            
-            if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) {
-                return { 
-                    valid: false, 
-                    error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` 
-                };
-            }
-            
-            return { valid: true, width: widthM, length: lengthM };
+            const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
         function switchMapType(btn) {
@@ -635,32 +381,28 @@
             btn.classList.add('active');
             
             const mapEl = document.getElementById('map');
-            if (type === 'yandex#map' && document.body.classList.contains('dark-theme')) {
-                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            } else {
-                mapEl.style.filter = 'none';
-            }
+            mapEl.style.filter = (type === 'yandex#map' && document.body.classList.contains('dark-theme')) 
+                ? 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)' 
+                : 'none';
+        }
+
+        function toggleDrawingMode() {
+            if (!currentUser) { showPanel('profile'); return; }
+            isDrawingMode ? cancelDrawing() : startDrawingMode();
         }
 
         function startDrawingMode() {
-            if (!map || !currentUser) return;
             isDrawingMode = true;
-            
             document.getElementById('addBtn').classList.add('drawing');
             document.getElementById('addBtn').textContent = '✕';
             
             drawingPolygon = new ymaps.Polygon([[]], {}, {
                 editorDrawingCursor: "crosshair",
-                fillColor: '#007AFF22',
-                strokeColor: '#007AFF',
-                strokeWidth: 3,
-                draggable: false
+                fillColor: '#007AFF22', strokeColor: '#007AFF', strokeWidth: 3
             });
             
             map.geoObjects.add(drawingPolygon);
             drawingPolygon.editor.startDrawing();
-            
-            showMapHint('Нажимайте на карту для рисования зоны');
             
             const controls = document.createElement('div');
             controls.className = 'drawing-controls';
@@ -670,34 +412,39 @@
                 <button class="btn-cancel" onclick="cancelDrawing()">✕ Отмена</button>
             `;
             document.body.appendChild(controls);
-            
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-            }
         }
 
         function finishDrawing() {
             if (!drawingPolygon) return;
-            
             drawingPolygon.editor.stopDrawing();
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             
-            const sizeCheck = checkPolygonSize(coordinates);
-            if (!sizeCheck.valid) {
-                alert(sizeCheck.error);
+            const lats = coordinates.map(c => c[0]);
+            const lngs = coordinates.map(c => c[1]);
+            const widthM = getDistanceInMeters(Math.min(...lats), Math.min(...lngs), Math.min(...lats), Math.max(...lngs));
+            const lengthM = getDistanceInMeters(Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.min(...lngs));
+            
+            if (widthM > 100 || lengthM > 100) {
+                alert(`Зона слишком большая! Максимум 100×100м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м`);
                 cancelDrawing();
                 return;
             }
             
-            const controls = document.getElementById('drawingControls');
-            if (controls) controls.remove();
-            
+            document.getElementById('drawingControls')?.remove();
             document.getElementById('addBtn').classList.remove('drawing');
             document.getElementById('addBtn').textContent = '+';
-            
             isDrawingMode = false;
             
-            openAddPanelWithPolygon(coordinates, sizeCheck);
+            document.getElementById('panel').classList.add('active');
+            document.getElementById('panelTitle').textContent = 'Новая парковка';
+            document.getElementById('panelContent').innerHTML = `
+                <div class="input-field" style="background:var(--bg-primary); color:var(--text-secondary);">${Math.round(widthM)}м × ${Math.round(lengthM)}м</div>
+                <input type="number" id="parkSpots" class="input-field" placeholder="Количество мест" min="1" max="500">
+                <input type="text" id="parkName" class="input-field" placeholder="Название">
+                <textarea id="parkDesc" class="input-field" rows="3" placeholder="Описание"></textarea>
+                <button class="btn-primary" onclick="submitParking()">Сохранить</button>
+                <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
+            `;
         }
 
         function cancelDrawing() {
@@ -706,32 +453,225 @@
                 drawingPolygon = null;
             }
             isDrawingMode = false;
-            
             document.getElementById('addBtn').classList.remove('drawing');
             document.getElementById('addBtn').textContent = '+';
-            
-            const controls = document.getElementById('drawingControls');
-            if (controls) controls.remove();
+            document.getElementById('drawingControls')?.remove();
         }
 
-        function showMapHint(text) {
-            const hint = document.createElement('div');
-            hint.className = 'map-hint';
-            hint.textContent = text;
-            document.body.appendChild(hint);
-            setTimeout(() => hint.remove(), 3000);
+        function submitParking() {
+            const name = document.getElementById('parkName').value.trim();
+            const desc = document.getElementById('parkDesc').value.trim();
+            const totalSpots = parseInt(document.getElementById('parkSpots').value);
+            
+            if (!name || !totalSpots || !drawingPolygon) {
+                alert('Заполните все поля');
+                return;
+            }
+
+            const coordinates = drawingPolygon.geometry.getCoordinates()[0].map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+            const centerLat = coordinates.reduce((sum, c) => sum + c[0], 0) / coordinates.length;
+            const centerLng = coordinates.reduce((sum, c) => sum + c[1], 0) / coordinates.length;
+
+            const parkingData = {
+                lat: centerLat, lng: centerLng, coordinates,
+                totalSpots, occupiedSpots: 0, name, desc,
+                authorId: currentUser.id, authorName: currentUser.firstName,
+                authorUsername: currentUser.username, timestamp: Date.now()
+            };
+
+            const btn = document.getElementById('saveParkBtn') || event.target;
+            btn.textContent = 'Сохранение...';
+            btn.disabled = true;
+
+            const newRef = database.ref('parkings').push();
+            newRef.set(parkingData)
+                .then(() => database.ref(`parkings/${newRef.key}/history`).push({
+                    action: 'created', timestamp: Date.now(),
+                    userId: currentUser.id, username: currentUser.username
+                }))
+                .then(() => {
+                    addMarkerToMap(newRef.key, parkingData);
+                    cancelDrawing();
+                    closePanel();
+                })
+                .catch(err => {
+                    alert('Ошибка: ' + err.message);
+                    btn.textContent = 'Сохранить';
+                    btn.disabled = false;
+                });
+        }
+
+        function loadAllParkings() {
+            if (!map) return;
+            database.ref('parkings').once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        const p = data[key];
+                        if (p?.lat && p?.lng) addMarkerToMap(key, p);
+                    });
+                }
+            }).catch(err => console.error("Ошибка загрузки:", err));
+        }
+
+        function getOccupancyColor(occupied, total) {
+            const ratio = occupied / total;
+            return ratio < 0.5 ? '#34C759' : ratio < 0.8 ? '#FF9500' : '#FF3B30';
+        }
+
+        function formatDateTime(timestamp) {
+            if (!timestamp) return 'Неизвестно';
+            const d = new Date(timestamp);
+            return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        }
+
+        function getParkingBalloonContent(parkingId, data) {
+            const { totalSpots = 0, occupiedSpots = 0, name } = data;
+            const freeSpots = totalSpots - occupiedSpots;
+            const color = getOccupancyColor(occupiedSpots, totalSpots);
+            const percent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+            const isAuthor = currentUser?.id === data.authorId;
+            
+            return `
+                <div class="parking-balloon">
+                    <div class="parking-balloon-title">${name}</div>
+                    <div class="parking-balloon-stats">
+                        <div class="parking-balloon-stat"><div class="parking-balloon-stat-value" style="color:#34C759">${freeSpots}</div><div class="parking-balloon-stat-label">Свободно</div></div>
+                        <div class="parking-balloon-stat"><div class="parking-balloon-stat-value" style="color:#FF3B30">${occupiedSpots}</div><div class="parking-balloon-stat-label">Занято</div></div>
+                        <div class="parking-balloon-stat"><div class="parking-balloon-stat-value" style="color:#007AFF">${totalSpots}</div><div class="parking-balloon-stat-label">Всего</div></div>
+                    </div>
+                    <div class="parking-balloon-progress-bar"><div class="parking-balloon-progress-fill" style="width:${percent}%;background:${color}"></div></div>
+                    <div class="parking-balloon-progress-text">Загруженность: ${percent}%</div>
+                    ${isAuthor ? `
+                        <div class="parking-balloon-buttons">
+                            <button class="btn-balloon-edit" onclick="openOccupancyPanel('${parkingId}', event)">✏️ Редактировать</button>
+                            <button class="btn-balloon-delete" onclick="deleteParking('${parkingId}', event)"> Удалить</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function addMarkerToMap(id, data) {
+            if (!map || mapMarkers[id]) return;
+            
+            const { totalSpots = 0, occupiedSpots = 0, name, lat, lng, coordinates } = data;
+            const freeSpots = totalSpots - occupiedSpots;
+            const color = getOccupancyColor(occupiedSpots, totalSpots);
+            
+            let placemark;
+            try {
+                if (coordinates?.length >= 3) {
+                    placemark = new ymaps.Polygon([coordinates], {
+                        hintContent: `${name} (${freeSpots} св.)`
+                    }, { fillColor: color + '33', strokeColor: color, strokeWidth: 2 });
+                } else {
+                    placemark = new ymaps.Placemark([lat, lng], {
+                        hintContent: `${name} (${freeSpots} св.)`
+                    }, { preset: 'islands#blueParkingIcon' });
+                }
+                
+                placemark.balloon.setContent(getParkingBalloonContent(id, data));
+                placemark.events.add('click', () => {
+                    placemark.balloon.setContent(getParkingBalloonContent(id, data));
+                    placemark.balloon.open();
+                });
+                
+                map.geoObjects.add(placemark);
+                mapMarkers[id] = placemark;
+            } catch (error) {
+                console.error(`Ошибка маркера ${id}:`, error);
+            }
+        }
+
+        function openOccupancyPanel(parkingId, event) {
+            event?.stopPropagation();
+            database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                const { totalSpots = 0, occupiedSpots = 0, name, desc } = data;
+                const freeSpots = totalSpots - occupiedSpots;
+                const color = getOccupancyColor(occupiedSpots, totalSpots);
+                const percent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+                const isAuthor = currentUser?.id === data.authorId;
+                
+                document.getElementById('panel').classList.add('active');
+                document.getElementById('panelTitle').textContent = 'Парковка';
+                document.getElementById('panelContent').innerHTML = `
+                    <div style="text-align:center;padding:10px 0 20px;">
+                        <div style="font-size:20px;font-weight:700;">${name}</div>
+                        <div style="font-size:14px;color:var(--text-secondary);">${desc || 'Нет описания'}</div>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-bottom:20px;">
+                        <div class="stat-card"><div class="stat-value" style="color:#007AFF">${totalSpots}</div><div class="stat-label">Всего</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:#34C759">${freeSpots}</div><div class="stat-label">Свободно</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:#FF3B30">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${percent}%;background:${color}"></div></div>
+                    <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Загруженность: ${percent}%</div>
+                    <div style="text-align:center;margin-bottom:12px;font-weight:600;">Изменить занятые места:</div>
+                    <div class="counter-row">
+                        <button class="counter-btn minus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, -1)">−</button>
+                        <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
+                        <button class="counter-btn plus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, 1)">+</button>
+                    </div>
+                    ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')"> Удалить</button>` : ''}
+                    <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
+                `;
+            });
+        }
+
+        function deleteParking(parkingId, event) {
+            event?.stopPropagation();
+            if (!confirm('Удалить парковку?')) return;
+            
+            database.ref(`parkings/${parkingId}`).remove().then(() => {
+                if (mapMarkers[parkingId]) {
+                    map.geoObjects.remove(mapMarkers[parkingId]);
+                    delete mapMarkers[parkingId];
+                }
+                closePanel();
+            }).catch(err => alert('Ошибка: ' + err.message));
+        }
+
+        function changeOccupancy(parkingId, totalSpots, currentOccupied, delta) {
+            const newOccupied = currentOccupied + delta;
+            if (newOccupied < 0 || newOccupied > totalSpots) return;
+            
+            database.ref(`users/${currentUser.id}/car`).once('value').then(carSnapshot => {
+                const carData = carSnapshot.val() || {};
+                
+                database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
+                    .then(() => database.ref(`parkings/${parkingId}/history`).push({
+                        action: delta < 0 ? 'freed' : 'occupied',
+                        timestamp: Date.now(),
+                        userId: currentUser.id, username: currentUser.username,
+                        carBrand: carData.brand || '', carModel: carData.model || '',
+                        carPlate: carData.plate || '',
+                        previousOccupied: currentOccupied, newOccupied
+                    }))
+                    .then(() => {
+                        document.getElementById('currentOccupied').textContent = newOccupied;
+                        database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+                            const data = snapshot.val();
+                            if (mapMarkers[parkingId]) {
+                                map.geoObjects.remove(mapMarkers[parkingId]);
+                                delete mapMarkers[parkingId];
+                            }
+                            addMarkerToMap(parkingId, data);
+                        });
+                        openOccupancyPanel(parkingId);
+                    });
+            });
         }
 
         function getUserLocation() {
-            return new Promise(function(resolve, reject) {
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.Geolocation) {
+            return new Promise((resolve, reject) => {
+                if (window.Telegram?.WebApp?.Geolocation) {
                     window.Telegram.WebApp.Geolocation.getLocation()
-                        .then(function(location) {
-                            resolve({ lat: location.latitude, lng: location.longitude });
-                        })
-                        .catch(function(err) {
-                            tryBrowserGeolocation(resolve, reject);
-                        });
+                        .then(loc => resolve({ lat: loc.latitude, lng: loc.longitude }))
+                        .catch(() => tryBrowserGeolocation(resolve, reject));
                 } else {
                     tryBrowserGeolocation(resolve, reject);
                 }
@@ -739,32 +679,10 @@
         }
 
         function tryBrowserGeolocation(resolve, reject) {
-            if (typeof ymaps !== 'undefined') {
-                ymaps.geolocation.get({
-                    provider: 'browser',
-                    timeout: 10000
-                }).then(function(result) {
-                    const coords = result.geoObjects.get(0).geometry.getCoordinates();
-                    resolve({ lat: coords[0], lng: coords[1] });
-                }).catch(function(err) {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            function(pos) {
-                                resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                            },
-                            function(err) { reject(err); },
-                            { enableHighAccuracy: true, timeout: 10000 }
-                        );
-                    } else {
-                        reject(new Error('Геолокация не поддерживается'));
-                    }
-                });
-            } else if (navigator.geolocation) {
+            if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                    },
-                    function(err) { reject(err); },
+                    pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                    reject,
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
             } else {
@@ -774,568 +692,61 @@
 
         function initMap() {
             map = new ymaps.Map("map", {
-                center: [55.7558, 37.6173],
-                zoom: 14,
-                controls: ['zoomControl'],
-                type: 'yandex#map'
+                center: [55.7558, 37.6173], zoom: 14,
+                controls: ['zoomControl'], type: 'yandex#map'
             });
             
-            document.getElementById('addBtn').onclick = function() {
-                if (!currentUser) {
-                    showPanel('profile');
-                    return;
-                }
-                if (isDrawingMode) {
-                    cancelDrawing();
-                } else {
-                    startDrawingMode();
-                }
-            };
-
+            document.getElementById('addBtn').onclick = toggleDrawingMode;
+            
             document.getElementById('geoBtn').onclick = function() {
-                if (!map) return;
+                const btn = this;
+                btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;"></div>';
                 
-                const btn = document.getElementById('geoBtn');
-                const originalContent = btn.innerHTML;
-                btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-                
-                getUserLocation()
-                    .then(function(coords) {
-                        btn.innerHTML = originalContent;
-                        
-                        if (myLocationPlacemark) {
-                            map.geoObjects.remove(myLocationPlacemark);
-                        }
-                        
-                        myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                            hintContent: 'Вы здесь',
-                            balloonContent: '<strong>Ваше местоположение</strong>'
-                        }, {
-                            preset: 'islands#blueCircleDotIconWithCaption'
-                        });
-                        myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                        
-                        map.geoObjects.add(myLocationPlacemark);
-                        map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                        
-                        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                        }
-                    })
-                    .catch(function(err) {
-                        btn.innerHTML = originalContent;
-                        console.error("Ошибка геолокации:", err);
-                        
-                        let message = 'Не удалось определить местоположение.\n\n';
-                        if (window.Telegram && window.Telegram.WebApp) {
-                            message += 'Проверьте:\n• Настройки телефона → Конфиденциальность → Службы геолокации → Telegram (включено)';
-                        } else {
-                            message += 'Разрешите доступ к геоданным в настройках браузера.';
-                        }
-                        
-                        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
-                            window.Telegram.WebApp.showAlert(message);
-                        } else {
-                            alert(message);
-                        }
-                    });
+                getUserLocation().then(coords => {
+                    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
+                    
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                        hintContent: 'Вы здесь'
+                    }, { preset: 'islands#blueCircleDotIconWithCaption' });
+                    map.geoObjects.add(myLocationPlacemark);
+                    map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+                }).catch(err => {
+                    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>';
+                    alert('Не удалось определить местоположение');
+                });
             };
 
-            // ✅ ИСПРАВЛЕНО: Загружаем парковки после инициализации карты
             setTimeout(() => {
                 loadAllParkings();
+                getUserLocation().then(coords => {
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                        hintContent: 'Вы здесь'
+                    }, { preset: 'islands#blueCircleDotIconWithCaption' });
+                    map.geoObjects.add(myLocationPlacemark);
+                    map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
+                }).catch(() => {});
             }, 500);
-            
-            setTimeout(function() {
-                getUserLocation()
-                    .then(function(coords) {
-                        if (myLocationPlacemark) {
-                            map.geoObjects.remove(myLocationPlacemark);
-                        }
-                        myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                            hintContent: 'Вы здесь'
-                        }, {
-                            preset: 'islands#blueCircleDotIconWithCaption'
-                        });
-                        myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                        map.geoObjects.add(myLocationPlacemark);
-                        map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
-                    })
-                    .catch(function(err) {
-                        console.log('Автогеолокация не удалась:', err.message);
-                    });
-            }, 1000);
         }
         
         if (typeof ymaps !== 'undefined') {
             ymaps.ready(() => { initAuth(); initMap(); });
         } else {
-            window.addEventListener('load', () => {
-                ymaps.ready(() => { initAuth(); initMap(); });
-            });
-        }
-
-        function openAddPanelWithPolygon(coordinates, sizeCheck) {
-            document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = 'Новая парковка';
-            
-            const area = Math.round(sizeCheck.width * sizeCheck.length);
-            
-            document.getElementById('panelContent').innerHTML = `
-                <div class="form-group">
-                    <label>Размер зоны</label>
-                    <input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);">
-                </div>
-                <div class="form-group">
-                    <label>Количество парковочных мест *</label>
-                    <input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500">
-                </div>
-                <div class="form-group">
-                    <label>Название *</label>
-                    <input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ">
-                </div>
-                <div class="form-group">
-                    <label>Описание</label>
-                    <textarea id="parkDesc" class="input-field" rows="3" placeholder="Бесплатно, есть шлагбаум..."></textarea>
-                </div>
-                <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
-                <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
-            `;
-        }
-
-        function submitParkingWithPolygon() {
-            const name = document.getElementById('parkName').value.trim();
-            const desc = document.getElementById('parkDesc').value.trim();
-            const totalSpots = parseInt(document.getElementById('parkSpots').value);
-            
-            if (!currentUser) {
-                alert('Ошибка: пользователь не авторизован');
-                return;
-            }
-            
-            if (!name) {
-                alert('Пожалуйста, введите название парковки');
-                return;
-            }
-            if (!totalSpots || totalSpots < 1) {
-                alert('Пожалуйста, укажите количество парковочных мест');
-                return;
-            }
-            if (!drawingPolygon) {
-                alert('Парковочная зона не нарисована');
-                return;
-            }
-
-            const btn = document.getElementById('saveParkBtn');
-            btn.textContent = 'Сохранение...';
-            btn.disabled = true;
-
-            const coordinates = drawingPolygon.geometry.getCoordinates()[0];
-            
-            const cleanCoordinates = coordinates.map(coord => [
-                parseFloat(coord[0]),
-                parseFloat(coord[1])
-            ]);
-            
-            const centerLat = cleanCoordinates.reduce((sum, c) => sum + c[0], 0) / cleanCoordinates.length;
-            const centerLng = cleanCoordinates.reduce((sum, c) => sum + c[1], 0) / cleanCoordinates.length;
-
-            const parkingData = {
-                lat: centerLat,
-                lng: centerLng,
-                coordinates: cleanCoordinates,
-                totalSpots: totalSpots,
-                occupiedSpots: 0,
-                name: name,
-                desc: desc,
-                authorId: currentUser.id,
-                authorName: currentUser.firstName,
-                authorUsername: currentUser.username,
-                timestamp: Date.now()
-            };
-
-            const newRef = database.ref('parkings').push();
-            
-            newRef.set(parkingData)
-                .then(() => {
-                    return database.ref(`parkings/${newRef.key}/history`).push({
-                        action: 'created',
-                        timestamp: Date.now(),
-                        userId: currentUser.id,
-                        username: currentUser.username,
-                        carBrand: '',
-                        carModel: '',
-                        carPlate: ''
-                    });
-                })
-                .then(() => {
-                    addMarkerToMap(newRef.key, parkingData);
-                    
-                    if (drawingPolygon) {
-                        map.geoObjects.remove(drawingPolygon);
-                        drawingPolygon = null;
-                    }
-                    
-                    closePanel();
-                    showMap();
-                    
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                })
-                .catch(err => {
-                    console.error("Ошибка Firebase:", err);
-                    
-                    let errorMsg = 'Ошибка сохранения: ';
-                    
-                    if (err.code === 'PERMISSION_DENIED') {
-                        errorMsg += 'Нет доступа к базе данных.\n\nПроверьте правила Firebase:\n{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}';
-                    } else if (err.code === 'NETWORK_ERROR') {
-                        errorMsg += 'Проблема с сетью.';
-                    } else {
-                        errorMsg += err.message;
-                    }
-                    
-                    alert(errorMsg);
-                    
-                    btn.textContent = 'Сохранить парковку';
-                    btn.disabled = false;
-                });
-        }
-
-        // ✅ ИСПРАВЛЕНО: Функция загрузки парковок
-        function loadAllParkings() {
-            console.log('🔄 Загрузка парковок из Firebase...');
-            
-            if (!map) {
-                console.error(' Карта не инициализирована!');
-                return;
-            }
-            
-            database.ref('parkings').once('value')
-                .then(snapshot => {
-                    console.log(' Получено данных:', snapshot.numChildren());
-                    const data = snapshot.val();
-                    
-                    if (!data) {
-                        console.log('️ Парковки не найдены');
-                        return;
-                    }
-                    
-                    let loadedCount = 0;
-                    Object.keys(data).forEach(key => {
-                        const p = data[key];
-                        console.log(`📍 Парковка ${key}:`, p);
-                        
-                        if (p && p.lat && p.lng) {
-                            addMarkerToMap(key, p);
-                            loadedCount++;
-                        } else {
-                            console.warn(`⚠️ Пропущена парковка ${key}: неверные координаты`, p);
-                        }
-                    });
-                    
-                    console.log(`✅ Загружено ${loadedCount} парковок на карту`);
-                })
-                .catch(error => {
-                    console.error("❌ ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
-                    console.error("Код ошибки:", error.code);
-                    console.error("Сообщение:", error.message);
-                });
-        }
-
-        function getOccupancyColor(occupied, total) {
-            const ratio = occupied / total;
-            if (ratio < 0.5) return '#34C759';
-            if (ratio < 0.8) return '#FF9500';
-            return '#FF3B30';
-        }
-
-        function formatDateTime(timestamp) {
-            if (!timestamp) return 'Неизвестно';
-            const date = new Date(timestamp);
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            return `${day}.${month}.${year} ${hours}:${minutes}`;
-        }
-
-        function getParkingBalloonContent(parkingId, data) {
-            const totalSpots = data.totalSpots || 0;
-            const occupiedSpots = data.occupiedSpots || 0;
-            const freeSpots = totalSpots - occupiedSpots;
-            const color = getOccupancyColor(occupiedSpots, totalSpots);
-            const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
-            const isAuthor = currentUser && currentUser.id === data.authorId;
-            
-            return `
-                <div class="parking-balloon">
-                    <div class="parking-balloon-title">${data.name}</div>
-                    <div class="parking-balloon-stats">
-                        <div class="parking-balloon-stat">
-                            <div class="parking-balloon-stat-value" style="color: #34C759;">${freeSpots}</div>
-                            <div class="parking-balloon-stat-label">Свободно</div>
-                        </div>
-                        <div class="parking-balloon-stat">
-                            <div class="parking-balloon-stat-value" style="color: #FF3B30;">${occupiedSpots}</div>
-                            <div class="parking-balloon-stat-label">Занято</div>
-                        </div>
-                        <div class="parking-balloon-stat">
-                            <div class="parking-balloon-stat-value" style="color: #007AFF;">${totalSpots}</div>
-                            <div class="parking-balloon-stat-label">Всего</div>
-                        </div>
-                    </div>
-                    <div class="parking-balloon-progress">
-                        <div class="parking-balloon-progress-bar">
-                            <div class="parking-balloon-progress-fill" style="width: ${occupancyPercent}%; background: ${color};"></div>
-                        </div>
-                        <div class="parking-balloon-progress-text">Загруженность: ${occupancyPercent}%</div>
-                    </div>
-                    ${isAuthor ? `
-                        <div class="parking-balloon-buttons">
-                            <button class="btn-balloon-edit" onclick="openOccupancyPanel('${parkingId}', event)">✏️ Редактировать</button>
-                            <button class="btn-balloon-delete" onclick="deleteParking('${parkingId}', event)">🗑 Удалить</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        }
-
-        // ✅ ИСПРАВЛЕНО: Функция добавления маркера на карту
-        function addMarkerToMap(id, data) {
-            if (!map) {
-                console.error('❌ Карта не инициализирована при добавлении маркера!');
-                return;
-            }
-            
-            if (mapMarkers[id]) {
-                console.log(`ℹ️ Маркер ${id} уже существует, пропускаем`);
-                return;
-            }
-            
-            console.log(`📍 Добавляем маркер ${id}:`, data);
-            
-            const totalSpots = data.totalSpots || 0;
-            const occupiedSpots = data.occupiedSpots || 0;
-            const freeSpots = totalSpots - occupiedSpots;
-            const color = getOccupancyColor(occupiedSpots, totalSpots);
-            
-            let placemark;
-            
-            try {
-                if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-                    console.log(`📐 Создаём полигон для ${id} с ${data.coordinates.length} точками`);
-                    placemark = new ymaps.Polygon([data.coordinates], {
-                        hintContent: `${data.name} (${freeSpots} св.)`
-                    }, {
-                        fillColor: color + '33',
-                        strokeColor: color,
-                        strokeWidth: 2
-                    });
-                } else {
-                    console.log(`📍 Создаём метку для ${id} на координатах [${data.lat}, ${data.lng}]`);
-                    placemark = new ymaps.Placemark([data.lat, data.lng], {
-                        hintContent: `${data.name} (${freeSpots} св.)`
-                    }, {
-                        preset: 'islands#blueParkingIcon'
-                    });
-                }
-                
-                // Устанавливаем контент баллона
-                const balloonContent = getParkingBalloonContent(id, data);
-                placemark.balloon.setContent(balloonContent);
-                
-                // Обработка клика - открываем баллон
-                placemark.events.add('click', function(e) {
-                    console.log(`👆 Клик по парковке ${id}`);
-                    placemark.balloon.setContent(getParkingBalloonContent(id, data));
-                    placemark.balloon.open();
-                });
-                
-                map.geoObjects.add(placemark);
-                mapMarkers[id] = placemark;
-                console.log(`✅ Маркер ${id} успешно добавлен на карту`);
-                
-            } catch (error) {
-                console.error(`❌ Ошибка при добавлении маркера ${id}:`, error);
-            }
-        }
-
-        function openOccupancyPanel(parkingId, event) {
-            if (event) {
-                event.stopPropagation();
-            }
-            
-            database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
-                const data = snapshot.val();
-                if (!data) return;
-                
-                const totalSpots = data.totalSpots || 0;
-                const occupiedSpots = data.occupiedSpots || 0;
-                const freeSpots = totalSpots - occupiedSpots;
-                const color = getOccupancyColor(occupiedSpots, totalSpots);
-                const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
-                
-                const isAuthor = currentUser && currentUser.id === data.authorId;
-                
-                document.getElementById('panel').classList.add('active');
-                document.getElementById('panelTitle').textContent = 'Парковка';
-                
-                document.getElementById('panelContent').innerHTML = `
-                    <div class="occupancy-header">
-                        <div class="occupancy-title">${data.name}</div>
-                        <div class="occupancy-subtitle">${data.desc || 'Нет описания'}</div>
-                    </div>
-                    
-                    <div class="occupancy-stats">
-                        <div class="stat-card stat-total">
-                            <div class="stat-value">${totalSpots}</div>
-                            <div class="stat-label">Всего мест</div>
-                        </div>
-                        <div class="stat-card stat-free">
-                            <div class="stat-value">${freeSpots}</div>
-                            <div class="stat-label">Свободно</div>
-                        </div>
-                        <div class="stat-card stat-occupied">
-                            <div class="stat-value">${occupiedSpots}</div>
-                            <div class="stat-label">Занято</div>
-                        </div>
-                    </div>
-                    
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width:${occupancyPercent}%;background:${color};"></div>
-                    </div>
-                    <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-                        Загруженность: ${occupancyPercent}%
-                    </div>
-                    
-                    <div class="occupancy-control">
-                        <label>Изменить количество занятых мест:</label>
-                        <div class="counter-row">
-                            <button class="counter-btn minus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, -1)">−</button>
-                            <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-                            <button class="counter-btn plus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, 1)">+</button>
-                        </div>
-                    </div>
-                    
-                    ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')">🗑 Удалить парковку</button>` : ''}
-                    
-                    <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
-                `;
-            });
-        }
-
-        function deleteParking(parkingId, event) {
-            if (event) {
-                event.stopPropagation();
-            }
-            
-            if (!confirm('Вы уверены, что хотите удалить эту парковку? Это действие нельзя отменить.')) {
-                return;
-            }
-            
-            database.ref(`parkings/${parkingId}`).remove()
-                .then(() => {
-                    if (mapMarkers[parkingId]) {
-                        map.geoObjects.remove(mapMarkers[parkingId]);
-                        delete mapMarkers[parkingId];
-                    }
-                    
-                    console.log('Парковка удалена:', parkingId);
-                    
-                    closePanel();
-                    showMap();
-                    
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                    
-                    alert('Парковка успешно удалена');
-                })
-                .catch(err => {
-                    console.error('Ошибка удаления:', err);
-                    alert('Ошибка удаления: ' + err.message);
-                });
-        }
-
-        function changeOccupancy(parkingId, totalSpots, currentOccupied, delta) {
-            const newOccupied = currentOccupied + delta;
-            
-            if (newOccupied < 0 || newOccupied > totalSpots) {
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                }
-                return;
-            }
-            
-            const now = Date.now();
-            
-            database.ref(`users/${currentUser.id}/car`).once('value').then(carSnapshot => {
-                const carData = carSnapshot.val() || {};
-                
-                database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
-                    .then(() => {
-                        return database.ref(`parkings/${parkingId}/history`).push({
-                            action: delta < 0 ? 'freed' : 'occupied',
-                            timestamp: now,
-                            userId: currentUser.id,
-                            username: currentUser.username,
-                            carBrand: carData.brand || '',
-                            carModel: carData.model || '',
-                            carPlate: carData.plate || '',
-                            previousOccupied: currentOccupied,
-                            newOccupied: newOccupied
-                        });
-                    })
-                    .then(() => {
-                        document.getElementById('currentOccupied').textContent = newOccupied;
-                        
-                        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                            window.Telegram.WebApp.HapticFeedback.selectionChanged();
-                        }
-                        
-                        database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
-                            const data = snapshot.val();
-                            if (mapMarkers[parkingId]) {
-                                map.geoObjects.remove(mapMarkers[parkingId]);
-                                delete mapMarkers[parkingId];
-                            }
-                            addMarkerToMap(parkingId, data);
-                        });
-                        
-                        openOccupancyPanel(parkingId);
-                    })
-                    .catch(err => {
-                        console.error("Ошибка обновления:", err);
-                        alert('Ошибка обновления: ' + err.message);
-                    });
-            });
-        }
-
-        function focusMap(lat, lng, parkingId) {
-            closePanel();
-            map.setCenter([lat, lng], 16, { duration: 300 });
-            if (mapMarkers[parkingId]) {
-                setTimeout(() => {
-                    mapMarkers[parkingId].balloon.open();
-                }, 400);
-            }
+            window.addEventListener('load', () => ymaps.ready(() => { initAuth(); initMap(); }));
         }
 
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 
-                type === 'profile' ? 'Профиль' : 
-                type === 'history' ? 'История' : 'Избранное';
+                type === 'profile' ? 'Профиль' : type === 'history' ? 'История' : 'Избранное';
             
             const content = document.getElementById('panelContent');
 
             if (type === 'profile') {
                 renderProfile(content);
-            } else if (type === 'favorites' || type === 'history') {
-                content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка данных...</p></div>';
+            } else if (type === 'history' || type === 'favorites') {
+                content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
                 loadUserData(type, content);
             }
             
@@ -1348,197 +759,127 @@
             if (!currentUser) {
                 contentEl.innerHTML = `
                     <div class="profile-header">
-                        <div class="profile-avatar">👤</div>
+                        <div style="font-size:64px;margin-bottom:12px;">👤</div>
                         <div class="profile-name">Добро пожаловать</div>
-                        <div class="profile-username">Войдите, чтобы сохранять данные</div>
                     </div>
-                    <button class="telegram-btn" onclick="openTelegramBot()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.342-.213-.333-.373.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
-                        Войти через Telegram
-                    </button>
-                    <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
+                    <button class="btn-primary" style="background:#0088cc;" onclick="window.open('https://t.me/parknear_bot')">Войти через Telegram</button>
+                    <button class="btn-secondary" onclick="continueAsGuest()">Продолжить как гость</button>
                 `;
-            } else {
-                const isGuest = currentUser.id.startsWith('guest_');
-                const isDark = document.body.classList.contains('dark-theme');
-                
-                database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
-                    const carData = snapshot.val() || {};
-                    const brand = carData.brand || '';
-                    const model = carData.model || '';
-                    const plate = carData.plate || '';
-                    const color = carData.color || '';
-                    
-                    let html = `
-                        <div class="profile-header">
-                            <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div>
-                            <div class="profile-name">${currentUser.firstName}</div>
-                            <div class="profile-username">@${currentUser.username}</div>
-                            ${isGuest ? '<span class="badge">Гостевой режим</span>' : '<span class="badge">Telegram</span>'}
-                        </div>
-                        
-                        <div class="theme-toggle-row">
-                            <div class="theme-toggle-label">🌙 Тёмная тема</div>
-                            <label class="theme-switch">
-                                <input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
-                                <span class="theme-slider"></span>
-                            </label>
-                        </div>
-                    `;
-                    
-                    if (brand && model && plate) {
-                        const colorHex = carColors[color] || '#808080';
-                        html += `
-                            <div class="car-section">
-                                <div class="car-section-title">🚗 Мой автомобиль</div>
-                                <div class="car-summary">
-                                    <div class="car-summary-info">
-                                        <div class="car-summary-title">${brand} ${model}</div>
-                                        <div class="car-summary-subtitle">${plate}</div>
-                                    </div>
-                                    <div class="car-summary-color" style="background: ${colorHex};"></div>
-                                </div>
-                                <button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div class="car-section" id="carEditSection">
-                                <div class="car-section-title">🚗 Мой автомобиль</div>
-                                <div class="form-group">
-                                    <label>Марка</label>
-                                    <select id="carBrand" class="input-field" onchange="updateCarModels()">
-                                        <option value="">Выберите марку</option>
-                                        ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Модель</label>
-                                    <select id="carModel" class="input-field">
-                                        <option value="">Выберите модель</option>
-                                        ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Цвет кузова</label>
-                                    <select id="carColor" class="input-field">
-                                        <option value="">Выберите цвет</option>
-                                        ${Object.keys(carColors).map(c => {
-                                            const isSelected = c === color ? 'selected' : '';
-                                            return `<option value="${c}" ${isSelected}><span class="color-preview" style="background:${carColors[c]}"></span>${c}</option>`;
-                                        }).join('')}
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Гос номер</label>
-                                    <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
-                                </div>
-                                <button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button>
-                            </div>
-                        `;
-                    }
-                    
-                    html += `
-                        <div style="padding: 0 20px;">
-                            <p style="font-size:14px; color:var(--text-secondary); text-align:center; margin-bottom:20px;">
-                                ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
-                            </p>
-                            <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
-                        </div>
-                    `;
-                    
-                    contentEl.innerHTML = html;
-                });
+                return;
             }
+            
+            const isGuest = currentUser.id.startsWith('guest_');
+            const isDark = document.body.classList.contains('dark-theme');
+            
+            database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
+                const carData = snapshot.val() || {};
+                const { brand, model, plate, color } = carData;
+                
+                let html = `
+                    <div class="profile-header">
+                        <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}">` : '<div style="font-size:64px;"></div>'}</div>
+                        <div class="profile-name">${currentUser.firstName}</div>
+                        <div class="profile-username">@${currentUser.username}</div>
+                        <span class="badge">${isGuest ? 'Гость' : 'Telegram'}</span>
+                    </div>
+                    <div class="theme-toggle-row">
+                        <div>🌙 Тёмная тема</div>
+                        <label class="theme-switch">
+                            <input type="checkbox" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+                            <span class="theme-slider"></span>
+                        </label>
+                    </div>
+                `;
+                
+                if (brand && model && plate) {
+                    html += `
+                        <div class="car-section">
+                            <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">🚗 Мой автомобиль</div>
+                            <div class="car-summary">
+                                <div><div style="font-size:15px;font-weight:600;">${brand} ${model}</div><div style="font-size:13px;color:var(--text-secondary);">${plate}</div></div>
+                                <div class="car-summary-color" style="background:${carColors[color] || '#808080'};"></div>
+                            </div>
+                            <button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="car-section" id="carEditSection">
+                            <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">🚗 Мой автомобиль</div>
+                            <select id="carBrand" class="input-field" onchange="updateCarModels()">
+                                <option value="">Марка</option>
+                                ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
+                            </select>
+                            <select id="carModel" class="input-field">
+                                <option value="">Модель</option>
+                            </select>
+                            <select id="carColor" class="input-field">
+                                <option value="">Цвет</option>
+                                ${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}
+                            </select>
+                            <input type="text" id="carPlate" class="input-field" placeholder="Гос номер" maxlength="10">
+                            <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
+                        </div>
+                    `;
+                }
+                
+                html += `<button class="btn-danger" style="margin-top:20px;" onclick="logout()">🚪 Выйти</button>`;
+                contentEl.innerHTML = html;
+            });
         }
 
         function toggleTheme() {
             const isDark = document.body.classList.toggle('dark-theme');
             localStorage.setItem('darkTheme', isDark);
-            
-            const mapEl = document.getElementById('map');
-            const currentType = map.getType();
-            
-            if (isDark && currentType === 'yandex#map') {
-                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            } else {
-                mapEl.style.filter = 'none';
-            }
-            
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
+            switchMapType(document.querySelector('.map-type-btn.active'));
         }
 
         function updateCarModels() {
             const brand = document.getElementById('carBrand').value;
             const modelSelect = document.getElementById('carModel');
-            
-            modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-            
+            modelSelect.innerHTML = '<option value="">Модель</option>';
             if (brand && carBrands[brand]) {
-                carBrands[brand].forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    option.textContent = model;
-                    modelSelect.appendChild(option);
+                carBrands[brand].forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m; opt.textContent = m;
+                    modelSelect.appendChild(opt);
                 });
             }
         }
 
         function editCarData() {
-            const carSection = document.getElementById('carEditSection');
-            if (carSection) {
-                carSection.remove();
-            }
+            const section = document.getElementById('carEditSection');
+            if (section) section.remove();
             
             database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
                 const carData = snapshot.val() || {};
-                const brand = carData.brand || '';
-                const model = carData.model || '';
-                const plate = carData.plate || '';
-                const color = carData.color || '';
+                const { brand, model, plate, color } = carData;
                 
-                const editForm = document.createElement('div');
-                editForm.className = 'car-section';
-                editForm.id = 'carEditSection';
-                editForm.innerHTML = `
-                    <div class="car-section-title">🚗 Редактирование автомобиля</div>
-                    <div class="form-group">
-                        <label>Марка</label>
-                        <select id="carBrand" class="input-field" onchange="updateCarModels()">
-                            <option value="">Выберите марку</option>
-                            ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Модель</label>
-                        <select id="carModel" class="input-field">
-                            <option value="">Выберите модель</option>
-                            ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Цвет кузова</label>
-                        <select id="carColor" class="input-field">
-                            <option value="">Выберите цвет</option>
-                            ${Object.keys(carColors).map(c => {
-                                const isSelected = c === color ? 'selected' : '';
-                                return `<option value="${c}" ${isSelected}><span class="color-preview" style="background:${carColors[c]}"></span>${c}</option>`;
-                            }).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Гос номер</label>
-                        <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
-                    </div>
-                    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить изменения</button>
+                const form = document.createElement('div');
+                form.className = 'car-section';
+                form.id = 'carEditSection';
+                form.innerHTML = `
+                    <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;"> Редактирование</div>
+                    <select id="carBrand" class="input-field" onchange="updateCarModels()">
+                        <option value="">Марка</option>
+                        ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
+                    </select>
+                    <select id="carModel" class="input-field">
+                        <option value="">Модель</option>
+                        ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
+                    </select>
+                    <select id="carColor" class="input-field">
+                        <option value="">Цвет</option>
+                        ${Object.keys(carColors).map(c => `<option value="${c}" ${c === color ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                    <input type="text" id="carPlate" class="input-field" placeholder="Гос номер" value="${plate}" maxlength="10">
+                    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
                     <button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>
                 `;
                 
-                const carSectionElement = document.querySelector('.car-section');
-                carSectionElement.parentNode.insertBefore(editForm, carSectionElement.nextSibling);
-                carSectionElement.remove();
+                const carSection = document.querySelector('.car-section');
+                carSection.parentNode.insertBefore(form, carSection.nextSibling);
+                carSection.remove();
             });
         }
 
@@ -1548,131 +889,74 @@
             const color = document.getElementById('carColor').value;
             const plate = document.getElementById('carPlate').value.trim();
             
-            if (!brand) {
-                alert('Пожалуйста, выберите марку автомобиля');
+            if (!brand || !model || !color || !plate) {
+                alert('Заполните все поля');
                 return;
             }
             
-            if (!model) {
-                alert('Пожалуйста, выберите модель автомобиля');
-                return;
-            }
-            
-            if (!color) {
-                alert('Пожалуйста, выберите цвет кузова');
-                return;
-            }
-            
-            if (!plate) {
-                alert('Пожалуйста, введите гос номер');
-                return;
-            }
-            
-            const carData = {
-                brand: brand,
-                model: model,
-                color: color,
-                plate: plate.toUpperCase(),
-                timestamp: Date.now()
-            };
-            
-            database.ref(`users/${currentUser.id}/car`).set(carData)
-                .then(() => {
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                    renderProfile(document.getElementById('panelContent'));
-                })
-                .catch(err => {
-                    console.error('Ошибка сохранения:', err);
-                    alert('Ошибка сохранения: ' + err.message);
-                });
+            database.ref(`users/${currentUser.id}/car`).set({
+                brand, model, color, plate: plate.toUpperCase(), timestamp: Date.now()
+            }).then(() => renderProfile(document.getElementById('panelContent')))
+              .catch(err => alert('Ошибка: ' + err.message));
         }
 
         function loadUserData(type, contentEl) {
             if (!currentUser) {
                 contentEl.innerHTML = `
                     <div class="empty-state">
-                        <div class="icon">🔒</div>
-                        <p>Войдите в аккаунт, чтобы видеть ${type === 'favorites' ? 'избранное' : 'историю'}</p>
-                        <button class="guest-btn" style="margin-top:20px; max-width:200px; margin-left:auto; margin-right:auto;" onclick="showPanel('profile')">Войти</button>
+                        <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+                        <p>Войдите в аккаунт</p>
+                        <button class="btn-secondary" style="margin-top:20px;max-width:200px;margin-left:auto;margin-right:auto;" onclick="showPanel('profile')">Войти</button>
                     </div>`;
                 return;
             }
             
             if (type === 'history') {
-                database.ref('parkings').once('value').then(parkingsSnapshot => {
-                    const parkingsData = parkingsSnapshot.val();
-                    if (!parkingsData) {
-                        contentEl.innerHTML = `
-                            <div class="empty-state">
-                                <div class="icon"></div>
-                                <p>История пуста</p>
-                            </div>`;
+                database.ref('parkings').once('value').then(snapshot => {
+                    const data = snapshot.val();
+                    if (!data) {
+                        contentEl.innerHTML = '<div class="empty-state"><div style="font-size:48px;">🕘</div><p>Пусто</p></div>';
                         return;
                     }
                     
                     let html = '<div class="list-container">';
-                    
-                    Object.keys(parkingsData).forEach(parkingId => {
-                        const parking = parkingsData[parkingId];
-                        if (parking && parking.name) {
+                    Object.keys(data).forEach(id => {
+                        const p = data[id];
+                        if (p?.name) {
                             html += `
-                                <div class="list-item" onclick="showParkingHistory('${parkingId}', '${parking.name.replace(/'/g, "\\'")}')">
-                                    <div class="list-icon">️</div>
+                                <div class="list-item" onclick="showParkingHistory('${id}', '${p.name.replace(/'/g, "\\'")}')">
+                                    <div class="list-icon">🅿️</div>
                                     <div class="list-info">
-                                        <div class="list-title">${parking.name}</div>
-                                        <div class="list-subtitle">Нажмите для просмотра истории изменений</div>
+                                        <div class="list-title">${p.name}</div>
+                                        <div class="list-subtitle">История изменений</div>
                                     </div>
                                 </div>
                             `;
                         }
                     });
-                    
-                    html += '</div>';
-                    contentEl.innerHTML = html;
-                }).catch(err => {
-                    console.error("Ошибка загрузки истории:", err);
-                    contentEl.innerHTML = `<div class="empty-state"><p>Ошибка загрузки.</p></div>`;
+                    contentEl.innerHTML = html + '</div>';
                 });
             } else {
-                const refPath = `users/${currentUser.id}/${type}`;
-                database.ref(refPath).once('value').then(snapshot => {
+                database.ref(`users/${currentUser.id}/${type}`).once('value').then(snapshot => {
                     const data = snapshot.val();
                     if (!data) {
-                        contentEl.innerHTML = `
-                            <div class="empty-state">
-                                <div class="icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
-                                <p>Здесь пока пусто</p>
-                            </div>`;
+                        contentEl.innerHTML = '<div class="empty-state"><div style="font-size:48px;">⭐</div><p>Пусто</p></div>';
                         return;
                     }
                     
                     let html = '<div class="list-container">';
-                    const items = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    
-                    items.forEach(item => {
-                        const actionText = item.action === 'freed' ? 'Освободилось место' : 
-                                          item.action === 'occupied' ? 'Место занято' :
-                                          item.action === 'created' ? 'Парковка создана' : 'Изменение';
-                        const timeText = item.timestamp ? formatDateTime(item.timestamp) : '';
-                        
+                    Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach(item => {
                         html += `
-                            <div class="list-item" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId || 'unknown'}')">
+                            <div class="list-item" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId || ''}')">
                                 <div class="list-icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
                                 <div class="list-info">
                                     <div class="list-title">${item.name || 'Без названия'}</div>
-                                    <div class="list-subtitle">${actionText}</div>
-                                    ${timeText ? `<div class="list-time">${timeText}</div>` : ''}
+                                    <div class="list-subtitle">${item.timestamp ? formatDateTime(item.timestamp) : ''}</div>
                                 </div>
                             </div>
                         `;
                     });
-                    html += '</div>';
-                    contentEl.innerHTML = html;
-                }).catch(err => {
-                    console.error("Ошибка загрузки истории:", err);
-                    contentEl.innerHTML = `<div class="empty-state"><p>Ошибка загрузки. Проверьте правила Firebase.</p></div>`;
+                    contentEl.innerHTML = html + '</div>';
                 });
             }
         }
@@ -1681,67 +965,43 @@
             document.getElementById('panelTitle').textContent = parkingName;
             
             database.ref(`parkings/${parkingId}/history`).once('value').then(snapshot => {
-                const historyData = snapshot.val();
-                
-                if (!historyData) {
+                const data = snapshot.val();
+                if (!data) {
                     document.getElementById('panelContent').innerHTML = `
-                        <div class="empty-state">
-                            <div class="icon">🕘</div>
-                            <p>История изменений пуста</p>
-                        </div>
+                        <div class="empty-state"><div style="font-size:48px;">🕘</div><p>История пуста</p></div>
                         <button class="btn-secondary" onclick="showPanel('history')">Назад</button>
                     `;
                     return;
                 }
                 
                 let html = '<div class="list-container">';
-                const items = Object.values(historyData).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                items.forEach(item => {
-                    const actionText = item.action === 'freed' ? '🟢 Место освобождено' : 
-                                      item.action === 'occupied' ? '🔴 Место занято' :
-                                      item.action === 'created' ? '🟦 Парковка создана' : 'Изменение';
-                    const timeText = item.timestamp ? formatDateTime(item.timestamp) : '';
+                Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach(item => {
+                    const actionText = item.action === 'freed' ? '🟢 Освобождено' : 
+                                      item.action === 'occupied' ? ' Занято' : '🟦 Создано';
                     
                     html += `
                         <div class="history-detail">
                             <div class="history-detail-header">
-                                <div class="history-detail-title">${actionText}</div>
-                                <div class="history-detail-time">${timeText}</div>
+                                <div style="font-size:15px;font-weight:600;">${actionText}</div>
+                                <div style="font-size:12px;color:var(--text-secondary);">${formatDateTime(item.timestamp)}</div>
                             </div>
-                            ${item.username ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Пользователь:</span>
-                                    <span class="history-detail-value">@${item.username}</span>
-                                </div>
-                            ` : ''}
-                            ${item.carBrand ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Автомобиль:</span>
-                                    <span class="history-detail-value">${item.carBrand} ${item.carModel || ''} ${item.carPlate ? '(' + item.carPlate + ')' : ''}</span>
-                                </div>
-                            ` : ''}
-                            ${item.previousOccupied !== undefined && item.newOccupied !== undefined ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Изменение:</span>
-                                    <span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied} занятых мест</span>
-                                </div>
-                            ` : ''}
+                            ${item.username ? `<div class="history-detail-row"><span class="history-detail-label">Пользователь:</span><span>@${item.username}</span></div>` : ''}
+                            ${item.carBrand ? `<div class="history-detail-row"><span class="history-detail-label">Авто:</span><span>${item.carBrand} ${item.carModel || ''} ${item.carPlate ? '(' + item.carPlate + ')' : ''}</span></div>` : ''}
+                            ${item.previousOccupied !== undefined ? `<div class="history-detail-row"><span class="history-detail-label">Изменение:</span><span>${item.previousOccupied} → ${item.newOccupied}</span></div>` : ''}
                         </div>
                     `;
                 });
                 
-                html += '</div>';
-                html += '<button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>';
-                
-                document.getElementById('panelContent').innerHTML = html;
-            }).catch(err => {
-                console.error("Ошибка загрузки истории парковки:", err);
-                document.getElementById('panelContent').innerHTML = `
-                    <div class="empty-state"><p>Ошибка загрузки истории.</p></div>
-                    <button class="btn-secondary" onclick="showPanel('history')">Назад</button>
-                `;
+                document.getElementById('panelContent').innerHTML = html + '</div><button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>';
             });
+        }
+
+        function focusMap(lat, lng, parkingId) {
+            closePanel();
+            map.setCenter([lat, lng], 16, { duration: 300 });
+            if (mapMarkers[parkingId]) {
+                setTimeout(() => mapMarkers[parkingId].balloon.open(), 400);
+            }
         }
 
         function closePanel() { 
@@ -1750,39 +1010,19 @@
             document.querySelector('.tab:first-child').classList.add('active');
         }
         
-        function showMap() {
-            closePanel();
-        }
-
-        function openTelegramBot() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.showAlert('Для входа перезапустите приложение через бота @parknear_bot');
-            } else {
-                window.open('https://t.me/parknear_bot', '_blank');
-            }
-        }
+        function showMap() { closePanel(); }
 
         function continueAsGuest() {
-            currentUser = { 
-                id: 'guest_' + Date.now(), 
-                username: 'guest', 
-                firstName: 'Гость', 
-                photoUrl: '',
-                isGuest: true
-            };
+            currentUser = { id: 'guest_' + Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '' };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
             showPanel('profile');
         }
 
         function logout() {
-            if (confirm('Вы уверены, что хотите выйти? Все гостевые данные будут удалены.')) {
+            if (confirm('Выйти из аккаунта?')) {
                 currentUser = null;
                 localStorage.removeItem('tgUser');
-                if (window.Telegram && window.Telegram.WebApp) {
-                    window.Telegram.WebApp.close();
-                } else {
-                    showPanel('profile');
-                }
+                showPanel('profile');
             }
         }
     </script>
