@@ -39,7 +39,6 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* Карта с отступом снизу */
         #map { 
             width: 100%; 
             height: 100%; 
@@ -49,7 +48,48 @@
             z-index: 1;
         }
 
-        .floating-controls { position: absolute; top: 60px; left: 16px; right: 16px; z-index: 900; display: flex; gap: 10px; pointer-events: none; }
+        /* Плашка с названием приложения сверху */
+        .app-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            z-index: 950;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+            padding-top: env(safe-area-inset-top);
+        }
+        [data-theme="dark"] .app-header {
+            background: rgba(28, 28, 30, 0.85);
+            border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .app-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-color);
+            letter-spacing: 0.5px;
+        }
+        .app-title span {
+            color: #007AFF;
+        }
+
+        /* Элементы управления картой - сдвинуты ниже плашки */
+        .floating-controls { 
+            position: absolute; 
+            top: 60px; 
+            left: 16px; 
+            right: 16px; 
+            z-index: 900; 
+            display: flex; 
+            gap: 10px; 
+            pointer-events: none; 
+        }
         .control-btn { 
             pointer-events: auto;
             width: 44px; height: 44px; border-radius: 12px; background: var(--card-bg); 
@@ -162,7 +202,7 @@
             max-width: 100% !important;
         }
 
-        #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; z-index: 3000; transition: transform 0.3s; }
+        #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; z-index: 3000; transition: transform 0.3s; }
         #toast.show { transform: translateX(-50%) translateY(0); }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--secondary-text); }
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 16px; margin-bottom: 16px; }
@@ -172,6 +212,11 @@
     </style>
 </head>
 <body>
+
+    <!-- Плашка с названием приложения -->
+    <div class="app-header">
+        <div class="app-title">Park<span>Near</span></div>
+    </div>
 
     <div id="map"></div>
 
@@ -199,9 +244,9 @@
 
     <div id="tabBar">
         <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">🗺️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon"></div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
-        <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
+        <div class="tabItem" onclick="openList('profile')"><div class="tab-icon"></div><div class="tab-label">Профиль</div></div>
     </div>
 
     <div id="modal" onclick="closeModal(event)">
@@ -214,11 +259,6 @@
     <div id="toast"></div>
 
     <script>
-        // ============================
-        // НАСТРОЙКИ
-        // ============================
-        
-        // ⚠️ ЗАМЕНИТЕ на имя вашего бота (без @)
         const TELEGRAM_BOT_NAME = 'parknear_bot';
         
         const firebaseConfig = {
@@ -264,11 +304,8 @@
         }
         function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
         function getStatusColor(s) { return s==='free'?'#34C759':s==='busy'?'#FF3B30':'#007AFF'; }
-        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
+        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':' Неизвестно'; }
 
-        // ============================
-        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM
-        // ============================
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
             if(saved) { currentUser = JSON.parse(saved); }
@@ -280,7 +317,6 @@
             
             container.innerHTML = '<div style="color: var(--secondary-text); font-size: 14px;">Загрузка кнопки...</div>';
             
-            // Очищаем и создаём виджет с небольшой задержкой
             setTimeout(() => {
                 container.innerHTML = '';
                 
@@ -301,7 +337,6 @@
                 };
                 container.appendChild(script);
                 
-                // Если через 3 секунды кнопка не появилась
                 setTimeout(() => {
                     if(container.children.length === 1 && container.querySelector('iframe') === null) {
                         container.innerHTML = '<div style="color: #FF9500; font-size: 12px;">⚠️ Кнопка не загрузилась. Настройте домен в @BotFather командой /setdomain</div>';
@@ -340,18 +375,15 @@
             openList('profile');
         }
 
-        // ============================
-        // КАРТА И РИСОВАНИЕ
-        // ============================
         ymaps.ready(initMap);
 
         function initMap() {
             map = new ymaps.Map("map", { 
                 center: [55.7558, 37.6173], 
                 zoom: 13, 
-                controls: [],
-                // Отступы: [верх, право, низ, лево] - низ 100px чтобы не перекрывалось панелью
-                margin: [10, 10, 100, 10]
+                // Добавляем ползунок масштабирования справа
+                controls: ['zoomControl'],
+                margin: [60, 10, 100, 10] // Отступы: [верх (учитываем плашку), право, низ (учитываем панель), лево]
             });
             
             if(navigator.geolocation) {
@@ -440,7 +472,7 @@
             const btn = document.getElementById("addBtn");
             btn.classList.add('drawing'); btn.textContent = '💾';
             closeModal();
-            showToast('Кликайте на карте, чтобы перерисовать фигуру. Нажмите  для сохранения.');
+            showToast('Кликайте на карте, чтобы перерисовать фигуру. Нажмите 💾 для сохранения.');
         }
 
         function finishEditingShape() {
@@ -475,8 +507,8 @@
         function showMyLocation() {
             if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { 
                 map.setCenter([p.coords.latitude, p.coords.longitude], 16); 
-                showToast('📍 Ваше место'); 
-            }, ()=>showToast('❌ Нет GPS'));
+                showToast(' Ваше место'); 
+            }, ()=>showToast(' Нет GPS'));
         }
 
         function loadParkings() {
@@ -506,7 +538,7 @@
         function showParkingModal(id, p) {
             if(editingParkingId && editingParkingId !== id) { showToast('Завершите редактирование'); return; }
             document.getElementById('modalBody').innerHTML = `
-                <div class="modal-title">🅿️ ${p.name}</div>
+                <div class="modal-title">️ ${p.name}</div>
                 <div class="modal-input-group">
                     <label class="modal-label">Количество мест</label>
                     <input type="number" class="modal-input" id="editPlaces" value="${p.places}">
@@ -514,11 +546,11 @@
                 <div class="modal-label">Статус</div>
                 <div class="status-selector">
                     <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
-                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')">❌ Занято</button>
+                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')"> Занято</button>
                     <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">📝 Изменить фигуру</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')"> Изменить фигуру</button>
                     <button class="modal-btn modal-btn-primary" onclick="updateField('${id}','places', Number(document.getElementById('editPlaces').value))">💾 Сохранить</button>
                 </div>
                 <div class="modal-actions" style="margin-top:10px;">
@@ -536,7 +568,7 @@
             if(!currentUser) return;
             try {
                 const coords = JSON.parse(coordsStr);
-                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast(' Добавлено'); loadHomes(); closeModal(); });
+                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast('🏠 Добавлено'); loadHomes(); closeModal(); });
             } catch(e){}
         }
 
@@ -616,7 +648,7 @@
                     </div>
                 `;
                 
-                setTimeout(() => loadTelegramWidget(), 100);
+                setTimeout(() => loginWithTelegram(), 100);
                 return;
             }
 
@@ -632,7 +664,7 @@
                 </div>
                 
                 <div class="theme-toggle-container">
-                    <span class="theme-label"> Темная тема</span>
+                    <span class="theme-label">🌙 Темная тема</span>
                     <label class="switch">
                         <input type="checkbox" id="themeSwitch" ${currentTheme === 'dark' ? 'checked' : ''} onchange="toggleTheme()">
                         <span class="slider"></span>
