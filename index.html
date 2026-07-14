@@ -278,7 +278,6 @@
         .btn-finish { background: #34C759; color: #fff; }
         .btn-cancel { background: #FF3B30; color: #fff; }
         
-        /* Переключатель темы */
         .theme-toggle-row {
             display: flex; align-items: center; justify-content: space-between;
             padding: 16px; background: var(--bg-secondary); border-radius: 12px;
@@ -302,7 +301,6 @@
         input:checked + .theme-slider { background-color: #34C759; }
         input:checked + .theme-slider:before { transform: translateX(20px); }
         
-        /* Секция автомобиля */
         .car-section {
             background: var(--bg-secondary); border-radius: 12px; padding: 20px;
             margin-bottom: 16px; box-shadow: 0 1px 3px var(--card-shadow);
@@ -312,11 +310,31 @@
             margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
         }
         
+        .car-summary {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px; background: var(--bg-primary); border-radius: 10px;
+            margin-bottom: 12px;
+        }
+        .car-summary-info { flex: 1; }
+        .car-summary-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+        .car-summary-subtitle { font-size: 13px; color: var(--text-secondary); }
+        .car-summary-color {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
         .history-item-time {
             font-size: 12px; color: var(--text-secondary); margin-top: 4px;
         }
         .history-item-time span {
             color: #34C759; font-weight: 600;
+        }
+        
+        .color-preview {
+            display: inline-block; width: 20px; height: 20px;
+            border-radius: 50%; margin-right: 8px; vertical-align: middle;
+            border: 1px solid var(--border-color);
         }
     </style>
 </head>
@@ -349,10 +367,10 @@
     </div>
 
     <div class="tabBar">
-        <div class="tab active" onclick="showMap()"><div class="icon">️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
+        <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon"></div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
-        <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
+        <div class="tab" onclick="showPanel('profile')"><div class="icon"></div><div class="label">Профиль</div></div>
     </div>
 
     <script>
@@ -383,7 +401,6 @@
         const MAX_ZONE_WIDTH = 100;
         const MAX_ZONE_LENGTH = 100;
 
-        // Марки и модели автомобилей
         const carBrands = {
             'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
             'BMW': ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X3', 'X5', 'X6', 'X7', 'Z4', 'M3', 'M4', 'M5'],
@@ -415,6 +432,29 @@
             'Другая': ['Другая модель']
         };
 
+        const carColors = {
+            'Белый': '#FFFFFF',
+            'Чёрный': '#000000',
+            'Серебристый': '#C0C0C0',
+            'Серый': '#808080',
+            'Красный': '#FF0000',
+            'Синий': '#0000FF',
+            'Тёмно-синий': '#00008B',
+            'Зелёный': '#008000',
+            'Тёмно-зелёный': '#006400',
+            'Жёлтый': '#FFFF00',
+            'Оранжевый': '#FFA500',
+            'Коричневый': '#8B4513',
+            'Бежевый': '#F5F5DC',
+            'Золотой': '#FFD700',
+            'Бронзовый': '#CD7F32',
+            'Бордовый': '#800020',
+            'Фиолетовый': '#800080',
+            'Голубой': '#87CEEB',
+            'Розовый': '#FFC0CB',
+            'Другой': '#808080'
+        };
+
         function initAuth() {
             if (window.Telegram && window.Telegram.WebApp) {
                 const tg = window.Telegram.WebApp;
@@ -439,7 +479,6 @@
                 if (saved) currentUser = JSON.parse(saved);
             }
             
-            // Загружаем тему
             const savedTheme = localStorage.getItem('darkTheme');
             if (savedTheme === 'true') {
                 document.body.classList.add('dark-theme');
@@ -983,28 +1022,24 @@
                     </div>
                 </div>
                 
-                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')">🗑 Удалить парковку</button>` : ''}
+                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')"> Удалить парковку</button>` : ''}
                 
                 <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
             `;
         }
 
-        // Удаление парковки
         function deleteParking(parkingId) {
             if (!confirm('Вы уверены, что хотите удалить эту парковку? Это действие нельзя отменить.')) {
                 return;
             }
             
-            // Удаляем из parkings
             database.ref(`parkings/${parkingId}`).remove()
                 .then(() => {
-                    // Удаляем маркер с карты
                     if (mapMarkers[parkingId]) {
                         map.geoObjects.remove(mapMarkers[parkingId]);
                         delete mapMarkers[parkingId];
                     }
                     
-                    // Удаляем из истории всех пользователей (опционально)
                     console.log('Парковка удалена:', parkingId);
                     
                     closePanel();
@@ -1036,7 +1071,6 @@
             
             database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
                 .then(() => {
-                    // Сохраняем в историю изменения
                     const historyData = {
                         parkingId: parkingId,
                         name: mapMarkers[parkingId] ? (mapMarkers[parkingId].properties.get('balloonContentHeader') || 'Парковка') : 'Парковка',
@@ -1126,14 +1160,14 @@
                 const isGuest = currentUser.id.startsWith('guest_');
                 const isDark = document.body.classList.contains('dark-theme');
                 
-                // Загружаем данные автомобиля
                 database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
                     const carData = snapshot.val() || {};
                     const brand = carData.brand || '';
                     const model = carData.model || '';
                     const plate = carData.plate || '';
+                    const color = carData.color || '';
                     
-                    contentEl.innerHTML = `
+                    let html = `
                         <div class="profile-header">
                             <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width:80px;height:80px;border-radius:50%;">` : '👤'}</div>
                             <div class="profile-name">${currentUser.firstName}</div>
@@ -1148,37 +1182,72 @@
                                 <span class="theme-slider"></span>
                             </label>
                         </div>
-                        
-                        <div class="car-section">
-                            <div class="car-section-title">🚗 Мой автомобиль</div>
-                            <div class="form-group">
-                                <label>Марка</label>
-                                <select id="carBrand" class="input-field" onchange="updateCarModels()">
-                                    <option value="">Выберите марку</option>
-                                    ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
-                                </select>
+                    `;
+                    
+                    // Если данные авто есть - показываем свёрнутую версию
+                    if (brand && model && plate) {
+                        const colorHex = carColors[color] || '#808080';
+                        html += `
+                            <div class="car-section">
+                                <div class="car-section-title"> Мой автомобиль</div>
+                                <div class="car-summary">
+                                    <div class="car-summary-info">
+                                        <div class="car-summary-title">${brand} ${model}</div>
+                                        <div class="car-summary-subtitle">${plate}</div>
+                                    </div>
+                                    <div class="car-summary-color" style="background: ${colorHex};"></div>
+                                </div>
+                                <button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button>
                             </div>
-                            <div class="form-group">
-                                <label>Модель</label>
-                                <select id="carModel" class="input-field">
-                                    <option value="">Выберите модель</option>
-                                    ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
-                                </select>
+                        `;
+                    } else {
+                        // Показываем форму для заполнения
+                        html += `
+                            <div class="car-section" id="carEditSection">
+                                <div class="car-section-title">🚗 Мой автомобиль</div>
+                                <div class="form-group">
+                                    <label>Марка</label>
+                                    <select id="carBrand" class="input-field" onchange="updateCarModels()">
+                                        <option value="">Выберите марку</option>
+                                        ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Модель</label>
+                                    <select id="carModel" class="input-field">
+                                        <option value="">Выберите модель</option>
+                                        ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Цвет кузова</label>
+                                    <select id="carColor" class="input-field">
+                                        <option value="">Выберите цвет</option>
+                                        ${Object.keys(carColors).map(c => {
+                                            const isSelected = c === color ? 'selected' : '';
+                                            return `<option value="${c}" ${isSelected}><span class="color-preview" style="background:${carColors[c]}"></span>${c}</option>`;
+                                        }).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Гос номер</label>
+                                    <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
+                                </div>
+                                <button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button>
                             </div>
-                            <div class="form-group">
-                                <label>Гос номер</label>
-                                <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
-                            </div>
-                            <button class="btn-primary" onclick="saveCarData()">Сохранить данные авто</button>
-                        </div>
-                        
+                        `;
+                    }
+                    
+                    html += `
                         <div style="padding: 0 20px;">
                             <p style="font-size:14px; color:var(--text-secondary); text-align:center; margin-bottom:20px;">
                                 ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
                             </p>
-                            <button class="btn-danger" onclick="logout()"> Выйти из аккаунта</button>
+                            <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
                         </div>
                     `;
+                    
+                    contentEl.innerHTML = html;
                 });
             }
         }
@@ -1208,9 +1277,66 @@
             }
         }
 
+        function editCarData() {
+            const carSection = document.getElementById('carEditSection');
+            if (carSection) {
+                carSection.remove();
+            }
+            
+            database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
+                const carData = snapshot.val() || {};
+                const brand = carData.brand || '';
+                const model = carData.model || '';
+                const plate = carData.plate || '';
+                const color = carData.color || '';
+                
+                const editForm = document.createElement('div');
+                editForm.className = 'car-section';
+                editForm.id = 'carEditSection';
+                editForm.innerHTML = `
+                    <div class="car-section-title">🚗 Редактирование автомобиля</div>
+                    <div class="form-group">
+                        <label>Марка</label>
+                        <select id="carBrand" class="input-field" onchange="updateCarModels()">
+                            <option value="">Выберите марку</option>
+                            ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Модель</label>
+                        <select id="carModel" class="input-field">
+                            <option value="">Выберите модель</option>
+                            ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Цвет кузова</label>
+                        <select id="carColor" class="input-field">
+                            <option value="">Выберите цвет</option>
+                            ${Object.keys(carColors).map(c => {
+                                const isSelected = c === color ? 'selected' : '';
+                                return `<option value="${c}" ${isSelected}><span class="color-preview" style="background:${carColors[c]}"></span>${c}</option>`;
+                            }).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Гос номер</label>
+                        <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
+                    </div>
+                    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить изменения</button>
+                    <button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>
+                `;
+                
+                const carSectionElement = document.querySelector('.car-section');
+                carSectionElement.parentNode.insertBefore(editForm, carSectionElement.nextSibling);
+                carSectionElement.remove();
+            });
+        }
+
         function saveCarData() {
             const brand = document.getElementById('carBrand').value;
             const model = document.getElementById('carModel').value;
+            const color = document.getElementById('carColor').value;
             const plate = document.getElementById('carPlate').value.trim();
             
             if (!brand) {
@@ -1223,6 +1349,11 @@
                 return;
             }
             
+            if (!color) {
+                alert('Пожалуйста, выберите цвет кузова');
+                return;
+            }
+            
             if (!plate) {
                 alert('Пожалуйста, введите гос номер');
                 return;
@@ -1231,6 +1362,7 @@
             const carData = {
                 brand: brand,
                 model: model,
+                color: color,
                 plate: plate.toUpperCase(),
                 timestamp: Date.now()
             };
@@ -1240,7 +1372,8 @@
                     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
-                    alert('✅ Данные автомобиля сохранены!');
+                    // После сохранения перерисовываем профиль (покажет свёрнутую версию)
+                    renderProfile(document.getElementById('panelContent'));
                 })
                 .catch(err => {
                     console.error('Ошибка сохранения:', err);
@@ -1252,7 +1385,7 @@
             if (!currentUser) {
                 contentEl.innerHTML = `
                     <div class="empty-state">
-                        <div class="icon">🔒</div>
+                        <div class="icon"></div>
                         <p>Войдите в аккаунт, чтобы видеть ${type === 'favorites' ? 'избранное' : 'историю'}</p>
                         <button class="guest-btn" style="margin-top:20px; max-width:200px; margin-left:auto; margin-right:auto;" onclick="showPanel('profile')">Войти</button>
                     </div>`;
