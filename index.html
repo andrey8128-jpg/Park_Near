@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Park Near</title>
     
+    <!-- Telegram Web App Script (для автоматического получения данных) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -71,7 +74,6 @@
             z-index: 1;
         }
         
-        /* Делаем водяные знаки Яндекса видимыми */
         #map .ymaps-2-1-79-copyright,
         #map .ymaps-2-1-79-logo,
         #map .ymaps-copyright,
@@ -186,6 +188,20 @@
             margin: 15px auto;
         }
 
+        .telegram-widget-wrapper {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 0 16px 16px;
+            text-align: center;
+        }
+        #telegram-widget-direct {
+            min-height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         #toast { 
             position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-100px); 
             background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; 
@@ -232,7 +248,7 @@
 
     <div id="tabBar">
         <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">🗺️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openList('history')"><div class="tab-icon"></div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
         <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
     </div>
@@ -292,20 +308,121 @@
             return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; 
         }
 
-        // Инициализация карты
+        // ============================
+        // АВТОМАТИЧЕСКАЯ АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM MINI APP
+        // ============================
+        function initTelegramAuth() {
+            if (window.Telegram && Telegram.WebApp) {
+                const tg = Telegram.WebApp;
+                tg.ready();
+                tg.expand(); // Разворачиваем на весь экран
+                
+                const user = tg.initDataUnsafe?.user;
+                if (user) {
+                    currentUser = {
+                        id: 'tg_' + user.id,
+                        telegramId: user.id,
+                        username: user.username || 'user' + user.id,
+                        firstName: user.first_name,
+                        lastName: user.last_name || '',
+                        photoUrl: user.photo_url || '',
+                        authDate: new Date().toISOString()
+                    };
+                    
+                    localStorage.setItem('tgUser', JSON.stringify(currentUser));
+                    database.ref('users/' + currentUser.id).set(currentUser);
+                    
+                    showToast(`Добро пожаловать, ${currentUser.firstName}! 👋`);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Виджет для браузера (если домен привязан)
+        function loadTelegramWidget() {
+            const container = document.getElementById('telegram-widget-direct');
+            if (!container) return;
+            container.innerHTML = '<div style="color:var(--secondary-text);font-size:13px;">Загрузка...</div>';
+            
+            setTimeout(() => {
+                container.innerHTML = '';
+                const widgetDiv = document.createElement('div');
+                widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
+                widgetDiv.setAttribute('data-size', 'large');
+                widgetDiv.setAttribute('data-radius', '10');
+                widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
+                widgetDiv.setAttribute('data-request-access', 'write');
+                container.appendChild(widgetDiv);
+                
+                const script = document.createElement('script');
+                script.src = 'https://telegram.org/js/telegram-widget.js?22';
+                script.async = true;
+                container.appendChild(script);
+            }, 100);
+        }
+
+        function onTelegramAuthConfirmed(user) {
+            currentUser = {
+                id: 'tg_' + user.id,
+                username: user.username || 'user' + user.id,
+                firstName: user.first_name,
+                lastName: user.last_name || '',
+                photoUrl: user.photo_url || '',
+                authDate: new Date().toISOString()
+            };
+            database.ref('users/' + currentUser.id).set(currentUser)
+                .then(() => {
+                    localStorage.setItem('tgUser', JSON.stringify(currentUser));
+                    showToast(`Добро пожаловать, ${currentUser.firstName}! 👋`);
+                    openList('profile');
+                });
+        }
+
+        // Резервный вход через prompt
+        function loginWithTelegram() {
+            const tgDeepLink = `tg://resolve?domain=${TELEGRAM_BOT_NAME}&start=login`;
+            window.location.href = tgDeepLink;
+            
+            setTimeout(() => {
+                const username = prompt('Введите ваш username (без @):');
+                if(username && username.trim()) {
+                    const firstName = prompt('Ваше имя:') || 'Пользователь';
+                    currentUser = {
+                        id: 'tg_' + Date.now(),
+                        username: username.replace('@', ''),
+                        firstName: firstName,
+                        authDate: new Date().toISOString()
+                    };
+                    database.ref('users/' + currentUser.id).set(currentUser)
+                        .then(() => {
+                            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+                            showToast(`Добро пожаловать, ${firstName}!`);
+                            openList('profile');
+                        });
+                }
+            }, 1500);
+        }
+
+        function logout() {
+            currentUser = null; 
+            localStorage.removeItem('tgUser');
+            showToast('Вы вышли'); 
+            switchToMap();
+        }
+
+        // ============================
+        // КАРТА
+        // ============================
         function initMap() {
             try {
                 map = new ymaps.Map("map", { 
                     center: [55.7558, 37.6173], 
                     zoom: 10,
                     controls: ['zoomControl', 'geolocationControl'],
-                    // Добавляем отступы чтобы водяные знаки были видны
-                    margin: [10, 10, 50, 10] // [верх, право, низ, лево] - низ 50px для водяных знаков
+                    margin: [10, 10, 50, 10]
                 });
                 
-                console.log('Карта загружена');
-                
-                // Геолокация
                 if(navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(pos => {
                         const coords = [pos.coords.latitude, pos.coords.longitude];
@@ -318,7 +435,6 @@
                     }, ()=>{});
                 }
 
-                // Клик по карте
                 map.events.add("click", e => {
                     if(drawing || editingParkingId) {
                         points.push(e.get("coords"));
@@ -326,7 +442,6 @@
                     }
                 });
 
-                // Кнопка добавления
                 document.getElementById("addBtn").onclick = async function() {
                     if(!currentUser) { 
                         showToast('Сначала войдите'); 
@@ -358,24 +473,32 @@
             }
         }
 
-        // Ждем загрузки API
         if (window.ymaps) {
             ymaps.ready(initMap);
         } else {
             window.addEventListener('load', () => {
-                if(window.ymaps) {
-                    ymaps.ready(initMap);
-                } else {
-                    console.error('Yandex Maps API не загружен');
-                }
+                if(window.ymaps) ymaps.ready(initMap);
             });
         }
 
+        // ============================
+        // ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ
+        // ============================
         window.addEventListener('load', () => {
-            const saved = localStorage.getItem('tgUser');
-            if(saved) { 
-                currentUser = JSON.parse(saved); 
+            // 1. Пробуем Mini App (автоматический вход)
+            if (initTelegramAuth()) {
+                console.log('Вход через Telegram Mini App');
+                return;
             }
+            
+            // 2. Пробуем загрузить сохраненного пользователя
+            const saved = localStorage.getItem('tgUser');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                console.log('Восстановлен пользователь из localStorage');
+            }
+            
+            // 3. Загружаем тему
             const savedTheme = localStorage.getItem('appTheme');
             if(savedTheme) {
                 currentTheme = savedTheme;
@@ -483,40 +606,6 @@
             b.textContent = '+'; 
         }
 
-        function loginWithTelegram() {
-            const tgDeepLink = `tg://resolve?domain=${TELEGRAM_BOT_NAME}&start=login`;
-            window.location.href = tgDeepLink;
-            
-            setTimeout(() => {
-                const username = prompt('Введите ваш username (без @):');
-                if(username && username.trim()) {
-                    const firstName = prompt('Ваше имя:') || 'Пользователь';
-                    
-                    const userData = {
-                        id: 'tg_' + Date.now(),
-                        username: username.replace('@', ''),
-                        firstName: firstName,
-                        authDate: new Date().toISOString()
-                    };
-                    
-                    database.ref('users/' + userData.id).set(userData)
-                        .then(() => {
-                            currentUser = userData;
-                            localStorage.setItem('tgUser', JSON.stringify(userData));
-                            showToast(`Добро пожаловать, ${firstName}!`);
-                            openList('profile');
-                        });
-                }
-            }, 1500);
-        }
-
-        function logout() {
-            currentUser = null; 
-            localStorage.removeItem('tgUser');
-            showToast('Вы вышли'); 
-            switchToMap();
-        }
-
         function showMyLocation() {
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => { 
@@ -576,7 +665,7 @@
                 return; 
             }
             document.getElementById('modalBody').innerHTML = `
-                <div class="modal-title">🅿️ ${p.name}</div>
+                <div class="modal-title">️ ${p.name}</div>
                 <input type="number" class="modal-input" id="editPlaces" value="${p.places}" placeholder="Количество мест">
                 <div class="status-selector">
                     <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
@@ -584,7 +673,7 @@
                     <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')"> Изменить фигуру</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">📝 Изменить фигуру</button>
                     <button class="modal-btn modal-btn-primary" onclick="updateField('${id}','places', Number(document.getElementById('editPlaces').value))">💾 Сохранить</button>
                 </div>
                 <div class="modal-actions">
@@ -612,7 +701,7 @@
                     address: name, 
                     created: new Date().toISOString()
                 }).then(() => { 
-                    showToast('🏠 Добавлено'); 
+                    showToast(' Добавлено'); 
                     loadHomes(); 
                     closeModal(); 
                 });
@@ -674,8 +763,13 @@
                                 </svg>
                                 Открыть Telegram
                             </button>
+                            <div class="telegram-widget-wrapper">
+                                <div style="font-size:13px;color:var(--secondary-text);margin-bottom:10px;">Или через виджет:</div>
+                                <div id="telegram-widget-direct"></div>
+                            </div>
                         </div>
                     `;
+                    loadTelegramWidget();
                 } else {
                     const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
                     const free = myP.filter(p => p.status === 'free').length;
@@ -706,7 +800,7 @@
                 }
             } else if(type === 'history') {
                 if(!currentUser) { 
-                    content.innerHTML = '<div class="empty-state"> Войдите</div>'; 
+                    content.innerHTML = '<div class="empty-state">🔒 Войдите</div>'; 
                     return; 
                 }
                 const list = Object.keys(parkingsData)
