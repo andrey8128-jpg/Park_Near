@@ -17,16 +17,43 @@
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        :root {
+            --bg-primary: #F2F2F7;
+            --bg-secondary: #fff;
+            --text-primary: #000;
+            --text-secondary: #8E8E93;
+            --border-color: rgba(0,0,0,0.1);
+            --input-bg: #fff;
+            --input-border: #C7C7CC;
+            --card-shadow: rgba(0,0,0,0.05);
+        }
+        
+        body.dark-theme {
+            --bg-primary: #1C1C1E;
+            --bg-secondary: #2C2C2E;
+            --text-primary: #fff;
+            --text-secondary: #8E8E93;
+            --border-color: rgba(255,255,255,0.1);
+            --input-bg: #3A3A3C;
+            --input-border: #48484A;
+            --card-shadow: rgba(0,0,0,0.3);
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
             overflow: hidden; height: 100vh; height: 100dvh;
-            background: #F2F2F7; color: #000;
+            background: var(--bg-primary); color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
         }
         .app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 60px;
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
             z-index: 1000; display: flex; align-items: center; justify-content: center;
-            border-bottom: 0.5px solid rgba(0,0,0,0.1); padding-top: env(safe-area-inset-top);
+            border-bottom: 0.5px solid var(--border-color); padding-top: env(safe-area-inset-top);
+        }
+        body.dark-theme .app-header {
+            background: rgba(44, 44, 46, 0.95);
         }
         .app-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
         .app-title span { color: #007AFF; }
@@ -37,28 +64,31 @@
             position: fixed; top: 70px; right: 12px; z-index: 900;
             background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
             border-radius: 12px; overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px var(--card-shadow);
             display: flex; flex-direction: column;
+        }
+        body.dark-theme .map-type-switcher {
+            background: rgba(44,44,46,0.95);
         }
         .map-type-btn {
             padding: 10px 14px; border: none; background: transparent;
             font-size: 13px; font-weight: 600; cursor: pointer;
-            color: #333; border-bottom: 0.5px solid #E5E5EA;
+            color: var(--text-primary); border-bottom: 0.5px solid var(--border-color);
             transition: background 0.2s;
         }
         .map-type-btn:last-child { border-bottom: none; }
-        .map-type-btn:active { background: #F2F2F7; }
+        .map-type-btn:active { background: var(--bg-primary); }
         .map-type-btn.active { background: #007AFF; color: #fff; }
 
         #geoBtn {
             position: fixed; bottom: 170px; right: 20px; z-index: 900;
             width: 48px; height: 48px; border-radius: 50%;
-            background: #fff; color: #007AFF; border: none;
+            background: var(--bg-secondary); color: #007AFF; border: none;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer; box-shadow: 0 4px 12px var(--card-shadow);
             transition: transform 0.2s, background 0.2s;
         }
-        #geoBtn:active { transform: scale(0.9); background: #F2F2F7; }
+        #geoBtn:active { transform: scale(0.9); background: var(--bg-primary); }
         #geoBtn svg { width: 24px; height: 24px; fill: #007AFF; }
 
         #addBtn {
@@ -76,7 +106,10 @@
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
             z-index: 1000; display: flex;
-            border-top: 0.5px solid rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom);
+            border-top: 0.5px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom);
+        }
+        body.dark-theme .tabBar {
+            background: rgba(44, 44, 46, 0.95);
         }
         .tab {
             flex: 1; display: flex; flex-direction: column;
@@ -85,19 +118,19 @@
         }
         .tab:active { opacity: 0.6; }
         .tab .icon { font-size: 24px; margin-bottom: 4px; }
-        .tab .label { font-size: 10px; color: #8E8E93; font-weight: 500; }
+        .tab .label { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
         .tab.active .label { color: #007AFF; font-weight: 600; }
         
         .panel {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: #F2F2F7; z-index: 2000;
+            background: var(--bg-primary); z-index: 2000;
             transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
             display: flex; flex-direction: column;
         }
         .panel.active { transform: translateY(0); }
         .panel-header {
             padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 0.5px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.95);
+            border-bottom: 0.5px solid var(--border-color); background: var(--bg-secondary);
             backdrop-filter: blur(10px); padding-top: calc(16px + env(safe-area-inset-top));
         }
         .panel-title { font-size: 17px; font-weight: 600; }
@@ -118,14 +151,16 @@
         }
         
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; color: #8E8E93; margin-bottom: 6px; font-weight: 500; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
         .input-field {
             width: 100%; padding: 12px 16px; border-radius: 10px;
-            border: 1px solid #C7C7CC; background: #fff; font-size: 16px;
+            border: 1px solid var(--input-border); background: var(--input-bg); 
+            color: var(--text-primary); font-size: 16px;
             outline: none; transition: border-color 0.2s; font-family: inherit;
         }
         .input-field:focus { border-color: #007AFF; }
         textarea.input-field { resize: none; }
+        select.input-field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
         
         .btn-primary {
             width: 100%; padding: 16px; border-radius: 12px; border: none;
@@ -146,21 +181,21 @@
         
         .list-container { display: flex; flex-direction: column; gap: 12px; }
         .list-item {
-            background: #fff; padding: 16px; border-radius: 12px;
+            background: var(--bg-secondary); padding: 16px; border-radius: 12px;
             display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer;
+            box-shadow: 0 1px 3px var(--card-shadow); cursor: pointer;
             transition: transform 0.1s;
         }
         .list-item:active { transform: scale(0.98); }
-        .list-icon { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: #F2F2F7; border-radius: 50%; }
+        .list-icon { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border-radius: 50%; }
         .list-info { flex: 1; }
         .list-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-        .list-subtitle { font-size: 13px; color: #8E8E93; }
+        .list-subtitle { font-size: 13px; color: var(--text-secondary); }
         
-        .empty-state, .loading-state { text-align: center; padding: 60px 20px; color: #8E8E93; }
+        .empty-state, .loading-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
         .spinner {
-            width: 32px; height: 32px; border: 3px solid #E5E5EA;
+            width: 32px; height: 32px; border: 3px solid var(--bg-primary);
             border-top-color: #007AFF; border-radius: 50%;
             animation: spin 0.8s linear infinite; margin: 0 auto 16px;
         }
@@ -169,7 +204,7 @@
         .profile-header { text-align: center; padding: 20px 0 30px; }
         .profile-avatar { font-size: 64px; margin-bottom: 12px; }
         .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-        .profile-username { font-size: 15px; color: #8E8E93; }
+        .profile-username { font-size: 15px; color: var(--text-secondary); }
         .badge { display: inline-block; padding: 4px 10px; background: #E5F1FF; color: #007AFF; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px; }
         
         .map-hint {
@@ -186,23 +221,23 @@
         
         .occupancy-header { text-align: center; padding: 10px 0 20px; }
         .occupancy-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-        .occupancy-subtitle { font-size: 14px; color: #8E8E93; }
+        .occupancy-subtitle { font-size: 14px; color: var(--text-secondary); }
         
         .occupancy-stats { display: flex; gap: 12px; margin-bottom: 20px; }
         .stat-card {
-            flex: 1; background: #fff; border-radius: 12px;
+            flex: 1; background: var(--bg-secondary); border-radius: 12px;
             padding: 16px; text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 3px var(--card-shadow);
         }
         .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
-        .stat-label { font-size: 12px; color: #8E8E93; font-weight: 500; }
+        .stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
         .stat-total .stat-value { color: #007AFF; }
         .stat-free .stat-value { color: #34C759; }
         .stat-occupied .stat-value { color: #FF3B30; }
         
         .occupancy-control {
-            background: #fff; border-radius: 12px; padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            background: var(--bg-secondary); border-radius: 12px; padding: 20px;
+            box-shadow: 0 1px 3px var(--card-shadow);
         }
         .occupancy-control label {
             display: block; font-size: 14px; font-weight: 600;
@@ -213,17 +248,17 @@
         }
         .counter-btn {
             width: 48px; height: 48px; border-radius: 50%;
-            border: 1px solid #C7C7CC; background: #fff;
-            font-size: 24px; font-weight: 600; cursor: pointer;
+            border: 1px solid var(--input-border); background: var(--bg-secondary);
+            color: var(--text-primary); font-size: 24px; font-weight: 600; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
-        .counter-btn:active { background: #F2F2F7; }
+        .counter-btn:active { background: var(--bg-primary); }
         .counter-btn.minus { color: #FF3B30; border-color: #FF3B30; }
         .counter-btn.plus { color: #34C759; border-color: #34C759; }
         .counter-value { font-size: 32px; font-weight: 700; min-width: 60px; text-align: center; }
         
         .progress-bar {
-            height: 8px; background: #E5E5EA; border-radius: 4px;
+            height: 8px; background: var(--bg-primary); border-radius: 4px;
             margin: 16px 0; overflow: hidden;
         }
         .progress-fill {
@@ -238,14 +273,50 @@
         .drawing-controls button {
             padding: 12px 20px; border-radius: 20px; border: none;
             font-size: 14px; font-weight: 600; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px var(--card-shadow);
         }
         .btn-finish { background: #34C759; color: #fff; }
         .btn-cancel { background: #FF3B30; color: #fff; }
         
-        .error-message {
-            background: #FF3B30; color: #fff; padding: 12px 16px;
-            border-radius: 10px; margin: 12px 0; font-size: 14px;
+        /* Переключатель темы */
+        .theme-toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px; background: var(--bg-secondary); border-radius: 12px;
+            margin-bottom: 16px; box-shadow: 0 1px 3px var(--card-shadow);
+        }
+        .theme-toggle-label { font-size: 16px; font-weight: 600; }
+        .theme-switch {
+            position: relative; width: 51px; height: 31px;
+        }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .theme-slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #E5E5EA; transition: .3s; border-radius: 31px;
+        }
+        .theme-slider:before {
+            position: absolute; content: ""; height: 27px; width: 27px;
+            left: 2px; bottom: 2px; background-color: white;
+            transition: .3s; border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .theme-slider { background-color: #34C759; }
+        input:checked + .theme-slider:before { transform: translateX(20px); }
+        
+        /* Секция автомобиля */
+        .car-section {
+            background: var(--bg-secondary); border-radius: 12px; padding: 20px;
+            margin-bottom: 16px; box-shadow: 0 1px 3px var(--card-shadow);
+        }
+        .car-section-title {
+            font-size: 14px; font-weight: 600; color: var(--text-secondary);
+            margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        
+        .history-item-time {
+            font-size: 12px; color: var(--text-secondary); margin-top: 4px;
+        }
+        .history-item-time span {
+            color: #34C759; font-weight: 600;
         }
     </style>
 </head>
@@ -278,14 +349,13 @@
     </div>
 
     <div class="tabBar">
-        <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon"></div><div class="label">История</div></div>
+        <div class="tab active" onclick="showMap()"><div class="icon">️</div><div class="label">Карта</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
         <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
 
     <script>
-        // Инициализация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
             authDomain: "parknear-bef41.firebaseapp.com",
@@ -299,7 +369,6 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
-        // Проверка подключения к Firebase
         database.ref('.info/connected').on('value', function(snapshot) {
             if (snapshot.val() === true) {
                 console.log('✅ Подключено к Firebase');
@@ -313,6 +382,38 @@
         
         const MAX_ZONE_WIDTH = 100;
         const MAX_ZONE_LENGTH = 100;
+
+        // Марки и модели автомобилей
+        const carBrands = {
+            'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
+            'BMW': ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X3', 'X5', 'X6', 'X7', 'Z4', 'M3', 'M4', 'M5'],
+            'Mercedes-Benz': ['A-Class', 'B-Class', 'C-Class', 'E-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'AMG GT'],
+            'Volkswagen': ['Golf', 'Polo', 'Passat', 'Tiguan', 'Touareg', 'Jetta', 'Arteon', 'ID.3', 'ID.4'],
+            'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser', 'Highlander', 'Prius', 'Yaris', 'C-HR'],
+            'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Fit', 'Pilot', 'Odyssey'],
+            'Nissan': ['Altima', 'Maxima', 'Sentra', 'Rogue', 'Pathfinder', 'Murano', 'Leaf', 'GT-R'],
+            'Hyundai': ['Solaris', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Creta', 'i30'],
+            'Kia': ['Rio', 'Ceed', 'Optima', 'Sportage', 'Sorento', 'Stinger', 'Niro'],
+            'Mazda': ['Mazda2', 'Mazda3', 'Mazda6', 'CX-3', 'CX-5', 'CX-9', 'MX-5'],
+            'Ford': ['Focus', 'Fiesta', 'Mondeo', 'Kuga', 'Explorer', 'Mustang', 'F-150'],
+            'Chevrolet': ['Cruze', 'Malibu', 'Equinox', 'Tahoe', 'Camaro', 'Corvette'],
+            'Lada': ['Vesta', 'Granta', 'XRAY', 'Niva', 'Largus', '4x4'],
+            'Renault': ['Logan', 'Sandero', 'Duster', 'Kaptur', 'Arkana', 'Koleos'],
+            'Skoda': ['Octavia', 'Superb', 'Rapid', 'Kodiaq', 'Karoq', 'Fabia'],
+            'Peugeot': ['208', '308', '408', '508', '2008', '3008', '5008'],
+            'Citroen': ['C3', 'C4', 'C5', 'Berlingo', 'C3 Aircross', 'C5 Aircross'],
+            'Volvo': ['S60', 'S90', 'V60', 'V90', 'XC40', 'XC60', 'XC90'],
+            'Lexus': ['IS', 'ES', 'GS', 'LS', 'NX', 'RX', 'LX', 'UX'],
+            'Infiniti': ['Q30', 'Q50', 'Q60', 'QX30', 'QX50', 'QX60', 'QX80'],
+            'Porsche': ['911', 'Cayenne', 'Macan', 'Panamera', 'Taycan', 'Boxster', 'Cayman'],
+            'Land Rover': ['Range Rover', 'Range Rover Sport', 'Range Rover Evoque', 'Discovery', 'Defender'],
+            'Jeep': ['Wrangler', 'Grand Cherokee', 'Cherokee', 'Compass', 'Renegade'],
+            'Subaru': ['Impreza', 'Legacy', 'Outback', 'Forester', 'XV', 'WRX', 'BRZ'],
+            'Mitsubishi': ['Outlander', 'ASX', 'Pajero', 'Lancer', 'Eclipse Cross'],
+            'Suzuki': ['Vitara', 'Swift', 'SX4', 'Grand Vitara', 'Jimny'],
+            'Tesla': ['Model S', 'Model 3', 'Model X', 'Model Y', 'Cybertruck'],
+            'Другая': ['Другая модель']
+        };
 
         function initAuth() {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -330,18 +431,18 @@
                         isGuest: false
                     };
                     localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                    console.log('✅ Авторизован через Telegram:', currentUser.id);
                 }
             }
             
             if (!currentUser) {
                 const saved = localStorage.getItem('tgUser');
-                if (saved) {
-                    currentUser = JSON.parse(saved);
-                    console.log('✅ Авторизован через localStorage:', currentUser.id);
-                } else {
-                    console.log('️ Пользователь не авторизован');
-                }
+                if (saved) currentUser = JSON.parse(saved);
+            }
+            
+            // Загружаем тему
+            const savedTheme = localStorage.getItem('darkTheme');
+            if (savedTheme === 'true') {
+                document.body.classList.add('dark-theme');
             }
         }
 
@@ -424,8 +525,6 @@
             
             drawingPolygon.editor.stopDrawing();
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
-            
-            console.log('📍 Координаты полигона:', coordinates);
             
             const sizeCheck = checkPolygonSize(coordinates);
             if (!sizeCheck.valid) {
@@ -626,7 +725,7 @@
             document.getElementById('panelContent').innerHTML = `
                 <div class="form-group">
                     <label>Размер зоны</label>
-                    <input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:#F2F2F7; color:#8E8E93;">
+                    <input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);">
                 </div>
                 <div class="form-group">
                     <label>Количество парковочных мест *</label>
@@ -645,17 +744,13 @@
             `;
         }
 
-        // ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ СОХРАНЕНИЯ
         function submitParkingWithPolygon() {
             const name = document.getElementById('parkName').value.trim();
             const desc = document.getElementById('parkDesc').value.trim();
             const totalSpots = parseInt(document.getElementById('parkSpots').value);
             
-            console.log(' Данные формы:', { name, desc, totalSpots });
-            
             if (!currentUser) {
                 alert('Ошибка: пользователь не авторизован');
-                console.error(' Пользователь не авторизован');
                 return;
             }
             
@@ -678,7 +773,6 @@
 
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             
-            // Преобразуем координаты в простой массив чисел
             const cleanCoordinates = coordinates.map(coord => [
                 parseFloat(coord[0]),
                 parseFloat(coord[1])
@@ -700,28 +794,21 @@
                 timestamp: Date.now()
             };
 
-            console.log('💾 Данные для сохранения:', parkingData);
-            
-            // Сохраняем в Firebase
             const newRef = database.ref('parkings').push();
             
             newRef.set(parkingData)
                 .then(() => {
-                    console.log('✅ Парковка сохранена в Firebase:', newRef.key);
-                    
-                    // Сохраняем в историю
                     return database.ref(`users/${currentUser.id}/history`).push({
                         parkingId: newRef.key,
                         name: name, 
                         lat: centerLat, 
                         lng: centerLng,
                         totalSpots: totalSpots,
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        action: 'created'
                     });
                 })
                 .then(() => {
-                    console.log('✅ История сохранена');
-                    
                     addMarkerToMap(newRef.key, parkingData);
                     
                     if (drawingPolygon) {
@@ -735,25 +822,16 @@
                     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
-                    
-                    alert('✅ Парковка успешно сохранена!');
                 })
                 .catch(err => {
-                    console.error("❌ Ошибка Firebase:", err);
-                    console.error("Код ошибки:", err.code);
-                    console.error("Сообщение:", err.message);
+                    console.error("Ошибка Firebase:", err);
                     
                     let errorMsg = 'Ошибка сохранения: ';
                     
                     if (err.code === 'PERMISSION_DENIED') {
-                        errorMsg += 'Нет доступа к базе данных.\n\n' +
-                            'Проверьте правила Firebase:\n' +
-                            '1. Откройте консоль Firebase\n' +
-                            '2. Перейдите в Realtime Database → Rules\n' +
-                            '3. Установите:\n' +
-                            '{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}';
+                        errorMsg += 'Нет доступа к базе данных.\n\nПроверьте правила Firebase:\n{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}';
                     } else if (err.code === 'NETWORK_ERROR') {
-                        errorMsg += 'Проблема с сетью. Проверьте подключение к интернету.';
+                        errorMsg += 'Проблема с сетью.';
                     } else {
                         errorMsg += err.message;
                     }
@@ -766,11 +844,8 @@
         }
 
         function loadAllParkings() {
-            console.log(' Загрузка парковок из Firebase...');
-            
             database.ref('parkings').once('value')
                 .then(snapshot => {
-                    console.log('📦 Получено данных:', snapshot.numChildren());
                     const data = snapshot.val();
                     if (data) {
                         Object.keys(data).forEach(key => {
@@ -782,9 +857,7 @@
                     }
                 })
                 .catch(error => {
-                    console.error(" ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
-                    console.error("Код:", error.code);
-                    console.error("Сообщение:", error.message);
+                    console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
                 });
         }
 
@@ -793,6 +866,17 @@
             if (ratio < 0.5) return '#34C759';
             if (ratio < 0.8) return '#FF9500';
             return '#FF3B30';
+        }
+
+        function formatDateTime(timestamp) {
+            if (!timestamp) return 'Неизвестно';
+            const date = new Date(timestamp);
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${day}.${month}.${year} в ${hours}:${minutes}`;
         }
 
         function addMarkerToMap(id, data) {
@@ -857,6 +941,8 @@
             const color = getOccupancyColor(occupiedSpots, totalSpots);
             const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
             
+            const isAuthor = currentUser && currentUser.id === data.authorId;
+            
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 'Парковка';
             
@@ -884,7 +970,7 @@
                 <div class="progress-bar">
                     <div class="progress-fill" style="width:${occupancyPercent}%;background:${color};"></div>
                 </div>
-                <div style="text-align:center;font-size:13px;color:#8E8E93;margin-bottom:20px;">
+                <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
                     Загруженность: ${occupancyPercent}%
                 </div>
                 
@@ -897,8 +983,43 @@
                     </div>
                 </div>
                 
+                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')">🗑 Удалить парковку</button>` : ''}
+                
                 <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
             `;
+        }
+
+        // Удаление парковки
+        function deleteParking(parkingId) {
+            if (!confirm('Вы уверены, что хотите удалить эту парковку? Это действие нельзя отменить.')) {
+                return;
+            }
+            
+            // Удаляем из parkings
+            database.ref(`parkings/${parkingId}`).remove()
+                .then(() => {
+                    // Удаляем маркер с карты
+                    if (mapMarkers[parkingId]) {
+                        map.geoObjects.remove(mapMarkers[parkingId]);
+                        delete mapMarkers[parkingId];
+                    }
+                    
+                    // Удаляем из истории всех пользователей (опционально)
+                    console.log('Парковка удалена:', parkingId);
+                    
+                    closePanel();
+                    showMap();
+                    
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                    
+                    alert('Парковка успешно удалена');
+                })
+                .catch(err => {
+                    console.error('Ошибка удаления:', err);
+                    alert('Ошибка удаления: ' + err.message);
+                });
         }
 
         function changeOccupancy(parkingId, totalSpots, currentOccupied, delta) {
@@ -911,7 +1032,22 @@
                 return;
             }
             
+            const now = Date.now();
+            
             database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
+                .then(() => {
+                    // Сохраняем в историю изменения
+                    const historyData = {
+                        parkingId: parkingId,
+                        name: mapMarkers[parkingId] ? (mapMarkers[parkingId].properties.get('balloonContentHeader') || 'Парковка') : 'Парковка',
+                        previousOccupied: currentOccupied,
+                        newOccupied: newOccupied,
+                        timestamp: now,
+                        action: delta < 0 ? 'freed' : 'occupied'
+                    };
+                    
+                    return database.ref(`users/${currentUser.id}/history`).push(historyData);
+                })
                 .then(() => {
                     document.getElementById('currentOccupied').textContent = newOccupied;
                     
@@ -929,8 +1065,11 @@
                     });
                     
                     openOccupancyPanel(parkingId, {
-                        ...data,
-                        occupiedSpots: newOccupied
+                        ...mapMarkers[parkingId] ? {} : {},
+                        totalSpots: totalSpots,
+                        occupiedSpots: newOccupied,
+                        name: document.querySelector('.occupancy-title').textContent,
+                        desc: document.querySelector('.occupancy-subtitle').textContent
                     });
                 })
                 .catch(err => {
@@ -985,21 +1124,128 @@
                 `;
             } else {
                 const isGuest = currentUser.id.startsWith('guest_');
-                contentEl.innerHTML = `
-                    <div class="profile-header">
-                        <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width:80px;height:80px;border-radius:50%;">` : ''}</div>
-                        <div class="profile-name">${currentUser.firstName}</div>
-                        <div class="profile-username">@${currentUser.username}</div>
-                        ${isGuest ? '<span class="badge">Гостевой режим</span>' : '<span class="badge">Telegram</span>'}
-                    </div>
-                    <div style="padding: 0 20px;">
-                        <p style="font-size:14px; color:#8E8E93; text-align:center; margin-bottom:20px;">
-                            ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
-                        </p>
-                        <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
-                    </div>
-                `;
+                const isDark = document.body.classList.contains('dark-theme');
+                
+                // Загружаем данные автомобиля
+                database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
+                    const carData = snapshot.val() || {};
+                    const brand = carData.brand || '';
+                    const model = carData.model || '';
+                    const plate = carData.plate || '';
+                    
+                    contentEl.innerHTML = `
+                        <div class="profile-header">
+                            <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width:80px;height:80px;border-radius:50%;">` : '👤'}</div>
+                            <div class="profile-name">${currentUser.firstName}</div>
+                            <div class="profile-username">@${currentUser.username}</div>
+                            ${isGuest ? '<span class="badge">Гостевой режим</span>' : '<span class="badge">Telegram</span>'}
+                        </div>
+                        
+                        <div class="theme-toggle-row">
+                            <div class="theme-toggle-label">🌙 Тёмная тема</div>
+                            <label class="theme-switch">
+                                <input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+                                <span class="theme-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="car-section">
+                            <div class="car-section-title">🚗 Мой автомобиль</div>
+                            <div class="form-group">
+                                <label>Марка</label>
+                                <select id="carBrand" class="input-field" onchange="updateCarModels()">
+                                    <option value="">Выберите марку</option>
+                                    ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Модель</label>
+                                <select id="carModel" class="input-field">
+                                    <option value="">Выберите модель</option>
+                                    ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Гос номер</label>
+                                <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
+                            </div>
+                            <button class="btn-primary" onclick="saveCarData()">Сохранить данные авто</button>
+                        </div>
+                        
+                        <div style="padding: 0 20px;">
+                            <p style="font-size:14px; color:var(--text-secondary); text-align:center; margin-bottom:20px;">
+                                ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
+                            </p>
+                            <button class="btn-danger" onclick="logout()"> Выйти из аккаунта</button>
+                        </div>
+                    `;
+                });
             }
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark-theme');
+            localStorage.setItem('darkTheme', isDark);
+            
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        }
+
+        function updateCarModels() {
+            const brand = document.getElementById('carBrand').value;
+            const modelSelect = document.getElementById('carModel');
+            
+            modelSelect.innerHTML = '<option value="">Выберите модель</option>';
+            
+            if (brand && carBrands[brand]) {
+                carBrands[brand].forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            }
+        }
+
+        function saveCarData() {
+            const brand = document.getElementById('carBrand').value;
+            const model = document.getElementById('carModel').value;
+            const plate = document.getElementById('carPlate').value.trim();
+            
+            if (!brand) {
+                alert('Пожалуйста, выберите марку автомобиля');
+                return;
+            }
+            
+            if (!model) {
+                alert('Пожалуйста, выберите модель автомобиля');
+                return;
+            }
+            
+            if (!plate) {
+                alert('Пожалуйста, введите гос номер');
+                return;
+            }
+            
+            const carData = {
+                brand: brand,
+                model: model,
+                plate: plate.toUpperCase(),
+                timestamp: Date.now()
+            };
+            
+            database.ref(`users/${currentUser.id}/car`).set(carData)
+                .then(() => {
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                    alert('✅ Данные автомобиля сохранены!');
+                })
+                .catch(err => {
+                    console.error('Ошибка сохранения:', err);
+                    alert('Ошибка сохранения: ' + err.message);
+                });
         }
 
         function loadUserData(type, contentEl) {
@@ -1019,7 +1265,7 @@
                 if (!data) {
                     contentEl.innerHTML = `
                         <div class="empty-state">
-                            <div class="icon">${type === 'favorites' ? '⭐' : ''}</div>
+                            <div class="icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
                             <p>Здесь пока пусто</p>
                         </div>`;
                     return;
@@ -1029,12 +1275,18 @@
                 const items = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 
                 items.forEach(item => {
+                    const actionText = item.action === 'freed' ? 'Освободилось место' : 
+                                      item.action === 'occupied' ? 'Место занято' :
+                                      item.action === 'created' ? 'Парковка создана' : 'Изменение';
+                    const timeText = item.timestamp ? formatDateTime(item.timestamp) : '';
+                    
                     html += `
-                        <div class="list-item" onclick="focusMap(${item.lat}, ${item.lng}, '${item.parkingId || 'unknown'}')">
+                        <div class="list-item" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId || 'unknown'}')">
                             <div class="list-icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
                             <div class="list-info">
                                 <div class="list-title">${item.name || 'Без названия'}</div>
-                                <div class="list-subtitle">${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}</div>
+                                <div class="list-subtitle">${actionText}</div>
+                                ${timeText ? `<div class="history-item-time"><span>${timeText}</span></div>` : ''}
                             </div>
                         </div>
                     `;
