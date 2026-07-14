@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Park Near</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     <style>
@@ -19,33 +18,69 @@
         body.dark { background: #000; color: #fff; }
         .app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 60px;
-            background: rgba(255,255,255,0.45); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            background: rgba(255,255,255,0.45); backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             z-index: 1000; display: flex; align-items: center; justify-content: center;
-            border-bottom: 0.5px solid rgba(0,0,0,0.1); padding-top: env(safe-area-inset-top);
+            border-bottom: 0.5px solid rgba(255,255,255,0.3);
+            padding-top: env(safe-area-inset-top);
         }
         body.dark .app-header { background: rgba(28,28,30,0.45); }
         .app-title { font-size: 22px; font-weight: 700; }
         .app-title span { color: #007AFF; font-weight: 800; }
         #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; }
+        .ymaps-watermarks {
+            position: fixed; bottom: 90px; left: 10px; z-index: 1001; pointer-events: none;
+        }
+        .ymaps-logo {
+            width: 80px; height: 25px; background: rgba(255,255,255,0.9);
+            border-radius: 4px; display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 600; color: #000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); margin-bottom: 5px;
+        }
+        .ymaps-copyright {
+            font-size: 10px; color: rgba(0,0,0,0.6); background: rgba(255,255,255,0.8);
+            padding: 2px 6px; border-radius: 3px; display: inline-block;
+        }
         .controls { position: fixed; top: 80px; left: 16px; z-index: 900; display: flex; flex-direction: column; gap: 10px; }
         .btn {
-            width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.85);
-            backdrop-filter: blur(10px); border: none; font-size: 20px; cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center;
+            width: 44px; height: 44px; border-radius: 12px;
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(10px);
+            border: none; font-size: 20px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex; align-items: center; justify-content: center;
         }
         .btn:active { transform: scale(0.95); }
+        .map-type-panel {
+            position: fixed; top: 80px; right: 16px; z-index: 900;
+            background: rgba(255,255,255,0.9); backdrop-filter: blur(20px);
+            border-radius: 12px; padding: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); display: none; min-width: 150px;
+        }
+        body.dark .map-type-panel { background: rgba(44,44,46,0.9); }
+        .map-type-panel.show { display: block; }
+        .map-type-btn {
+            display: block; width: 100%; padding: 10px 16px;
+            border: none; background: transparent; border-radius: 8px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            text-align: left; margin-bottom: 4px; color: inherit;
+        }
+        .map-type-btn:last-child { margin-bottom: 0; }
+        .map-type-btn.active { background: #007AFF; color: #fff; }
         #addBtn {
             position: fixed; bottom: 100px; right: 20px; z-index: 900;
-            width: 56px; height: 56px; border-radius: 50%; background: #007AFF;
-            color: #fff; border: none; font-size: 28px; cursor: pointer;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: #007AFF; color: #fff; border: none;
+            font-size: 28px; cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,122,255,0.4);
-            display: flex; align-items: center; justify-content: center; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s;
         }
         #addBtn.drawing { background: #FF3B30; }
         .tabBar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
             background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
-            z-index: 1000; display: flex; border-top: 0.5px solid rgba(0,0,0,0.1);
+            z-index: 1000; display: flex;
+            border-top: 0.5px solid rgba(0,0,0,0.1);
             padding-bottom: env(safe-area-inset-bottom);
         }
         body.dark .tabBar { background: rgba(28,28,30,0.85); }
@@ -58,43 +93,67 @@
         .tab.active .label { color: #007AFF; font-weight: 600; }
         .panel {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: inherit; z-index: 2000; transform: translateY(100%);
-            transition: transform 0.3s; display: flex; flex-direction: column;
+            background: inherit; z-index: 2000;
+            transform: translateY(100%); transition: transform 0.3s;
+            display: flex; flex-direction: column;
         }
         .panel.active { transform: translateY(0); }
         .panel-header {
-            padding: 16px 20px; display: flex; justify-content: space-between;
-            align-items: center; border-bottom: 0.5px solid rgba(0,0,0,0.1);
+            padding: 16px 20px; display: flex;
+            justify-content: space-between; align-items: center;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
         }
+        body.dark .panel-header { border-bottom-color: rgba(255,255,255,0.1); }
         .panel-title { font-size: 24px; font-weight: 700; }
         .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
-
-        .input-field {
-            width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ccc;
-            font-size: 18px; margin: 8px 0; background: #fff; color: #000;
-        }
-        body.dark .input-field { background: #1C1C1E; color: #fff; border-color: #444; }
-        .primary-btn {
-            width: 100%; padding: 16px; border-radius: 12px; border: none;
-            font-size: 16px; font-weight: 600; cursor: pointer; color: #fff;
-            background: #007AFF; margin: 8px 0;
-        }
-        .primary-btn:disabled { background: #999; }
         .guest-btn {
             width: 100%; padding: 16px; border-radius: 12px;
             border: 1px solid #007AFF; font-size: 16px; font-weight: 600;
             cursor: pointer; color: #007AFF; background: transparent; margin: 8px 0;
         }
+        .guest-btn:active { background: #007AFF; color: #fff; }
         .empty-state { text-align: center; padding: 40px 20px; color: #8E8E93; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .stat-card { background: #fff; border-radius: 12px; padding: 14px 10px; text-align: center; }
+        body.dark .stat-card { background: #1C1C1E; }
+        .stat-number { font-size: 24px; font-weight: 700; color: #007AFF; }
+        .stat-label { font-size: 11px; color: #8E8E93; margin-top: 4px; }
+        .theme-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px; background: #fff; border-radius: 12px; margin-bottom: 16px;
+        }
+        body.dark .theme-toggle { background: #1C1C1E; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: #ccc; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 26px; width: 26px;
+            left: 2px; bottom: 2px; background: #fff; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background: #34C759; }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body>
+
     <div class="app-header"><div class="app-title">Park<span>Near</span></div></div>
     <div id="map"></div>
+    <div class="ymaps-watermarks">
+        <div class="ymaps-logo">Яндекс</div>
+        <div class="ymaps-copyright">© Яндекс Карты</div>
+    </div>
     <div class="controls">
         <button class="btn" onclick="showMyLocation()">📍</button>
         <button class="btn" onclick="toggleMapType()">🗺️</button>
+    </div>
+    <div class="map-type-panel" id="mapTypePanel">
+        <button class="map-type-btn active" data-type="map" onclick="setMapType('map')">🗺️ Схема</button>
+        <button class="map-type-btn" data-type="satellite" onclick="setMapType('satellite')">🛰️ Спутник</button>
+        <button class="map-type-btn" data-type="hybrid" onclick="setMapType('hybrid')">🌍 Гибрид</button>
     </div>
     <button id="addBtn">+</button>
 
@@ -113,6 +172,7 @@
         <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
 
+    <script src="https://telegram.org/js/telegram-widget.js?22"></script>
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
@@ -124,106 +184,97 @@
             appId: "1:1066552333578:web:e60e333cf877852eba16f3"
         };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const database = firebase.database();
 
         let map = null;
         let currentUser = null;
-        let confirmationResult = null;
+        let parkingsData = {};
+        let myHomes = [];
 
         function initMap() {
-            map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 10, controls: ['zoomControl'], type: 'yandex#map' });
+            map = new ymaps.Map("map", {
+                center: [55.7558, 37.6173], zoom: 10,
+                controls: ['zoomControl'], type: 'yandex#map'
+            });
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     map.setCenter([pos.coords.latitude, pos.coords.longitude], 14);
+                    map.geoObjects.add(new ymaps.Placemark(
+                        [pos.coords.latitude, pos.coords.longitude],
+                        { hintContent: 'Вы здесь' },
+                        { preset: 'islands#blueCircleIcon' }
+                    ));
                 }, () => {});
             }
             const saved = localStorage.getItem('tgUser');
             if (saved) currentUser = JSON.parse(saved);
+            loadParkings();
         }
 
         if (typeof ymaps !== 'undefined') ymaps.ready(initMap);
         else window.addEventListener('load', () => { if (typeof ymaps !== 'undefined') ymaps.ready(initMap); });
 
-        function toggleMapType() { alert('Карта: схема/спутник'); }
+        function toggleMapType() { document.getElementById('mapTypePanel').classList.toggle('show'); }
+        function setMapType(type) {
+            document.querySelectorAll('.map-type-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+            if (type === 'map') map.setType('yandex#map');
+            else if (type === 'satellite') map.setType('yandex#satellite');
+            else map.setType('yandex#hybrid');
+            setTimeout(() => document.getElementById('mapTypePanel').classList.remove('show'), 300);
+        }
         function showMyLocation() {
             if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => {
                 map.setCenter([pos.coords.latitude, pos.coords.longitude], 14);
             });
         }
 
-        // ---- ВХОД ПО ТЕЛЕФОНУ (ПРОСТАЯ ВЕРСИЯ) ----
-        function showPhoneLogin() {
-            const content = document.getElementById('panelContent');
-            content.innerHTML = `
-                <div style="text-align:center; padding:20px;">
-                    <div style="font-size:60px; margin-bottom:20px;">📱</div>
-                    <div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход по номеру телефона</div>
-                    <input type="tel" class="input-field" id="phoneNumber" placeholder="+7 999 123 45 67">
-                    <div id="recaptcha"></div>
-                    <button class="primary-btn" id="sendBtn" onclick="sendSMS()">Получить код</button>
-                    <div id="codeBlock" style="display:none;">
-                        <input type="text" class="input-field" id="smsCode" placeholder="Код из SMS" maxlength="6" style="text-align:center; letter-spacing:8px; font-size:24px;">
-                        <button class="primary-btn" onclick="confirmSMS()">Подтвердить</button>
-                    </div>
-                    <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
-                    <button onclick="showPanel('profile')" style="background:none; border:none; color:#007AFF; margin-top:12px; cursor:pointer;">← Назад</button>
-                </div>
-            `;
-            // Невидимая reCAPTCHA
-            if (!window.recaptchaVerifier) {
-                window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha', {
-                    'size': 'invisible',
-                    'callback': () => {}
-                });
-            }
+        function loadParkings() {
+            database.ref("parkings").on("value", snap => {
+                const data = snap.val();
+                if (data) {
+                    parkingsData = data;
+                    map.geoObjects.removeAll();
+                    Object.keys(data).forEach(id => {
+                        const p = data[id];
+                        const color = p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF';
+                        const poly = new ymaps.Polygon([p.coordinates], { hintContent: p.name }, {
+                            fillColor: color, fillOpacity: 0.4, strokeColor: color, strokeWidth: 3
+                        });
+                        map.geoObjects.add(poly);
+                    });
+                }
+            });
         }
 
-        function sendSMS() {
-            const phone = document.getElementById('phoneNumber').value.trim();
-            if (!phone) { alert('Введите номер телефона'); return; }
-            const btn = document.getElementById('sendBtn');
-            btn.disabled = true;
-            btn.textContent = 'Отправка...';
-
-            auth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
-                .then(result => {
-                    confirmationResult = result;
-                    document.getElementById('codeBlock').style.display = 'block';
-                    btn.textContent = 'Код отправлен';
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    btn.textContent = 'Получить код';
-                    alert('Ошибка: ' + err.message);
-                });
-        }
-
-        function confirmSMS() {
-            const code = document.getElementById('smsCode').value.trim();
-            if (!code) { alert('Введите код из SMS'); return; }
-            confirmationResult.confirm(code)
-                .then(result => {
-                    currentUser = {
-                        id: result.user.uid,
-                        username: result.user.phoneNumber,
-                        firstName: result.user.phoneNumber,
-                        photoUrl: ''
-                    };
-                    localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                    showPanel('profile');
-                })
-                .catch(err => alert('Неверный код: ' + err.message));
-        }
+        // Telegram Login
+        window.onTelegramAuth = function(user) {
+            if (!user || !user.id) return;
+            currentUser = {
+                id: user.id,
+                username: user.username || '',
+                firstName: user.first_name || 'Пользователь',
+                lastName: user.last_name || '',
+                photoUrl: user.photo_url || ''
+            };
+            database.ref('users/' + currentUser.id).set(currentUser);
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            showPanel('profile');
+        };
 
         function continueAsGuest() {
-            currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '' };
+            currentUser = {
+                id: 'guest_' + Date.now(),
+                username: 'guest',
+                firstName: 'Гость',
+                lastName: '',
+                photoUrl: ''
+            };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
             showPanel('profile');
         }
 
         function logout() {
-            auth.signOut();
             currentUser = null;
             localStorage.removeItem('tgUser');
             showPanel('profile');
@@ -231,7 +282,8 @@
 
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = type==='history'?'История':type==='favorites'?'Избранное':'Профиль';
+            document.getElementById('panelTitle').textContent =
+                type === 'history' ? 'История' : type === 'favorites' ? 'Избранное' : 'Профиль';
             const content = document.getElementById('panelContent');
 
             if (type === 'profile') {
@@ -240,19 +292,59 @@
                         <div style="text-align:center; padding:40px 20px;">
                             <div style="font-size:60px; margin-bottom:20px;">👤</div>
                             <div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход</div>
-                            <button class="primary-btn" onclick="showPhoneLogin()">📱 Войти по номеру телефона</button>
+                            <div id="telegramWidget" style="display:flex; justify-content:center; margin:16px 0;"></div>
                             <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
+                            <p style="color:#8E8E93; font-size:12px; margin-top:12px;">При входе через Telegram откроется окно подтверждения</p>
                         </div>
                     `;
+                    // Создаём виджет Telegram
+                    setTimeout(() => {
+                        const container = document.getElementById('telegramWidget');
+                        if (container && !container.hasChildNodes()) {
+                            const script = document.createElement('script');
+                            script.async = true;
+                            script.src = 'https://telegram.org/js/telegram-widget.js?22';
+                            script.setAttribute('data-telegram-login', 'parknear_bot');
+                            script.setAttribute('data-size', 'large');
+                            script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+                            script.setAttribute('data-request-access', 'write');
+                            container.appendChild(script);
+                        }
+                    }, 100);
                 } else {
+                    const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
+                    const free = myP.filter(p => p.status === 'free').length;
+                    const busy = myP.filter(p => p.status === 'busy').length;
                     const isGuest = currentUser.id.startsWith('guest_');
+                    const photoUrl = currentUser.photoUrl || '';
+                    const avatarStyle = photoUrl ? `background-image:url(${photoUrl}); background-size:cover;` : '';
+                    const displayName = currentUser.lastName
+                        ? `${currentUser.firstName} ${currentUser.lastName}`
+                        : currentUser.firstName;
+                    const userLogin = currentUser.username ? `@${currentUser.username}` : `ID: ${currentUser.id}`;
+
                     content.innerHTML = `
                         <div style="text-align:center; padding:20px;">
-                            <div style="width:70px;height:70px;border-radius:50%;background:#007AFF;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px;">📱</div>
-                            <div style="font-size:18px;font-weight:700;">${currentUser.firstName} ${isGuest?'(гость)':''}</div>
-                            <div style="color:#8E8E93;">${currentUser.username}</div>
+                            <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px; ${avatarStyle}">
+                                ${photoUrl ? '' : getInitials(currentUser.firstName)}
+                            </div>
+                            <div style="font-size:18px;font-weight:700;">${displayName} ${isGuest ? '(гость)' : ''}</div>
+                            <div style="color:#8E8E93; margin-bottom:4px;">${userLogin}</div>
+                            ${!isGuest ? '<div style="font-size:12px; color:#34C759;">🔗 Telegram аккаунт</div>' : ''}
                         </div>
-                        <button onclick="logout()" style="width:100%;padding:14px;color:#FF3B30;background:transparent;border:1px solid #FF3B30;border-radius:12px;font-weight:600;margin-top:20px;">🚪 Выйти</button>
+                        <div class="theme-toggle">
+                            <span>🌙 Темная тема</span>
+                            <label class="switch">
+                                <input type="checkbox" ${document.body.classList.contains('dark') ? 'checked' : ''} onchange="toggleTheme()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-card"><div class="stat-number">${myP.length}</div><div class="stat-label">Парковок</div></div>
+                            <div class="stat-card"><div class="stat-number">${free}</div><div class="stat-label">Свободно</div></div>
+                            <div class="stat-card"><div class="stat-number">${busy}</div><div class="stat-label">Занято</div></div>
+                        </div>
+                        <button onclick="logout()" style="width:100%;padding:14px;color:#FF3B30;background:transparent;border:1px solid #FF3B30;border-radius:12px;font-weight:600;">🚪 Выйти</button>
                     `;
                 }
             } else if (type === 'history') {
@@ -268,6 +360,19 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
         }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        function toggleTheme() { document.body.classList.toggle('dark'); }
+
+        document.addEventListener('click', e => {
+            const panel = document.getElementById('mapTypePanel');
+            if (!panel.contains(e.target) && !e.target.closest('.btn')?.textContent?.includes('🗺️')) {
+                panel.classList.remove('show');
+            }
+        });
     </script>
 </body>
 </html>
