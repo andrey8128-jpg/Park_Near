@@ -4,57 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Park Near</title>
+    
+    <!-- Яндекс Карты -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <style>
-        :root { --bg-color: #F2F2F7; --text-color: #000; --card-bg: #FFF; --secondary-text: #8E8E93; --input-bg: #E5E5EA; }
-        [data-theme="dark"] { --bg-color: #000; --text-color: #FFF; --card-bg: #1C1C1E; --secondary-text: #98989D; --input-bg: #2C2C2E; }
+        :root {
+            --bg-color: #F2F2F7;
+            --text-color: #000000;
+            --card-bg: #FFFFFF;
+            --secondary-text: #8E8E93;
+            --input-bg: #E5E5EA;
+            --border-color: rgba(0,0,0,0.1);
+        }
+        [data-theme="dark"] {
+            --bg-color: #000000;
+            --text-color: #FFFFFF;
+            --card-bg: #1C1C1E;
+            --secondary-text: #98989D;
+            --input-bg: #2C2C2E;
+            --border-color: rgba(255,255,255,0.15);
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; background: var(--bg-color); overflow: hidden; height: 100vh; height: 100dvh; color: var(--text-color); transition: background 0.3s, color 0.3s; }
-        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        .geo-btn { position: absolute; top: 120px; right: 16px; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--card-bg); backdrop-filter: blur(10px); border: none; font-size: 22px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
-        .map-type-dropdown { position: absolute; top: 60px; left: 16px; z-index: 900; }
-        .map-type-toggle { width: 44px; height: 44px; border-radius: 12px; background: var(--card-bg); backdrop-filter: blur(10px); border: none; font-size: 22px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
-        .map-type-menu { position: absolute; top: 50px; left: 0; background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 12px; padding: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); min-width: 180px; display: none; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-color); 
+            overflow: hidden; 
+            height: 100vh; height: 100dvh; 
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Карта занимает весь экран */
+        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* Плавающие кнопки управления */
+        .floating-controls { position: absolute; top: 60px; left: 16px; right: 16px; z-index: 900; display: flex; gap: 10px; }
+        .control-btn { 
+            width: 44px; height: 44px; border-radius: 12px; background: var(--card-bg); 
+            backdrop-filter: blur(10px); border: none; font-size: 20px; cursor: pointer; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; 
+        }
+        .map-type-menu { 
+            position: absolute; top: 50px; left: 0; background: var(--card-bg); 
+            backdrop-filter: blur(20px); border-radius: 12px; padding: 8px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); min-width: 180px; display: none; 
+        }
         .map-type-menu.show { display: block; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .map-type-option { padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+        .map-type-option { padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; }
         .map-type-option.active { background: #007AFF; color: white; }
-        #addBtn { position: absolute; bottom: 100px; right: 20px; z-index: 900; width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,122,255,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+
+        /* Кнопка добавления */
+        #addBtn { 
+            position: absolute; bottom: 100px; right: 20px; z-index: 900; 
+            width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white; 
+            border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,122,255,0.4); 
+            display: flex; align-items: center; justify-content: center; transition: all 0.3s; 
+        }
         #addBtn.drawing { background: #FF3B30; }
-        
-        #fullScreenPanel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); z-index: 1000; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        #fullScreenPanel.active { transform: translateY(0); }
-        .panel-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid rgba(128,128,128,0.2); background: var(--bg-color); z-index: 10; }
-        .panel-title { font-size: 30px; font-weight: 700; }
-        .close-panel-btn { color: #007AFF; font-size: 17px; background: none; border: none; cursor: pointer; padding: 8px; font-weight: 500; }
-        .panel-content { flex: 1; overflow-y: auto; padding: 20px 0; }
-        
-        #tabBar { position: absolute; bottom: 0; left: 0; right: 0; height: 83px; background: rgba(249,249,249,0.92); backdrop-filter: saturate(180%) blur(20px); z-index: 1001; display: flex; border-top: 0.5px solid rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom); }
-        [data-theme="dark"] #tabBar { background: rgba(28,28,30,0.92); border-top-color: rgba(255,255,255,0.15); }
-        .tabItem { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 8px; cursor: pointer; transition: all 0.3s; }
-        .tabItem .tab-icon { font-size: 24px; margin-bottom: 4px; transition: transform 0.3s; }
-        .tabItem .tab-label { font-size: 10px; color: var(--secondary-text); font-weight: 500; }
-        .tabItem.active { transform: scale(1.1); }
-        .tabItem.active .tab-label { color: #007AFF; font-weight: 600; }
-        .tabItem.active .tab-icon { transform: scale(1.3); filter: drop-shadow(0 2px 4px rgba(0,122,255,0.3)); }
-        
-        #profileCard { position: absolute; top: 120px; right: 16px; z-index: 900; background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 14px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 280px; display: none; }
+
+        /* Профиль на карте */
+        #profileCard { 
+            position: absolute; top: 120px; right: 16px; z-index: 900; 
+            background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 14px; 
+            padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 280px; display: none; 
+        }
         #profileCard.visible { display: block; }
         .profile-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .profile-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #007AFF, #5856D6); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
         .profile-info { flex: 1; min-width: 0; }
         .profile-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .profile-username { font-size: 13px; color: var(--secondary-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .telegram-login-container { margin-top: 10px; text-align: center; }
-        .tg-login-btn { background: #0088cc; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; width: 100%; justify-content: center; }
+        .profile-username { font-size: 13px; color: var(--secondary-text); }
+        .tg-login-btn { background: #0088cc; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .logout-btn { width: 100%; padding: 10px; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px; }
-        
+
+        /* Нижняя панель навигации */
+        #tabBar { 
+            position: absolute; bottom: 0; left: 0; right: 0; height: 83px; 
+            background: var(--card-bg); z-index: 1001; display: flex; 
+            border-top: 0.5px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom); 
+        }
+        .tabItem { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; }
+        .tabItem .tab-icon { font-size: 24px; margin-bottom: 4px; transition: transform 0.3s; }
+        .tabItem .tab-label { font-size: 10px; color: var(--secondary-text); font-weight: 500; }
+        .tabItem.active { transform: scale(1.1); }
+        .tabItem.active .tab-label { color: #007AFF; font-weight: 600; }
+        .tabItem.active .tab-icon { transform: scale(1.3); filter: drop-shadow(0 2px 4px rgba(0,122,255,0.3)); }
+
+        /* Полноэкранный список (Список) */
+        #fullScreenPanel { 
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+            background: var(--bg-color); z-index: 1000; transform: translateY(100%); 
+            transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; 
+            padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); 
+        }
+        #fullScreenPanel.active { transform: translateY(0); }
+        .panel-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--border-color); }
+        .panel-title { font-size: 30px; font-weight: 700; }
+        .close-panel-btn { color: #007AFF; font-size: 17px; background: none; border: none; cursor: pointer; font-weight: 500; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px 0; }
+
+        /* Списки и карточки */
         .ios-list { background: var(--card-bg); border-radius: 12px; margin: 0 16px 12px; overflow: hidden; }
-        .ios-list-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid rgba(128,128,128,0.2); cursor: pointer; }
+        .ios-list-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid var(--border-color); cursor: pointer; }
         .list-icon { width: 44px; height: 44px; border-radius: 10px; background: #34C759; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
         .list-content { flex: 1; }
         .list-title { font-size: 16px; font-weight: 600; margin-bottom: 3px; }
@@ -62,7 +121,8 @@
         .status-free { background: #34C759 !important; }
         .status-busy { background: #FF3B30 !important; }
         .status-unknown { background: #007AFF !important; }
-        
+
+        /* Модальное окно */
         #modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
         #modal.active { display: flex; }
         .modal-sheet { background: var(--bg-color); border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; animation: slideUp 0.3s; }
@@ -71,28 +131,25 @@
         .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
         .modal-input-group { margin-bottom: 16px; }
         .modal-label { display: block; font-size: 13px; color: var(--secondary-text); margin-bottom: 6px; font-weight: 500; }
-        .modal-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--input-bg); color: var(--text-color); font-size: 16px; font-family: inherit; }
-        .modal-input:focus { outline: 2px solid #007AFF; }
-        .status-selector { display: flex; gap: 10px; margin-top: 16px; margin-bottom: 20px; }
+        .modal-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--input-bg); color: var(--text-color); font-size: 16px; }
+        .status-selector { display: flex; gap: 10px; margin: 16px 0; }
         .status-btn { flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 10px; font-weight: 600; cursor: pointer; color: white; }
-        .status-btn.free { background: #34C759; }
-        .status-btn.busy { background: #FF3B30; }
-        .status-btn.unknown { background: #007AFF; }
+        .status-btn.free { background: #34C759; } .status-btn.busy { background: #FF3B30; } .status-btn.unknown { background: #007AFF; }
         .status-btn.selected { border-color: var(--text-color); transform: scale(1.05); }
         .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
         .modal-btn { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px; }
         .modal-btn-primary { background: #007AFF; color: white; }
         .modal-btn-secondary { background: var(--input-bg); color: var(--text-color); }
-        
+
+        /* Переключатель темы */
         .theme-toggle-container { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--card-bg); border-radius: 12px; margin: 0 16px 16px; }
-        .theme-label { font-size: 16px; font-weight: 500; }
         .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #34C759; }
         input:checked + .slider:before { transform: translateX(20px); }
-        
+
         #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; z-index: 3000; transition: transform 0.3s; }
         #toast.show { transform: translateX(-50%) translateY(0); }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--secondary-text); }
@@ -103,29 +160,36 @@
     </style>
 </head>
 <body>
+
+    <!-- Карта -->
     <div id="map"></div>
-    <button class="geo-btn" onclick="showMyLocation()"></button>
-    <div class="map-type-dropdown">
-        <button class="map-type-toggle" onclick="toggleMapTypeMenu()">🗺️</button>
-        <div class="map-type-menu" id="mapTypeMenu">
-            <div class="map-type-option active" data-type="map" onclick="setMapType('map')">🗺️ Схема</div>
-            <div class="map-type-option" data-type="satellite" onclick="setMapType('satellite')">🛰️ Спутник</div>
-            <div class="map-type-option" data-type="hybrid" onclick="setMapType('hybrid')"> Гибрид</div>
+
+    <!-- Управление картой (сверху) -->
+    <div class="floating-controls">
+        <button class="control-btn" onclick="showMyLocation()">📍</button>
+        <div style="position:relative;">
+            <button class="control-btn" onclick="toggleMapTypeMenu()">🗺️</button>
+            <div class="map-type-menu" id="mapTypeMenu">
+                <div class="map-type-option active" data-type="map" onclick="setMapType('map')">Схема</div>
+                <div class="map-type-option" data-type="satellite" onclick="setMapType('satellite')">Спутник</div>
+                <div class="map-type-option" data-type="hybrid" onclick="setMapType('hybrid')">Гибрид</div>
+            </div>
         </div>
     </div>
+
+    <!-- Кнопка добавления / редактирования -->
     <button id="addBtn">+</button>
-    
+
+    <!-- Карточка профиля (на карте) -->
     <div id="profileCard">
         <div id="notLoggedIn">
             <div style="text-align:center; padding:10px 0;">
                 <div style="font-size:40px; margin-bottom:10px;"></div>
-                <div style="font-size:14px; color:var(--secondary-text); margin-bottom:15px;">Войдите через Telegram<br>для доступа к функциям</div>
-                <div class="telegram-login-container">
-                    <button class="tg-login-btn" onclick="loginWithTelegram()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
-                        Войти через Telegram
-                    </button>
-                </div>
+                <div style="font-size:14px; color:var(--secondary-text); margin-bottom:15px;">Войдите для доступа<br>к функциям приложения</div>
+                <button class="tg-login-btn" onclick="loginWithTelegram()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
+                    Войти через Telegram
+                </button>
             </div>
         </div>
         <div id="loggedIn" style="display:none;">
@@ -140,30 +204,37 @@
         </div>
     </div>
 
+    <!-- Полноэкранная панель (Список) -->
     <div id="fullScreenPanel">
         <div class="panel-header">
-            <div class="panel-title" id="panelTitle">Карта</div>
-            <button class="close-panel-btn" onclick="closeFullScreenPanel()">Готово</button>
+            <div class="panel-title" id="panelTitle">Список</div>
+            <button class="close-panel-btn" onclick="closeFullScreenPanel()">Карта</button>
         </div>
         <div class="panel-content" id="panelContent"></div>
     </div>
 
+    <!-- Нижние иконки -->
     <div id="tabBar">
-        <div class="tabItem active" onclick="openFullScreen('map', this)"><div class="tab-icon">️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openFullScreen('history', this)"><div class="tab-icon"></div><div class="tab-label">История</div></div>
-        <div class="tabItem" onclick="openFullScreen('favorites', this)"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
-        <div class="tabItem" onclick="openFullScreen('profile', this)"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
+        <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">🗺️</div><div class="tab-label">Карта</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
+        <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
     </div>
 
+    <!-- Модальное окно -->
     <div id="modal" onclick="closeModal(event)">
         <div class="modal-sheet" id="modalContent" onclick="event.stopPropagation()">
             <div class="modal-handle"></div>
             <div id="modalBody"></div>
         </div>
     </div>
+
     <div id="toast"></div>
 
     <script>
+        // ============================
+        // КОНФИГУРАЦИЯ
+        // ============================
         const TELEGRAM_BOT_NAME = 'parknear_bot'; 
         const firebaseConfig = {
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
@@ -175,192 +246,205 @@
             appId: "1:1066552333578:web:e60e333cf877852eba16f3",
             measurementId: "G-1HNBMVYWCT"
         };
+        
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const database = firebase.database();
 
         let map, currentMapType = 'map', userLocation = null;
-        let drawing = false, points = [], tempPolygon = null;
-        let editingParkingId = null;
+        let drawing = false, editingParkingId = null;
+        let points = [], tempPolygon = null, startDrawPoint = null;
         let parkingsData = {}, myHomes = [], currentUser = null;
         let streetCounters = {};
 
-        // ТЕМА
+        // ============================
+        // ТЕМА И УТИЛИТЫ
+        // ============================
         function initTheme() {
-            const savedTheme = localStorage.getItem('appTheme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            return savedTheme;
+            const saved = localStorage.getItem('appTheme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+            return saved;
         }
         let currentTheme = initTheme();
+
         function toggleTheme() {
             currentTheme = currentTheme === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', currentTheme);
             localStorage.setItem('appTheme', currentTheme);
-            const toggleInput = document.getElementById('themeSwitch');
-            if(toggleInput) toggleInput.checked = currentTheme === 'dark';
+            // Обновляем карту под тему
+            if(map) map.setType(currentMapType); 
+            const toggle = document.getElementById('themeSwitch');
+            if(toggle) toggle.checked = currentTheme === 'dark';
         }
 
-        // УТИЛИТЫ
         function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2500);
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
         }
-        function formatDate(iso) { return new Date(iso).toLocaleDateString('ru-RU', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }); }
-        function getInitials(name) { return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2); }
+        function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
+        function getStatusColor(s) { return s==='free'?'#34C759':s==='busy'?'#FF3B30':'#007AFF'; }
+        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
 
-        // TELEGRAM AUTH (РАБОТАЮЩАЯ КНОПКА)
-        window.addEventListener('load', loadUserFromStorage);
+        // ============================
+        // АВТОРИЗАЦИЯ
+        // ============================
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('tgUser');
+            if(saved) { currentUser = JSON.parse(saved); updateProfileUI(); }
+        });
 
         function loginWithTelegram() {
-            // Открываем бота в Telegram
             window.open(`https://t.me/${TELEGRAM_BOT_NAME}?start=login`, '_blank');
-            
-            // Просим ввести данные (т.к. виджет не работает на GitHub Pages без настройки домена)
             setTimeout(() => {
                 const username = prompt('Введите ваш Telegram username (без @):');
-                if (!username) return;
+                if(!username) return;
                 const firstName = prompt('Ваше имя:') || 'Пользователь';
-                
-                const userData = {
-                    id: 'tg_' + Date.now(),
-                    username: username,
-                    firstName: firstName,
-                    lastName: '',
-                    photoUrl: '',
-                    authDate: new Date().toISOString()
-                };
-                
-                database.ref('users/' + userData.id).set(userData).then(() => {
+                const userData = { id: 'tg_'+Date.now(), username, firstName, lastName:'', authDate: new Date().toISOString() };
+                database.ref('users/'+userData.id).set(userData).then(() => {
                     currentUser = userData;
                     localStorage.setItem('tgUser', JSON.stringify(userData));
                     updateProfileUI();
-                    showToast(`Привет, ${firstName}! `);
-                }).catch(err => showToast('Ошибка: ' + err.message));
-            }, 1500);
-        }
-
-        function loadUserFromStorage() {
-            const saved = localStorage.getItem('tgUser');
-            if (saved) { currentUser = JSON.parse(saved); updateProfileUI(); }
+                    showToast(`Привет, ${firstName}! 👋`);
+                });
+            }, 1000);
         }
 
         function logout() {
             currentUser = null; localStorage.removeItem('tgUser');
-            updateProfileUI(); showToast('Вы вышли');
-            closeFullScreenPanel();
+            updateProfileUI(); showToast('Вы вышли'); closeFullScreenPanel();
         }
 
         function updateProfileUI() {
-            const notLoggedIn = document.getElementById('notLoggedIn');
-            const loggedIn = document.getElementById('loggedIn');
-            if (currentUser) {
-                notLoggedIn.style.display = 'none'; loggedIn.style.display = 'block';
+            const nl = document.getElementById('notLoggedIn');
+            const ll = document.getElementById('loggedIn');
+            if(currentUser) {
+                nl.style.display='none'; ll.style.display='block';
                 document.getElementById('profileAvatar').textContent = getInitials(currentUser.firstName);
-                document.getElementById('profileName').textContent = currentUser.firstName + ' ' + (currentUser.lastName || '');
-                document.getElementById('profileUsername').textContent = '@' + currentUser.username;
+                document.getElementById('profileName').textContent = currentUser.firstName;
+                document.getElementById('profileUsername').textContent = '@'+currentUser.username;
                 document.getElementById('profileCard').classList.add('visible');
             } else {
-                notLoggedIn.style.display = 'block'; loggedIn.style.display = 'none';
+                nl.style.display='block'; ll.style.display='none';
                 document.getElementById('profileCard').classList.add('visible');
             }
         }
 
-        // КАРТА
+        // ============================
+        // КАРТА И РИСОВАНИЕ
+        // ============================
         ymaps.ready(initMap);
+
         function initMap() {
-            map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 13, controls: ["zoomControl"] });
-            if (navigator.geolocation) {
+            map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 13, controls: [] });
+            
+            // Геолокация
+            if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     userLocation = [pos.coords.latitude, pos.coords.longitude];
                     map.setCenter(userLocation, 16);
-                    map.geoObjects.add(new ymaps.Placemark(userLocation, { hintContent: 'Вы здесь' }, { preset: 'islands#blueCircleIcon' }));
-                }, () => {});
+                    map.geoObjects.add(new ymaps.Placemark(userLocation, {hintContent:'Вы здесь'}, {preset:'islands#blueCircleIcon'}));
+                }, ()=>{});
             }
-            document.getElementById("addBtn").onclick = async function() {
-                if (!currentUser) { showToast('Сначала войдите через Telegram'); openFullScreen('profile', document.querySelectorAll('.tabItem')[3]); return; }
-                if (editingParkingId) { finishEditingShape(); return; }
-                if (drawing) { finishDrawingNew(); return; }
-                drawing = true; points = [];
-                this.classList.add('drawing'); this.textContent = '✕';
-                showToast('Поставьте 3+ точки для новой парковки');
-            };
+
+            // Обработка кликов по карте
             map.events.add("click", e => {
-                if (!drawing && !editingParkingId) return;
-                points.push(e.get("coords"));
-                if (tempPolygon) map.geoObjects.remove(tempPolygon);
-                tempPolygon = new ymaps.Polygon([points], {}, { fillColor: "#007AFF", fillOpacity: 0.3, strokeColor: "#007AFF", strokeWidth: 3 });
-                map.geoObjects.add(tempPolygon);
+                // Режим создания новой парковки
+                if(drawing) {
+                    points.push(e.get("coords"));
+                    drawTempPolygon();
+                    return;
+                }
+                
+                // Режим редактирования существующей фигуры
+                if(editingParkingId) {
+                    points.push(e.get("coords"));
+                    drawTempPolygon();
+                    return;
+                }
             });
+
+            // Кнопка "+"
+            document.getElementById("addBtn").onclick = async function() {
+                if(!currentUser) { showToast('Сначала войдите'); openList('profile'); return; }
+                
+                // Завершение редактирования
+                if(editingParkingId) { finishEditingShape(); return; }
+                
+                // Завершение создания
+                if(drawing) { finishDrawingNew(); return; }
+                
+                // Начало создания
+                drawing = true; points = []; startDrawPoint = null;
+                this.classList.add('drawing'); this.textContent = '✕';
+                showToast('Нажмите на карту для начала рисования');
+            };
+
             loadParkings(); loadHomes();
         }
 
-        function showMyLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    map.setCenter([pos.coords.latitude, pos.coords.longitude], 16);
-                    showToast(' Ваше местоположение');
-                }, () => showToast('❌ Геолокация недоступна'));
-            }
+        function drawTempPolygon() {
+            if(tempPolygon) map.geoObjects.remove(tempPolygon);
+            
+            // Если это прямоугольник и есть начальная точка
+            let coordsToDraw = points;
+            
+            tempPolygon = new ymaps.Polygon([coordsToDraw], {}, { 
+                fillColor: "#007AFF", fillOpacity: 0.3, strokeColor: "#007AFF", strokeWidth: 3 
+            });
+            map.geoObjects.add(tempPolygon);
         }
-
-        function toggleMapTypeMenu() { document.getElementById('mapTypeMenu').classList.toggle('show'); }
-        function setMapType(type) {
-            currentMapType = type;
-            document.querySelectorAll('.map-type-option').forEach(o => o.classList.toggle('active', o.dataset.type === type));
-            if (type === 'map') map.setType('yandex#map');
-            else if (type === 'satellite') map.setType('yandex#satellite');
-            else map.setType('yandex#hybrid');
-            document.getElementById('mapTypeMenu').classList.remove('show');
-        }
-        document.addEventListener('click', e => { if (!e.target.closest('.map-type-dropdown')) document.getElementById('mapTypeMenu').classList.remove('show'); });
 
         async function finishDrawingNew() {
             drawing = false; resetAddBtn();
-            if (points.length < 3) { showToast('Минимум 3 точки'); if(tempPolygon) map.geoObjects.remove(tempPolygon); return; }
-            const centerPoint = points.reduce((a,p)=>[a[0]+p[0], a[1]+p[1]], [0,0]).map(c=>c/points.length);
+            if(points.length < 3) { showToast('Минимум 3 точки'); if(tempPolygon) map.geoObjects.remove(tempPolygon); return; }
+            
+            const center = points.reduce((a,p)=>[a[0]+p[0], a[1]+p[1]], [0,0]).map(c=>c/points.length);
             let autoName = "Новая парковка";
             try {
-                const res = await ymaps.geocode(centerPoint, { results: 1 });
+                const res = await ymaps.geocode(center, {results:1});
                 const addr = res.geoObjects.get(0).getAddressLine().split(',');
-                const street = addr[1]?.trim() || 'Улица';
-                const house = addr[2]?.trim() || '';
-                const key = street.replace(/\s/g,'').toLowerCase();
-                if(!streetCounters[key]) streetCounters[key] = 0;
+                const st = addr[1]?.trim()||'Улица'; const hs = addr[2]?.trim()||'';
+                const key = st.replace(/\s/g,'').toLowerCase();
+                if(!streetCounters[key]) streetCounters[key]=0;
                 streetCounters[key]++;
-                const letter = String.fromCharCode(97 + (streetCounters[key]-1));
-                autoName = `${letter}${streetCounters[key]} ${street} ${house}`.trim();
-            } catch(e) {}
+                autoName = `${String.fromCharCode(97+streetCounters[key]-1)}${streetCounters[key]} ${st} ${hs}`.trim();
+            } catch(e){}
+            
             const name = prompt("Название:", autoName) || autoName;
             const places = prompt("Количество мест:") || "0";
-            const parking = { name, places: Number(places), coordinates: points, owner: currentUser.id, ownerName: currentUser.firstName, ownerUsername: currentUser.username, created: new Date().toISOString(), center: centerPoint, status: 'unknown' };
+            
+            const parking = { name, places:Number(places), coordinates:points, owner:currentUser.id, ownerName:currentUser.firstName, ownerUsername:currentUser.username, created:new Date().toISOString(), center, status:'unknown' };
             const id = database.ref("parkings").push().key;
-            database.ref("parkings/" + id).set(parking).then(() => {
+            database.ref("parkings/"+id).set(parking).then(() => {
                 showToast('Сохранено!'); if(tempPolygon) map.geoObjects.remove(tempPolygon); loadParkings();
             });
         }
 
+        // Редактирование фигуры
         function startEditingShape(id) {
             editingParkingId = id;
             const p = parkingsData[id];
-            points = [...p.coordinates];
-            loadParkings();
-            if (tempPolygon) map.geoObjects.remove(tempPolygon);
-            tempPolygon = new ymaps.Polygon([points], {}, { fillColor: "#007AFF", fillOpacity: 0.3, strokeColor: "#007AFF", strokeWidth: 3 });
-            map.geoObjects.add(tempPolygon);
+            points = [...p.coordinates]; // Копируем текущие точки
+            
+            loadParkings(); // Убираем старый полигон
+            if(tempPolygon) map.geoObjects.remove(tempPolygon);
+            
+            // Рисуем временный
+            drawTempPolygon();
+            
             const btn = document.getElementById("addBtn");
-            btn.classList.add('drawing'); btn.textContent = '';
+            btn.classList.add('drawing'); btn.textContent = '💾';
             closeModal();
-            showToast('Кликайте на карте, чтобы изменить границы. Нажмите кнопку для сохранения.');
+            showToast('Кликайте на карте, чтобы перерисовать фигуру. Нажмите 💾 для сохранения.');
         }
 
-        async function finishEditingShape() {
-            if (!editingParkingId) return;
-            if (points.length < 3) { showToast('Минимум 3 точки'); cancelEditing(); return; }
-            const centerPoint = points.reduce((a,p)=>[a[0]+p[0], a[1]+p[1]], [0,0]).map(c=>c/points.length);
-            database.ref("parkings/" + editingParkingId).update({ coordinates: points, center: centerPoint }).then(() => {
-                showToast('Границы обновлены!'); cancelEditing();
+        function finishEditingShape() {
+            if(!editingParkingId) return;
+            if(points.length < 3) { showToast('Минимум 3 точки'); cancelEditing(); return; }
+            
+            const center = points.reduce((a,p)=>[a[0]+p[0], a[1]+p[1]], [0,0]).map(c=>c/points.length);
+            database.ref("parkings/"+editingParkingId).update({ coordinates:points, center }).then(() => {
+                showToast('Фигура обновлена!'); cancelEditing();
             });
         }
 
@@ -370,11 +454,24 @@
             loadParkings(); resetAddBtn();
         }
 
-        function resetAddBtn() { const btn = document.getElementById("addBtn"); btn.classList.remove('drawing'); btn.textContent = '+'; }
+        function resetAddBtn() { const b=document.getElementById("addBtn"); b.classList.remove('drawing'); b.textContent='+'; }
 
-        function getStatusColor(s) { return s==='free'?'#34C759':s==='busy'?'#FF3B30':'#007AFF'; }
-        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?' Занято':'❓ Неизвестно'; }
+        // Типы карты
+        function toggleMapTypeMenu() { document.getElementById('mapTypeMenu').classList.toggle('show'); }
+        function setMapType(type) {
+            currentMapType = type;
+            document.querySelectorAll('.map-type-option').forEach(o => o.classList.toggle('active', o.dataset.type===type));
+            if(type==='map') map.setType('yandex#map');
+            else if(type==='satellite') map.setType('yandex#satellite');
+            else map.setType('yandex#hybrid');
+            document.getElementById('mapTypeMenu').classList.remove('show');
+        }
+        document.addEventListener('click', e => { if(!e.target.closest('.floating-controls')) document.getElementById('mapTypeMenu').classList.remove('show'); });
+        function showMyLocation() {
+            if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { map.setCenter([p.coords.latitude, p.coords.longitude], 16); showToast('📍 Ваше место'); }, ()=>showToast('❌ Нет GPS'));
+        }
 
+        // Загрузка парковок
         function loadParkings() {
             database.ref("parkings").on("value", snap => {
                 const data = snap.val();
@@ -383,7 +480,7 @@
                     map.geoObjects.removeAll();
                     Object.keys(data).forEach(id => {
                         const p = data[id];
-                        const poly = new ymaps.Polygon([p.coordinates], { hintContent: p.name, balloonContent: `<b>${p.name}</b><br>${getStatusText(p.status)}<br>Мест: ${p.places}` }, { fillColor: getStatusColor(p.status), fillOpacity: 0.4, strokeColor: getStatusColor(p.status), strokeWidth: 3 });
+                        const poly = new ymaps.Polygon([p.coordinates], {hintContent:p.name, balloonContent:`<b>${p.name}</b><br>${getStatusText(p.status)}<br>Мест: ${p.places}`}, {fillColor:getStatusColor(p.status), fillOpacity:0.4, strokeColor:getStatusColor(p.status), strokeWidth:3});
                         poly.events.add('click', () => showParkingModal(id, p));
                         map.geoObjects.add(poly);
                     });
@@ -391,120 +488,137 @@
             });
         }
 
-        function updateParkingField(id, field, value) {
-            database.ref("parkings/" + id + "/" + field).set(value).then(() => { showToast('Обновлено'); loadParkings(); closeModal(); });
-        }
-
+        // ============================
+        // МОДАЛЬНОЕ ОКНО
+        // ============================
         function showParkingModal(id, p) {
-            if (editingParkingId && editingParkingId !== id) { showToast('Сначала завершите редактирование границ'); return; }
+            if(editingParkingId && editingParkingId !== id) { showToast('Завершите редактирование'); return; }
             document.getElementById('modalBody').innerHTML = `
                 <div class="modal-title">️ ${p.name}</div>
                 <div class="modal-input-group">
                     <label class="modal-label">Количество мест</label>
                     <input type="number" class="modal-input" id="editPlaces" value="${p.places}">
                 </div>
-                <div class="modal-label">Статус занятости</div>
+                <div class="modal-label">Статус</div>
                 <div class="status-selector">
-                    <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateParkingStatus('${id}','free')">✅ Свободно</button>
-                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateParkingStatus('${id}','busy')"> Занято</button>
-                    <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateParkingStatus('${id}','unknown')">❓ Неизв.</button>
+                    <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
+                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')">❌ Занято</button>
+                    <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">️ Изменить границы</button>
-                    <button class="modal-btn modal-btn-primary" onclick="savePlaces('${id}')">💾 Сохранить места</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">️ Изменить фигуру</button>
+                    <button class="modal-btn modal-btn-primary" onclick="updateField('${id}','places', Number(document.getElementById('editPlaces').value))">💾 Сохранить</button>
                 </div>
                 <div class="modal-actions" style="margin-top:10px;">
-                     <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
-                     <button class="modal-btn modal-btn-primary" onclick="markAsHome('${JSON.stringify(p.center)}', '${p.name}')"> Мой дом</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>
+                    <button class="modal-btn modal-btn-primary" onclick="markHome('${JSON.stringify(p.center)}', '${p.name}')">🏠 Мой дом</button>
                 </div>`;
             document.getElementById('modal').classList.add('active');
         }
 
-        function savePlaces(id) { const val = document.getElementById('editPlaces').value; updateParkingField(id, 'places', Number(val)); }
-        function updateParkingStatus(id, status) { updateParkingField(id, 'status', status); }
+        function updateField(id, field, val) {
+            database.ref("parkings/"+id+"/"+field).set(val).then(() => { showToast('Обновлено'); loadParkings(); closeModal(); });
+        }
 
-        function markAsHome(coordsStr, name) {
+        function markHome(coordsStr, name) {
             if(!currentUser) return;
             try {
                 const coords = JSON.parse(coordsStr);
-                const home = { id: Date.now(), coords: coords, address: name, created: new Date().toISOString() };
-                database.ref(`homes/${currentUser.id}/${home.id}`).set(home).then(() => { showToast(' Добавлено в избранное'); loadHomes(); closeModal(); });
-            } catch(e) { showToast('Ошибка сохранения дома'); }
+                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast('🏠 Добавлено'); loadHomes(); closeModal(); });
+            } catch(e){}
         }
 
         function closeModal(e) { 
-            if(!e || e.target.id==='modal') {
+            if(!e || e.target.id==='modal') { 
                 document.getElementById('modal').classList.remove('active'); 
-                if(editingParkingId) cancelEditing();
-            }
+                if(editingParkingId) cancelEditing(); 
+            } 
         }
 
+        // ============================
+        // СПИСКИ И ПРОФИЛЬ
+        // ============================
         function loadHomes() {
             if(!currentUser) return;
             database.ref(`homes/${currentUser.id}`).on("value", snap => {
                 const d = snap.val(); myHomes = d ? Object.values(d) : [];
-                if(document.querySelector('.tabItem:nth-child(3)').classList.contains('active')) renderFavorites(document.getElementById('panelContent'));
+                if(document.querySelector('.tabItem:nth-child(2)').classList.contains('active') || document.querySelector('.tabItem:nth-child(3)').classList.contains('active')) renderCurrentList();
             });
         }
 
-        function removeHome(id) { if(!currentUser) return; database.ref(`homes/${currentUser.id}/${id}`).remove().then(() => { showToast('Удалено'); loadHomes(); }); }
-        function countNear(coords) { let c=0; Object.values(parkingsData).forEach(p => { if(p.center && Math.sqrt(Math.pow(p.center[0]-coords[0],2)+Math.pow(p.center[1]-coords[1],2)) < 0.005) c++; }); return c; }
+        function countNear(coords) { 
+            let c=0; Object.values(parkingsData).forEach(p => { if(p.center && Math.sqrt(Math.pow(p.center[0]-coords[0],2)+Math.pow(p.center[1]-coords[1],2))<0.005) c++; }); return c; 
+        }
 
-        // ПОЛНОЭКРАННЫЕ ПАНЕЛИ
-        function openFullScreen(tab, el) {
+        // Навигация
+        function switchToMap() {
             document.querySelectorAll('.tabItem').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
+            document.querySelector('.tabItem:first-child').classList.add('active');
+            document.getElementById('fullScreenPanel').classList.remove('active');
+        }
+
+        function openList(type) {
+            document.querySelectorAll('.tabItem').forEach(i => i.classList.remove('active'));
+            // Находим нужную вкладку по типу
+            const tabs = ['map', 'history', 'favorites', 'profile'];
+            const idx = tabs.indexOf(type);
+            if(idx > -1) document.querySelectorAll('.tabItem')[idx].classList.add('active');
+            
             const panel = document.getElementById('fullScreenPanel');
             const title = document.getElementById('panelTitle');
             const content = document.getElementById('panelContent');
-            if (tab === 'map') { panel.classList.remove('active'); return; }
+            
             panel.classList.add('active');
-            if(tab==='history') { title.textContent = 'История'; renderHistory(content); }
-            if(tab==='favorites') { title.textContent = 'Избранное'; renderFavorites(content); }
-            if(tab==='profile') { title.textContent = 'Профиль'; renderProfile(content); }
+            
+            if(type==='history') { title.textContent='История'; renderHistory(content); }
+            if(type==='favorites') { title.textContent='Избранное'; renderFavorites(content); }
+            if(type==='profile') { title.textContent='Профиль'; renderProfile(content); }
         }
 
-        function closeFullScreenPanel() {
-            document.getElementById('fullScreenPanel').classList.remove('active');
-            document.querySelectorAll('.tabItem').forEach(i => i.classList.remove('active'));
-            document.querySelector('.tabItem:first-child').classList.add('active');
+        function closeFullScreenPanel() { switchToMap(); }
+        function renderCurrentList() {
+            // Перерисовка если панель открыта
+            const panel = document.getElementById('fullScreenPanel');
+            if(panel.classList.contains('active')) {
+                const title = document.getElementById('panelTitle').textContent;
+                if(title==='История') renderHistory(document.getElementById('panelContent'));
+                if(title==='Избранное') renderFavorites(document.getElementById('panelContent'));
+            }
         }
 
-        function renderHistory(container) {
-            if(!currentUser) { container.innerHTML='<div class="empty-state">🔒 Войдите через Telegram</div>'; return; }
+        function renderHistory(c) {
+            if(!currentUser) { c.innerHTML='<div class="empty-state">🔒 Войдите</div>'; return; }
             const list = Object.keys(parkingsData).filter(id=>parkingsData[id].owner===currentUser.id).map(id=>({id,...parkingsData[id]})).sort((a,b)=>new Date(b.created)-new Date(a.created));
-            if(!list.length) { container.innerHTML='<div class="empty-state">📋 Нет парковок</div>'; return; }
-            container.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==='free'?'status-free':p.status==='busy'?'status-busy':'status-unknown'}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
+            if(!list.length) { c.innerHTML='<div class="empty-state">📋 Пусто</div>'; return; }
+            c.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==="free"?"status-free":p.status==="busy"?"status-busy":"status-unknown"}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
         }
 
-        function renderFavorites(container) {
-            if(!myHomes.length) { container.innerHTML='<div class="empty-state"> Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
-            container.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt = countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;"></div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="removeHome(${h.id})">★</span></div>`; }).join('') + '</div>';
+        function renderFavorites(c) {
+            if(!myHomes.length) { c.innerHTML='<div class="empty-state">🏠 Нет домов</div>'; return; }
+            c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;">🏠</div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
         }
 
-        function renderProfile(container) {
-            if(!currentUser) { container.innerHTML='<div class="empty-state"> Войдите через Telegram</div>'; return; }
+        function renderProfile(c) {
+            if(!currentUser) { c.innerHTML='<div class="empty-state">👤 Войдите</div>'; return; }
             const myP = Object.values(parkingsData).filter(p=>p.owner===currentUser.id);
-            const free = myP.filter(p=>p.status==='free').length;
-            const busy = myP.filter(p=>p.status==='busy').length;
-            const isDark = currentTheme === 'dark';
-            container.innerHTML = `
+            const free=myP.filter(p=>p.status==='free').length; const busy=myP.filter(p=>p.status==='busy').length;
+            c.innerHTML = `
                 <div style="background:var(--card-bg);border-radius:12px;margin:0 16px 16px;padding:20px;text-align:center;">
                     <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px;">${getInitials(currentUser.firstName)}</div>
-                    <div style="font-size:18px;font-weight:700;">${currentUser.firstName} ${currentUser.lastName||''}</div>
+                    <div style="font-size:18px;font-weight:700;">${currentUser.firstName}</div>
                     <div style="font-size:14px;color:var(--secondary-text);">@${currentUser.username}</div>
                 </div>
                 <div class="theme-toggle-container">
                     <span class="theme-label">🌙 Темная тема</span>
-                    <label class="switch"><input type="checkbox" id="themeSwitch" ${isDark ? 'checked' : ''} onchange="toggleTheme()"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="themeSwitch" ${currentTheme==='dark'?'checked':''} onchange="toggleTheme()"><span class="slider"></span></label>
                 </div>
-                <div class="section-header" style="padding:0 20px 10px; font-size:13px; font-weight:600; color:var(--secondary-text); text-transform:uppercase;">Статистика</div>
+                <div class="section-header" style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статистика</div>
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-number">${myP.length}</div><div class="stat-label">Парковок</div></div>
                     <div class="stat-card"><div class="stat-number">${myP.reduce((s,p)=>s+(p.places||0),0)}</div><div class="stat-label">Мест</div></div>
                     <div class="stat-card"><div class="stat-number">${myHomes.length}</div><div class="stat-label">Домов</div></div>
                 </div>
-                <div class="section-header" style="padding:0 20px 10px; font-size:13px; font-weight:600; color:var(--secondary-text); text-transform:uppercase;">Статусы</div>
+                <div class="section-header" style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статусы</div>
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-number" style="color:#34C759">${free}</div><div class="stat-label">Свободно</div></div>
                     <div class="stat-card"><div class="stat-number" style="color:#FF3B30">${busy}</div><div class="stat-label">Занято</div></div>
