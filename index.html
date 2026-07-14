@@ -33,6 +33,24 @@
         
         #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; background: #E5E5EA; }
         
+        /* Переключатель слоёв карты */
+        .map-type-switcher {
+            position: fixed; top: 70px; right: 12px; z-index: 900;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            border-radius: 12px; overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column;
+        }
+        .map-type-btn {
+            padding: 10px 14px; border: none; background: transparent;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            color: #333; border-bottom: 0.5px solid #E5E5EA;
+            transition: background 0.2s;
+        }
+        .map-type-btn:last-child { border-bottom: none; }
+        .map-type-btn:active { background: #F2F2F7; }
+        .map-type-btn.active { background: #007AFF; color: #fff; }
+
         #geoBtn {
             position: fixed; bottom: 170px; right: 20px; z-index: 900;
             width: 48px; height: 48px; border-radius: 50%;
@@ -53,6 +71,7 @@
             transition: transform 0.2s, background 0.2s;
         }
         #addBtn:active { transform: scale(0.9); background: #0051D5; }
+        #addBtn.drawing { background: #FF9500; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3); }
         
         .tabBar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
@@ -125,6 +144,11 @@
             border: 1px solid #007AFF; font-size: 15px; font-weight: 600;
             cursor: pointer; color: #007AFF; background: transparent; margin-top: 8px;
         }
+        .btn-warning {
+            width: 100%; padding: 14px; border-radius: 12px;
+            border: none; font-size: 15px; font-weight: 600;
+            cursor: pointer; color: #fff; background: #FF9500; margin-top: 8px;
+        }
         
         .list-container { display: flex; flex-direction: column; gap: 12px; }
         .list-item {
@@ -159,21 +183,79 @@
             background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
             border-radius: 20px; font-size: 14px; z-index: 800;
             animation: fadeInOut 3s ease-in-out;
+            white-space: nowrap;
         }
         @keyframes fadeInOut {
             0%, 100% { opacity: 0; }
             20%, 80% { opacity: 1; }
         }
         
-        .rotation-controls {
-            display: flex; gap: 10px; margin-top: 12px;
+        /* Стили для окна занятости */
+        .occupancy-header {
+            text-align: center; padding: 10px 0 20px;
         }
-        .rotation-controls button {
-            flex: 1; padding: 12px; border-radius: 10px;
+        .occupancy-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .occupancy-subtitle { font-size: 14px; color: #8E8E93; }
+        
+        .occupancy-stats {
+            display: flex; gap: 12px; margin-bottom: 20px;
+        }
+        .stat-card {
+            flex: 1; background: #fff; border-radius: 12px;
+            padding: 16px; text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+        .stat-label { font-size: 12px; color: #8E8E93; font-weight: 500; }
+        .stat-total .stat-value { color: #007AFF; }
+        .stat-free .stat-value { color: #34C759; }
+        .stat-occupied .stat-value { color: #FF3B30; }
+        
+        .occupancy-control {
+            background: #fff; border-radius: 12px; padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .occupancy-control label {
+            display: block; font-size: 14px; font-weight: 600;
+            margin-bottom: 12px; text-align: center;
+        }
+        .counter-row {
+            display: flex; align-items: center; justify-content: center; gap: 20px;
+        }
+        .counter-btn {
+            width: 48px; height: 48px; border-radius: 50%;
             border: 1px solid #C7C7CC; background: #fff;
-            font-size: 14px; font-weight: 600; cursor: pointer;
+            font-size: 24px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
         }
-        .rotation-controls button:active { background: #F2F2F7; }
+        .counter-btn:active { background: #F2F2F7; }
+        .counter-btn.minus { color: #FF3B30; border-color: #FF3B30; }
+        .counter-btn.plus { color: #34C759; border-color: #34C759; }
+        .counter-value {
+            font-size: 32px; font-weight: 700; min-width: 60px; text-align: center;
+        }
+        
+        .progress-bar {
+            height: 8px; background: #E5E5EA; border-radius: 4px;
+            margin: 16px 0; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 4px;
+            transition: width 0.3s, background 0.3s;
+        }
+        
+        .drawing-controls {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            z-index: 900; display: flex; gap: 10px;
+        }
+        .drawing-controls button {
+            padding: 12px 20px; border-radius: 20px; border: none;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn-finish { background: #34C759; color: #fff; }
+        .btn-cancel { background: #FF3B30; color: #fff; }
     </style>
 </head>
 <body>
@@ -183,6 +265,13 @@
     </div>
     
     <div id="map"></div>
+    
+    <!-- Переключатель слоёв карты -->
+    <div class="map-type-switcher">
+        <button class="map-type-btn active" data-type="yandex#map" onclick="switchMapType(this)">🗺️ Схема</button>
+        <button class="map-type-btn" data-type="yandex#satellite" onclick="switchMapType(this)">🛰️ Спутник</button>
+        <button class="map-type-btn" data-type="yandex#hybrid" onclick="switchMapType(this)">🌍 Гибрид</button>
+    </div>
     
     <button id="geoBtn" title="Моё местоположение">
         <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
@@ -218,9 +307,11 @@
         const database = firebase.database();
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
-        let parkingPolygon = null, parkingCenter = null, parkingRotation = 0;
-        const PARKING_LENGTH = 5; // метров
-        const PARKING_WIDTH = 1.9; // метров
+        let drawingPolygon = null, isDrawingMode = false;
+        
+        // Ограничение размера парковочной зоны (в метрах)
+        const MAX_ZONE_WIDTH = 100;  // максимальная ширина
+        const MAX_ZONE_LENGTH = 100; // максимальная длина
 
         function initAuth() {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -247,68 +338,148 @@
             }
         }
 
-        // Расчет координат углов прямоугольника с учетом поворота
-        function calculateParkingCorners(centerLat, centerLng, length, width, rotationDeg) {
-            const rotationRad = rotationDeg * Math.PI / 180;
-            
-            // Метры в градусы (приблизительно)
-            const metersPerDegLat = 111320;
-            const metersPerDegLng = 111320 * Math.cos(centerLat * Math.PI / 180);
-            
-            const halfLength = length / 2;
-            const halfWidth = width / 2;
-            
-            // Углы прямоугольника до поворота (относительно центра)
-            const corners = [
-                { x: -halfWidth, y: -halfLength }, // верхний левый
-                { x: halfWidth, y: -halfLength },  // верхний правый
-                { x: halfWidth, y: halfLength },   // нижний правый
-                { x: -halfWidth, y: halfLength }   // нижний левый
-            ];
-            
-            // Поворот и преобразование в координаты
-            return corners.map(corner => {
-                const rotatedX = corner.x * Math.cos(rotationRad) - corner.y * Math.sin(rotationRad);
-                const rotatedY = corner.x * Math.sin(rotationRad) + corner.y * Math.cos(rotationRad);
-                
-                return [
-                    centerLat + rotatedY / metersPerDegLat,
-                    centerLng + rotatedX / metersPerDegLng
-                ];
-            });
+        // Вычисление расстояния между двумя точками в метрах (Haversine)
+        function getDistanceInMeters(lat1, lng1, lat2, lng2) {
+            const R = 6371000;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         }
 
-        function drawParkingOnMap(centerLat, centerLng, rotation = 0) {
-            // Удаляем старую парковку, если есть
-            if (parkingPolygon) {
-                map.geoObjects.remove(parkingPolygon);
+        // Проверка размера полигона
+        function checkPolygonSize(coordinates) {
+            if (!coordinates || coordinates.length < 3) return { valid: false, error: 'Минимум 3 точки' };
+            
+            let maxDist = 0;
+            for (let i = 0; i < coordinates.length; i++) {
+                for (let j = i + 1; j < coordinates.length; j++) {
+                    const dist = getDistanceInMeters(
+                        coordinates[i][0], coordinates[i][1],
+                        coordinates[j][0], coordinates[j][1]
+                    );
+                    if (dist > maxDist) maxDist = dist;
+                }
             }
             
-            // Рассчитываем углы
-            const corners = calculateParkingCorners(centerLat, centerLng, PARKING_LENGTH, PARKING_WIDTH, rotation);
+            // Вычисляем примерные ширину и длину через bounding box
+            const lats = coordinates.map(c => c[0]);
+            const lngs = coordinates.map(c => c[1]);
+            const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+            const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
             
-            // Создаем полигон парковочного места
-            parkingPolygon = new ymaps.Polygon([corners], {
-                hintContent: `Парковка ${PARKING_LENGTH}м × ${PARKING_WIDTH}м`
-            }, {
-                fillColor: '#007AFF33',
+            const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng);
+            const lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
+            
+            if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) {
+                return { 
+                    valid: false, 
+                    error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` 
+                };
+            }
+            
+            return { valid: true, width: widthM, length: lengthM };
+        }
+
+        // Переключение типа карты
+        function switchMapType(btn) {
+            if (!map) return;
+            const type = btn.dataset.type;
+            map.setType(type);
+            document.querySelectorAll('.map-type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // Начало режима рисования
+        function startDrawingMode() {
+            if (!map || !currentUser) return;
+            isDrawingMode = true;
+            
+            document.getElementById('addBtn').classList.add('drawing');
+            document.getElementById('addBtn').textContent = '✕';
+            
+            // Создаём пустой полигон
+            drawingPolygon = new ymaps.Polygon([[]], {}, {
+                editorDrawingCursor: "crosshair",
+                fillColor: '#007AFF22',
                 strokeColor: '#007AFF',
-                strokeWidth: 2,
-                draggable: true
+                strokeWidth: 3,
+                draggable: false
             });
             
-            // Добавляем возможность перетаскивания
-            parkingPolygon.events.add('drag', function(e) {
-                const coords = e.get('target').geometry.getCoordinates();
-                // Пересчитываем центр как среднее всех углов
-                const newCenterLat = coords.reduce((sum, c) => sum + c[0], 0) / 4;
-                const newCenterLng = coords.reduce((sum, c) => sum + c[1], 0) / 4;
-                parkingCenter = [newCenterLat, newCenterLng];
-            });
+            map.geoObjects.add(drawingPolygon);
+            drawingPolygon.editor.startDrawing();
             
-            map.geoObjects.add(parkingPolygon);
-            parkingCenter = [centerLat, centerLng];
-            parkingRotation = rotation;
+            // Показываем подсказку
+            showMapHint('Нажимайте на карту для рисования зоны');
+            
+            // Добавляем кнопки управления рисованием
+            const controls = document.createElement('div');
+            controls.className = 'drawing-controls';
+            controls.id = 'drawingControls';
+            controls.innerHTML = `
+                <button class="btn-finish" onclick="finishDrawing()">✓ Завершить</button>
+                <button class="btn-cancel" onclick="cancelDrawing()">✕ Отмена</button>
+            `;
+            document.body.appendChild(controls);
+            
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+        }
+
+        // Завершение рисования
+        function finishDrawing() {
+            if (!drawingPolygon) return;
+            
+            drawingPolygon.editor.stopDrawing();
+            const coordinates = drawingPolygon.geometry.getCoordinates()[0];
+            
+            // Проверяем размер
+            const sizeCheck = checkPolygonSize(coordinates);
+            if (!sizeCheck.valid) {
+                alert(sizeCheck.error);
+                cancelDrawing();
+                return;
+            }
+            
+            // Убираем кнопки рисования
+            const controls = document.getElementById('drawingControls');
+            if (controls) controls.remove();
+            
+            document.getElementById('addBtn').classList.remove('drawing');
+            document.getElementById('addBtn').textContent = '+';
+            
+            isDrawingMode = false;
+            
+            // Открываем панель с формой
+            openAddPanelWithPolygon(coordinates, sizeCheck);
+        }
+
+        // Отмена рисования
+        function cancelDrawing() {
+            if (drawingPolygon) {
+                map.geoObjects.remove(drawingPolygon);
+                drawingPolygon = null;
+            }
+            isDrawingMode = false;
+            
+            document.getElementById('addBtn').classList.remove('drawing');
+            document.getElementById('addBtn').textContent = '+';
+            
+            const controls = document.getElementById('drawingControls');
+            if (controls) controls.remove();
+        }
+
+        function showMapHint(text) {
+            const hint = document.createElement('div');
+            hint.className = 'map-hint';
+            hint.textContent = text;
+            document.body.appendChild(hint);
+            setTimeout(() => hint.remove(), 3000);
         }
 
         function getUserLocation() {
@@ -364,32 +535,25 @@
         function initMap() {
             map = new ymaps.Map("map", {
                 center: [55.7558, 37.6173],
-                zoom: 18, // Увеличенный зум для лучшего отображения парковки
+                zoom: 14,
                 controls: ['zoomControl'],
                 type: 'yandex#map'
             });
             
+            // Обработчик кнопки добавления
             document.getElementById('addBtn').onclick = function() {
                 if (!currentUser) {
                     showPanel('profile');
                     return;
                 }
-                const center = map.getCenter();
-                
-                // Рисуем парковочное место на карте
-                drawParkingOnMap(center[0], center[1], 0);
-                
-                // Показываем подсказку
-                const hint = document.createElement('div');
-                hint.className = 'map-hint';
-                hint.textContent = 'Перетащите парковку на нужное место';
-                document.body.appendChild(hint);
-                setTimeout(() => hint.remove(), 3000);
-                
-                // Открываем панель добавления
-                openAddPanel(center);
+                if (isDrawingMode) {
+                    cancelDrawing();
+                } else {
+                    startDrawingMode();
+                }
             };
 
+            // Обработчик геолокации
             document.getElementById('geoBtn').onclick = function() {
                 if (!map) return;
                 
@@ -454,7 +618,7 @@
                         });
                         myLocationPlacemark.properties.set('caption', 'Вы здесь');
                         map.geoObjects.add(myLocationPlacemark);
-                        map.setCenter([coords.lat, coords.lng], 18, { duration: 500 });
+                        map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
                     })
                     .catch(function(err) {
                         console.log('Автогеолокация не удалась:', err.message);
@@ -470,24 +634,23 @@
             });
         }
 
-        function openAddPanel(coords) {
+        // Панель добавления парковки с нарисованным полигоном
+        function openAddPanelWithPolygon(coordinates, sizeCheck) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 'Новая парковка';
+            
+            const area = Math.round(sizeCheck.width * sizeCheck.length);
+            
             document.getElementById('panelContent').innerHTML = `
                 <div class="form-group">
-                    <label>Размер парковки</label>
-                    <input type="text" class="input-field" value="${PARKING_LENGTH}м × ${PARKING_WIDTH}м" readonly style="background:#F2F2F7; color:#8E8E93;">
+                    <label>Размер зоны</label>
+                    <input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:#F2F2F7; color:#8E8E93;">
                 </div>
                 <div class="form-group">
-                    <label>Поворот (градусы)</label>
-                    <input type="number" id="parkRotation" class="input-field" value="${parkingRotation}" min="0" max="360" step="5">
+                    <label>Количество парковочных мест *</label>
+                    <input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500">
                 </div>
-                <div class="rotation-controls">
-                    <button onclick="rotateParking(-15)">↺ -15°</button>
-                    <button onclick="rotateParking(15)">↻ +15°</button>
-                    <button onclick="rotateParking(90)">⟳ 90°</button>
-                </div>
-                <div class="form-group" style="margin-top:16px;">
+                <div class="form-group">
                     <label>Название *</label>
                     <input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ">
                 </div>
@@ -495,52 +658,26 @@
                     <label>Описание</label>
                     <textarea id="parkDesc" class="input-field" rows="3" placeholder="Бесплатно, есть шлагбаум..."></textarea>
                 </div>
-                <button class="btn-primary" id="saveParkBtn" onclick="submitParking()">Сохранить парковку</button>
-                <button class="btn-secondary" onclick="removeParkingFromMap()">Удалить с карты</button>
+                <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
+                <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
             `;
         }
 
-        function rotateParking(degrees) {
-            parkingRotation = (parkingRotation + degrees) % 360;
-            if (parkingRotation < 0) parkingRotation += 360;
-            
-            // Обновляем поле ввода
-            const rotationInput = document.getElementById('parkRotation');
-            if (rotationInput) {
-                rotationInput.value = parkingRotation;
-            }
-            
-            // Перерисовываем парковку
-            if (parkingCenter) {
-                drawParkingOnMap(parkingCenter[0], parkingCenter[1], parkingRotation);
-            }
-            
-            // Вибрация
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
-        }
-
-        function removeParkingFromMap() {
-            if (parkingPolygon) {
-                map.geoObjects.remove(parkingPolygon);
-                parkingPolygon = null;
-            }
-            closePanel();
-        }
-
-        function submitParking() {
+        function submitParkingWithPolygon() {
             const name = document.getElementById('parkName').value.trim();
             const desc = document.getElementById('parkDesc').value.trim();
-            const rotation = parseInt(document.getElementById('parkRotation').value) || 0;
+            const totalSpots = parseInt(document.getElementById('parkSpots').value);
             
             if (!name) {
                 alert('Пожалуйста, введите название парковки');
                 return;
             }
-            
-            if (!parkingCenter) {
-                alert('Парковочное место не размещено на карте');
+            if (!totalSpots || totalSpots < 1) {
+                alert('Пожалуйста, укажите количество парковочных мест');
+                return;
+            }
+            if (!drawingPolygon) {
+                alert('Парковочная зона не нарисована');
                 return;
             }
 
@@ -548,13 +685,19 @@
             btn.textContent = 'Сохранение...';
             btn.disabled = true;
 
+            const coordinates = drawingPolygon.geometry.getCoordinates()[0];
+            
+            // Вычисляем центр полигона
+            const centerLat = coordinates.reduce((sum, c) => sum + c[0], 0) / coordinates.length;
+            const centerLng = coordinates.reduce((sum, c) => sum + c[1], 0) / coordinates.length;
+
             const newRef = database.ref('parkings').push();
             const parkingData = {
-                lat: parseFloat(parkingCenter[0]),
-                lng: parseFloat(parkingCenter[1]),
-                rotation: rotation,
-                length: PARKING_LENGTH,
-                width: PARKING_WIDTH,
+                lat: parseFloat(centerLat),
+                lng: parseFloat(centerLng),
+                coordinates: coordinates, // сохраняем все точки полигона
+                totalSpots: totalSpots,
+                occupiedSpots: 0, // изначально все свободны
                 name: name,
                 desc: desc,
                 authorId: currentUser.id,
@@ -566,18 +709,18 @@
                 database.ref(`users/${currentUser.id}/history`).push({
                     parkingId: newRef.key,
                     name: name, 
-                    lat: parseFloat(parkingCenter[0]), 
-                    lng: parseFloat(parkingCenter[1]),
-                    rotation: rotation,
+                    lat: parseFloat(centerLat), 
+                    lng: parseFloat(centerLng),
+                    totalSpots: totalSpots,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
                 
                 addMarkerToMap(newRef.key, parkingData);
                 
-                // Удаляем временную парковку
-                if (parkingPolygon) {
-                    map.geoObjects.remove(parkingPolygon);
-                    parkingPolygon = null;
+                // Удаляем временный полигон
+                if (drawingPolygon) {
+                    map.geoObjects.remove(drawingPolygon);
+                    drawingPolygon = null;
                 }
                 
                 closePanel();
@@ -612,43 +755,169 @@
                 });
         }
 
+        function getOccupancyColor(occupied, total) {
+            const ratio = occupied / total;
+            if (ratio < 0.5) return '#34C759'; // зелёный - много свободных
+            if (ratio < 0.8) return '#FF9500'; // оранжевый - половина занята
+            return '#FF3B30'; // красный - почти всё занято
+        }
+
         function addMarkerToMap(id, data) {
             if (mapMarkers[id]) return;
             
-            // Если есть данные о размерах и повороте, рисуем полигон
-            if (data.length && data.width && data.rotation !== undefined) {
-                const corners = calculateParkingCorners(data.lat, data.lng, data.length, data.width, data.rotation);
-                
-                const placemark = new ymaps.Polygon([corners], {
+            const totalSpots = data.totalSpots || 0;
+            const occupiedSpots = data.occupiedSpots || 0;
+            const freeSpots = totalSpots - occupiedSpots;
+            const color = getOccupancyColor(occupiedSpots, totalSpots);
+            
+            let placemark;
+            
+            // Если есть координаты полигона - рисуем его
+            if (data.coordinates && data.coordinates.length >= 3) {
+                placemark = new ymaps.Polygon([data.coordinates], {
                     balloonContentHeader: `<strong>${data.name}</strong>`,
-                    balloonContentBody: data.desc || 'Нет описания',
-                    balloonContentFooter: `Добавил: ${data.authorName}`
+                    balloonContentBody: `
+                        <div style="padding:8px 0;">
+                            <div style="margin-bottom:8px;">${data.desc || 'Нет описания'}</div>
+                            <div style="display:flex;gap:12px;font-size:13px;">
+                                <span style="color:#34C759;">✓ Свободно: ${freeSpots}</span>
+                                <span style="color:#FF3B30;"> Занято: ${occupiedSpots}</span>
+                            </div>
+                            <div style="margin-top:8px;font-size:12px;color:#8E8E93;">Всего мест: ${totalSpots}</div>
+                        </div>
+                    `,
+                    hintContent: `${data.name} (${freeSpots} св.)`
                 }, {
-                    fillColor: '#007AFF22',
-                    strokeColor: '#007AFF',
+                    fillColor: color + '33',
+                    strokeColor: color,
                     strokeWidth: 2
                 });
-                
-                map.geoObjects.add(placemark);
-                mapMarkers[id] = placemark;
             } else {
-                // Fallback для старых записей без размеров
-                const placemark = new ymaps.Placemark([data.lat, data.lng], {
+                // Fallback для старых записей
+                placemark = new ymaps.Placemark([data.lat, data.lng], {
                     balloonContentHeader: `<strong>${data.name}</strong>`,
-                    balloonContentBody: data.desc || 'Нет описания',
-                    balloonContentFooter: `Добавил: ${data.authorName}`
+                    balloonContentBody: `
+                        <div style="padding:8px 0;">
+                            <div style="margin-bottom:8px;">${data.desc || 'Нет описания'}</div>
+                            <div style="display:flex;gap:12px;font-size:13px;">
+                                <span style="color:#34C759;">✓ Свободно: ${freeSpots}</span>
+                                <span style="color:#FF3B30;">✗ Занято: ${occupiedSpots}</span>
+                            </div>
+                        </div>
+                    `,
+                    hintContent: `${data.name} (${freeSpots} св.)`
                 }, {
                     preset: 'islands#blueParkingIcon'
                 });
-                
-                map.geoObjects.add(placemark);
-                mapMarkers[id] = placemark;
             }
+            
+            // При клике на парковку открываем окно занятости
+            placemark.events.add('click', function() {
+                openOccupancyPanel(id, data);
+            });
+            
+            map.geoObjects.add(placemark);
+            mapMarkers[id] = placemark;
+        }
+
+        // Всплывающее окно управления занятостью
+        function openOccupancyPanel(parkingId, data) {
+            const totalSpots = data.totalSpots || 0;
+            const occupiedSpots = data.occupiedSpots || 0;
+            const freeSpots = totalSpots - occupiedSpots;
+            const color = getOccupancyColor(occupiedSpots, totalSpots);
+            const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+            
+            document.getElementById('panel').classList.add('active');
+            document.getElementById('panelTitle').textContent = 'Парковка';
+            
+            document.getElementById('panelContent').innerHTML = `
+                <div class="occupancy-header">
+                    <div class="occupancy-title">${data.name}</div>
+                    <div class="occupancy-subtitle">${data.desc || 'Нет описания'}</div>
+                </div>
+                
+                <div class="occupancy-stats">
+                    <div class="stat-card stat-total">
+                        <div class="stat-value">${totalSpots}</div>
+                        <div class="stat-label">Всего мест</div>
+                    </div>
+                    <div class="stat-card stat-free">
+                        <div class="stat-value">${freeSpots}</div>
+                        <div class="stat-label">Свободно</div>
+                    </div>
+                    <div class="stat-card stat-occupied">
+                        <div class="stat-value">${occupiedSpots}</div>
+                        <div class="stat-label">Занято</div>
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${occupancyPercent}%;background:${color};"></div>
+                </div>
+                <div style="text-align:center;font-size:13px;color:#8E8E93;margin-bottom:20px;">
+                    Загруженность: ${occupancyPercent}%
+                </div>
+                
+                <div class="occupancy-control">
+                    <label>Изменить количество занятых мест:</label>
+                    <div class="counter-row">
+                        <button class="counter-btn minus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, -1)">−</button>
+                        <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
+                        <button class="counter-btn plus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, 1)">+</button>
+                    </div>
+                </div>
+                
+                <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
+            `;
+        }
+
+        function changeOccupancy(parkingId, totalSpots, currentOccupied, delta) {
+            const newOccupied = currentOccupied + delta;
+            
+            if (newOccupied < 0 || newOccupied > totalSpots) {
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+                return;
+            }
+            
+            // Обновляем в Firebase
+            database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
+                .then(() => {
+                    // Обновляем UI
+                    document.getElementById('currentOccupied').textContent = newOccupied;
+                    
+                    // Вибрация
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+                    }
+                    
+                    // Перерисовываем маркер на карте
+                    database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+                        const data = snapshot.val();
+                        if (mapMarkers[parkingId]) {
+                            map.geoObjects.remove(mapMarkers[parkingId]);
+                            delete mapMarkers[parkingId];
+                        }
+                        addMarkerToMap(parkingId, data);
+                    });
+                    
+                    // Обновляем панель
+                    openOccupancyPanel(parkingId, {
+                        ...data,
+                        occupiedSpots: newOccupied
+                    });
+                })
+                .catch(err => {
+                    console.error("Ошибка обновления:", err);
+                    alert('Ошибка обновления: ' + err.message);
+                });
         }
 
         function focusMap(lat, lng, parkingId) {
             closePanel();
-            map.setCenter([lat, lng], 18, { duration: 300 });
+            map.setCenter([lat, lng], 16, { duration: 300 });
             if (mapMarkers[parkingId]) {
                 setTimeout(() => {
                     mapMarkers[parkingId].balloon.open();
