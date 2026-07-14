@@ -136,15 +136,6 @@
         .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
 
-        .toast {
-            position: fixed; top: 80px; left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: rgba(0,0,0,0.8); color: #fff;
-            padding: 12px 20px; border-radius: 20px;
-            z-index: 4000; transition: transform 0.3s; font-size: 14px;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-
         .guest-btn {
             background: transparent;
             color: #007AFF;
@@ -300,8 +291,6 @@
         </div>
     </div>
 
-    <div class="toast" id="toast"></div>
-
     <script>
         // Firebase
         const firebaseConfig = {
@@ -326,11 +315,9 @@
         let points = [];
         let tempPolygon = null;
 
+        // Toast отключён
         function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2500);
+            // Ничего не показываем
         }
 
         function initMap() {
@@ -400,7 +387,7 @@
         } else {
             window.addEventListener('load', () => {
                 if (typeof ymaps !== 'undefined') ymaps.ready(initMap);
-                else showToast('Ошибка загрузки карты');
+                else console.log('Ошибка загрузки карты');
             });
         }
 
@@ -610,15 +597,12 @@
                     const busy = myP.filter(p => p.status === 'busy').length;
                     const isGuest = currentUser.id.startsWith('guest_');
 
-                    // Безопасное получение photoUrl
                     const photoUrl = currentUser.photoUrl && typeof currentUser.photoUrl === 'string' ? currentUser.photoUrl : '';
                     const avatarStyle = photoUrl ? `background-image:url(${photoUrl}); background-size:cover;` : '';
 
-                    // Полное имя
                     const fullName = currentUser.firstName || 'Пользователь';
                     const displayName = currentUser.lastName ? `${fullName} ${currentUser.lastName}` : fullName;
 
-                    // Логин или ID
                     const userLogin = currentUser.username ? `@${currentUser.username}` : `ID: ${currentUser.id}`;
 
                     content.innerHTML = `
@@ -726,7 +710,6 @@
         window.onTelegramAuth = function(user) {
             if (!user || !user.id) return;
 
-            // Сохраняем все доступные данные
             currentUser = {
                 id: user.id,
                 username: user.username || '',
@@ -738,7 +721,6 @@
             database.ref('users/' + currentUser.id).set(currentUser);
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
             showToast(`Добро пожаловать, ${currentUser.firstName}!`);
-            // Небольшая задержка для корректной отрисовки после возврата из Telegram
             setTimeout(() => showPanel('profile'), 100);
         };
 
