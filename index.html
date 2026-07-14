@@ -136,18 +136,35 @@
         .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
 
-        .guest-btn {
-            background: transparent;
-            color: #007AFF;
-            border: 1px solid #007AFF;
-            padding: 14px 24px;
+        .auth-buttons {
+            display: flex; flex-direction: column; gap: 12px; margin: 20px 0;
+        }
+        .telegram-btn {
+            background: #0088cc;
+            color: #fff;
+            border: none;
+            padding: 16px 24px;
             border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            width: 100%;
-            margin-top: 12px;
-            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .telegram-btn:active { background: #0077b5; }
+
+        .guest-btn {
+            background: transparent;
+            color: #007AFF;
+            border: 1px solid #007AFF;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
         }
         .guest-btn:active { background: #007AFF; color: #fff; }
 
@@ -315,10 +332,8 @@
         let points = [];
         let tempPolygon = null;
 
-        // Toast отключён
-        function showToast(msg) {
-            // Ничего не показываем
-        }
+        // Функция-пустышка для toast (уведомления отключены)
+        function showToast(msg) {}
 
         function initMap() {
             map = new ymaps.Map("map", {
@@ -380,6 +395,7 @@
 
             loadParkings();
             loadHomes();
+            checkTelegramHash();
         }
 
         if (typeof ymaps !== 'undefined') {
@@ -571,6 +587,49 @@
             }
         }
 
+        // --- Telegram OAuth ---
+        function getTelegramOAuthUrl() {
+            const botId = 'parknear_bot'; // username вашего бота
+            const origin = window.location.origin;
+            const returnTo = origin + window.location.pathname;
+            // Используем параметр origin, чтобы бот мог вернуть ответ на этот же домен
+            return `https://oauth.telegram.org/auth?bot_id=${encodeURIComponent(botId)}&origin=${encodeURIComponent(origin)}&request_access=write&return_to=${encodeURIComponent(returnTo)}`;
+        }
+
+        function checkTelegramHash() {
+            const hash = window.location.hash;
+            if (!hash) return;
+            // Telegram возвращает параметры в хэше вида #tgAuthResult=...
+            const params = new URLSearchParams(hash.substring(1));
+            if (params.has('tgAuthResult')) {
+                try {
+                    const result = JSON.parse(params.get('tgAuthResult'));
+                    if (result && result.id) {
+                        onTelegramAuth(result);
+                        // Убираем хэш, чтобы не обрабатывать повторно
+                        history.replaceState(null, null, ' ');
+                    }
+                } catch(e) {}
+            }
+        }
+
+        window.onTelegramAuth = function(user) {
+            if (!user || !user.id) return;
+
+            currentUser = {
+                id: user.id,
+                username: user.username || '',
+                firstName: user.first_name || 'Пользователь',
+                lastName: user.last_name || '',
+                photoUrl: user.photo_url || ''
+            };
+
+            database.ref('users/' + currentUser.id).set(currentUser);
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            showToast(`Добро пожаловать, ${currentUser.firstName}!`);
+            setTimeout(() => showPanel('profile'), 100);
+        };
+
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent =
@@ -585,12 +644,16 @@
                         <div style="text-align:center; padding:40px 20px;">
                             <div style="font-size:60px; margin-bottom:20px;">👤</div>
                             <div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход через Telegram</div>
-                            <div id="telegramWidgetContainer"></div>
-                            <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
-                            <p style="color:#8E8E93; font-size:12px; margin-top:12px;">Гостевые данные могут быть потеряны при очистке кэша</p>
+                            <div class="auth-buttons">
+                                <a href="${getTelegramOAuthUrl()}" class="telegram-btn" target="_blank">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.342-.213-.333-.373.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
+                                    Войти через Telegram
+                                </a>
+                                <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
+                            </div>
+                            <p style="color:#8E8E93; font-size:12px; margin-top:12px;">При входе через Telegram откроется окно подтверждения. Гостевые данные могут быть потеряны.</p>
                         </div>
                     `;
-                    loadTelegramWidget();
                 } else {
                     const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
                     const free = myP.filter(p => p.status === 'free').length;
@@ -691,38 +754,6 @@
             showToast('Вы вошли как гость');
             showPanel('profile');
         }
-
-        function loadTelegramWidget() {
-            const container = document.getElementById('telegramWidgetContainer');
-            if (!container || document.getElementById('telegramScript')) return;
-
-            const script = document.createElement('script');
-            script.id = 'telegramScript';
-            script.async = true;
-            script.src = 'https://telegram.org/js/telegram-widget.js?22';
-            script.setAttribute('data-telegram-login', 'parknear_bot');
-            script.setAttribute('data-size', 'large');
-            script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-            script.setAttribute('data-request-access', 'write');
-            container.appendChild(script);
-        }
-
-        window.onTelegramAuth = function(user) {
-            if (!user || !user.id) return;
-
-            currentUser = {
-                id: user.id,
-                username: user.username || '',
-                firstName: user.first_name || 'Пользователь',
-                lastName: user.last_name || '',
-                photoUrl: user.photo_url || ''
-            };
-
-            database.ref('users/' + currentUser.id).set(currentUser);
-            localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            showToast(`Добро пожаловать, ${currentUser.firstName}!`);
-            setTimeout(() => showPanel('profile'), 100);
-        };
 
         function logout() {
             currentUser = null;
