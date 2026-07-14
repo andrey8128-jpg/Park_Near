@@ -610,11 +610,14 @@
                     const busy = myP.filter(p => p.status === 'busy').length;
                     const isGuest = currentUser.id.startsWith('guest_');
 
+                    // Безопасно получаем URL аватара
+                    const photoUrl = currentUser.photoUrl && typeof currentUser.photoUrl === 'string' ? currentUser.photoUrl : '';
+                    const avatarStyle = photoUrl ? `background-image:url(${photoUrl}); background-size:cover;` : '';
+
                     content.innerHTML = `
                         <div style="text-align:center; padding:20px;">
-                            <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px; 
-                                ${currentUser.photoUrl ? `background-image:url(${currentUser.photoUrl}); background-size:cover;` : ''}">
-                                ${currentUser.photoUrl ? '' : getInitials(currentUser.firstName)}
+                            <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px; ${avatarStyle}">
+                                ${photoUrl ? '' : getInitials(currentUser.firstName)}
                             </div>
                             <div style="font-size:18px;font-weight:700;">${currentUser.firstName} ${isGuest ? '(гость)' : ''}</div>
                             <div style="color:#8E8E93;">@${currentUser.username || 'username'}</div>
@@ -683,7 +686,6 @@
             document.querySelector('.tab:first-child').classList.add('active');
         }
 
-        // --- Гостевой режим ---
         function continueAsGuest() {
             const guestId = 'guest_' + Date.now();
             currentUser = {
@@ -697,7 +699,6 @@
             showPanel('profile');
         }
 
-        // --- Telegram Login Widget ---
         function loadTelegramWidget() {
             const container = document.getElementById('telegramWidgetContainer');
             if (!container || document.getElementById('telegramScript')) return;
@@ -706,7 +707,7 @@
             script.id = 'telegramScript';
             script.async = true;
             script.src = 'https://telegram.org/js/telegram-widget.js?22';
-            script.setAttribute('data-telegram-login', 'parknear_bot'); // ← ВАШ БОТ
+            script.setAttribute('data-telegram-login', 'parknear_bot');
             script.setAttribute('data-size', 'large');
             script.setAttribute('data-onauth', 'onTelegramAuth(user)');
             script.setAttribute('data-request-access', 'write');
@@ -726,7 +727,8 @@
             database.ref('users/' + currentUser.id).set(currentUser);
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
             showToast(`Добро пожаловать, ${currentUser.firstName}!`);
-            showPanel('profile');
+            // Небольшая задержка, чтобы гарантировать корректную отрисовку после возврата из Telegram
+            setTimeout(() => showPanel('profile'), 100);
         };
 
         function logout() {
