@@ -368,7 +368,6 @@
         .history-detail-label { color: var(--text-secondary); }
         .history-detail-value { font-weight: 500; }
         
-        /* Стили для баллона с информацией о парковке */
         .parking-balloon {
             padding: 16px;
             min-width: 280px;
@@ -456,7 +455,7 @@
     <div id="map"></div>
     
     <div class="map-type-switcher">
-        <button class="map-type-btn active" data-type="yandex#map" onclick="switchMapType(this)">🗺️ Схема</button>
+        <button class="map-type-btn active" data-type="yandex#map" onclick="switchMapType(this)">️ Схема</button>
         <button class="map-type-btn" data-type="yandex#satellite" onclick="switchMapType(this)">🛰️ Спутник</button>
         <button class="map-type-btn" data-type="yandex#hybrid" onclick="switchMapType(this)">🌍 Гибрид</button>
     </div>
@@ -477,9 +476,9 @@
 
     <div class="tabBar">
         <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon"></div><div class="label">История</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
-        <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
+        <div class="tab" onclick="showPanel('profile')"><div class="icon"></div><div class="label">Профиль</div></div>
     </div>
 
     <script>
@@ -500,7 +499,7 @@
             if (snapshot.val() === true) {
                 console.log('✅ Подключено к Firebase');
             } else {
-                console.log(' Отключено от Firebase');
+                console.log('❌ Отключено от Firebase');
             }
         });
         
@@ -842,7 +841,10 @@
                     });
             };
 
-            loadAllParkings();
+            // ✅ ИСПРАВЛЕНО: Загружаем парковки после инициализации карты
+            setTimeout(() => {
+                loadAllParkings();
+            }, 500);
             
             setTimeout(function() {
                 getUserLocation()
@@ -1001,21 +1003,44 @@
                 });
         }
 
+        // ✅ ИСПРАВЛЕНО: Функция загрузки парковок
         function loadAllParkings() {
+            console.log('🔄 Загрузка парковок из Firebase...');
+            
+            if (!map) {
+                console.error(' Карта не инициализирована!');
+                return;
+            }
+            
             database.ref('parkings').once('value')
                 .then(snapshot => {
+                    console.log(' Получено данных:', snapshot.numChildren());
                     const data = snapshot.val();
-                    if (data) {
-                        Object.keys(data).forEach(key => {
-                            const p = data[key];
-                            if (p && p.lat && p.lng) {
-                                addMarkerToMap(key, p);
-                            }
-                        });
+                    
+                    if (!data) {
+                        console.log('️ Парковки не найдены');
+                        return;
                     }
+                    
+                    let loadedCount = 0;
+                    Object.keys(data).forEach(key => {
+                        const p = data[key];
+                        console.log(`📍 Парковка ${key}:`, p);
+                        
+                        if (p && p.lat && p.lng) {
+                            addMarkerToMap(key, p);
+                            loadedCount++;
+                        } else {
+                            console.warn(`⚠️ Пропущена парковка ${key}: неверные координаты`, p);
+                        }
+                    });
+                    
+                    console.log(`✅ Загружено ${loadedCount} парковок на карту`);
                 })
                 .catch(error => {
-                    console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
+                    console.error("❌ ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
+                    console.error("Код ошибки:", error.code);
+                    console.error("Сообщение:", error.message);
                 });
         }
 
@@ -1037,7 +1062,6 @@
             return `${day}.${month}.${year} ${hours}:${minutes}`;
         }
 
-        // Функция для создания контента баллона
         function getParkingBalloonContent(parkingId, data) {
             const totalSpots = data.totalSpots || 0;
             const occupiedSpots = data.occupiedSpots || 0;
@@ -1079,8 +1103,19 @@
             `;
         }
 
+        // ✅ ИСПРАВЛЕНО: Функция добавления маркера на карту
         function addMarkerToMap(id, data) {
-            if (mapMarkers[id]) return;
+            if (!map) {
+                console.error('❌ Карта не инициализирована при добавлении маркера!');
+                return;
+            }
+            
+            if (mapMarkers[id]) {
+                console.log(`ℹ️ Маркер ${id} уже существует, пропускаем`);
+                return;
+            }
+            
+            console.log(`📍 Добавляем маркер ${id}:`, data);
             
             const totalSpots = data.totalSpots || 0;
             const occupiedSpots = data.occupiedSpots || 0;
@@ -1089,34 +1124,43 @@
             
             let placemark;
             
-            if (data.coordinates && data.coordinates.length >= 3) {
-                placemark = new ymaps.Polygon([data.coordinates], {
-                    hintContent: `${data.name} (${freeSpots} св.)`
-                }, {
-                    fillColor: color + '33',
-                    strokeColor: color,
-                    strokeWidth: 2
+            try {
+                if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+                    console.log(`📐 Создаём полигон для ${id} с ${data.coordinates.length} точками`);
+                    placemark = new ymaps.Polygon([data.coordinates], {
+                        hintContent: `${data.name} (${freeSpots} св.)`
+                    }, {
+                        fillColor: color + '33',
+                        strokeColor: color,
+                        strokeWidth: 2
+                    });
+                } else {
+                    console.log(`📍 Создаём метку для ${id} на координатах [${data.lat}, ${data.lng}]`);
+                    placemark = new ymaps.Placemark([data.lat, data.lng], {
+                        hintContent: `${data.name} (${freeSpots} св.)`
+                    }, {
+                        preset: 'islands#blueParkingIcon'
+                    });
+                }
+                
+                // Устанавливаем контент баллона
+                const balloonContent = getParkingBalloonContent(id, data);
+                placemark.balloon.setContent(balloonContent);
+                
+                // Обработка клика - открываем баллон
+                placemark.events.add('click', function(e) {
+                    console.log(`👆 Клик по парковке ${id}`);
+                    placemark.balloon.setContent(getParkingBalloonContent(id, data));
+                    placemark.balloon.open();
                 });
-            } else {
-                placemark = new ymaps.Placemark([data.lat, data.lng], {
-                    hintContent: `${data.name} (${freeSpots} св.)`
-                }, {
-                    preset: 'islands#blueParkingIcon'
-                });
+                
+                map.geoObjects.add(placemark);
+                mapMarkers[id] = placemark;
+                console.log(`✅ Маркер ${id} успешно добавлен на карту`);
+                
+            } catch (error) {
+                console.error(`❌ Ошибка при добавлении маркера ${id}:`, error);
             }
-            
-            // Устанавливаем контент баллона
-            placemark.balloon.setContent(getParkingBalloonContent(id, data));
-            
-            // Обработка клика - открываем баллон
-            placemark.events.add('click', function(e) {
-                // Обновляем контент баллона перед открытием
-                placemark.balloon.setContent(getParkingBalloonContent(id, data));
-                placemark.balloon.open();
-            });
-            
-            map.geoObjects.add(placemark);
-            mapMarkers[id] = placemark;
         }
 
         function openOccupancyPanel(parkingId, event) {
@@ -1176,7 +1220,7 @@
                         </div>
                     </div>
                     
-                    ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')"> Удалить парковку</button>` : ''}
+                    ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')">🗑 Удалить парковку</button>` : ''}
                     
                     <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
                 `;
@@ -1399,7 +1443,7 @@
                             <p style="font-size:14px; color:var(--text-secondary); text-align:center; margin-bottom:20px;">
                                 ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
                             </p>
-                            <button class="btn-danger" onclick="logout()"> Выйти из аккаунта</button>
+                            <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
                         </div>
                     `;
                     
@@ -1562,7 +1606,7 @@
                     if (!parkingsData) {
                         contentEl.innerHTML = `
                             <div class="empty-state">
-                                <div class="icon">🕘</div>
+                                <div class="icon"></div>
                                 <p>История пуста</p>
                             </div>`;
                         return;
@@ -1575,7 +1619,7 @@
                         if (parking && parking.name) {
                             html += `
                                 <div class="list-item" onclick="showParkingHistory('${parkingId}', '${parking.name.replace(/'/g, "\\'")}')">
-                                    <div class="list-icon">🅿️</div>
+                                    <div class="list-icon">️</div>
                                     <div class="list-info">
                                         <div class="list-title">${parking.name}</div>
                                         <div class="list-subtitle">Нажмите для просмотра истории изменений</div>
