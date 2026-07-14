@@ -48,7 +48,6 @@
             z-index: 1;
         }
 
-        /* Плашка с названием приложения сверху */
         .app-header {
             position: absolute;
             top: 0;
@@ -79,7 +78,6 @@
             color: #007AFF;
         }
 
-        /* Элементы управления картой - сдвинуты ниже плашки */
         .floating-controls { 
             position: absolute; 
             top: 60px; 
@@ -202,6 +200,35 @@
             max-width: 100% !important;
         }
 
+        /* Кнопка входа через Telegram */
+        .tg-login-button {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 300px;
+            margin: 15px auto;
+            box-shadow: 0 4px 12px rgba(0,136,204,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .tg-login-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(0,136,204,0.3);
+        }
+        .tg-login-button svg {
+            width: 24px;
+            height: 24px;
+        }
+
         #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; z-index: 3000; transition: transform 0.3s; }
         #toast.show { transform: translateX(-50%) translateY(0); }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--secondary-text); }
@@ -209,11 +236,17 @@
         .stat-card { background: var(--card-bg); border-radius: 12px; padding: 14px 10px; text-align: center; }
         .stat-number { font-size: 24px; font-weight: 700; color: #007AFF; }
         .stat-label { font-size: 11px; color: var(--secondary-text); margin-top: 4px; }
+        
+        .helper-text {
+            font-size: 13px;
+            color: var(--secondary-text);
+            margin-top: 15px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Плашка с названием приложения -->
     <div class="app-header">
         <div class="app-title">Park<span>Near</span></div>
     </div>
@@ -304,46 +337,45 @@
         }
         function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
         function getStatusColor(s) { return s==='free'?'#34C759':s==='busy'?'#FF3B30':'#007AFF'; }
-        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':' Неизвестно'; }
+        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
 
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
             if(saved) { currentUser = JSON.parse(saved); }
         });
 
+        // Функция для входа через Telegram - открывает бота напрямую
         function loginWithTelegram() {
-            const container = document.getElementById('telegram-widget-direct');
-            if (!container) return;
+            // Открываем бота в Telegram
+            const tgLink = `https://t.me/${TELEGRAM_BOT_NAME}?start=login`;
+            window.open(tgLink, '_blank');
             
-            container.innerHTML = '<div style="color: var(--secondary-text); font-size: 14px;">Загрузка кнопки...</div>';
-            
+            // Показываем инструкцию что делать дальше
             setTimeout(() => {
-                container.innerHTML = '';
+                const username = prompt('✅ Если вы открыли бота, введите ваш username (без @):\n\nЕсли не открылся - скопируйте ссылку и вставьте в браузер:\n' + tgLink);
                 
-                const widgetDiv = document.createElement('div');
-                widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
-                widgetDiv.setAttribute('data-size', 'large');
-                widgetDiv.setAttribute('data-radius', '10');
-                widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
-                widgetDiv.setAttribute('data-request-access', 'write');
-                
-                container.appendChild(widgetDiv);
-                
-                const script = document.createElement('script');
-                script.src = 'https://telegram.org/js/telegram-widget.js?22';
-                script.async = true;
-                script.onerror = () => {
-                    container.innerHTML = '<div style="color: #FF3B30; font-size: 12px;">⚠️ Ошибка загрузки. Проверьте настройку домена в @BotFather</div>';
-                };
-                container.appendChild(script);
-                
-                setTimeout(() => {
-                    if(container.children.length === 1 && container.querySelector('iframe') === null) {
-                        container.innerHTML = '<div style="color: #FF9500; font-size: 12px;">⚠️ Кнопка не загрузилась. Настройте домен в @BotFather командой /setdomain</div>';
-                    }
-                }, 3000);
-                
-            }, 100);
+                if(username && username.trim()) {
+                    const firstName = prompt('Ваше имя:') || 'Пользователь';
+                    
+                    const userData = {
+                        id: 'tg_' + Date.now(),
+                        username: username.replace('@', ''),
+                        firstName: firstName,
+                        lastName: '',
+                        photoUrl: '',
+                        authDate: new Date().toISOString()
+                    };
+                    
+                    database.ref('users/' + userData.id).set(userData)
+                        .then(() => {
+                            currentUser = userData;
+                            localStorage.setItem('tgUser', JSON.stringify(userData));
+                            showToast(`Добро пожаловать, ${firstName}! 👋`);
+                            openList('profile');
+                        })
+                        .catch(err => showToast('Ошибка: ' + err.message));
+                }
+            }, 2000);
         }
 
         function onTelegramAuthConfirmed(user) {
@@ -381,9 +413,8 @@
             map = new ymaps.Map("map", { 
                 center: [55.7558, 37.6173], 
                 zoom: 13, 
-                // Добавляем ползунок масштабирования справа
                 controls: ['zoomControl'],
-                margin: [60, 10, 100, 10] // Отступы: [верх (учитываем плашку), право, низ (учитываем панель), лево]
+                margin: [60, 10, 100, 10]
             });
             
             if(navigator.geolocation) {
@@ -507,8 +538,8 @@
         function showMyLocation() {
             if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { 
                 map.setCenter([p.coords.latitude, p.coords.longitude], 16); 
-                showToast(' Ваше место'); 
-            }, ()=>showToast(' Нет GPS'));
+                showToast('📍 Ваше место'); 
+            }, ()=>showToast('❌ Нет GPS'));
         }
 
         function loadParkings() {
@@ -538,7 +569,7 @@
         function showParkingModal(id, p) {
             if(editingParkingId && editingParkingId !== id) { showToast('Завершите редактирование'); return; }
             document.getElementById('modalBody').innerHTML = `
-                <div class="modal-title">️ ${p.name}</div>
+                <div class="modal-title">🅿️ ${p.name}</div>
                 <div class="modal-input-group">
                     <label class="modal-label">Количество мест</label>
                     <input type="number" class="modal-input" id="editPlaces" value="${p.places}">
@@ -546,11 +577,11 @@
                 <div class="modal-label">Статус</div>
                 <div class="status-selector">
                     <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
-                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')"> Занято</button>
+                    <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')">❌ Занято</button>
                     <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')"> Изменить фигуру</button>
+                    <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">📝 Изменить фигуру</button>
                     <button class="modal-btn modal-btn-primary" onclick="updateField('${id}','places', Number(document.getElementById('editPlaces').value))">💾 Сохранить</button>
                 </div>
                 <div class="modal-actions" style="margin-top:10px;">
@@ -624,7 +655,7 @@
         }
 
         function renderFavorites(c) {
-            if(!myHomes.length) { c.innerHTML='<div class="empty-state">🏠 Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
+            if(!myHomes.length) { c.innerHTML='<div class="empty-state"> Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
             c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;">🏠</div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
         }
 
@@ -632,23 +663,27 @@
             if (!currentUser) {
                 container.innerHTML = `
                     <div style="text-align:center; padding: 20px;">
-                        <div style="font-size: 60px; margin-bottom: 20px;">👤</div>
+                        <div style="font-size: 60px; margin-bottom: 20px;"></div>
                         <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">Вход через Telegram</div>
                         <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 20px;">
-                            Нажмите кнопку и подтвердите вход<br>в приложении Telegram
+                            Нажмите кнопку ниже для входа
                         </div>
                         
-                        <div class="telegram-widget-wrapper">
-                            <h3>Войти через Telegram</h3>
-                            <div id="telegram-widget-direct"></div>
-                            <p style="font-size: 12px; color: var(--secondary-text); margin-top: 10px;">
-                                ️ Если кнопка не появляется,<br>настройте домен в @BotFather
-                            </p>
+                        <!-- КНОПКА ВХОДА ЧЕРЕЗ TELEGRAM -->
+                        <button class="tg-login-button" onclick="loginWithTelegram()">
+                            <svg viewBox="0 0 24 24" fill="white">
+                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
+                            </svg>
+                            Войти через Telegram
+                        </button>
+                        
+                        <div class="helper-text">
+                            🔹 Кнопка откроет бота в Telegram<br>
+                            🔹 После открытия введите ваш username<br>
+                            🔹 Или настройте виджет в @BotFather
                         </div>
                     </div>
                 `;
-                
-                setTimeout(() => loginWithTelegram(), 100);
                 return;
             }
 
@@ -686,7 +721,7 @@
                 </div>
                 
                 <div style="padding: 0 16px; margin-top: 20px;">
-                    <button class="logout-btn" onclick="logout()" style="border-radius: 12px; padding: 14px; width: 100%; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; font-weight: 600; cursor: pointer;"> Выйти из аккаунта</button>
+                    <button class="logout-btn" onclick="logout()" style="border-radius: 12px; padding: 14px; width: 100%; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; font-weight: 600; cursor: pointer;">🚪 Выйти из аккаунта</button>
                 </div>
             `;
         }
