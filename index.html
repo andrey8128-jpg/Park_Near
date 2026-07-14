@@ -1,223 +1,93 @@
 <!DOCTYPE html>
-<html lang:
-
-```html
-<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="="ru">
-<head>
     <meta charset="UTF-8">
-    <meta name="viewport"UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0 content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no,, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Park viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Park Near</title>
 
-    <style> Near</title>
+    <!-- Скрипты загружаются СИНХРОННО -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
 
     <style>
-        * { box-sizing: border-box; margin:
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        0; padding: 0; }
         body { 
-            font-family: -apple-system, body { 
             font-family: -apple-system, sans-serif; 
             overflow: hidden; 
             height: 100vh; 
-            background: # sans-serif; 
-            overflow: hidden; 
-            height: 100vh; 
             background: #F2F2F7;
         }
 
-       F2F2F7;
-        }
-
-        /* Индикатор загрузки */
-        #loader {
- /* Индикатор загрузки */
-        #loader {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #F2F2F7;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-                       position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #F2F2F7;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0 justify-content: center;
-            transition: opacity 0.3s;
-        }
-        #.3s;
-        }
-        #loader.hidden { opacity: 0; pointer-events: noneloader.hidden { opacity: 0; pointer-events: none; }
-        .spinner {
-            width: ; }
-        .spinner {
-            width: 40px; height: 40px;
-40px; height: 40px;
-            border: 4px solid #E5E5            border: 4px solid #E5E5EA;
-            border-top-color: #00EA;
-            border-top-color: #007AFF;
-            border-radius: 50%;7AFF;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } } { transform: rotate(360deg); } }
-        .loader-text { margin-top: 1
-        .loader-text { margin-top: 16px; color: #8E8E936px; color: #8E8E93; font-size: 14px; }
-
-       ; font-size: 14px; }
-
-        /* Стеклянная плашка */
-        .app /* Стеклянная плашка */
+        /* Стеклянная плашка ParkNear */
         .app-header {
             position: fixed;
--header {
-            position: fixed;
-            top: 0; left: 0; right            top: 0; left: 0; right: 0;
-            height: 60px: 0;
+            top: 0; left: 0; right: 0;
             height: 60px;
-            background: rgba(255, ;
-            background: rgba(255, 255, 255, 0.255, 255, 0.45);
-            backdrop-filter: saturate(145);
+            background: rgba(255, 255, 255, 0.45);
             backdrop-filter: saturate(180%) blur(20px);
-            -80%) blur(20px);
-            -webkit-backdrop-filter: saturate(18webkit-backdrop-filter: saturate(180%) blur(20px);
-            z-index0%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
             z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
             border-bottom: 0.5px solid rgba(255, 255, 255, 0.3);
         }
-        .app-title { font: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 0.5px solid rgba(255, 255, 255, 0.3);
-        }
-        .app-title { font-size: 22px; font-weight: 7-size: 22px; font-weight: 700; color: #000; }
-00; color: #000; }
-        .app-title span { color: #007        .app-title span { color: #007AFF; font-weight: 800; }AFF; font-weight: 800; }
-
-        #map { 
-            width: 
+        .app-title { font-size: 22px; font-weight: 700; color: #000; }
+        .app-title span { color: #007AFF; font-weight: 800; }
 
         #map { 
             width: 100%; 
-            height: calc(10100%; 
-            height: calc(100vh - 60px - 83px0vh - 60px - 83px);
-            position: fixed; 
-            top: );
+            height: calc(100vh - 60px - 83px);
             position: fixed; 
             top: 60px;
             left: 0; 
-60px;
-            left: 0; 
         }
-
-        .controls { 
-            position: fixed        }
 
         .controls { 
             position: fixed; 
-            top: 80px;; 
             top: 80px; 
             left: 16px; 
-            z 
-            left: 16px; 
             z-index: 900; 
-            display: flex-index: 900; 
             display: flex;
-            gap: 10px;;
             gap: 10px;
         }
         .btn {
-            width:
-        }
-        .btn {
-            width: 44px; height: 44px; 44px; height: 44px; border-radius: 12px; 
-            background: border-radius: 12px; 
-            background: rgba(255, 255,  rgba(255, 255, 255, 0.85);
-           255, 0.85);
+            width: 44px; height: 44px; border-radius: 12px; 
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
-            border backdrop-filter: blur(10px);
-            border: none; font-size: 20px; cursor: none; font-size: 20px; cursor: pointer;
-            box-shadow: 0 2: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,px 8px rgba(0,0,0,0.15);
-        }
-
-        #0.15);
+            border: none; font-size: 20px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
         #addBtn {
-            position: fixed; bottom: addBtn {
-            position: fixed; bottom: 100px; right: 20px;100px; right: 20px; z-index: 900;
-            width: z-index: 900;
-            width: 56px; height: 56px; 56px; height: 56px; border-radius: 50%; background: #00 border-radius: 50%; background: #007AFF; color: white;
-            border: none7AFF; color: white;
-            border: none; font-size: 28px; cursor: pointer; font-size: 28px; cursor: pointer;
-            box-shadow: 0 4px ;
-            box-shadow: 0 4px 12px rgba(0,122,212px rgba(0,122,255,0.4);
+            position: fixed; bottom: 100px; right: 20px; z-index: 900;
+            width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white;
+            border: none; font-size: 28px; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,122,255,0.4);
         }
-       55,0.4);
-        }
-        #addBtn.drawing { background: #FF3B #addBtn.drawing { background: #FF3B30; }
+        #addBtn.drawing { background: #FF3B30; }
 
         .tabBar {
-30; }
-
-        .tabBar {
-            position: fixed; bottom: 0; left:            position: fixed; bottom: 0; left: 0; right: 0; height: 8 0; right: 0; height: 83px;
-            background: rgba(2553px;
-            background: rgba(255, 255, 255, , 255, 255, 0.85);
-            backdrop-filter: blur0.85);
+            position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
-            z-index: 1(20px);
             z-index: 1000; display: flex;
-            border-top000; display: flex;
-            border-top: 0.5px solid rgba(0,: 0.5px solid rgba(0,0,0,0.1);
+            border-top: 0.5px solid rgba(0,0,0,0.1);
         }
-0,0,0.1);
-        }
-        .tab { flex: 1; display: flex        .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
-        .-content: center; cursor: pointer; }
-        .tab .icon { font-size: 24pxtab .icon { font-size: 24px; margin-bottom: 4px; }
-        .; margin-bottom: 4px; }
-        .tab .label { font-size: 10px;tab .label { font-size: 10px; color: #8E8E93; }
- color: #8E8E93; }
-        .tab.active .label { color: #        .tab.active .label { color: #007AFF; font-weight: 600007AFF; font-weight: 600; }
+        .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+        .tab .icon { font-size: 24px; margin-bottom: 4px; }
+        .tab .label { font-size: 10px; color: #8E8E93; }
+        .tab.active .label { color: #007AFF; font-weight: 600; }
 
         .panel {
-            position: fixed; }
-
-        .panel {
-            position: fixed; top: 0; left: 0; right; top: 0; left: 0; right: 0; bottom: 0;
-            background: #F2F2F7; z-index: 2000; transform: translateY(100%);
-            transition: transform 0.3: 0; bottom: 0;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: #F2F2F7; z-index: 2000; transform: translateY(100%);
             transition: transform 0.3s; display: flex; flex-direction: column;
-s; display: flex; flex-direction: column;
         }
-        .panel.active { transform: translateY(        }
         .panel.active { transform: translateY(0); }
-        .panel-header { padding: 0); }
-        .panel-header { padding: 16px 20px; display: flex;16px 20px; display: flex; justify-content: space-between; align-items: center; justify-content: space-between; align-items: center; border-bottom: 0.5px solid rgba(0 border-bottom: 0.5px solid rgba(0,0,0,0.1); }
-       ,0,0,0.1); }
-        .panel-title { font-size: 24px; .panel-title { font-size: 24px; font-weight: 700; }
-        .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
-        .panel font-weight: 700; }
+        .panel-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
+        .panel-title { font-size: 24px; font-weight: 700; }
         .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
 
@@ -231,452 +101,178 @@ s; display: flex; flex-direction: column;
         .login-btn {
             background: #0088cc; color: white; border: none; padding: 16px 24px;
             border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;
-            width: 1-content { flex: 1; overflow-y: auto; padding: 20px; }
-
-        .toast {
-            position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-100px);
-            background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px;
-            z-index: 4000; transition: transform 0.3s;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-
-        .login-btn {
-            background: #0088cc; color: white; border: none; padding: 16px 24px;
-            border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;
-            width: 100%; margin: 20px 0;00%; margin: 20px 0;
+            width: 100%; margin: 20px 0;
         }
 
-        .ios-list { background:
-        }
-
-        .ios-list { background: white; border-radius: 12px; margin-bottom white; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
-: 12px; overflow: hidden; }
-        .ios-list-item { padding: 14px        .ios-list-item { padding: 14px 16px; display: flex; align-items: 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); cursor: pointer; }
-        .list-icon { width: 44px; height: 44px; border-radius: 10px; background: #34C759; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-        .list-content { flex: 1; }
-        .list-title { font-size: 16px; font-weight: 60 center; gap: 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); cursor: pointer; }
+        .ios-list { background: white; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+        .ios-list-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); cursor: pointer; }
         .list-icon { width: 44px; height: 44px; border-radius: 10px; background: #34C759; display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .list-content { flex: 1; }
         .list-title { font-size: 16px; font-weight: 600; }
-        .list-subtitle { font0; }
         .list-subtitle { font-size: 13px; color: #8E8E93; }
 
-        .-size: 13px; color: #8E8E93; }
-
-        .modal { position: fixed; top: 0;modal { position: fixed; top: 0; left: 0; right: 0; bottom: left: 0; right: 0; bottom: 0; background: rgba(0,0,0 0; background: rgba(0,0,0,0.4); z-index: 3000; display: none; align-items: flex-end; justify-content: center; }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 3000; display: none; align-items: flex-end; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-sheet { background,0.4); z-index: 3000; display: none; align-items: flex-end; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-sheet { background: #F2F2F7; border: #F2F2F7; border-radius: 20px 20px 0-radius: 20px 20px 0 0; padding: 20px; width: 0; padding: 20px; width: 100%; max-height: 85 100%; max-height: 85vh; overflow-y: auto; }
-        .modalvh; overflow-y: auto; }
-        .modal-handle { width: 36px; height: -handle { width: 36px; height: 5px; background: #8E8E935px; background: #8E8E93; border-radius: 3px; margin: 0; border-radius: 3px; margin: 0 auto 16px; opacity: 0.5 auto 16px; opacity: 0.5; }
-        .modal-title { font-size: ; }
-        .modal-title { font-size: 20px; font-weight: 700;20px; font-weight: 700; margin-bottom: 16px; text-align: center margin-bottom: 16px; text-align: center; }
-        .modal-input { width: 1; }
-        .modal-input { width: 100%; padding: 12px; border-radius00%; padding: 12px; border-radius: 10px; border: none; background:: 10px; border: none; background: #E5E5EA; font-size: 1 #E5E5EA; font-size: 16px; margin-bottom: 16px; }6px; margin-bottom: 16px; }
-        .status-selector { display: flex
-        .status-selector { display: flex; gap: 10px; margin: 1; gap: 10px; margin: 16px 0; }
-        .status-btn {6px 0; }
-        .status-btn { flex: 1; padding: 12px; flex: 1; padding: 12px; border: 2px solid transparent; border-radius:  border: 2px solid transparent; border-radius: 10px; font-weight: 600;10px; font-weight: 600; cursor: pointer; color: white; }
-        . cursor: pointer; color: white; }
-        .status-btn.free { background: #34C75status-btn.free { background: #34C759; }
-        .status-btn.busy { background9; }
+        .modal-sheet { background: #F2F2F7; border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-height: 85vh; overflow-y: auto; }
+        .modal-handle { width: 36px; height: 5px; background: #8E8E93; border-radius: 3px; margin: 0 auto 16px; opacity: 0.5; }
+        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
+        .modal-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #E5E5EA; font-size: 16px; margin-bottom: 16px; }
+        .status-selector { display: flex; gap: 10px; margin: 16px 0; }
+        .status-btn { flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 10px; font-weight: 600; cursor: pointer; color: white; }
+        .status-btn.free { background: #34C759; }
         .status-btn.busy { background: #FF3B30; }
         .status-btn.unknown { background: #007AFF; }
-        .status-btn.selected { border-color: #: #FF3B30; }
-        .status-btn.unknown { background: #007AFF; }
         .status-btn.selected { border-color: #000; }
-        .modal-actions { display000; }
-        .modal-actions { display: flex; gap: 10px; margin-top: flex; gap: 10px; margin-top: 10px; }
-        .modal-btn: 10px; }
-        .modal-btn { flex: 1; padding: 14px { flex: 1; padding: 14px; border: none; border-radius: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-weight: 600; cursor: pointer; font-size: 15px; }
-       ; font-size: 15px; }
-        .modal-btn-primary { background: #007AFF .modal-btn-primary { background: #007AFF; color: white; }
-        .modal-btn-secondary; color: white; }
-        .modal-btn-secondary { background: #E5E5EA; color: { background: #E5E5EA; color: #000; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .modal-btn { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px; }
+        .modal-btn-primary { background: #007AFF; color: white; }
+        .modal-btn-secondary { background: #E5E5EA; color: #000; }
 
-        .theme-toggle #000; }
-
-        .theme-toggle { display: flex; align-items: center; justify-content { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: space-between; padding: 16px; background: white; border-radius: 12px; margin: white; border-radius: 12px; margin-bottom: 16px; }
--bottom: 16px; }
-        .switch { position: relative; display: inline-block        .switch { position: relative; display: inline-block; width: 50px; height: 3; width: 50px; height: 30px; }
-        .switch input { opacity:0px; }
-        .switch input { opacity: 0; width: 0; height: 0 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0: pointer; top: 0; left: 0; right: 0; bottom: 0; background; right: 0; bottom: 0; background: #ccc; transition: .4s: #ccc; transition: .4s; border-radius: 34px; }
-       ; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height .slider:before { position: absolute; content: ""; height: 26px; width: 26px: 26px; width: 26px; left: 2px; bottom: 2px; left: 2px; bottom: 2px; background: white; transition: .4s;; background: white; transition: .4s; border-radius: 50%; }
-        input:checked border-radius: 50%; }
-        input:checked + .slider { background: #34C75 + .slider { background: #34C759; }
-        input:checked + .slider:before {9; }
+        .theme-toggle { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: white; border-radius: 12px; margin-bottom: 16px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background: #34C759; }
         input:checked + .slider:before { transform: translateX(20px); }
 
- transform: translateX(20px); }
-
-        .stats-grid { display: grid; grid-template-columns        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: : repeat(3, 1fr); gap: 10px; margin-bottom: 16px;10px; margin-bottom: 16px; }
-        .stat-card { background: white; border }
-        .stat-card { background: white; border-radius: 12px; padding: 14-radius: 12px; padding: 14px 10px; text-align: centerpx 10px; text-align: center; }
-        .stat-number { font-size: ; }
-        .stat-number { font-size: 24px; font-weight: 700;24px; font-weight: 700; color: #007AFF; }
-        . color: #007AFF; }
-        .stat-label { font-size: 11px; colorstat-label { font-size: 11px; color: #8E8E93; margin-top:: #8E8E93; margin-top: 4px; }
-    </style>
-</ 4px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .stat-card { background: white; border-radius: 12px; padding: 14px 10px; text-align: center; }
+        .stat-number { font-size: 24px; font-weight: 700; color: #007AFF; }
+        .stat-label { font-size: 11px; color: #8E8E93; margin-top: 4px; }
     </style>
 </head>
 <body>
 
-    <!-- Индикаторhead>
-<body>
-
-    <!-- Индикатор загрузки -->
-    <div id="loader">
-        загрузки -->
-    <div id="loader">
-        <div class="spinner"></div>
-        <div <div class="spinner"></div>
-        <div class="loader-text">Загрузка ParkNear...</div> class="loader-text">Загрузка ParkNear...</div>
-    </div>
-
-    <div class="app
-    </div>
-
     <div class="app-header">
-        <div class="app-title">Park-header">
         <div class="app-title">Park<span>Near</span></div>
-    </div<span>Near</span></div>
     </div>
-
-    <div id="map"></div>
-
->
 
     <div id="map"></div>
 
     <div class="controls">
-        <button class    <div class="controls">
-        <button class="btn" onclick="showMyLocation()">📍="btn" onclick="showMyLocation()">📍</button>
-    </div>
-
-    <button</button>
+        <button class="btn" onclick="showMyLocation()">📍</button>
     </div>
 
     <button id="addBtn">+</button>
 
-    <div id="addBtn">+</button>
-
     <div class="panel" id="panel">
-        <div class="panel" id="panel">
         <div class="panel-header">
-            <div class="panel class="panel-header">
-            <div class="panel-title" id="panelTitle">Профиль</div>-title" id="panelTitle">Профиль</div>
-            <button class="panel-close" onclick="close
+            <div class="panel-title" id="panelTitle">Профиль</div>
             <button class="panel-close" onclick="closePanel()">Готово</button>
-        </divPanel()">Готово</button>
         </div>
-        <div class="panel-content" id=">
         <div class="panel-content" id="panelContent"></div>
     </div>
 
-   panelContent"></div>
-    </div>
-
     <div class="tabBar">
-        <div class <div class="tabBar">
-        <div class="tab active" onclick="showMap()"><div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="icon">🗺️</div><div class="label">Карта</div></div>
-       ="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div')"><div class="icon">🕘</div><div class="label">История</div></><div class="label">История</div></div>
-        <div class="tab" onclick="div>
-        <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
-        <div class="tab"div></div>
-        <div class="tab" onclick="showPanel('profile')"><div class="icon onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">👤</div><div class="label">Профиль</div></div>
-    </div">Профиль</div></div>
+        <div class="tab active" onclick="showMap()"><div class="icon">️</div><div class="label">Карта</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
+        <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
+        <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
-
-    <div class="modal" id="modal>
 
     <div class="modal" id="modal" onclick="closeModal(event)">
-        <div class" onclick="closeModal(event)">
         <div class="modal-sheet" onclick="event.stopPropagation()">
-            <="modal-sheet" onclick="event.stopPropagation()">
             <div class="modal-handle"></div>
-            <divdiv class="modal-handle"></div>
             <div id="modalBody"></div>
-        </div> id="modalBody"></div>
         </div>
-    </div>
-
-    <div class="toast
     </div>
 
     <div class="toast" id="toast"></div>
 
-    <!-- С" id="toast"></div>
-
-    <!-- Скрипты загружаются асинхроннокрипты загружаются асинхронно -->
-    <script async src="https://www -->
-    <script async src="https://www.gstatic.com/firebasejs/9.22.0/firebase.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script async-app-compat.js"></script>
-    <script async src="https://www.gstatic.com/firebasejs/9. src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script22.0/firebase-database-compat.js"></script>
-    <script async src="https://api-m>
-    <script async src="https://api-maps.yandex.ru/2.1/?apikey=7aps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-435eb2fa2-7ab4-4322-9fa3-d7581bad22-9fa3-d7581badafd2&lang=ru_RU"></script>
-
-afd2&lang=ru_RU"></script>
-
     <script>
-        // Ждем загрузки всех    <script>
-        // Ждем загрузки всех скриптов
-        let firebaseReady = false; скриптов
-        let firebaseReady = false;
-        let ymapsReady = false;
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
+            authDomain: "parknear-bef41.firebaseapp.com",
+            databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "parknear-bef41",
+            storageBucket: "parknear-bef41.firebasestorage.app",
+            messagingSenderId: "1066552333578",
+            appId: "1:1066552333578:web:e60e333cf877852eba16f3"
+        };
 
-        let ymapsReady = false;
+        // Инициализируем Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let map = null;
         let currentUser = null;
-        let parkings        let currentUser = null;
         let parkingsData = {};
         let myHomes = [];
-Data = {};
-        let myHomes = [];
-        let map = null;
-        let drawing =        let map = null;
         let drawing = false;
         let editingParkingId = null;
- false;
-        let editingParkingId = null;
         let points = [];
-        let tempPolygon = null        let points = [];
         let tempPolygon = null;
         let streetCounters = {};
 
-;
-        let streetCounters = {};
-
-        const firebaseConfig = {
-            apiKey:        const firebaseConfig = {
-            apiKey: "AIzaSyATLX5t2lmib "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nbuiSXL_sWu_JnFFTb-nMqU",
-            authDomain: "parknear-bMqU",
-            authDomain: "parknear-bef41.firebaseapp.com",
-            databaseURL: "ef41.firebaseapp.com",
-            databaseURL: "https://parknear-bef41-default-rtdbhttps://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId.europe-west1.firebasedatabase.app",
-            projectId: "parknear-bef41",
-            storage: "parknear-bef41",
-            storageBucket: "parknear-bef41.firebasestBucket: "parknear-bef41.firebasestorage.app",
-            messagingSenderId: "106orage.app",
-            messagingSenderId: "1066552333578",
-6552333578",
-            appId: "1:106655            appId: "1:1066552333578:web:e602333578:web:e60e333cf877852ebae333cf877852eba16f3"
-        };
-
-        function showToast16f3"
-        };
-
         function showToast(msg) {
-            const t = document.getElementById('toast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2500);
-        }');
-            t.textContent = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2500);
         }
 
-        function checkReady() {
-            if (firebaseReady && ymapsReady) {
-                initApp();
-            }
-        }
-
-        // Firebase загрузился
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                if (typeof firebase !== 'undefined') {
-                    firebase.initializeApp(firebaseConfig);
-                    firebaseReady = true;
-                    checkReady();
-                }
-            }, 100);
-        });
-
-        // Яндекс Карты загрузились
-        function onYmapsLoad() {
-            ymapsReady = true;
-            checkReady();
-
-
-        function checkReady() {
-            if (firebaseReady && ymapsReady) {
-                initApp();
-            }
-        }
-
-        // Firebase загрузился
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                if (typeof firebase !== 'undefined') {
-                    firebase.initializeApp(firebaseConfig);
-                    firebaseReady = true;
-                    checkReady();
-                }
-            }, 100);
-        });
-
-        // Яндекс Карты загрузились
-        function onYmapsLoad() {
-            ymapsReady = true;
-            checkReady();
-        }
-
-        // Проверяем за        }
-
-        // Проверяем загрузку Яндекс Карт
-        let yгрузку Яндекс Карт
-        let ymapsCheck = setInterval(() => {
-           mapsCheck = setInterval(() => {
-            if (typeof ymaps !== 'undefined') {
-                if (typeof ymaps !== 'undefined') {
-                clearInterval(ymapsCheck);
-                onYmapsLoad clearInterval(ymapsCheck);
-                onYmapsLoad();
-            }
-        }, 100);();
-            }
-        }, 100);
-
-        function initApp() {
-            // С
-
-        function initApp() {
-            // Скрываем загрузчик
-            setTimeoutкрываем загрузчик
-            setTimeout(() => {
-                document.getElementById('loader').classList(() => {
-                document.getElementById('loader').classList.add('hidden');
-            }, 300.add('hidden');
-            }, 300);
-
-            // Инициализация карты);
-
-            // Инициализация карты
-            map = new ymaps.Map("map",
+        // Инициализация карты
+        function initMap() {
             map = new ymaps.Map("map", {
-                center: [55.755 {
                 center: [55.7558, 37.6173],
-8, 37.6173],
                 zoom: 10,
-                controls: ['                zoom: 10,
                 controls: ['zoomControl']
-            });
-
-            // ГеолоzoomControl']
             });
 
             // Геолокация
             if (navigator.geolocation) {
-кация
-            if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
-                    const                navigator.geolocation.getCurrentPosition(pos => {
                     const coords = [pos.coords.latitude, pos.coords.longitude];
- coords = [pos.coords.latitude, pos.coords.longitude];
                     map.setCenter(coords, 14);
-                                       map.setCenter(coords, 14);
-                    map.geoObjects.add(new ymaps.Placemark(coords, { map.geoObjects.add(new ymaps.Placemark(coords, {
-                        hintContent: 'Вы здесь'
-                    },
+                    map.geoObjects.add(new ymaps.Placemark(coords, {
                         hintContent: 'Вы здесь'
                     }, {
-                        preset: 'islands#blueCircleIcon'
-                    }));
-                }, () => {}); {
                         preset: 'islands#blueCircleIcon'
                     }));
                 }, () => {});
             }
 
             // Клик по карте
-           
-            }
-
-            // Клик по карте
             map.events.add("click", e => {
-                if map.events.add("click", e => {
                 if (drawing || editingParkingId) {
-                    points.push (drawing || editingParkingId) {
                     points.push(e.get("coords"));
-                    if (tempPolygon)(e.get("coords"));
                     if (tempPolygon) map.geoObjects.remove(tempPolygon);
-                    tempPolygon = map.geoObjects.remove(tempPolygon);
                     tempPolygon = new ymaps.Polygon([points], {}, {
-                        new ymaps.Polygon([points], {}, {
                         fillColor: "#007AFF",
-                        fillOpacity fillColor: "#007AFF",
                         fillOpacity: 0.3,
-                        strokeColor: "#: 0.3,
                         strokeColor: "#007AFF",
-                        strokeWidth: 007AFF",
                         strokeWidth: 3
-                    });
-                    map.geoObjects.add3
                     });
                     map.geoObjects.add(tempPolygon);
                 }
             });
 
-            //(tempPolygon);
-                }
-            });
-
             // Кнопка добавления
-            document.getElementById("addBtn Кнопка добавления
             document.getElementById("addBtn").onclick = function() {
-                if (!currentUser)").onclick = function() {
                 if (!currentUser) {
-                    showToast('Сначала войдите');
-                    {
                     showToast('Сначала войдите');
                     showPanel('profile');
                     return;
-                } showPanel('profile');
-                    return;
                 }
-                if (editingParkingId) {
-                    finish
                 if (editingParkingId) {
                     finishEditingShape();
                     return;
                 }
-               EditingShape();
-                    return;
-                }
                 if (drawing) {
                     finishDrawing();
-                    if (drawing) {
-                    finishDrawing();
                     return;
-                }
-                drawing = true; return;
                 }
                 drawing = true;
                 points = [];
-                this.classList.add('drawing
-                points = [];
                 this.classList.add('drawing');
                 this.textContent = '✕';
-               ');
-                this.textContent = '✕';
                 showToast('Нажмите на карту');
-            }; showToast('Нажмите на карту');
             };
 
             // Загружаем пользователя
-            const saved =
-
-            // Загружаем пользователя
             const saved = localStorage.getItem('tgUser');
-            if (saved) localStorage.getItem('tgUser');
             if (saved) currentUser = JSON.parse(saved);
 
             // Загружаем парковки
@@ -684,14 +280,17 @@ Data = {};
             loadHomes();
         }
 
-        function finishDrawing() {
-            drawing = false;
-            const btn = document.getElementById("addBtn");
-            btn.classList currentUser = JSON.parse(saved);
-
-            // Загружаем парковки
-            loadParkings();
-            loadHomes();
+        // Ждем когда Яндекс Карты загрузятся
+        if (typeof ymaps !== 'undefined') {
+            ymaps.ready(initMap);
+        } else {
+            window.addEventListener('load', () => {
+                if (typeof ymaps !== 'undefined') {
+                    ymaps.ready(initMap);
+                } else {
+                    showToast('Ошибка загрузки карты');
+                }
+            });
         }
 
         function finishDrawing() {
@@ -706,69 +305,33 @@ Data = {};
                 return;
             }
 
-            const name = prompt("Название:") || "Пар.remove('drawing');
-            btn.textContent = '+';
-
-            if (points.length < 3) {
-                showToast('Минимум 3 точки');
-                if (tempPolygon) map.geoObjects.remove(tempPolygon);
-                return;
-            }
-
             const name = prompt("Название:") || "Парковка";
-            const places = prompt("Количество местковка";
             const places = prompt("Количество мест:") || "0";
 
             const parking = {
-:") || "0";
-
-            const parking = {
                 name: name,
-                places: Number(                name: name,
                 places: Number(places),
-                coordinates: points,
-                owner:places),
                 coordinates: points,
                 owner: currentUser.id,
                 ownerName: currentUser.firstName,
- currentUser.id,
-                ownerName: currentUser.firstName,
                 created: new Date().toISOString(),
-                status:                created: new Date().toISOString(),
                 status: 'unknown'
             };
 
-            const id = 'unknown'
-            };
-
-            const id = firebase.database().ref("parkings").push().key; firebase.database().ref("parkings").push().key;
-            firebase.database().ref("parkings/" + id).set(parking).then(() => {
-                showToast('Сохранено!');
-                if (tempPolygon) map.geoObjects.remove(tempPolygon);
-               
-            firebase.database().ref("parkings/" + id).set(parking).then(() => {
+            const id = database.ref("parkings").push().key;
+            database.ref("parkings/" + id).set(parking).then(() => {
                 showToast('Сохранено!');
                 if (tempPolygon) map.geoObjects.remove(tempPolygon);
                 loadParkings();
             });
         }
 
-        loadParkings();
-            });
-        }
-
         function startEditingShape(id) {
-            editingParkingId function startEditingShape(id) {
             editingParkingId = id;
-            const p = parkingsData[id = id;
             const p = parkingsData[id];
             points = [...p.coordinates];
-            load];
-            points = [...p.coordinates];
             loadParkings();
-            if (tempPolygon) mapParkings();
             if (tempPolygon) map.geoObjects.remove(tempPolygon);
-            tempPolygon = new.geoObjects.remove(tempPolygon);
             tempPolygon = new ymaps.Polygon([points], {}, {
                 fillColor: "#007AFF",
                 fillOpacity: 0.3,
@@ -777,11 +340,7 @@ Data = {};
             });
             map.geoObjects.add(tempPolygon);
 
-            const btn = document.getElementById("add ymaps.Polygon([points], {}, {
-                fillColor: "#007AFF",
-                fillOpacity: 0.3,
-                strokeColor: "#007AFF",
-                strokeWidth:Btn");
+            const btn = document.getElementById("addBtn");
             btn.classList.add('drawing');
             btn.textContent = '💾';
             closeModal();
@@ -796,7 +355,7 @@ Data = {};
                 return;
             }
 
-            firebase.database().ref("parkings/" + editingParkingId).update({
+            database.ref("parkings/" + editingParkingId).update({
                 coordinates: points
             }).then(() => {
                 showToast('Обновлено!');
@@ -814,7 +373,7 @@ Data = {};
         }
 
         function loadParkings() {
-            firebase.database().ref("parkings").on("value", snap => {
+            database.ref("parkings").on("value", snap => {
                 const data = snap.val();
                 if (data) {
                     parkingsData = data;
@@ -860,7 +419,7 @@ Data = {};
         }
 
         function updateField(id, field, val) {
-            firebase.database().ref("parkings/" + id + "/" + field).set(val).then(() => {
+            database.ref("parkings/" + id + "/" + field).set(val).then(() => {
                 showToast('Обновлено');
                 loadParkings();
                 closeModal();
@@ -871,60 +430,7 @@ Data = {};
             if (!e || e.target.id === 'modal') {
                 document.getElementById('modal').classList.remove('active');
                 if (editingParkingId) cancelEditing();
- 3
-            });
-            map.geoObjects.add(tempPolygon);
-
-            const btn = document.getElementById("addBtn");
-            btn.classList.add('drawing');
-            btn.textContent = '💾';
-            closeModal();
-            showToast('Кликайте для новой фигуры');
-        }
-
-        function finishEditingShape() {
-            if (!editingParkingId) return;
-            if (points.length < 3) {
-                showToast('Минимум 3 точки');
-                cancelEditing();
-                return;
             }
-
-            firebase.database().ref("parkings/" + editingParkingId).update({
-                coordinates: points
-            }).then(() => {
-                showToast('Обновлено!');
-                cancelEditing();
-            });
-        }
-
-        function cancelEditing() {
-            editingParkingId = null;
-            if (tempPolygon) map.geoObjects.remove(tempPolygon);
-            loadParkings();
-            const btn = document.getElementById("addBtn");
-            btn.classList.remove('drawing');
-            btn.textContent = '+';
-        }
-
-        function loadParkings() {
-            firebase.database().ref("parkings").on("value", snap => {
-                const data = snap.val();
-                if (data) {
-                    parkingsData = data;
-                    map.geoObjects.removeAll();
-                    Object.keys(data).forEach(id => {
-                        const p = data[id];
-                        const color = p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF';
-                        const poly = new ymaps.Polygon([p.coordinates], {
-                            hintContent: p.name
-                        }, {
-                            fillColor: color,
-                            fillOpacity: 0.4,
-                            strokeColor: color,
-                            strokeWidth: 3
-                        });
-                        poly.events.add('click', ()            }
         }
 
         function showMyLocation() {
@@ -934,216 +440,83 @@ Data = {};
                     if (map) {
                         map.setCenter(coords, 14);
                         map.geoObjects.add(new ymaps.Placemark(coords, {
- => showParkingModal(id, p));
-                        map.geoObjects.add(poly);
-                    });
-                }
-            });
-        }
-
-        function showParkingModal(id, p) {
-            if (editingParkingId && editingParkingId !== id) {
-                showToast('Завершите редактирование');
-                return;
-            }
-            document.getElementById('modalBody').innerHTML = '<div class="modal-title">🅿️ ' + p.name + '</div>' +
-                '<input type="number" class="modal-input" id="editPlaces" value="' + p.places + '" placeholder="Мест">' +
-                '<div class="status-selector">' +
-                    '<button class="status-btn free ' + (p.status === 'free' ? 'selected' : '') + '" onclick="updateField(\'' + id + '\',\'status\',\'free\')">✅ Свободно</button>' +
-                    '<button class="status-btn busy ' + (p.status === 'busy' ? 'selected' : '') + '" onclick="updateField(\'' + id + '\',\'status\',\'busy\')">❌ Занято</button>' +
-                    '<button class="status-btn unknown ' + (p.status === 'unknown' ? 'selected' : '') + '" onclick="updateField(\'' + id + '\',\'status\',\'unknown\')"> Неизв.</button>' +
-                '</div>' +
-                '<div class="modal-actions">' +
-                    '<button class="modal-btn modal-btn-secondary" onclick="startEditingShape(\'' + id + '\')">📝 Фигуру</button>' +
-                    '<button class="modal-btn modal-btn-primary" onclick="updateField(\'' + id + '\',\'places\',Number(document.getElementById(\'editPlaces\').value))">💾 Сохранить</button>' +
-                '</div>' +
-                '<div class="modal-actions">' +
-                    '<button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>' +
-                '</div>';
-            document.getElementById('modal').classList.add('active');
-        }
-
-        function updateField(id, field, val) {
-            firebase.database().ref("parkings/" + id + "/" + field).set(val).then(() => {
-                showToast('Обновлено');
-                loadParkings();
-                closeModal();
-            });
-        }
-
-        function closeModal(e) {
-            if (!e || e.target.id === 'modal') {
-                document.getElementById('modal').classList.remove('active');
-                if (editingParkingId) cancelEditing();
-            }
-        }
-
-        function showMyLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                            hintContent: 'Вы здесь'
-                        }, {                    const coords = [pos.coords.latitude, pos.coords.longitude];
-                    if (map) {
-                        map.setCenter(coords, 14);
-                        map.geoObjects.add(new ymaps.Placemark(coords, {
                             hintContent: 'Вы здесь'
                         }, {
                             preset: 'islands#blueCircleIcon'
-                            preset: 'islands#blueCircleIcon'
-                        }));
-                        showToast('📍 Ваше
                         }));
                         showToast('📍 Ваше место');
                     }
-                }, () место');
-                    }
                 }, () => showToast('❌ Нет GPS'));
-            }
- => showToast('❌ Нет GPS'));
             }
         }
 
         function showPanel(type) {
-                   }
-
-        function showPanel(type) {
             document.getElementById('panel').classList.add('active');
-            document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = type === 'history document.getElementById('panelTitle').textContent = type === 'history' ? 'История' : type === 'favorites' ? 'История' : type === 'favorites' ? 'Избранное' : 'Профиль';' ? 'Избранное' : 'Профиль';
-
-            const content = document.getElementById('panelContent');
-
-
+            document.getElementById('panelTitle').textContent = type === 'history' ? 'История' : type === 'favorites' ? 'Избранное' : 'Профиль';
 
             const content = document.getElementById('panelContent');
 
             if (type === 'profile') {
-                if            if (type === 'profile') {
                 if (!currentUser) {
-                    content.innerHTML = '<div style (!currentUser) {
-                    content.innerHTML = '<div style="text-align:center; padding:40px 2="text-align:center; padding:40px 20px;">' +
-                        '<div style="font0px;">' +
-                        '<div style="font-size:60px; margin-bottom:2-size:60px; margin-bottom:20px;">👤</div>' +
-                       0px;">👤</div>' +
-                        '<div style="font-size:18px; font '<div style="font-size:18px; font-weight:600; margin-bottom:20px-weight:600; margin-bottom:20px;">Вход через Telegram</div>' +
-                        '<;">Вход через Telegram</div>' +
-                        '<button class="login-btn" onclick="loginWithTelegram()">button class="login-btn" onclick="loginWithTelegram()">Войти через Telegram</button>' +
+                    content.innerHTML = '<div style="text-align:center; padding:40px 20px;">' +
+                        '<div style="font-size:60px; margin-bottom:20px;"></div>' +
+                        '<div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход через Telegram</div>' +
+                        '<button class="login-btn" onclick="loginWithTelegram()">Войти через Telegram</button>' +
                     '</div>';
                 } else {
-                    const myPВойти через Telegram</button>' +
-                    '</div>';
-                } else {
-                    const myP = Object.values(parkingsData).filter(p => p = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
-                    const free =.owner === currentUser.id);
+                    const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
                     const free = myP.filter(p => p.status === 'free').length;
-                    const busy = myP.filter(p => myP.filter(p => p.status === 'free').length;
                     const busy = myP.filter(p => p.status === 'busy').length;
 
-                    content.innerHTML p.status === 'busy').length;
-
                     content.innerHTML = '<div style="text-align:center; padding:20px;">' +
-                        '<div style="font-size:18px; font-weight:700;">' + currentUser.firstName + '</div>' + = '<div style="text-align:center; padding:20px;">' +
                         '<div style="font-size:18px; font-weight:700;">' + currentUser.firstName + '</div>' +
-                        '<div style="color:#8E8E
-                        '<div style="color:#8E8E93;">@' + currentUser.username + '</div>'93;">@' + currentUser.username + '</div>' +
-                    '</div>' +
-                    '<div class +
+                        '<div style="color:#8E8E93;">@' + currentUser.username + '</div>' +
                     '</div>' +
                     '<div class="theme-toggle">' +
-                        '<span>="theme-toggle">' +
                         '<span> Темная тема</span>' +
-                        '<label Темная тема</span>' +
-                        '<label class="switch"><input type="checkbox" onchange="toggle class="switch"><input type="checkbox" onchange="toggleTheme()"><span class="slider"></span></label>'Theme()"><span class="slider"></span></label>' +
-                    '</div>' +
-                    '<div class +
+                        '<label class="switch"><input type="checkbox" onchange="toggleTheme()"><span class="slider"></span></label>' +
                     '</div>' +
                     '<div class="stats-grid">' +
-                        '<div class="stat="stats-grid">' +
-                        '<div class="stat-card"><div class="stat-number">' + myP.length-card"><div class="stat-number">' + myP.length + '</div><div class="stat-label">Пар + '</div><div class="stat-label">Парковок</div></div>' +
-                        '<divковок</div></div>' +
-                        '<div class="stat-card"><div class="stat-number">' + class="stat-card"><div class="stat-number">' + free + '</div><div class="stat-label">С free + '</div><div class="stat-label">Свободно</div></div>' +
-                       вободно</div></div>' +
-                        '<div class="stat-card"><div class="stat-number '<div class="stat-card"><div class="stat-number">' + busy + '</div><div class="stat-label">' + busy + '</div><div class="stat-label">Занято</div></div>' +
-                   ">Занято</div></div>' +
+                        '<div class="stat-card"><div class="stat-number">' + myP.length + '</div><div class="stat-label">Парковок</div></div>' +
+                        '<div class="stat-card"><div class="stat-number">' + free + '</div><div class="stat-label">Свободно</div></div>' +
+                        '<div class="stat-card"><div class="stat-number">' + busy + '</div><div class="stat-label">Занято</div></div>' +
                     '</div>' +
-                    '<button onclick="logout()" '</div>' +
-                    '<button onclick="logout()" style="width:100%; padding:14 style="width:100%; padding:14px; background:transparent; color:#FF3B3px; background:transparent; color:#FF3B30; border:1px solid #FF3B30; border:1px solid #FF3B30; border-radius:12px; font-weight:0; border-radius:12px; font-weight:600; cursor:pointer;">🚪 Вый600; cursor:pointer;">🚪 Выйти</button>';
-                }
-            }ти</button>';
+                    '<button onclick="logout()" style="width:100%; padding:14px; background:transparent; color:#FF3B30; border:1px solid #FF3B30; border-radius:12px; font-weight:600; cursor:pointer;">🚪 Выйти</button>';
                 }
             } else if (type === 'history') {
-                if else if (type === 'history') {
                 if (!currentUser) {
-                    content.innerHTML = '<div style (!currentUser) {
-                    content.innerHTML = '<div style="text-align:center; padding:40px; color="text-align:center; padding:40px; color:#8E8E93;">Войдите</div>';
+                    content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E93;">Войдите</div>';
                 } else {
                     const list = Object.keys(parkingsData)
-                        .filter:#8E8E93;">Войдите</div>';
-                } else {
-                    const list = Object.keys(parkingsData)
-                        .filter(id => parkingsData[id].owner === currentUser.id)(id => parkingsData[id].owner === currentUser.id)
-                        .map(id => parkingsData[id]);
+                        .filter(id => parkingsData[id].owner === currentUser.id)
                         .map(id => parkingsData[id]);
 
                     if (list.length === 0) {
-
-
-                    if (list.length === 0) {
-                        content.innerHTML = '<div style="text-align:center;                        content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E padding:40px; color:#8E8E93;">Пусто</div>';
-                    }93;">Пусто</div>';
+                        content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E93;">Пусто</div>';
                     } else {
-                        content.innerHTML = '<div class="ios else {
                         content.innerHTML = '<div class="ios-list">' + list.map(p =>
-                            '<div class-list">' + list.map(p =>
-                            '<div class="ios-list-item" onclick=\'showParkingModal("'="ios-list-item" onclick=\'showParkingModal("' + Object.keys(parkingsData).find(k + Object.keys(parkingsData).find(k => parkingsData[k] === p) + => parkingsData[k] === p) + '", parkingsData["' + Object.keys(parkings '", parkingsData["' + Object.keys(parkingsData).find(k => parkingsData[k] ===Data).find(k => parkingsData[k] === p) + '"])\'>' +
-                                p) + '"])\'>' +
-                                '<div class="list-icon" style="background:' '<div class="list-icon" style="background:' + (p.status === 'free' ? '#34 + (p.status === 'free' ? '#34C759' : p.status === 'busy'C759' : p.status === 'busy' ? '#FF3B30' : '#00 ? '#FF3B30' : '#007AFF') + '"></div>' +
-                                '<7AFF') + '"></div>' +
+                            '<div class="ios-list-item">' +
+                                '<div class="list-icon" style="background:' + (p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF') + '"></div>' +
                                 '<div class="list-content">' +
-                                    '<div class="list-content">' +
-                                    '<div class="list-title">' + p.name + '</divdiv class="list-title">' + p.name + '</div>' +
-                                    '<div class="list-subtitle">>' +
-                                    '<div class="list-subtitle">Мест: ' + p.places + '</div>' +Мест: ' + p.places + '</div>' +
+                                    '<div class="list-title">' + p.name + '</div>' +
+                                    '<div class="list-subtitle">Мест: ' + p.places + '</div>' +
                                 '</div>' +
                             '</div>'
-
-                                '</div>' +
-                            '</div>'
-                        ).join('') + '</div>';                        ).join('') + '</div>';
-                    }
-                }
-            } else {
-                if (!myHomes.length) {
-                    content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E93;">🏠 Нет домов</
+                        ).join('') + '</div>';
                     }
                 }
             } else {
                 if (!myHomes.length) {
                     content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E93;">🏠 Нет домов</div>';
                 } else {
-                    content.innerHTML =div>';
-                } else {
-                    content.innerHTML = '<div class="ios-list">' + myHomes.map '<div class="ios-list">' + myHomes.map(h =>
-                        '<div class="ios-list-item(h =>
+                    content.innerHTML = '<div class="ios-list">' + myHomes.map(h =>
                         '<div class="ios-list-item">' +
-                            '<div class="list-icon" style">' +
-                            '<div class="list-icon" style="background:#FF9500;">🏠="background:#FF9500;">🏠</div>' +
-                            '<div class="list-content</div>' +
+                            '<div class="list-icon" style="background:#FF9500;"></div>' +
                             '<div class="list-content">' +
-                                '<div class="list-title">' +">' +
                                 '<div class="list-title">' + h.address + '</div>' +
-                            '</div>' h.address + '</div>' +
                             '</div>' +
                         '</div>'
-                    ).join('') +
-                        '</div>'
                     ).join('') + '</div>';
-                }
-            }
-        }
-
-        function closePanel() {
-            document.getElementById + '</div>';
                 }
             }
         }
@@ -1152,48 +525,22 @@ Data = {};
             document.getElementById('panel').classList.remove('active');
         }
 
-('panel').classList.remove('active');
-        }
-
         function showMap() {
             closePanel();
-        function showMap() {
-            closePanel();
-            document.querySelectorAll('.tab').forEach(t => t            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('.tab:first.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
         }
 
-       -child').classList.add('active');
-        }
-
         function loginWithTelegram() {
-            const username = prompt function loginWithTelegram() {
             const username = prompt('Введите ваш Telegram username (без @):');
-('Введите ваш Telegram username (без @):');
             if (username && username.trim()) {
-                const            if (username && username.trim()) {
-                const firstName = prompt('Ваше имя:') || 'П firstName = prompt('Ваше имя:') || 'Пользователь';
-                currentUser = {
-                    idользователь';
+                const firstName = prompt('Ваше имя:') || 'Пользователь';
                 currentUser = {
                     id: 'tg_' + Date.now(),
-                    username:: 'tg_' + Date.now(),
                     username: username.replace('@', ''),
                     firstName: firstName
-                username.replace('@', ''),
-                    firstName: firstName
                 };
-                firebase.database().ref('users/' + currentUser };
-                firebase.database().ref('users/' + currentUser.id).set(currentUser);
-                localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                showToast('Добро пожаловать, ' + firstName + '!');
-                showPanel('profile');
-            }
-        }
-
-        function logout() {
-            currentUser = null;.id).set(currentUser);
+                database.ref('users/' + currentUser.id).set(currentUser);
                 localStorage.setItem('tgUser', JSON.stringify(currentUser));
                 showToast('Добро пожаловать, ' + firstName + '!');
                 showPanel('profile');
@@ -1203,42 +550,22 @@ Data = {};
         function logout() {
             currentUser = null;
             localStorage.removeItem('tgUser');
-            showToast('
-            localStorage.removeItem('tgUser');
             showToast('Вы вышли');
-            showPanel('profile');
-       Вы вышли');
             showPanel('profile');
         }
 
         function loadHomes() {
             if (!currentUser) return;
-            firebase.database().ref('homes/' + currentUser.id).on("value", snap => }
-
-        function loadHomes() {
-            if (!currentUser) return;
-            firebase.database().ref('homes/' + currentUser.id).on("value", snap => {
-                const d = snap.val();
-                my {
+            database.ref('homes/' + currentUser.id).on("value", snap => {
                 const d = snap.val();
                 myHomes = d ? Object.values(d) : [];
-Homes = d ? Object.values(d) : [];
             });
         }
 
-        function toggleTheme() {            });
-        }
-
         function toggleTheme() {
-            document.body.style.background = document.body.style
-            document.body.style.background = document.body.style.background === 'rgb(0, 0, .background === 'rgb(0, 0, 0)' ? '#F2F2F7' :0)' ? '#F2F2F7' : '#000';
-            document.body.style.color = '#000';
-            document.body.style.color = document.body.style.color === 'rgb(255, document.body.style.color === 'rgb(255, 255, 255)' ? '# 255, 255)' ? '#000' : '#fff';
-        }
-000' : '#fff';
+            document.body.style.background = document.body.style.background === 'rgb(0, 0, 0)' ? '#F2F2F7' : '#000';
+            document.body.style.color = document.body.style.color === 'rgb(255, 255, 255)' ? '#000' : '#fff';
         }
     </script>
-</body>
-</html>    </script>
 </body>
 </html>
