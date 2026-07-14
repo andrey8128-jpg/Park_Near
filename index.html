@@ -28,6 +28,19 @@
         
         #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; background: #E5E5EA; }
         
+        /* Кнопка геолокации (новая) */
+        #geoBtn {
+            position: fixed; bottom: 170px; right: 20px; z-index: 900;
+            width: 48px; height: 48px; border-radius: 50%;
+            background: #fff; color: #007AFF; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s, background 0.2s;
+        }
+        #geoBtn:active { transform: scale(0.9); background: #F2F2F7; }
+        #geoBtn svg { width: 24px; height: 24px; fill: #007AFF; }
+
+        /* Кнопка добавления */
         #addBtn {
             position: fixed; bottom: 100px; right: 20px; z-index: 900;
             width: 56px; height: 56px; border-radius: 50%;
@@ -141,7 +154,13 @@
     </div>
     
     <div id="map"></div>
-    <button id="addBtn">+</button>
+    
+    <!-- Новая кнопка геолокации -->
+    <button id="geoBtn" title="Моё местоположение">
+        <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+    </button>
+    
+    <button id="addBtn" title="Добавить парковку">+</button>
 
     <div class="panel" id="panel">
         <div class="panel-header">
@@ -171,7 +190,7 @@
         });
         const database = firebase.database();
         
-        let map, currentUser = null, mapMarkers = {};
+        let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
 
         // 2. Инициализация Telegram Web App и авторизации
         function initAuth() {
@@ -199,7 +218,7 @@
             }
         }
 
-        // 3. Инициализация Карты (ИСПРАВЛЕНО)
+        // 3. Инициализация Карты
         function initMap() {
             map = new ymaps.Map("map", {
                 center: [55.7558, 37.6173],
@@ -208,13 +227,13 @@
                 type: 'yandex#map'
             });
             
-            // ДОБАВЛЕНО: Тестовый маркер, чтобы вы сразу увидели, что карта работает
+            // Тестовый маркер
             const testPlacemark = new ymaps.Placemark([55.7558, 37.6173], {
-                balloonContent: '<strong>Тестовая парковка</strong><br>Если вы это видите, карта работает корректно!'
+                balloonContent: '<strong>Тестовая парковка</strong><br>Если вы это видите, карта работает!'
             }, { preset: 'islands#redDotIcon' });
             map.geoObjects.add(testPlacemark);
 
-            // ИСПРАВЛЕНО: Обработчик кнопки вешается ТОЛЬКО после создания карты
+            // Обработчик кнопки добавления
             document.getElementById('addBtn').onclick = function() {
                 if (!currentUser) {
                     showPanel('profile');
@@ -222,6 +241,50 @@
                 }
                 const center = map.getCenter();
                 openAddPanel(center);
+            };
+
+            // 🌟 НОВЫЙ ОБРАБОТЧИК: Кнопка геолокации
+            document.getElementById('geoBtn').onclick = function() {
+                if (!map) return;
+                
+                // Меняем иконку на спиннер во время поиска
+                const btn = document.getElementById('geoBtn');
+                const originalContent = btn.innerHTML;
+                btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
+                
+                ymaps.geolocation.get({
+                    provider: 'browser',
+                    mapStateAutoApply: true
+                }).then(function (result) {
+                    // Возвращаем иконку
+                    btn.innerHTML = originalContent;
+                    
+                    // Удаляем старую метку, если она была
+                    if (myLocationPlacemark) {
+                        map.geoObjects.remove(myLocationPlacemark);
+                    }
+                    
+                    // Получаем объект с геопозицией
+                    myLocationPlacemark = result.geoObjects.get(0);
+                    
+                    // Настраиваем внешний вид метки "Вы здесь"
+                    myLocationPlacemark.options.set('preset', 'islands#blueCircleDotIconWithCaption');
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    
+                    // Добавляем на карту
+                    map.geoObjects.add(myLocationPlacemark);
+                    
+                    // Плавно приближаем карту к пользователю
+                    map.setBounds(myLocationPlacemark.properties.get('boundedBy'), {
+                        checkZoomRange: true,
+                        duration: 500 // плавная анимация 0.5 сек
+                    });
+                    
+                }).catch(function (err) {
+                    btn.innerHTML = originalContent;
+                    console.error("Ошибка геолокации:", err);
+                    alert('Не удалось определить местоположение. Пожалуйста, разрешите доступ к геоданным в настройках браузера/телефона.');
+                });
             };
 
             loadAllParkings();
@@ -271,7 +334,7 @@
 
             const newRef = database.ref('parkings').push();
             const parkingData = {
-                lat: parseFloat(lat), // ИСПРАВЛЕНО: гарантируем числовой тип
+                lat: parseFloat(lat),
                 lng: parseFloat(lng),
                 name: name,
                 desc: desc,
@@ -302,11 +365,10 @@
             });
         }
 
-        // 5. Работа с маркерами на карте (ИСПРАВЛЕНО: добавлена обработка ошибок)
+        // 5. Работа с маркерами на карте
         function loadAllParkings() {
             database.ref('parkings').once('value')
                 .then(snapshot => {
-                    console.log("Данные из Firebase:", snapshot.val()); // Для отладки в консоли браузера
                     const data = snapshot.val();
                     if (data) {
                         Object.keys(data).forEach(key => {
@@ -315,13 +377,10 @@
                                 addMarkerToMap(key, p);
                             }
                         });
-                    } else {
-                        console.log("База данных пуста (это нормально для нового проекта).");
                     }
                 })
                 .catch(error => {
                     console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
-                    alert("Нет доступа к базе данных. См. инструкцию ниже по изменению правил Firebase.");
                 });
         }
 
