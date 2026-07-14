@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Park Near</title>
     
-    <!-- Яндекс Карты -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -41,25 +39,13 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* Карта с отступом снизу */
+        /* Карта на весь экран без отступов */
         #map { 
             width: 100%; 
             height: 100%; 
             position: absolute; 
             top: 0; 
             left: 0; 
-            z-index: 1;
-            /* Добавляем отступ снизу чтобы панель не перекрывала карту */
-            padding-bottom: calc(83px + env(safe-area-inset-bottom));
-        }
-        
-        /* Контейнер для карты чтобы масштабирование работало правильно */
-        .map-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: calc(83px + env(safe-area-inset-bottom));
             z-index: 1;
         }
 
@@ -85,7 +71,7 @@
         .map-type-option.active { background: #007AFF; color: white; }
 
         #addBtn { 
-            position: absolute; bottom: calc(100px + env(safe-area-inset-bottom)); right: 20px; z-index: 900; 
+            position: absolute; bottom: 100px; right: 20px; z-index: 900; 
             width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white; 
             border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,122,255,0.4); 
             display: flex; align-items: center; justify-content: center; transition: all 0.3s; 
@@ -186,10 +172,8 @@
 </head>
 <body>
 
-    <!-- Контейнер карты с правильным отступом -->
-    <div class="map-container">
-        <div id="map"></div>
-    </div>
+    <!-- Карта на весь экран -->
+    <div id="map"></div>
 
     <div class="floating-controls">
         <button class="control-btn" onclick="showMyLocation()">📍</button>
@@ -215,7 +199,7 @@
 
     <div id="tabBar">
         <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon"></div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
         <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
     </div>
@@ -291,18 +275,14 @@
         function loadTelegramWidget() {
             const container = document.getElementById('telegram-widget-direct');
             if (!container) return;
-            
             container.innerHTML = '';
-            
             const widgetDiv = document.createElement('div');
             widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
             widgetDiv.setAttribute('data-size', 'large');
             widgetDiv.setAttribute('data-radius', '10');
             widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
             widgetDiv.setAttribute('data-request-access', 'write');
-            
             container.appendChild(widgetDiv);
-            
             const script = document.createElement('script');
             script.src = 'https://telegram.org/js/telegram-widget.js?22';
             script.async = true;
@@ -320,7 +300,6 @@
                 authDate: new Date().toISOString(),
                 hash: user.hash 
             };
-
             database.ref('users/' + userData.id).set(userData)
                 .then(() => {
                     currentUser = userData;
@@ -341,7 +320,13 @@
         ymaps.ready(initMap);
 
         function initMap() {
-            map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 13, controls: [] });
+            // Создаём карту с отступом снизу для элементов управления
+            map = new ymaps.Map("map", { 
+                center: [55.7558, 37.6173], 
+                zoom: 13, 
+                controls: [],
+                margin: [10, 10, 100, 10] // Отступы: [верх, право, низ, лево]
+            });
             
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
@@ -368,9 +353,8 @@
                 if(!currentUser) { showToast('Сначала войдите в профиль'); openList('profile'); return; }
                 if(editingParkingId) { finishEditingShape(); return; }
                 if(drawing) { finishDrawingNew(); return; }
-                
                 drawing = true; points = [];
-                this.classList.add('drawing'); this.textContent = '';
+                this.classList.add('drawing'); this.textContent = '✕';
                 showToast('Нажмите на карту, чтобы поставить точки');
             };
 
@@ -388,7 +372,6 @@
         async function finishDrawingNew() {
             drawing = false; resetAddBtn();
             if(points.length < 3) { showToast('Минимум 3 точки'); if(tempPolygon) map.geoObjects.remove(tempPolygon); return; }
-            
             const center = points.reduce((a,p)=>[a[0]+p[0], a[1]+p[1]], [0,0]).map(c=>c/points.length);
             let autoName = "Новая парковка";
             try {
@@ -400,10 +383,8 @@
                 streetCounters[key]++;
                 autoName = `${String.fromCharCode(97+streetCounters[key]-1)}${streetCounters[key]} ${st} ${hs}`.trim();
             } catch(e){}
-            
             const name = prompt("Название:", autoName) || autoName;
             const places = prompt("Количество мест:") || "0";
-            
             const parking = { 
                 name, places:Number(places), coordinates:points, 
                 owner:currentUser.id, ownerName:currentUser.firstName, 
@@ -425,7 +406,6 @@
             loadParkings();
             if(tempPolygon) map.geoObjects.remove(tempPolygon);
             drawTempPolygon();
-            
             const btn = document.getElementById("addBtn");
             btn.classList.add('drawing'); btn.textContent = '💾';
             closeModal();
@@ -435,7 +415,6 @@
         function finishEditingShape() {
             if(!editingParkingId) return;
             if(points.length < 3) { showToast('Минимум 3 точки'); cancelEditing(); return; }
-            
             const center = points.reduce((a,p)=>[a[0]+p[0], a[1]+p[1]], [0,0]).map(c=>c/points.length);
             database.ref("parkings/"+editingParkingId).update({ coordinates:points, center }).then(() => {
                 showToast('Фигура обновлена!'); cancelEditing();
@@ -561,13 +540,10 @@
             const tabs = ['map', 'history', 'favorites', 'profile'];
             const idx = tabs.indexOf(type);
             if(idx > -1) document.querySelectorAll('.tabItem')[idx].classList.add('active');
-            
             const panel = document.getElementById('fullScreenPanel');
             const title = document.getElementById('panelTitle');
             const content = document.getElementById('panelContent');
-            
             panel.classList.add('active');
-            
             if(type==='history') { title.textContent='История'; renderHistory(content); }
             if(type==='favorites') { title.textContent='Избранное'; renderFavorites(content); }
             if(type==='profile') { title.textContent='Профиль'; renderProfile(content); }
@@ -591,45 +567,18 @@
                     <div style="text-align:center; padding: 20px;">
                         <div style="font-size: 60px; margin-bottom: 20px;">👤</div>
                         <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">Вход в аккаунт</div>
-                        <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 20px;">
-                            Нажмите кнопку ниже,<br>чтобы войти через Telegram
-                        </div>
-                        
-                        <button onclick="openTelegramDirectly()" style="
-                            background: #0088cc; 
-                            color: white; 
-                            border: none; 
-                            padding: 14px 24px; 
-                            border-radius: 12px; 
-                            font-size: 16px; 
-                            font-weight: 600; 
-                            cursor: pointer; 
-                            display: inline-flex; 
-                            align-items: center; 
-                            justify-content: center; 
-                            gap: 10px; 
-                            width: 100%; 
-                            max-width: 280px;
-                            margin-bottom: 20px;
-                            box-shadow: 0 4px 12px rgba(0,136,204,0.3);
-                        ">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
-                            </svg>
+                        <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 20px;">Нажмите кнопку ниже,<br>чтобы войти через Telegram</div>
+                        <button onclick="openTelegramDirectly()" style="background: #0088cc; color: white; border: none; padding: 14px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; max-width: 280px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,136,204,0.3);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
                             Открыть Telegram
                         </button>
-                        
                         <div class="telegram-widget-wrapper">
                             <h3>Или войдите через виджет:</h3>
                             <div id="telegram-widget-direct"></div>
                         </div>
-                        
-                        <div style="font-size: 12px; color: var(--secondary-text); margin-top: 15px;">
-                            ️ Если кнопка не появляется,<br>настройте домен в @BotFather
-                        </div>
+                        <div style="font-size: 12px; color: var(--secondary-text); margin-top: 15px;">️ Если кнопка не появляется,<br>настройте домен в @BotFather</div>
                     </div>
                 `;
-                
                 setTimeout(() => loadTelegramWidget(), 100);
                 return;
             }
@@ -644,29 +593,22 @@
                     <div style="font-size:18px;font-weight:700;">${currentUser.firstName}</div>
                     <div style="font-size:14px;color:var(--secondary-text);">@${currentUser.username}</div>
                 </div>
-                
                 <div class="theme-toggle-container">
                     <span class="theme-label">🌙 Темная тема</span>
-                    <label class="switch">
-                        <input type="checkbox" id="themeSwitch" ${currentTheme === 'dark' ? 'checked' : ''} onchange="toggleTheme()">
-                        <span class="slider"></span>
-                    </label>
+                    <label class="switch"><input type="checkbox" id="themeSwitch" ${currentTheme === 'dark' ? 'checked' : ''} onchange="toggleTheme()"><span class="slider"></span></label>
                 </div>
-
                 <div style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статистика</div>
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-number">${myP.length}</div><div class="stat-label">Парковок</div></div>
                     <div class="stat-card"><div class="stat-number">${myP.reduce((s,p)=>s+(p.places||0),0)}</div><div class="stat-label">Мест</div></div>
                     <div class="stat-card"><div class="stat-number">${myHomes.length}</div><div class="stat-label">Домов</div></div>
                 </div>
-                
                 <div style="padding:0 20px 10px;font-size:13px;font-weight:600;color:var(--secondary-text);text-transform:uppercase;">Статусы</div>
                 <div class="stats-grid">
                     <div class="stat-card"><div class="stat-number" style="color:#34C759">${free}</div><div class="stat-label">Свободно</div></div>
                     <div class="stat-card"><div class="stat-number" style="color:#FF3B30">${busy}</div><div class="stat-label">Занято</div></div>
                     <div class="stat-card"><div class="stat-number" style="color:#007AFF">${myP.length-free-busy}</div><div class="stat-label">Неизв.</div></div>
                 </div>
-                
                 <div style="padding: 0 16px; margin-top: 20px;">
                     <button class="logout-btn" onclick="logout()" style="border-radius: 12px; padding: 14px; width: 100%; background: transparent; color: #FF3B30; border: 1px solid #FF3B30; font-weight: 600; cursor: pointer;">🚪 Выйти из аккаунта</button>
                 </div>
