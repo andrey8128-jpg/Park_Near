@@ -260,7 +260,7 @@
         function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
 
         // ============================
-        // АВТОРИЗАЦИЯ
+        // АВТОРИЗАЦИЯ (ИСПРАВЛЕНО ДЛЯ IPHONE)
         // ============================
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
@@ -268,13 +268,15 @@
         });
 
         function loginWithTelegram() {
-            // Открываем бота
-            window.open(`https://t.me/${TELEGRAM_BOT_NAME}?start=login`, '_blank');
+            // 1. Пытаемся открыть приложение Telegram напрямую через системную ссылку
+            window.location.href = `tg://resolve?domain=${TELEGRAM_BOT_NAME}&start=login`;
             
-            // Имитация входа (так как виджет не работает без HTTPS домена)
+            // 2. Если приложение не открылось за 1.5 секунды (пользователь остался в браузере),
+            // то показываем поля для ввода вручную.
             setTimeout(() => {
-                const username = prompt('Введите ваш Telegram username (без @):');
-                if(!username) return;
+                const username = prompt('Если Telegram не открылся, введите ваш username (без @):');
+                if (!username) return;
+                
                 const firstName = prompt('Ваше имя:') || 'Пользователь';
                 
                 const userData = { 
@@ -290,12 +292,12 @@
                     localStorage.setItem('tgUser', JSON.stringify(userData));
                     showToast(`Привет, ${firstName}! 👋`);
                     
-                    // Если мы сейчас в профиле, обновляем его
+                    // Обновляем экран профиля
                     if(document.getElementById('fullScreenPanel').classList.contains('active')) {
                         openList('profile');
                     }
                 });
-            }, 1000);
+            }, 1500);
         }
 
         function logout() {
