@@ -58,7 +58,21 @@
         .app-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
         .app-title span { color: #007AFF; }
         
-        #map { position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; background: #E5E5EA; }
+        #map { 
+            position: fixed; top: 60px; left: 0; right: 0; bottom: 83px; 
+            background: #E5E5EA;
+            transition: filter 0.5s ease;
+        }
+        
+        /* 🌙 ТЁМНАЯ ТЕМА ДЛЯ КАРТЫ */
+        body.dark-theme #map {
+            filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
+        }
+        /* Инвертируем метки обратно, чтобы они оставались цветными */
+        body.dark-theme #map .ymaps-2-1-79-map-pane img,
+        body.dark-theme #map .ymaps-2-1-79-ground-pane img {
+            filter: invert(1) hue-rotate(180deg);
+        }
         
         .map-type-switcher {
             position: fixed; top: 70px; right: 12px; z-index: 900;
@@ -368,7 +382,7 @@
 
     <div class="tabBar">
         <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon"></div><div class="label">История</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
         <div class="tab" onclick="showPanel('profile')"><div class="icon"></div><div class="label">Профиль</div></div>
     </div>
@@ -1022,7 +1036,7 @@
                     </div>
                 </div>
                 
-                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')"> Удалить парковку</button>` : ''}
+                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')">🗑 Удалить парковку</button>` : ''}
                 
                 <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
             `;
@@ -1184,12 +1198,11 @@
                         </div>
                     `;
                     
-                    // Если данные авто есть - показываем свёрнутую версию
                     if (brand && model && plate) {
                         const colorHex = carColors[color] || '#808080';
                         html += `
                             <div class="car-section">
-                                <div class="car-section-title"> Мой автомобиль</div>
+                                <div class="car-section-title">🚗 Мой автомобиль</div>
                                 <div class="car-summary">
                                     <div class="car-summary-info">
                                         <div class="car-summary-title">${brand} ${model}</div>
@@ -1201,7 +1214,6 @@
                             </div>
                         `;
                     } else {
-                        // Показываем форму для заполнения
                         html += `
                             <div class="car-section" id="carEditSection">
                                 <div class="car-section-title">🚗 Мой автомобиль</div>
@@ -1243,7 +1255,7 @@
                             <p style="font-size:14px; color:var(--text-secondary); text-align:center; margin-bottom:20px;">
                                 ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
                             </p>
-                            <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
+                            <button class="btn-danger" onclick="logout()"> Выйти из аккаунта</button>
                         </div>
                     `;
                     
@@ -1252,9 +1264,18 @@
             }
         }
 
+        // 🌙 ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ТЕМЫ С КАРТОЙ
         function toggleTheme() {
             const isDark = document.body.classList.toggle('dark-theme');
             localStorage.setItem('darkTheme', isDark);
+            
+            // Плавное переключение темы карты через CSS-фильтр
+            const mapEl = document.getElementById('map');
+            if (isDark) {
+                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+            } else {
+                mapEl.style.filter = 'none';
+            }
             
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.selectionChanged();
@@ -1372,7 +1393,6 @@
                     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
-                    // После сохранения перерисовываем профиль (покажет свёрнутую версию)
                     renderProfile(document.getElementById('panelContent'));
                 })
                 .catch(err => {
@@ -1385,7 +1405,7 @@
             if (!currentUser) {
                 contentEl.innerHTML = `
                     <div class="empty-state">
-                        <div class="icon"></div>
+                        <div class="icon">🔒</div>
                         <p>Войдите в аккаунт, чтобы видеть ${type === 'favorites' ? 'избранное' : 'историю'}</p>
                         <button class="guest-btn" style="margin-top:20px; max-width:200px; margin-left:auto; margin-right:auto;" onclick="showPanel('profile')">Войти</button>
                     </div>`;
@@ -1398,7 +1418,7 @@
                 if (!data) {
                     contentEl.innerHTML = `
                         <div class="empty-state">
-                            <div class="icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
+                            <div class="icon">${type === 'favorites' ? '⭐' : ''}</div>
                             <p>Здесь пока пусто</p>
                         </div>`;
                     return;
