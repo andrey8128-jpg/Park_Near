@@ -145,6 +145,21 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
 
+        .guest-btn {
+            background: transparent;
+            color: #007AFF;
+            border: 1px solid #007AFF;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+        .guest-btn:active { background: #007AFF; color: #fff; }
+
         .ios-list { background: #fff; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
         body.dark .ios-list { background: #1C1C1E; }
         .ios-list-item {
@@ -354,7 +369,7 @@
 
             document.getElementById("addBtn").onclick = function() {
                 if (!currentUser) {
-                    showToast('Сначала войдите');
+                    showToast('Сначала войдите или продолжите как гость');
                     showPanel('profile');
                     return;
                 }
@@ -584,6 +599,8 @@
                             <div style="font-size:60px; margin-bottom:20px;">👤</div>
                             <div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход через Telegram</div>
                             <div id="telegramWidgetContainer"></div>
+                            <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
+                            <p style="color:#8E8E93; font-size:12px; margin-top:12px;">Гостевые данные могут быть потеряны при очистке кэша</p>
                         </div>
                     `;
                     loadTelegramWidget();
@@ -591,6 +608,7 @@
                     const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
                     const free = myP.filter(p => p.status === 'free').length;
                     const busy = myP.filter(p => p.status === 'busy').length;
+                    const isGuest = currentUser.id.startsWith('guest_');
 
                     content.innerHTML = `
                         <div style="text-align:center; padding:20px;">
@@ -598,7 +616,7 @@
                                 ${currentUser.photoUrl ? `background-image:url(${currentUser.photoUrl}); background-size:cover;` : ''}">
                                 ${currentUser.photoUrl ? '' : getInitials(currentUser.firstName)}
                             </div>
-                            <div style="font-size:18px;font-weight:700;">${currentUser.firstName}</div>
+                            <div style="font-size:18px;font-weight:700;">${currentUser.firstName} ${isGuest ? '(гость)' : ''}</div>
                             <div style="color:#8E8E93;">@${currentUser.username || 'username'}</div>
                         </div>
                         <div class="theme-toggle">
@@ -614,11 +632,12 @@
                             <div class="stat-card"><div class="stat-number">${busy}</div><div class="stat-label">Занято</div></div>
                         </div>
                         <button onclick="logout()" style="width:100%;padding:14px;background:transparent;color:#FF3B30;border:1px solid #FF3B30;border-radius:12px;font-weight:600;cursor:pointer;">🚪 Выйти</button>
+                        ${isGuest ? '<p style="color:#8E8E93; font-size:12px; margin-top:8px;">Вы в гостевом режиме. Войдите через Telegram для сохранения данных.</p>' : ''}
                     `;
                 }
             } else if (type === 'history') {
                 if (!currentUser) {
-                    content.innerHTML = '<div class="empty-state">🔒 Войдите</div>';
+                    content.innerHTML = '<div class="empty-state">🔒 Войдите или станьте гостем</div>';
                 } else {
                     const list = Object.keys(parkingsData)
                         .filter(id => parkingsData[id].owner === currentUser.id)
@@ -664,6 +683,21 @@
             document.querySelector('.tab:first-child').classList.add('active');
         }
 
+        // --- Гостевой режим ---
+        function continueAsGuest() {
+            const guestId = 'guest_' + Date.now();
+            currentUser = {
+                id: guestId,
+                username: 'guest',
+                firstName: 'Гость',
+                photoUrl: ''
+            };
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            showToast('Вы вошли как гость');
+            showPanel('profile');
+        }
+
+        // --- Telegram Login Widget ---
         function loadTelegramWidget() {
             const container = document.getElementById('telegramWidgetContainer');
             if (!container || document.getElementById('telegramScript')) return;
