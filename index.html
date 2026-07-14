@@ -41,10 +41,8 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* Карта занимает ВЕСЬ экран */
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* Плавающие кнопки управления (сверху) */
         .floating-controls { position: absolute; top: 60px; left: 16px; right: 16px; z-index: 900; display: flex; gap: 10px; pointer-events: none; }
         .control-btn { 
             pointer-events: auto;
@@ -66,7 +64,6 @@
         .map-type-option { padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; }
         .map-type-option.active { background: #007AFF; color: white; }
 
-        /* Кнопка добавления / редактирования */
         #addBtn { 
             position: absolute; bottom: 100px; right: 20px; z-index: 900; 
             width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white; 
@@ -75,7 +72,6 @@
         }
         #addBtn.drawing { background: #FF3B30; }
 
-        /* Нижняя панель навигации (поверх карты) */
         #tabBar { 
             position: absolute; bottom: 0; left: 0; right: 0; height: 83px; 
             background: var(--card-bg); z-index: 1001; display: flex; 
@@ -88,7 +84,6 @@
         .tabItem.active .tab-label { color: #007AFF; font-weight: 600; }
         .tabItem.active .tab-icon { transform: scale(1.3); filter: drop-shadow(0 2px 4px rgba(0,122,255,0.3)); }
 
-        /* Полноэкранная панель (Список / Профиль) */
         #fullScreenPanel { 
             position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
             background: var(--bg-color); z-index: 1000; transform: translateY(100%); 
@@ -101,7 +96,6 @@
         .close-panel-btn { color: #007AFF; font-size: 17px; background: none; border: none; cursor: pointer; font-weight: 500; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px 0; }
 
-        /* Списки и карточки */
         .ios-list { background: var(--card-bg); border-radius: 12px; margin: 0 16px 12px; overflow: hidden; }
         .ios-list-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid var(--border-color); cursor: pointer; }
         .list-icon { width: 44px; height: 44px; border-radius: 10px; background: #34C759; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
@@ -112,7 +106,6 @@
         .status-busy { background: #FF3B30 !important; }
         .status-unknown { background: #007AFF !important; }
 
-        /* Модальное окно */
         #modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
         #modal.active { display: flex; }
         .modal-sheet { background: var(--bg-color); border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; animation: slideUp 0.3s; }
@@ -131,7 +124,6 @@
         .modal-btn-primary { background: #007AFF; color: white; }
         .modal-btn-secondary { background: var(--input-bg); color: var(--text-color); }
 
-        /* Переключатель темы */
         .theme-toggle-container { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--card-bg); border-radius: 12px; margin: 0 16px 16px; }
         .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -140,35 +132,26 @@
         input:checked + .slider { background-color: #34C759; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Стили для всплывающего окна входа */
-        #tg-login-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6); z-index: 5000;
-            display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px);
+        /* Стили для виджета Telegram на странице профиля */
+        .telegram-widget-wrapper {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 0 16px 16px;
+            text-align: center;
         }
-        #tg-login-overlay.active { display: flex; }
-        .tg-login-box {
-            background: var(--card-bg); padding: 30px; border-radius: 20px;
-            text-align: center; width: 90%; max-width: 320px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            position: relative;
+        .telegram-widget-wrapper h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: var(--text-color);
         }
-        .tg-close-btn {
-            position: absolute; top: 15px; right: 15px;
-            background: none; border: none; font-size: 24px;
-            color: var(--secondary-text); cursor: pointer;
-        }
-
-        /* НОВЫЕ СТИЛИ ДЛЯ КОНТЕЙНЕРА ВИДЖЕТА */
-        #telegram-widget-container {
+        #telegram-widget-direct {
             min-height: 50px;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-top: 10px;
         }
-        #telegram-widget-container iframe {
+        #telegram-widget-direct iframe {
             border-radius: 10px !important;
             max-width: 100% !important;
         }
@@ -184,10 +167,8 @@
 </head>
 <body>
 
-    <!-- Карта (на заднем плане) -->
     <div id="map"></div>
 
-    <!-- Управление картой (сверху) -->
     <div class="floating-controls">
         <button class="control-btn" onclick="showMyLocation()">📍</button>
         <div style="position:relative;">
@@ -200,10 +181,8 @@
         </div>
     </div>
 
-    <!-- Кнопка добавления / сохранения фигуры -->
     <button id="addBtn">+</button>
 
-    <!-- Полноэкранная панель (для Списков и Профиля) -->
     <div id="fullScreenPanel">
         <div class="panel-header">
             <div class="panel-title" id="panelTitle">Заголовок</div>
@@ -212,15 +191,13 @@
         <div class="panel-content" id="panelContent"></div>
     </div>
 
-    <!-- Нижние иконки навигации -->
     <div id="tabBar">
         <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon"></div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
-        <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
+        <div class="tabItem" onclick="openList('profile')"><div class="tab-icon"></div><div class="tab-label">Профиль</div></div>
     </div>
 
-    <!-- Модальное окно редактирования парковки -->
     <div id="modal" onclick="closeModal(event)">
         <div class="modal-sheet" id="modalContent" onclick="event.stopPropagation()">
             <div class="modal-handle"></div>
@@ -228,24 +205,9 @@
         </div>
     </div>
 
-    <!-- Всплывающее окно для Telegram Login Widget -->
-    <div id="tg-login-overlay" onclick="if(event.target===this) document.getElementById('tg-login-overlay').classList.remove('active')">
-        <div class="tg-login-box">
-            <button class="tg-close-btn" onclick="document.getElementById('tg-login-overlay').classList.remove('active')">×</button>
-            <h3 style="margin-bottom: 20px; font-size: 20px;">Вход через Telegram</h3>
-            <div id="telegram-widget-container"></div>
-            <p style="font-size: 12px; color: var(--secondary-text); margin-top: 15px;">
-                Нажмите кнопку ниже,<br>чтобы подтвердить вход
-            </p>
-        </div>
-    </div>
-
     <div id="toast"></div>
 
     <script>
-        // ============================
-        // КОНФИГУРАЦИЯ
-        // ============================
         const TELEGRAM_BOT_NAME = 'parknear_bot'; 
         const firebaseConfig = {
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
@@ -267,9 +229,6 @@
         let parkingsData = {}, myHomes = [], currentUser = null;
         let streetCounters = {};
 
-        // ============================
-        // ТЕМА И УТИЛИТЫ
-        // ============================
         function initTheme() {
             const saved = localStorage.getItem('appTheme') || 'light';
             document.documentElement.setAttribute('data-theme', saved);
@@ -293,48 +252,50 @@
         }
         function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
         function getStatusColor(s) { return s==='free'?'#34C759':s==='busy'?'#FF3B30':'#007AFF'; }
-        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
+        function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':' Неизвестно'; }
 
         // ============================
-        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM WIDGET (ИСПРАВЛЕНО)
+        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM
         // ============================
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
             if(saved) { currentUser = JSON.parse(saved); }
         });
 
-        function loginWithTelegram() {
-            const overlay = document.getElementById('tg-login-overlay');
-            const container = document.getElementById('telegram-widget-container');
+        // Функция для открытия Telegram напрямую
+        function openTelegramDirectly() {
+            // Открываем бота в приложении Telegram
+            window.location.href = `tg://resolve?domain=${TELEGRAM_BOT_NAME}&start=login`;
             
-            // Очищаем контейнер и показываем статус загрузки
-            container.innerHTML = '<div style="color: var(--secondary-text); font-size: 14px;">Загрузка кнопки...</div>';
-            
-            // Показываем оверлей СРАЗУ
-            overlay.classList.add('active');
-
-            // Небольшая задержка перед созданием виджета (для надежности)
+            // Если через 2 секунды пользователь всё ещё здесь, показываем инструкцию
             setTimeout(() => {
-                container.innerHTML = ''; // Убираем текст "Загрузка..."
-                
-                const widgetDiv = document.createElement('div');
-                widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
-                widgetDiv.setAttribute('data-size', 'large');
-                widgetDiv.setAttribute('data-radius', '10');
-                widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
-                widgetDiv.setAttribute('data-request-access', 'write');
-                
-                container.appendChild(widgetDiv);
-                
-                // Пересоздаем скрипт виджета каждый раз заново
-                const script = document.createElement('script');
-                script.src = 'https://telegram.org/js/telegram-widget.js?22';
-                script.async = true;
-                container.appendChild(script);
-            }, 300);
+                showToast('Если Telegram не открылся, нажмите кнопку ещё раз');
+            }, 2000);
         }
 
-        // Эта функция вызывается ТОЛЬКО когда Telegram подтвердил вход
+        // Функция загрузки виджета Telegram
+        function loadTelegramWidget() {
+            const container = document.getElementById('telegram-widget-direct');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            const widgetDiv = document.createElement('div');
+            widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
+            widgetDiv.setAttribute('data-size', 'large');
+            widgetDiv.setAttribute('data-radius', '10');
+            widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
+            widgetDiv.setAttribute('data-request-access', 'write');
+            
+            container.appendChild(widgetDiv);
+            
+            const script = document.createElement('script');
+            script.src = 'https://telegram.org/js/telegram-widget.js?22';
+            script.async = true;
+            container.appendChild(script);
+        }
+
+        // Вызывается когда Telegram подтвердил вход через виджет
         function onTelegramAuthConfirmed(user) {
             const userData = {
                 id: 'tg_' + user.id,
@@ -351,15 +312,10 @@
                 .then(() => {
                     currentUser = userData;
                     localStorage.setItem('tgUser', JSON.stringify(userData));
-                    
-                    document.getElementById('tg-login-overlay').classList.remove('active');
                     showToast(`Добро пожаловать, ${userData.firstName}! 👋`);
-                    
-                    if(document.getElementById('fullScreenPanel').classList.contains('active')) {
-                        openList('profile');
-                    }
+                    openList('profile');
                 })
-                .catch(err => showToast('Ошибка сохранения: ' + err.message));
+                .catch(err => showToast('Ошибка: ' + err.message));
         }
 
         function logout() {
@@ -526,9 +482,6 @@
             });
         }
 
-        // ============================
-        // МОДАЛЬНОЕ ОКНО
-        // ============================
         function showParkingModal(id, p) {
             if(editingParkingId && editingParkingId !== id) { showToast('Завершите редактирование'); return; }
             document.getElementById('modalBody').innerHTML = `
@@ -562,7 +515,7 @@
             if(!currentUser) return;
             try {
                 const coords = JSON.parse(coordsStr);
-                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast(' Добавлено'); loadHomes(); closeModal(); });
+                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast('🏠 Добавлено'); loadHomes(); closeModal(); });
             } catch(e){}
         }
 
@@ -573,9 +526,6 @@
             } 
         }
 
-        // ============================
-        // СПИСКИ И ПРОФИЛЬ
-        // ============================
         function loadHomes() {
             if(!currentUser) return;
             database.ref(`homes/${currentUser.id}`).on("value", snap => {
@@ -614,34 +564,66 @@
         }
 
         function renderHistory(c) {
-            if(!currentUser) { c.innerHTML='<div class="empty-state"> Войдите через Telegram</div>'; return; }
+            if(!currentUser) { c.innerHTML='<div class="empty-state">🔒 Войдите через Telegram</div>'; return; }
             const list = Object.keys(parkingsData).filter(id=>parkingsData[id].owner===currentUser.id).map(id=>({id,...parkingsData[id]})).sort((a,b)=>new Date(b.created)-new Date(a.created));
             if(!list.length) { c.innerHTML='<div class="empty-state"> Пусто</div>'; return; }
             c.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==="free"?"status-free":p.status==="busy"?"status-busy":"status-unknown"}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
         }
 
         function renderFavorites(c) {
-            if(!myHomes.length) { c.innerHTML='<div class="empty-state"> Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
-            c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;"></div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
+            if(!myHomes.length) { c.innerHTML='<div class="empty-state">🏠 Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
+            c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;">🏠</div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
         }
 
         function renderProfile(container) {
             if (!currentUser) {
                 container.innerHTML = `
-                    <div style="text-align:center; padding: 40px 20px;">
-                        <div style="font-size: 60px; margin-bottom: 20px;"></div>
-                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">Добро пожаловать!</div>
-                        <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 30px;">
-                            Войдите через Telegram,<br>чтобы сохранять парковки<br>и пользоваться всеми функциями
+                    <div style="text-align:center; padding: 20px;">
+                        <div style="font-size: 60px; margin-bottom: 20px;">👤</div>
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">Вход в аккаунт</div>
+                        <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 20px;">
+                            Нажмите кнопку ниже,<br>чтобы войти через Telegram
                         </div>
-                        <button class="tg-login-btn" onclick="loginWithTelegram()" style="max-width: 250px; margin: 0 auto; background: #0088cc; color: white; border: none; padding: 14px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; box-shadow: 0 4px 12px rgba(0,136,204,0.3);">
+                        
+                        <!-- Кнопка прямого открытия Telegram -->
+                        <button onclick="openTelegramDirectly()" style="
+                            background: #0088cc; 
+                            color: white; 
+                            border: none; 
+                            padding: 14px 24px; 
+                            border-radius: 12px; 
+                            font-size: 16px; 
+                            font-weight: 600; 
+                            cursor: pointer; 
+                            display: inline-flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            gap: 10px; 
+                            width: 100%; 
+                            max-width: 280px;
+                            margin-bottom: 20px;
+                            box-shadow: 0 4px 12px rgba(0,136,204,0.3);
+                        ">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
                             </svg>
-                            Войти через Telegram
+                            Открыть Telegram
                         </button>
+                        
+                        <!-- Виджет Telegram (появится если домен настроен) -->
+                        <div class="telegram-widget-wrapper">
+                            <h3>Или войдите через виджет:</h3>
+                            <div id="telegram-widget-direct"></div>
+                        </div>
+                        
+                        <div style="font-size: 12px; color: var(--secondary-text); margin-top: 15px;">
+                            ️ Если кнопка не появляется,<br>настройте домен в @BotFather
+                        </div>
                     </div>
                 `;
+                
+                // Загружаем виджет после рендера
+                setTimeout(() => loadTelegramWidget(), 100);
                 return;
             }
 
