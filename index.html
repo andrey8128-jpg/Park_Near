@@ -160,6 +160,19 @@
             color: var(--secondary-text); cursor: pointer;
         }
 
+        /* НОВЫЕ СТИЛИ ДЛЯ КОНТЕЙНЕРА ВИДЖЕТА */
+        #telegram-widget-container {
+            min-height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        #telegram-widget-container iframe {
+            border-radius: 10px !important;
+            max-width: 100% !important;
+        }
+
         #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; z-index: 3000; transition: transform 0.3s; }
         #toast.show { transform: translateX(-50%) translateY(0); }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--secondary-text); }
@@ -283,7 +296,7 @@
         function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
 
         // ============================
-        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM WIDGET
+        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM WIDGET (ИСПРАВЛЕНО)
         // ============================
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
@@ -294,33 +307,35 @@
             const overlay = document.getElementById('tg-login-overlay');
             const container = document.getElementById('telegram-widget-container');
             
-            // Очищаем контейнер перед созданием нового виджета
-            container.innerHTML = '';
+            // Очищаем контейнер и показываем статус загрузки
+            container.innerHTML = '<div style="color: var(--secondary-text); font-size: 14px;">Загрузка кнопки...</div>';
             
-            // Создаем div для виджета
-            const widgetDiv = document.createElement('div');
-            widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
-            widgetDiv.setAttribute('data-size', 'large');
-            widgetDiv.setAttribute('data-radius', '10');
-            widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
-            widgetDiv.setAttribute('data-request-access', 'write');
-            
-            container.appendChild(widgetDiv);
-            
-            // Загружаем скрипт виджета
-            const script = document.createElement('script');
-            script.src = 'https://telegram.org/js/telegram-widget.js?22';
-            script.async = true;
-            container.appendChild(script);
-            
-            // Показываем оверлей
+            // Показываем оверлей СРАЗУ
             overlay.classList.add('active');
+
+            // Небольшая задержка перед созданием виджета (для надежности)
+            setTimeout(() => {
+                container.innerHTML = ''; // Убираем текст "Загрузка..."
+                
+                const widgetDiv = document.createElement('div');
+                widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
+                widgetDiv.setAttribute('data-size', 'large');
+                widgetDiv.setAttribute('data-radius', '10');
+                widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
+                widgetDiv.setAttribute('data-request-access', 'write');
+                
+                container.appendChild(widgetDiv);
+                
+                // Пересоздаем скрипт виджета каждый раз заново
+                const script = document.createElement('script');
+                script.src = 'https://telegram.org/js/telegram-widget.js?22';
+                script.async = true;
+                container.appendChild(script);
+            }, 300);
         }
 
         // Эта функция вызывается ТОЛЬКО когда Telegram подтвердил вход
         function onTelegramAuthConfirmed(user) {
-            // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
-            
             const userData = {
                 id: 'tg_' + user.id,
                 telegramId: user.id,
@@ -332,18 +347,14 @@
                 hash: user.hash 
             };
 
-            // Сохраняем в базу и локально
             database.ref('users/' + userData.id).set(userData)
                 .then(() => {
                     currentUser = userData;
                     localStorage.setItem('tgUser', JSON.stringify(userData));
                     
-                    // Убираем виджет
                     document.getElementById('tg-login-overlay').classList.remove('active');
-                    
                     showToast(`Добро пожаловать, ${userData.firstName}! 👋`);
                     
-                    // Обновляем экран профиля
                     if(document.getElementById('fullScreenPanel').classList.contains('active')) {
                         openList('profile');
                     }
@@ -487,8 +498,8 @@
         function showMyLocation() {
             if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { 
                 map.setCenter([p.coords.latitude, p.coords.longitude], 16); 
-                showToast('📍 Ваше место'); 
-            }, ()=>showToast('❌ Нет GPS'));
+                showToast(' Ваше место'); 
+            }, ()=>showToast(' Нет GPS'));
         }
 
         function loadParkings() {
@@ -605,7 +616,7 @@
         function renderHistory(c) {
             if(!currentUser) { c.innerHTML='<div class="empty-state"> Войдите через Telegram</div>'; return; }
             const list = Object.keys(parkingsData).filter(id=>parkingsData[id].owner===currentUser.id).map(id=>({id,...parkingsData[id]})).sort((a,b)=>new Date(b.created)-new Date(a.created));
-            if(!list.length) { c.innerHTML='<div class="empty-state">📋 Пусто</div>'; return; }
+            if(!list.length) { c.innerHTML='<div class="empty-state"> Пусто</div>'; return; }
             c.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==="free"?"status-free":p.status==="busy"?"status-busy":"status-unknown"}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
         }
 
