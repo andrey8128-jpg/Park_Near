@@ -5,417 +5,1042 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Park Near</title>
 
-    <!-- Скрипты загружаются СИНХРОННО -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
+    <script src>Park Near</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.2="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>2.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebase
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-comjs/9.22.0/firebase-database-compat.js"></script>
+    <script src="httpspat.js"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4apikey=75eb2fa2-7ab4-4322-9fa3-d7-4322-9fa3-d7581badafd2&lang=ru_RU581badafd2&lang=ru_RU"></script>
 
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        *"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+ padding: 0; }
         body { 
             font-family: -apple-system, sans-serif; 
+            font-family: -apple-system, sans-serif; 
             overflow: hidden; 
+            height: 10            overflow: hidden; 
             height: 100vh; 
+            background: #F2F20vh; 
             background: #F2F2F7;
         }
 
-        /* Стеклянная плашка ParkNear */
+        .app-headerF7;
+        }
+
         .app-header {
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top:  {
+            position: fixed;
+            top: 0; left: 0; right: 00; left: 0; right: 0;
             height: 60px;
-            background: rgba(255, 255, 255, 0.45);
+           ;
+            height: 60px;
+            background: rgba(255, 255 background: rgba(255, 255, 255, 0.45);, 255, 0.45);
+            backdrop-filter: saturate(180%)
             backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(-filter: saturate(180%) blur(20px);
+            z-index: 1020px);
             z-index: 1000;
+            display: flex;
+            align00;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 0.5px solid rgba(255, 255, 255, 0.3);
+-items: center;
+            justify-content: center;
+            border-bottom: 0.5px solid rgba(            border-bottom: 0.5px solid rgba(255, 255, 25255, 255, 255, 0.3);
         }
-        .app-title { font-size: 22px; font-weight: 700; color: #000; }
-        .app-title span { color: #007AFF; font-weight: 800; }
+       5, 0.3);
+        }
+        .app-title { font-size: 22px; .app-title { font-size: 22px; font-weight: 700; color: #0 font-weight: 700; color: #000; }
+        .app-title span { color00; }
+        .app-title span { color: #007AFF; font-weight: 8: #007AFF; font-weight: 800; }
+
+        #map { 
+00; }
 
         #map { 
             width: 100%; 
-            height: calc(100vh - 60px - 83px);
+            height:            width: 100%; 
+            height: calc(100vh - 60px - calc(100vh - 60px - 83px);
+            position: fixed; 
+ 83px);
             position: fixed; 
             top: 60px;
+            left:            top: 60px;
             left: 0; 
+        }
+
+        /* ВО 0; 
+        }
+
+        /* ВОДЯНЫЕ ЗНАКИ ЯНДЕКСДЯНЫЕ ЗНАКИ ЯНДЕКСА */
+        .ymaps-watermarks {
+           А */
+        .ymaps-watermarks {
+            position: fixed;
+            bottom: 90px position: fixed;
+            bottom: 90px;
+            left: 10px;
+;
+            left: 10px;
+            z-index: 1001            z-index: 1001;
+            display: flex;
+           ;
+            display: flex;
+            flex-direction: column;
+            gap: 5 flex-direction: column;
+            gap: 5px;
+            pointer-events: none;
+        }px;
+            pointer-events: none;
+        }
+        .ymaps-logo {
+            width
+        .ymaps-logo {
+            width: 80px;
+            height: : 80px;
+            height: 25px;
+            background: rgba(25px;
+            background: rgba(255, 255, 25255, 255, 255, 0.9);
+            border5, 0.9);
+            border-radius: 4px;
+            display: flex;-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content:
+            align-items: center;
+            justify-content: center;
+            font-size: 11px; center;
+            font-size: 11px;
+            font-weight: 600;
+
+            font-weight: 600;
+            color: #000;
+            box-shadow            color: #000;
+            box-shadow: 0 2px 4px rgba(0: 0 2px 4px rgba(0,0,0,0.2);
+        },0,0,0.2);
+        }
+        .ymaps-copyright {
+            font-size
+        .ymaps-copyright {
+            font-size: 10px;
+            color: rgba(: 10px;
+            color: rgba(0, 0, 0, 0.60, 0, 0, 0.6);
+            background: rgba(255, );
+            background: rgba(255, 255, 255, 0.255, 255, 0.8);
+            padding: 2px 68);
+            padding: 2px 6px;
+            border-radius: 3px;
+px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+            display: inline-block;
         }
 
         .controls { 
             position: fixed; 
+        .controls { 
+            position: fixed; 
             top: 80px; 
+            left:            top: 80px; 
             left: 16px; 
+            z-index: 9 16px; 
             z-index: 900; 
             display: flex;
+           00; 
+            display: flex;
+            flex-direction: column;
+            gap: 10 flex-direction: column;
             gap: 10px;
         }
         .btn {
-            width: 44px; height: 44px; border-radius: 12px; 
-            background: rgba(255, 255, 255, 0.85);
+           px;
+        }
+        .btn {
+            width: 44px; height: 44 width: 44px; height: 44px; border-radius: 12px; 
+           px; border-radius: 12px; 
+            background: rgba(255, 255 background: rgba(255, 255, 255, 0.85);, 255, 0.85);
             backdrop-filter: blur(10px);
-            border: none; font-size: 20px; cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+
+            backdrop-filter: blur(10px);
+            border: none; font-size: 20px            border: none; font-size: 20px; cursor: pointer;
+            box-shadow: ; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,00 2px 8px rgba(0,0,0,0.15);
+       ,0,0.15);
         }
 
+        /* ПЛАШКА ИЗ }
+
+        /* ПЛАШКА ИЗМЕНЕНИЯ СЛОЯ КАРТЫ */
+        .МЕНЕНИЯ СЛОЯ КАРТЫ */
+        .map-type-panel {
+            position: fixed;
+map-type-panel {
+            position: fixed;
+            top: 80px;
+            right:            top: 80px;
+            right: 16px;
+            z-index: 9 16px;
+            z-index: 900;
+            background: rgba(25500;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 4px 2, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.0px rgba(0,0,0,0.2);
+            display: none;
+        }2);
+            display: none;
+        }
+        .map-type-panel.show { display
+        .map-type-panel.show { display: block; }
+        .map-type-btn {
+: block; }
+        .map-type-btn {
+            display: block;
+            width:             display: block;
+            width: 100%;
+            padding: 10px100%;
+            padding: 10px 16px;
+            border: none;
+ 16px;
+            border: none;
+            background: transparent;
+            border-radius: 8            background: transparent;
+            border-radius: 8px;
+            font-size: 14px;px;
+            font-size: 14px;
+            font-weight: 500;
+
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left            cursor: pointer;
+            text-align: left;
+            margin-bottom: 4px;
+       ;
+            margin-bottom: 4px;
+        }
+        .map-type-btn:last-child { }
+        .map-type-btn:last-child { margin-bottom: 0; }
+        .map-type margin-bottom: 0; }
+        .map-type-btn.active { background: #007AFF; color-btn.active { background: #007AFF; color: white; }
+        .map-type-btn:not: white; }
+        .map-type-btn:not(.active):hover { background: rgba(0,(.active):hover { background: rgba(0,0,0,0.05); }
+
+0,0,0.05); }
+
         #addBtn {
-            position: fixed; bottom: 100px; right: 20px; z-index: 900;
-            width: 56px; height: 56px; border-radius: 50%; background: #007AFF; color: white;
-            border: none; font-size: 28px; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,122,255,0.4);
+            position: fixed        #addBtn {
+            position: fixed; bottom: 100px; right: ; bottom: 100px; right: 20px; z-index: 900;20px; z-index: 900;
+            width: 56px; height: 
+            width: 56px; height: 56px; border-radius: 50%; background56px; border-radius: 50%; background: #007AFF; color: white;
+: #007AFF; color: white;
+            border: none; font-size: 28px            border: none; font-size: 28px; cursor: pointer;
+            box-shadow:; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0 0 4px 12px rgba(0,122,255,0.4,122,255,0.4);
+        }
+        #addBtn.drawing {);
         }
         #addBtn.drawing { background: #FF3B30; }
 
+        background: #FF3B30; }
+
         .tabBar {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
-            background: rgba(255, 255, 255, 0.85);
+            position: fixed; bottom: .tabBar {
+            position: fixed; bottom: 0; left: 0; right: 0 0; left: 0; right: 0; height: 83px;
+            background:; height: 83px;
+            background: rgba(255, 255,  rgba(255, 255, 255, 0.85);
+           255, 0.85);
             backdrop-filter: blur(20px);
-            z-index: 1000; display: flex;
+            z backdrop-filter: blur(20px);
+            z-index: 1000; display: flex;-index: 1000; display: flex;
+            border-top: 0.5px solid rgba
             border-top: 0.5px solid rgba(0,0,0,0.1);
+(0,0,0,0.1);
         }
-        .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+        .tab { flex: 1        }
+        .tab { flex: 1; display: flex; flex-direction: column; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor; align-items: center; justify-content: center; cursor: pointer; }
+        .tab .icon { font-size: 24px; margin-bottom: 4: pointer; }
         .tab .icon { font-size: 24px; margin-bottom: 4px; }
+        .tab .label { font-size: 10px; color: #8E8px; }
         .tab .label { font-size: 10px; color: #8E8E93; }
-        .tab.active .label { color: #007AFF; font-weight: 600; }
+        .tab.active .labelE93; }
+        .tab.active .label { color: #007AFF; font-weight: { color: #007AFF; font-weight: 600; }
+
+        .panel { 600; }
 
         .panel {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: #F2F2F7; z-index: 2000; transform: translateY(100%);
-            transition: transform 0.3s; display: flex; flex-direction: column;
+            position: fixed; top: 0; left
+            position: fixed; top: 0; left: 0; right: 0; bottom: : 0; right: 0; bottom: 0;
+            background: #F2F2F0;
+            background: #F2F2F7; z-index: 2000;7; z-index: 2000; transform: translateY(100%);
+            transition transform: translateY(100%);
+            transition: transform 0.3s; display: flex: transform 0.3s; display: flex; flex-direction: column;
+        }
+        .; flex-direction: column;
         }
         .panel.active { transform: translateY(0); }
-        .panel-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
-        .panel-title { font-size: 24px; font-weight: 700; }
-        .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
-        .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
+       panel.active { transform: translateY(0); }
+        .panel-header { padding: 16px 2 .panel-header { padding: 16px 20px; display: flex; justify-content: space0px; display: flex; justify-content: space-between; align-items: center; border-bottom: -between; align-items: center; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
+        .panel-title {0.5px solid rgba(0,0,0,0.1); }
+        .panel-title { font-size: 24px; font-weight:  font-size: 24px; font-weight: 700; }
+        .panel-close { color700; }
+        .panel-close { color: #007AFF; background: none; border: #007AFF; background: none; border: none; font-size: 17px; cursor: none; font-size: 17px; cursor: pointer; }
+        .panel-content { flex:: pointer; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 2 1; overflow-y: auto; padding: 20px; }
 
         .toast {
-            position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-100px);
-            background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px;
+0px; }
+
+        .toast {
+            position: fixed; top: 80px;            position: fixed; top: 80px; left: 50%; transform: translateX(-5 left: 50%; transform: translateX(-50%) translateY(-100px);
+            background0%) translateY(-100px);
+            background: rgba(0,0,0,0.8: rgba(0,0,0,0.8); color: white; padding: 12px ); color: white; padding: 12px 20px; border-radius: 20px;20px; border-radius: 20px;
+            z-index: 4000; transition
             z-index: 4000; transition: transform 0.3s;
         }
-        .toast.show { transform: translateX(-50%) translateY(0); }
+: transform 0.3s;
+        }
+        .toast.show { transform: translateX(-50        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        .login-btn%) translateY(0); }
 
         .login-btn {
-            background: #0088cc; color: white; border: none; padding: 16px 24px;
-            border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;
-            width: 100%; margin: 20px 0;
+            background: #0088 {
+            background: #0088cc; color: white; border: none; paddingcc; color: white; border: none; padding: 16px 24px;
+           : 16px 24px;
+            border-radius: 12px; font-size:  border-radius: 12px; font-size: 16px; font-weight: 600;16px; font-weight: 600; cursor: pointer;
+            width: 100 cursor: pointer;
+            width: 100%; margin: 20px 0;%; margin: 20px 0;
         }
 
-        .ios-list { background: white; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
-        .ios-list-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid rgba(0,0,0,0.1); cursor: pointer; }
-        .list-icon { width: 44px; height: 44px; border-radius: 10px; background: #34C759; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .ios-list { background: white
+        }
+
+        .ios-list { background: white; border-radius: 12px; margin-bottom:; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+        12px; overflow: hidden; }
+        .ios-list-item { padding: 14px  .ios-list-item { padding: 14px 16px; display: flex; align-items: center16px; display: flex; align-items: center; gap: 12px; border-bottom: ; gap: 12px; border-bottom: 0.5px solid rgba(0,0,00.5px solid rgba(0,0,0,0.1); cursor: pointer; }
+       ,0.1); cursor: pointer; }
+        .list-icon { width: 44px; height .list-icon { width: 44px; height: 44px; border-radius: 10: 44px; border-radius: 10px; background: #34C759px; background: #34C759; display: flex; align-items: center; justify-content; display: flex; align-items: center; justify-content: center; font-size: 22px; }: center; font-size: 22px; }
         .list-content { flex: 1; }
+        .list-content { flex: 1; }
+        .list-title { font-size: 16
         .list-title { font-size: 16px; font-weight: 600; }
-        .list-subtitle { font-size: 13px; color: #8E8E93; }
+px; font-weight: 600; }
+        .list-subtitle { font-size: 13        .list-subtitle { font-size: 13px; color: #8E8E93px; color: #8E8E93; }
 
-        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 3000; display: none; align-items: flex-end; justify-content: center; }
+        .modal { position: fixed;; }
+
+        .modal { position: fixed; top: 0; left: 0; right: top: 0; left: 0; right: 0; bottom: 0; background: rgba( 0; bottom: 0; background: rgba(0,0,0,0.4); z-index0,0,0,0.4); z-index: 3000; display: none; align: 3000; display: none; align-items: flex-end; justify-content: center; }
+-items: flex-end; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-sheet { background: #F2F2F7; border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-height: 85vh; overflow-y: auto; }
-        .modal-handle { width: 36px; height: 5px; background: #8E8E93; border-radius: 3px; margin: 0 auto 16px; opacity: 0.5; }
-        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
-        .modal-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #E5E5EA; font-size: 16px; margin-bottom: 16px; }
-        .status-selector { display: flex; gap: 10px; margin: 16px 0; }
-        .status-btn { flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 10px; font-weight: 600; cursor: pointer; color: white; }
+               .modal.active { display: flex; }
+        .modal-sheet { background: #F2F2 .modal-sheet { background: #F2F2F7; border-radius: 20px 2F7; border-radius: 20px 20px 0 0; padding: 20px 0 0; padding: 20px; width: 100%; max0px; width: 100%; max-height: 85vh; overflow-y: auto;-height: 85vh; overflow-y: auto; }
+        .modal-handle { width: 36 }
+        .modal-handle { width: 36px; height: 5px; background: #8px; height: 5px; background: #8E8E93; border-radius: 3E8E93; border-radius: 3px; margin: 0 auto 16pxpx; margin: 0 auto 16px; opacity: 0.5; }
+        .; opacity: 0.5; }
+        .modal-title { font-size: 20px; fontmodal-title { font-size: 20px; font-weight: 700; margin-bottom: 1-weight: 700; margin-bottom: 16px; text-align: center; }
+        .6px; text-align: center; }
+        .modal-input { width: 100%; padding:modal-input { width: 100%; padding: 12px; border-radius: 10px 12px; border-radius: 10px; border: none; background: #E5; border: none; background: #E5E5EA; font-size: 16px;E5EA; font-size: 16px; margin-bottom: 16px; }
+        . margin-bottom: 16px; }
+        .status-selector { display: flex; gap: 10status-selector { display: flex; gap: 10px; margin: 16px 0; }px; margin: 16px 0; }
+        .status-btn { flex: 1; padding
+        .status-btn { flex: 1; padding: 12px; border: 2px solid: 12px; border: 2px solid transparent; border-radius: 10px; font transparent; border-radius: 10px; font-weight: 600; cursor: pointer; color-weight: 600; cursor: pointer; color: white; }
+        .status-btn.free { background: white; }
         .status-btn.free { background: #34C759; }
-        .status-btn.busy { background: #FF3B30; }
+       : #34C759; }
+        .status-btn.busy { background: #FF3B .status-btn.busy { background: #FF3B30; }
+        .status-btn.unknown { background30; }
         .status-btn.unknown { background: #007AFF; }
-        .status-btn.selected { border-color: #000; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
-        .modal-btn { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px; }
-        .modal-btn-primary { background: #007AFF; color: white; }
-        .modal-btn-secondary { background: #E5E5EA; color: #000; }
+        .status: #007AFF; }
+        .status-btn.selected { border-color: #000; }-btn.selected { border-color: #000; }
+        .modal-actions { display: flex; gap
+        .modal-actions { display: flex; gap: 10px; margin-top: 1: 10px; margin-top: 10px; }
+        .modal-btn { flex:0px; }
+        .modal-btn { flex: 1; padding: 14px; border: 1; padding: 14px; border: none; border-radius: 12px; font-weight none; border-radius: 12px; font-weight: 600; cursor: pointer; font: 600; cursor: pointer; font-size: 15px; }
+        .modal-size: 15px; }
+        .modal-btn-primary { background: #007AFF; color-btn-primary { background: #007AFF; color: white; }
+        .modal-btn-secondary: white; }
+        .modal-btn-secondary { background: #E5E5EA; color: { background: #E5E5EA; color: #000; }
+        .modal-btn-danger #000; }
+        .modal-btn-danger { background: #FF3B30; color: { background: #FF3B30; color: white; }
 
-        .theme-toggle { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: white; border-radius: 12px; margin-bottom: 16px; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background: white; transition: .4s; border-radius: 50%; }
+        .theme-toggle { display: flex white; }
+
+        .theme-toggle { display: flex; align-items: center; justify-content: space-between;; align-items: center; justify-content: space-between; padding: 16px; background: white; border padding: 16px; background: white; border-radius: 12px; margin-bottom: 1-radius: 12px; margin-bottom: 16px; }
+        .switch { position: relative6px; }
+        .switch { position: relative; display: inline-block; width: 50; display: inline-block; width: 50px; height: 30px; }
+       px; height: 30px; }
+        .switch input { opacity: 0; width: .switch input { opacity: 0; width: 0; height: 0; }
+        0; height: 0; }
+        .slider { position: absolute; cursor: pointer; .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: top: 0; left: 0; right: 0; bottom: 0; background: #ccc 0; bottom: 0; background: #ccc; transition: .4s; border-radius: 3; transition: .4s; border-radius: 34px; }
+        .slider:before { position4px; }
+        .slider:before { position: absolute; content: ""; height: 26px: absolute; content: ""; height: 26px; width: 26px; left: 2; width: 26px; left: 2px; bottom: 2px; background: white;px; bottom: 2px; background: white; transition: .4s; border-radius: 50 transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background:%; }
         input:checked + .slider { background: #34C759; }
-        input:checked + .slider:before { transform: translateX(20px); }
+        input #34C759; }
+        input:checked + .slider:before { transform: translateX(2:checked + .slider:before { transform: translateX(20px); }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-        .stat-card { background: white; border-radius: 12px; padding: 14px 10px; text-align: center; }
-        .stat-number { font-size: 24px; font-weight: 700; color: #007AFF; }
-        .stat-label { font-size: 11px; color: #8E8E93; margin-top: 4px; }
+        .stats-grid { display:0px); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1 grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottomfr); gap: 10px; margin-bottom: 16px; }
+        .stat-card: 16px; }
+        .stat-card { background: white; border-radius: 12px { background: white; border-radius: 12px; padding: 14px 10px;; padding: 14px 10px; text-align: center; }
+        .stat-number { text-align: center; }
+        .stat-number { font-size: 24px; font-weight:  font-size: 24px; font-weight: 700; color: #007AFF;700; color: #007AFF; }
+        .stat-label { font-size: 1 }
+        .stat-label { font-size: 11px; color: #8E8E931px; color: #8E8E93; margin-top: 4px; }
+   ; margin-top: 4px; }
     </style>
 </head>
 <body>
 
+ </style>
+</head>
+<body>
+
     <div class="app-header">
-        <div class="app-title">Park<span>Near</span></div>
+        <div    <div class="app-header">
+        <div class="app-title">Park<span>Near</span class="app-title">Park<span>Near</span></div>
+    </div>
+
+    ></div>
     </div>
 
     <div id="map"></div>
 
-    <div class="controls">
-        <button class="btn" onclick="showMyLocation()">📍</button>
+    <!-- ВО<div id="map"></div>
+
+    <!-- ВОДЯНЫЕ ЗНАКИ ЯНДЕКСАДЯНЫЕ ЗНАКИ ЯНДЕКСА -->
+    <div class="ymaps-watermarks"> -->
+    <div class="ymaps-watermarks">
+        <div class="ymaps-logo">Я
+        <div class="ymaps-logo">Яндекс</div>
+        <div class="ндекс</div>
+        <div class="ymaps-copyright">© Яндекс Карты</divymaps-copyright">© Яндекс Карты</div>
     </div>
+
+    <div class=">
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="controls">
+        <button class="btn" onclick="showMyLocation()">📍</button>
+       showMyLocation()">📍</button>
+        <button class="btn" onclick="toggleMapType()"> <button class="btn" onclick="toggleMapType()">🗺️</button>
+    </div>🗺️</button>
+    </div>
+
+    <!-- ПЛАШКА ИЗМЕНЕНИЯ
+
+    <!-- ПЛАШКА ИЗМЕНЕНИЯ СЛОЯ КАРТЫ -->
+    <div СЛОЯ КАРТЫ -->
+    <div class="map-type-panel" id="mapTypePanel"> class="map-type-panel" id="mapTypePanel">
+        <button class="map-type-btn active
+        <button class="map-type-btn active" onclick="setMapType('map')">" onclick="setMapType('map')">️ Схема</button>
+       ️ Схема</button>
+        <button class="map-type-btn" onclick="set <button class="map-type-btn" onclick="setMapType('satellite')">🛰️ СMapType('satellite')">🛰️ Спутник</button>
+        <button class="mapпутник</button>
+        <button class="map-type-btn" onclick="setMapType('hybrid')">-type-btn" onclick="setMapType('hybrid')">🌍 Гибрид</button>
+   🌍 Гибрид</button>
+    </div>
+
+    <button id="addBtn"> </div>
 
     <button id="addBtn">+</button>
 
+    <div class="panel" id+</button>
+
     <div class="panel" id="panel">
+        <div class="panel-header">="panel">
         <div class="panel-header">
+            <div class="panel-title" id="panel
             <div class="panel-title" id="panelTitle">Профиль</div>
-            <button class="panel-close" onclick="closePanel()">Готово</button>
+            <buttonTitle">Профиль</div>
+            <button class="panel-close" onclick="closePanel()">Г class="panel-close" onclick="closePanel()">Готово</button>
         </div>
-        <div class="panel-content" id="panelContent"></div>
+отово</button>
+        </div>
+        <div class="panel-content" id="panelContent        <div class="panel-content" id="panelContent"></div>
+    </div>
+
+    "></div>
     </div>
 
     <div class="tabBar">
-        <div class="tab active" onclick="showMap()"><div class="icon">️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
-        <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
-        <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
+        <div class="<div class="tabBar">
+        <div class="tab active" onclick="showMap()"><div classtab active" onclick="showMap()"><div class="icon">🗺️</div>="icon">🗺️</div><div class="label">Карта</div></<div class="label">Карта</div></div>
+        <div class="tab" onclick="div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon">showPanel('history')"><div class="icon"></div><div class="label">И</div><div class="label">История</div></div>
+        <divстория</div></div>
+        <div class="tab" onclick="showPanel('favorites')"> class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class<div class="icon">⭐</div><div class="label">Избранное</div></div>
+="label">Избранное</div></div>
+        <div class="tab" onclick="showPanel        <div class="tab" onclick="showPanel('profile')"><div class="icon">👤('profile')"><div class="icon">👤</div><div class="label">Профиль</</div><div class="label">Профиль</div></div>
     </div>
 
-    <div class="modal" id="modal" onclick="closeModal(event)">
+div></div>
+    </div>
+
+    <div class="modal" id="modal" onclick    <div class="modal" id="modal" onclick="closeModal(event)">
+        <div class="modal="closeModal(event)">
         <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class-sheet" onclick="event.stopPropagation()">
             <div class="modal-handle"></div>
+            <div id="="modal-handle"></div>
             <div id="modalBody"></div>
         </div>
+   modalBody"></div>
+        </div>
     </div>
+
+    <div class="toast" id </div>
 
     <div class="toast" id="toast"></div>
 
     <script>
-        // Firebase config
+       ="toast"></div>
+
+    <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
+            apiKey: "AIza const firebaseConfig = {
+            apiKey: "AIzaSyATLX5t2lmibbuiSSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqUXL_sWu_JnFFTb-nMqU",
+            authDomain: "parknear-bef41",
             authDomain: "parknear-bef41.firebaseapp.com",
-            databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
+            databaseURL: "https://park.firebaseapp.com",
+            databaseURL: "https://parknear-bef41-default-rtdb.europe-westnear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "park1.firebasedatabase.app",
             projectId: "parknear-bef41",
-            storageBucket: "parknear-bef41.firebasestorage.app",
+            storageBucket: "near-bef41",
+            storageBucket: "parknear-bef41.firebasestorage.app",parknear-bef41.firebasestorage.app",
+            messagingSenderId: "106655
             messagingSenderId: "1066552333578",
+            appId:2333578",
             appId: "1:1066552333578:web:e60e333cf877852eba16f3"
         };
 
-        // Инициализируем Firebase
+        firebase.initializeApp "1:1066552333578:web:e60e333cf877852eba16f3"
+        };
+
         firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();(firebaseConfig);
         const database = firebase.database();
+
+        let map = null;
+        let currentUser
 
         let map = null;
         let currentUser = null;
         let parkingsData = {};
+ = null;
+        let parkingsData = {};
         let myHomes = [];
+        let drawing =        let myHomes = [];
         let drawing = false;
         let editingParkingId = null;
+ false;
+        let editingParkingId = null;
         let points = [];
+        let tempPolygon =        let points = [];
         let tempPolygon = null;
         let streetCounters = {};
 
+ null;
+        let streetCounters = {};
+
         function showToast(msg) {
+            const t =        function showToast(msg) {
             const t = document.getElementById('toast');
+            t.textContent = msg; document.getElementById('toast');
             t.textContent = msg;
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2500);
+            setTimeout(()
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500 => t.classList.remove('show'), 2500);
         }
 
-        // Инициализация карты
+        function initMap() {
+);
+        }
+
         function initMap() {
             map = new ymaps.Map("map", {
-                center: [55.7558, 37.6173],
+            map = new ymaps.Map("map", {
+                center: [55.7558,                center: [55.7558, 37.6173],
+                zoom 37.6173],
                 zoom: 10,
-                controls: ['zoomControl']
+                controls: ['zoom: 10,
+                controls: ['zoomControl'],
+                type: 'yandex#Control'],
+                type: 'yandex#map'
             });
 
-            // Геолокация
+            if (map'
+            });
+
             if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPositionnavigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
+                    const coords = [pos.coords.latitude(pos => {
                     const coords = [pos.coords.latitude, pos.coords.longitude];
+                    map.setCenter(coords, pos.coords.longitude];
                     map.setCenter(coords, 14);
+                    map.geoObjects.add, 14);
                     map.geoObjects.add(new ymaps.Placemark(coords, {
+                       (new ymaps.Placemark(coords, {
                         hintContent: 'Вы здесь'
+                    }, {
+                        preset: 'islands#blueCircleIcon'
+ hintContent: 'Вы здесь'
                     }, {
                         preset: 'islands#blueCircleIcon'
                     }));
                 }, () => {});
+                               }));
+                }, () => {});
             }
 
-            // Клик по карте
+            map.events.add("click", e => }
+
             map.events.add("click", e => {
+                if (drawing || editingParkingId) { {
                 if (drawing || editingParkingId) {
                     points.push(e.get("coords"));
-                    if (tempPolygon) map.geoObjects.remove(tempPolygon);
+                   
+                    points.push(e.get("coords"));
+                    if (tempPolygon) map.geoObjects.remove(tempPolygon); if (tempPolygon) map.geoObjects.remove(tempPolygon);
+                    tempPolygon = new ymaps.Polygon
                     tempPolygon = new ymaps.Polygon([points], {}, {
+                        fillColor: "#0([points], {}, {
                         fillColor: "#007AFF",
+                        fillOpacity: 07AFF",
                         fillOpacity: 0.3,
+                        strokeColor: "#0.3,
                         strokeColor: "#007AFF",
+                        strokeWidth: 007AFF",
                         strokeWidth: 3
+                    });
+                    map.geoObjects.add3
                     });
                     map.geoObjects.add(tempPolygon);
                 }
             });
 
-            // Кнопка добавления
+           (tempPolygon);
+                }
+            });
+
             document.getElementById("addBtn").onclick = function() {
+ document.getElementById("addBtn").onclick = function() {
                 if (!currentUser) {
+                    showToast('С                if (!currentUser) {
                     showToast('Сначала войдите');
+                    showPanel('profile');
+начала войдите');
                     showPanel('profile');
                     return;
                 }
+                if (editingParking                    return;
+                }
                 if (editingParkingId) {
+                    finishEditingShape();
+                   Id) {
                     finishEditingShape();
                     return;
                 }
+                if (drawing) return;
+                }
                 if (drawing) {
+                    finishDrawing();
+                    return; {
                     finishDrawing();
                     return;
                 }
                 drawing = true;
+                points
+                }
+                drawing = true;
                 points = [];
                 this.classList.add('drawing');
+                = [];
+                this.classList.add('drawing');
                 this.textContent = '✕';
+                showToast('На this.textContent = '✕';
                 showToast('Нажмите на карту');
             };
 
-            // Загружаем пользователя
+            const savedжмите на карту');
+            };
+
             const saved = localStorage.getItem('tgUser');
+            if (saved = localStorage.getItem('tgUser');
             if (saved) currentUser = JSON.parse(saved);
 
-            // Загружаем парковки
+            loadParkings) currentUser = JSON.parse(saved);
+
             loadParkings();
             loadHomes();
         }
 
-        // Ждем когда Яндекс Карты загрузятся
-        if (typeof ymaps !== 'undefined') {
+();
+            loadHomes();
+        }
+
+        if (typeof ymaps !== 'undefined') {        if (typeof ymaps !== 'undefined') {
+            ymaps.ready(initMap);
+        } else
             ymaps.ready(initMap);
         } else {
             window.addEventListener('load', () => {
-                if (typeof ymaps !== 'undefined') {
+ {
+            window.addEventListener('load', () => {
+                if (typeof ymaps !== 'undefined') {                if (typeof ymaps !== 'undefined') {
+                    ymaps.ready(initMap);
+                } else
                     ymaps.ready(initMap);
                 } else {
+                    showToast('Ошибка загрузки карты');
+ {
                     showToast('Ошибка загрузки карты');
                 }
             });
         }
 
+        // П                }
+            });
+        }
+
+        // ПЕРЕКЛЮЧЕНИЕ ТИПАЕРЕКЛЮЧЕНИЕ ТИПА КАРТЫ
+        function toggleMapType() {
+ КАРТЫ
+        function toggleMapType() {
+            const panel = document.getElementById('mapTypePanel            const panel = document.getElementById('mapTypePanel');
+            panel.classList.toggle('show');
+');
+            panel.classList.toggle('show');
+        }
+
+        function setMapType(type) {        }
+
+        function setMapType(type) {
+            document.querySelectorAll('.map-type-btn').forEach(btn
+            document.querySelectorAll('.map-type-btn').forEach(btn => btn.classList.remove('active'));
+            event => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+           .target.classList.add('active');
+            
+            if (type === 'map') {
+                map.setType if (type === 'map') {
+                map.setType('yandex#map');
+            } else if (('yandex#map');
+            } else if (type === 'satellite') {
+                map.setTypetype === 'satellite') {
+                map.setType('yandex#satellite');
+            } else if('yandex#satellite');
+            } else if (type === 'hybrid') {
+                map.setType (type === 'hybrid') {
+                map.setType('yandex#hybrid');
+            }('yandex#hybrid');
+            }
+            
+            setTimeout(() => {
+                document.getElementById
+            
+            setTimeout(() => {
+                document.getElementById('mapTypePanel').classList.remove('show');
+           ('mapTypePanel').classList.remove('show');
+            }, 300);
+        }
+
+ }, 300);
+        }
+
         function finishDrawing() {
+            drawing = false;        function finishDrawing() {
             drawing = false;
             const btn = document.getElementById("addBtn");
+
+            const btn = document.getElementById("addBtn");
             btn.classList.remove('drawing');
+            btn.textContent =            btn.classList.remove('drawing');
             btn.textContent = '+';
 
+            if (points.length < 3) '+';
+
             if (points.length < 3) {
+                showToast('Минимум 3 точки'); {
                 showToast('Минимум 3 точки');
+                if (tempPolygon) map.geoObjects.remove(temp
                 if (tempPolygon) map.geoObjects.remove(tempPolygon);
                 return;
             }
 
-            const name = prompt("Название:") || "Парковка";
+           Polygon);
+                return;
+            }
+
+            const name = prompt("Название:") || "Пар const name = prompt("Название:") || "Парковка";
+            const places = prompt("Количество местковка";
             const places = prompt("Количество мест:") || "0";
 
             const parking = {
+:") || "0";
+
+            const parking = {
                 name: name,
+                places: Number                name: name,
                 places: Number(places),
                 coordinates: points,
+                owner(places),
+                coordinates: points,
                 owner: currentUser.id,
+                ownerName: currentUser.firstName: currentUser.id,
                 ownerName: currentUser.firstName,
+                created: new Date().toISOString(),
+,
                 created: new Date().toISOString(),
                 status: 'unknown'
             };
 
-            const id = database.ref("parkings").push().key;
+            const                status: 'unknown'
+            };
+
+            const id = database.ref("parkings").push().key id = database.ref("parkings").push().key;
+            database.ref("parkings/" + id).;
             database.ref("parkings/" + id).set(parking).then(() => {
+                showToast('set(parking).then(() => {
                 showToast('Сохранено!');
+                if (tempPolygon)Сохранено!');
                 if (tempPolygon) map.geoObjects.remove(tempPolygon);
+                loadParkings map.geoObjects.remove(tempPolygon);
                 loadParkings();
             });
         }
 
+        function start();
+            });
+        }
+
         function startEditingShape(id) {
+            editingParkingId = idEditingShape(id) {
             editingParkingId = id;
             const p = parkingsData[id];
+;
+            const p = parkingsData[id];
             points = [...p.coordinates];
+            loadParkings            points = [...p.coordinates];
             loadParkings();
+            if (tempPolygon) map.geoObjects.remove();
             if (tempPolygon) map.geoObjects.remove(tempPolygon);
+            tempPolygon = new ymaps.P(tempPolygon);
             tempPolygon = new ymaps.Polygon([points], {}, {
+                fillColor: "#olygon([points], {}, {
                 fillColor: "#007AFF",
+                fillOpacity:007AFF",
                 fillOpacity: 0.3,
+                strokeColor: "#0 0.3,
                 strokeColor: "#007AFF",
+                strokeWidth: 3
+           07AFF",
                 strokeWidth: 3
             });
             map.geoObjects.add(tempPolygon);
 
+ });
+            map.geoObjects.add(tempPolygon);
+
             const btn = document.getElementById("addBtn");
+                       const btn = document.getElementById("addBtn");
             btn.classList.add('drawing');
+            btn.textContent = ' btn.classList.add('drawing');
             btn.textContent = '💾';
+            closeModal();
+            showToast💾';
             closeModal();
             showToast('Кликайте для новой фигуры');
         }
 
+('Кликайте для новой фигуры');
+        }
+
         function finishEditingShape() {
+            if        function finishEditingShape() {
             if (!editingParkingId) return;
+            if (points (!editingParkingId) return;
             if (points.length < 3) {
+                showToast('М.length < 3) {
                 showToast('Минимум 3 точки');
+                cancelEditing();инимум 3 точки');
                 cancelEditing();
+                return;
+            }
+
+            database.ref("
                 return;
             }
 
             database.ref("parkings/" + editingParkingId).update({
+               parkings/" + editingParkingId).update({
+                coordinates: points
+            }).then(() => {
                 coordinates: points
             }).then(() => {
                 showToast('Обновлено!');
+                cancelEditing showToast('Обновлено!');
                 cancelEditing();
             });
         }
 
+        function();
+            });
+        }
+
         function cancelEditing() {
+            editingParkingId = null; cancelEditing() {
             editingParkingId = null;
+            if (tempPolygon) map.geoObjects.remove(temp
             if (tempPolygon) map.geoObjects.remove(tempPolygon);
             loadParkings();
+            const btnPolygon);
+            loadParkings();
             const btn = document.getElementById("addBtn");
+            btn.classList.remove = document.getElementById("addBtn");
             btn.classList.remove('drawing');
+            btn.textContent = '+';
+       ('drawing');
             btn.textContent = '+';
         }
 
         function loadParkings() {
-            database.ref("parkings").on("value", snap => {
+            database }
+
+        function loadParkings() {
+            database.ref("parkings").on("value", snap => {.ref("parkings").on("value", snap => {
+                const data = snap.val();
+                if (
                 const data = snap.val();
                 if (data) {
                     parkingsData = data;
+data) {
+                    parkingsData = data;
                     map.geoObjects.removeAll();
+                    Object.keys(data).                    map.geoObjects.removeAll();
                     Object.keys(data).forEach(id => {
+                        const p = data[id];forEach(id => {
                         const p = data[id];
-                        const color = p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF';
+                        const color = p.status === 'free' ?
+                        const color = p.status === 'free' ? '#34C759' : p.status === '#34C759' : p.status === 'busy' ? '#FF3B30' : 'busy' ? '#FF3B30' : '#007AFF';
+                        const poly = new '#007AFF';
                         const poly = new ymaps.Polygon([p.coordinates], {
+                            ymaps.Polygon([p.coordinates], {
+                            hintContent: p.name
+                        }, {
                             hintContent: p.name
                         }, {
                             fillColor: color,
+                            fillOpacity: fillColor: color,
                             fillOpacity: 0.4,
+                            strokeColor: color 0.4,
                             strokeColor: color,
                             strokeWidth: 3
                         });
-                        poly.events.add('click', () => showParkingModal(id, p));
+                       ,
+                            strokeWidth: 3
+                        });
+                        poly.events.add('click', () => showParkingModal(id poly.events.add('click', () => showParkingModal(id, p));
+                        map.geoObjects.add(poly);
+, p));
                         map.geoObjects.add(poly);
                     });
                 }
             });
+                           });
+                }
+            });
         }
 
+        function showParkingModal(id, p) { }
+
         function showParkingModal(id, p) {
+            if (editingParkingId && editingParkingId !==
             if (editingParkingId && editingParkingId !== id) {
+                showToast('Завершите редактирование id) {
                 showToast('Завершите редактирование');
                 return;
             }
-            document.getElementById('modalBody').innerHTML = '<div class="modal-title">🅿️ ' + p.name + '</div>' +
-                '<input type="number" class="modal-input" id="editPlaces" value="' + p.places + '" placeholder="Мест">' +
+');
+                return;
+            }
+            document.getElementById('modalBody').innerHTML = '<div class            document.getElementById('modalBody').innerHTML = '<div class="modal-title">🅿️ ' + p="modal-title">🅿️ ' + p.name + '</div>' +
+                '<input type=".name + '</div>' +
+                '<input type="number" class="modal-input" id="editPlaces"number" class="modal-input" id="editPlaces" value="' + p.places + '" placeholder="М value="' + p.places + '" placeholder="Мест">' +
+                '<div class="status-selector">'ест">' +
                 '<div class="status-selector">' +
-                    '<button class="status-btn free ' + (p.status === 'free' ? 'selected' : '') + '" onclick="updateField(\'' + id + '\',\'status\',\'free\')">✅ Свободно</button>' +
-                    '<button class="status-btn busy ' + (p.status === 'busy' ? 'selected' : '') + '" onclick="updateField(\'' + id + '\',\'status\',\'busy\')">❌ Занято</button>' +
-                    '<button class="status-btn unknown ' + (p.status === 'unknown' ? 'selected' : '') + '" onclick="updateField(\'' + id + '\',\'status\',\'unknown\')"> Неизв.</button>' +
+                    '<button class="status-btn free ' +
+                    '<button class="status-btn free ' + (p.status === 'free' ? 'selected' + (p.status === 'free' ? 'selected' : '') + '" onclick="updateField(\ : '') + '" onclick="updateField(\'' + id + '\',\'status\','' + id + '\',\'status\',\'free\')">✅ Свободно</button\'free\')">✅ Свободно</button>' +
+                    '<button class="status-btn busy '>' +
+                    '<button class="status-btn busy ' + (p.status === 'busy' ? 'selected' + (p.status === 'busy' ? 'selected' : '') + '" onclick="updateField(\'' + : '') + '" onclick="updateField(\'' + id + '\',\'status\',\'busy\')"> id + '\',\'status\',\'busy\')">❌ Занято</button>' +
+                   ❌ Занято</button>' +
+                    '<button class="status-btn unknown ' + (p.status '<button class="status-btn unknown ' + (p.status === 'unknown' ? 'selected' : '') + === 'unknown' ? 'selected' : '') + '" onclick="updateField(\'' + id + '\', '" onclick="updateField(\'' + id + '\',\'status\',\'unknown\')">❓\'status\',\'unknown\')">❓ Неизв.</button>' +
+                '</ Неизв.</button>' +
                 '</div>' +
+                '<div class="modal-actions">'div>' +
                 '<div class="modal-actions">' +
                     '<button class="modal-btn modal-btn-secondary" onclick="startEditingShape(\'' + id + '\')">📝 Фигуру</button>' +
-                    '<button class="modal-btn modal-btn-primary" onclick="updateField(\'' + id + '\',\'places\',Number(document.getElementById(\'editPlaces\').value))">💾 Сохранить</button>' +
+                    '<button class="modal-btn modal-btn-primary" onclick="updateField(\'' + +
+                    '<button class="modal-btn modal-btn id + '\',\'places\',Number(document.getElementById(\'-secondary" onclick="startEditingShape(\'' + id + '\')">📝 Фигуру</button>' +
+                    '<button class="modal-btn modal-btn-primary" onclick="updateField(\'' + id + '\',\'places\',Number(document.getElementById(\'editPlaces\').value))">💾 СохранeditPlaces\').value))">💾 Сохранить</button>' +
+                '</div>' +
+ить</button>' +
                 '</div>' +
                 '<div class="modal-actions">' +
-                    '<button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button>' +
+                    '<button class="modal-btn modal-btn-danger" onclick="deleteParking(\'' + id + '\')">🗑️ Удалить</button>' +
+                    '<button class="modal-btn modal-btn                '<div class="modal-actions">' +
+                    '<button class="modal-btn modal-btn-danger" onclick="deleteParking(\'' + id + '\')">🗑️ Удалить</button>' +
+                    '<button class="modal-btn modal-btn-secondary" onclick="closeModal()">Закрыть</button-secondary" onclick="closeModal()">Закрыть</button>' +
+                '</div>';
+            document.getElementById>' +
                 '</div>';
             document.getElementById('modal').classList.add('active');
+        }
+
+('modal').classList.add('active');
+        }
+
+        // УДАЛЕНИЕ ПАРКОВКИ        // УДАЛЕНИЕ ПАРКОВКИ
+        function deleteParking(id) {
+            if (
+        function deleteParking(id) {
+            if (confirm('Удалить эту парковку?confirm('Удалить эту парковку?')) {
+                database.ref("parkings/"')) {
+                database.ref("parkings/" + id).remove().then(() => {
+                    showToast + id).remove().then(() => {
+                    showToast('Парковка удалена');
+                   ('Парковка удалена');
+                    closeModal();
+                    loadParkings();
+                }); closeModal();
+                    loadParkings();
+                });
+            }
+        }
+
+        function
+            }
         }
 
         function updateField(id, field, val) {
@@ -428,7 +1053,18 @@
 
         function closeModal(e) {
             if (!e || e.target.id === 'modal') {
+                document.getElementById(' updateField(id, field, val) {
+            database.ref("parkings/" + id + "/" + field).set(val).then(() => {
+                showToast('Обновлено');
+                loadParkings();
+                closeModal();
+            });
+        }
+
+        function closeModal(e) {
+            if (!e || e.target.id === 'modal') {
                 document.getElementById('modal').classList.remove('active');
+                if (modal').classList.remove('active');
                 if (editingParkingId) cancelEditing();
             }
         }
@@ -438,134 +1074,294 @@
                 navigator.geolocation.getCurrentPosition(pos => {
                     const coords = [pos.coords.latitude, pos.coords.longitude];
                     if (map) {
+                        map.setCenter(coords, 1editingParkingId) cancelEditing();
+            }
+        }
+
+        function showMyLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const coords = [pos.coords.latitude, pos.coords.longitude];
+                    if (map) {
                         map.setCenter(coords, 14);
+                        map.geoObjects.add(new ymaps.Pl4);
                         map.geoObjects.add(new ymaps.Placemark(coords, {
+                            hintContent: 'acemark(coords, {
                             hintContent: 'Вы здесь'
+                        }, {
+                            preset: 'Вы здесь'
                         }, {
                             preset: 'islands#blueCircleIcon'
                         }));
+islands#blueCircleIcon'
+                        }));
                         showToast('📍 Ваше место');
+                                           showToast('📍 Ваше место');
                     }
+                }, () => showToast('❌ Нет }
                 }, () => showToast('❌ Нет GPS'));
             }
         }
 
+        GPS'));
+            }
+        }
+
         function showPanel(type) {
+            document.getElementById(' function showPanel(type) {
             document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = type === 'history' ? 'История' : type === 'favorites' ? 'Избранное' : 'Профиль';
+            document.getElementById('panel').classList.add('active');
+            document.getElementById('panelTitle').textContent = type === 'history' ? 'panelTitle').textContent = type === 'history' ? 'История' : type === 'favorites' ? 'История' : type === 'favorites' ? 'Избранное' : 'Профиль';
+
+           Избранное' : 'Профиль';
 
             const content = document.getElementById('panelContent');
 
+            if const content = document.getElementById('panelContent');
+
             if (type === 'profile') {
+                if (!currentUser (type === 'profile') {
                 if (!currentUser) {
-                    content.innerHTML = '<div style="text-align:center; padding:40px 20px;">' +
-                        '<div style="font-size:60px; margin-bottom:20px;"></div>' +
-                        '<div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход через Telegram</div>' +
-                        '<button class="login-btn" onclick="loginWithTelegram()">Войти через Telegram</button>' +
+                    content.innerHTML = '<div style="text) {
+                    content.innerHTML = '<div style="text-align:center; padding:40px 20px-align:center; padding:40px 20px;">' +
+                        '<div style="font-size:;">' +
+                        '<div style="font-size:60px; margin-bottom:20px;">60px; margin-bottom:20px;"></div>' +
+                        '<div style="</div>' +
+                        '<div style="font-size:18px; font-weight:6font-size:18px; font-weight:600; margin-bottom:20px;">В00; margin-bottom:20px;">Вход через Telegram</div>' +
+                        'ход через Telegram</div>' +
+                        '<button class="login-btn" onclick="loginWithTelegram()"><button class="login-btn" onclick="loginWithTelegram()">Войти через Telegram</button>' +
+                    '</Войти через Telegram</button>' +
                     '</div>';
                 } else {
-                    const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
-                    const free = myP.filter(p => p.status === 'free').length;
+                    const myPdiv>';
+                } else {
+                    const myP = Object.values(parkingsData).filter(p => p = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
+                    const free = myP.owner === currentUser.id);
+                    const free = myP.filter(p => p.status === 'free').length;.filter(p => p.status === 'free').length;
+                    const busy = myP.filter(p => p.status
                     const busy = myP.filter(p => p.status === 'busy').length;
 
-                    content.innerHTML = '<div style="text-align:center; padding:20px;">' +
-                        '<div style="font-size:18px; font-weight:700;">' + currentUser.firstName + '</div>' +
-                        '<div style="color:#8E8E93;">@' + currentUser.username + '</div>' +
+                    content.innerHTML = === 'busy').length;
+
+                    content.innerHTML = '<div style="text-align:center; padding:20 '<div style="text-align:center; padding:20px;">' +
+                        '<div style="font-sizepx;">' +
+                        '<div style="font-size:18px; font-weight:700;">:18px; font-weight:700;">' + currentUser.firstName + '</div>' +
+                       ' + currentUser.firstName + '</div>' +
+                        '<div style="color:#8E8E '<div style="color:#8E8E93;">@' + currentUser.username + '</div>'93;">@' + currentUser.username + '</div>' +
+                    '</div>' +
+                    '<div class +
                     '</div>' +
                     '<div class="theme-toggle">' +
+                        '<span>="theme-toggle">' +
                         '<span> Темная тема</span>' +
-                        '<label class="switch"><input type="checkbox" onchange="toggleTheme()"><span class="slider"></span></label>' +
+                        Темная тема</span>' +
+                        '<label class="switch"><input type="checkbox" onchange '<label class="switch"><input type="checkbox" onchange="toggleTheme()"><span class="slider"></span="toggleTheme()"><span class="slider"></span></label>' +
+                    '</div>' +
+                   ></label>' +
                     '</div>' +
                     '<div class="stats-grid">' +
-                        '<div class="stat-card"><div class="stat-number">' + myP.length + '</div><div class="stat-label">Парковок</div></div>' +
-                        '<div class="stat-card"><div class="stat-number">' + free + '</div><div class="stat-label">Свободно</div></div>' +
+                        '<div class="stats-grid">' +
+                        '<div class="stat-card"><div class="stat-number '<div class="stat-card"><div class="stat-number">' + myP.length + '</div><div class">' + myP.length + '</div><div class="stat-label">Парковок</div></="stat-label">Парковок</div></div>' +
+                        '<div class="div>' +
+                        '<div class="stat-card"><div class="stat-number">' + free +stat-card"><div class="stat-number">' + free + '</div><div class="stat-label">Св '</div><div class="stat-label">Свободно</div></div>' +
                         '<div class="stat-card"><div class="stat-number">' + busy + '</div><div class="stat-label">Занято</div></div>' +
                     '</div>' +
-                    '<button onclick="logout()" style="width:100%; padding:14px; background:transparent; color:#FF3B30; border:1px solid #FF3B30; border-radius:12px; font-weight:600; cursor:pointer;">🚪 Выйти</button>';
+                    '<button onclick="logout()" style="width:100%; padding:14px; background:transparent; color:#FFободно</div></div>' +
+                        '<div class="stat-card"><div class="stat-number">' + busy + '</div><div class="stat-label">Занято</div></div>' +
+                    '</div>' +
+                    '<button onclick="logout()" style="width:100%; padding:14px; background:transparent; color:#FF3B30; border:1px solid #FF3B30; border:1px solid #FF3B30; border-radius:12px;3B30; border-radius:12px; font-weight:600; cursor:pointer;"> font-weight:600; cursor:pointer;"> Выйти</button>';
+                }
+ Выйти</button>';
                 }
             } else if (type === 'history') {
                 if (!currentUser) {
-                    content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E93;">Войдите</div>';
+                    content.innerHTML = '<div style="text-align:center; padding:4            } else if (type === 'history') {
+                if (!currentUser) {
+                    content.innerHTML = '0px; color:#8E8E93;">Войдите</div>';
+                } else {
+                    const list = Object.keys(parkingsData)
+                        .filter(id => parkingsData[id].owner ===<div style="text-align:center; padding:40px; color:#8E8E93;">Войдите</div>';
                 } else {
                     const list = Object.keys(parkingsData)
                         .filter(id => parkingsData[id].owner === currentUser.id)
+                        .map(id => parkingsData currentUser.id)
                         .map(id => parkingsData[id]);
 
+                    if (list.length === 0[id]);
+
                     if (list.length === 0) {
-                        content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E93;">Пусто</div>';
+                        content.innerHTML = '<div style) {
+                        content.innerHTML = '<div style="text-align:center; padding:40px; color="text-align:center; padding:40px; color:#8E8E93;">📋 П:#8E8E93;">📋 Пусто</div>';
                     } else {
-                        content.innerHTML = '<div class="ios-list">' + list.map(p =>
+усто</div>';
+                    } else {
+                        content.innerHTML = '<div class="ios-list">' +                        content.innerHTML = '<div class="ios-list">' + list.map(p =>
+                            '<div class="ios-list list.map(p =>
                             '<div class="ios-list-item">' +
-                                '<div class="list-icon" style="background:' + (p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF') + '"></div>' +
+                                '<div class="list-icon" style="background:' + (p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30'-item">' +
+                                '<div class="list-icon" style="background:' + (p.status === 'free' ? '#34C759' : p.status === 'busy' ? '#FF3B30' : '#007AFF') + '"></div>' : '#007AFF') + '"></div>' +
                                 '<div class="list-content">' +
                                     '<div class="list-title">' + p.name + '</div>' +
-                                    '<div class="list-subtitle">Мест: ' + p.places + '</div>' +
+                                    '<div class=" +
+                                '<div class="list-content">' +
+                                    '<div class="list-title">' + p.name + '</div>' +
+                                    '<div class="list-subtitle">Мест: ' + plist-subtitle">Мест: ' + p.places + '</div>' +
+                                '</div>'.places + '</div>' +
                                 '</div>' +
+                            '</div>'
+                        ).join(' +
                             '</div>'
                         ).join('') + '</div>';
                     }
                 }
+') + '</div>';
+                    }
+                }
             } else {
+                if (!myHomes.length            } else {
                 if (!myHomes.length) {
-                    content.innerHTML = '<div style="text-align:center; padding:40px; color:#8E8E93;">🏠 Нет домов</div>';
+                    content.innerHTML = '<div style) {
+                    content.innerHTML = '<div style="text-align:center; padding:40px;="text-align:center; padding:40px; color:#8E8E93;">🏠 color:#8E8E93;">🏠 Нет домов</div>';
+                } else Нет домов</div>';
                 } else {
+                    content.innerHTML = '<div class="ios-list {
                     content.innerHTML = '<div class="ios-list">' + myHomes.map(h =>
+                        '<div">' + myHomes.map(h =>
                         '<div class="ios-list-item">' +
-                            '<div class="list-icon" style="background:#FF9500;"></div>' +
+                            '<div class class="ios-list-item">' +
+                            '<div class="list-icon" style="background:#FF950="list-icon" style="background:#FF9500;">🏠</div>' +
+                            '0;">🏠</div>' +
                             '<div class="list-content">' +
-                                '<div class="list-title">' + h.address + '</div>' +
+                                '<div class<div class="list-content">' +
+                                '<div class="list-title">' + h.address + '</div>' +="list-title">' + h.address + '</div>' +
+                            '</div>' +
+                        '</
                             '</div>' +
                         '</div>'
+                    ).join('') + '</divdiv>'
                     ).join('') + '</div>';
+                }
+            }
+        }>';
                 }
             }
         }
 
         function closePanel() {
+            document.getElementById('
+
+        function closePanel() {
             document.getElementById('panel').classList.remove('active');
+        }
+
+panel').classList.remove('active');
         }
 
         function showMap() {
             closePanel();
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        function showMap() {
+            closePanel();
+            document.querySelectorAll('.tab').forEach(t => t.classList            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.tab:first.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
         }
 
+-child').classList.add('active');
+        }
+
         function loginWithTelegram() {
-            const username = prompt('Введите ваш Telegram username (без @):');
+            const username =        function loginWithTelegram() {
+            const username = prompt('Введите ваш Telegram username (без @): prompt('Введите ваш Telegram username (без @):');
             if (username && username.trim()) {
-                const firstName = prompt('Ваше имя:') || 'Пользователь';
+');
+            if (username && username.trim()) {
+                const firstName = prompt('Ваше имя:')                const firstName = prompt('Ваше имя:') || 'Пользователь';
+                currentUser = { || 'Пользователь';
                 currentUser = {
                     id: 'tg_' + Date.now(),
+
+                    id: 'tg_' + Date.now(),
                     username: username.replace('@', ''),
+                    firstName                    username: username.replace('@', ''),
                     firstName: firstName
                 };
+                database.ref('users/': firstName
+                };
                 database.ref('users/' + currentUser.id).set(currentUser);
+                localStorage.setItem + currentUser.id).set(currentUser);
                 localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                showToast('Добро пожаловать, ' + firstName + '!');
+                showToast('('tgUser', JSON.stringify(currentUser));
+                showToast('Добро пожаловать, ' + firstName + '!Добро пожаловать, ' + firstName + '!');
+                showPanel('profile');
+            }');
                 showPanel('profile');
             }
         }
 
         function logout() {
+            currentUser
+        }
+
+        function logout() {
             currentUser = null;
             localStorage.removeItem('tgUser');
+ = null;
+            localStorage.removeItem('tgUser');
             showToast('Вы вышли');
+            showPanel('profile            showToast('Вы вышли');
             showPanel('profile');
+        }
+
+        function loadHomes() {');
         }
 
         function loadHomes() {
             if (!currentUser) return;
-            database.ref('homes/' + currentUser.id).on("value", snap => {
+            database.ref
+            if (!currentUser) return;
+            database.ref('homes/' + currentUser.id).on("value",('homes/' + currentUser.id).on("value", snap => {
                 const d = snap.val();
-                myHomes = d ? Object.values(d) : [];
+ snap => {
+                const d = snap.val();
+                myHomes = d ? Object.values(d)                myHomes = d ? Object.values(d) : [];
+            });
+        }
+
+        function toggle : [];
             });
         }
 
         function toggleTheme() {
-            document.body.style.background = document.body.style.background === 'rgb(0, 0, 0)' ? '#F2F2F7' : '#000';
-            document.body.style.color = document.body.style.color === 'rgb(255, 255, 255)' ? '#000' : '#fff';
+            document.body.style.background = document.bodyTheme() {
+            document.body.style.background = document.body.style.background === 'rgb(0, 0, .style.background === 'rgb(0, 0, 0)' ? '#F2F2F7'0)' ? '#F2F2F7' : '#000';
+            document.body.style.color : '#000';
+            document.body.style.color = document.body.style.color === 'rgb(2 = document.body.style.color === 'rgb(255, 255, 25555, 255, 255)' ? '#000' : '#fff)' ? '#000' : '#fff';
         }
+
+        // Закрытие пла';
+        }
+
+        // Закрытие плашки при клике вне её
+        document.addEventListenerшки при клике вне её
+        document.addEventListener('click', (e) => {
+            const panel('click', (e) => {
+            const panel = document.getElementById('mapTypePanel');
+            const = document.getElementById('mapTypePanel');
+            const btn = e.target.closest('.btn');
+            if btn = e.target.closest('.btn');
+            if (btn && btn.textContent === ' (btn && btn.textContent === '️') return;
+            if (!panel.contains(e.target)) {
+                panel.classList.remove('show');
+            }
+        });
+   ️') return;
+            if (!panel.contains(e.target)) {
+                panel.classList.remove('show');
+            }
+        });
     </script>
+</body>
+</html>
+ </script>
 </body>
 </html>
