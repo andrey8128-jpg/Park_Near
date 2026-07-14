@@ -120,6 +120,11 @@
             border: 1px solid #FF3B30; font-size: 16px; font-weight: 600;
             cursor: pointer; color: #FF3B30; background: transparent; margin-top: 24px;
         }
+        .btn-secondary {
+            width: 100%; padding: 14px; border-radius: 12px;
+            border: 1px solid #007AFF; font-size: 15px; font-weight: 600;
+            cursor: pointer; color: #007AFF; background: transparent; margin-top: 8px;
+        }
         
         .list-container { display: flex; flex-direction: column; gap: 12px; }
         .list-item {
@@ -148,6 +153,27 @@
         .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
         .profile-username { font-size: 15px; color: #8E8E93; }
         .badge { display: inline-block; padding: 4px 10px; background: #E5F1FF; color: #007AFF; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px; }
+        
+        .map-hint {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
+            border-radius: 20px; font-size: 14px; z-index: 800;
+            animation: fadeInOut 3s ease-in-out;
+        }
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            20%, 80% { opacity: 1; }
+        }
+        
+        .rotation-controls {
+            display: flex; gap: 10px; margin-top: 12px;
+        }
+        .rotation-controls button {
+            flex: 1; padding: 12px; border-radius: 10px;
+            border: 1px solid #C7C7CC; background: #fff;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .rotation-controls button:active { background: #F2F2F7; }
     </style>
 </head>
 <body>
@@ -174,7 +200,7 @@
 
     <div class="tabBar">
         <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon"></div><div class="label">История</div></div>
+        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
         <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
@@ -192,6 +218,9 @@
         const database = firebase.database();
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
+        let parkingPolygon = null, parkingCenter = null, parkingRotation = 0;
+        const PARKING_LENGTH = 5; // метров
+        const PARKING_WIDTH = 1.9; // метров
 
         function initAuth() {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -218,35 +247,87 @@
             }
         }
 
-        // ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ ГЕОЛОКАЦИИ
+        // Расчет координат углов прямоугольника с учетом поворота
+        function calculateParkingCorners(centerLat, centerLng, length, width, rotationDeg) {
+            const rotationRad = rotationDeg * Math.PI / 180;
+            
+            // Метры в градусы (приблизительно)
+            const metersPerDegLat = 111320;
+            const metersPerDegLng = 111320 * Math.cos(centerLat * Math.PI / 180);
+            
+            const halfLength = length / 2;
+            const halfWidth = width / 2;
+            
+            // Углы прямоугольника до поворота (относительно центра)
+            const corners = [
+                { x: -halfWidth, y: -halfLength }, // верхний левый
+                { x: halfWidth, y: -halfLength },  // верхний правый
+                { x: halfWidth, y: halfLength },   // нижний правый
+                { x: -halfWidth, y: halfLength }   // нижний левый
+            ];
+            
+            // Поворот и преобразование в координаты
+            return corners.map(corner => {
+                const rotatedX = corner.x * Math.cos(rotationRad) - corner.y * Math.sin(rotationRad);
+                const rotatedY = corner.x * Math.sin(rotationRad) + corner.y * Math.cos(rotationRad);
+                
+                return [
+                    centerLat + rotatedY / metersPerDegLat,
+                    centerLng + rotatedX / metersPerDegLng
+                ];
+            });
+        }
+
+        function drawParkingOnMap(centerLat, centerLng, rotation = 0) {
+            // Удаляем старую парковку, если есть
+            if (parkingPolygon) {
+                map.geoObjects.remove(parkingPolygon);
+            }
+            
+            // Рассчитываем углы
+            const corners = calculateParkingCorners(centerLat, centerLng, PARKING_LENGTH, PARKING_WIDTH, rotation);
+            
+            // Создаем полигон парковочного места
+            parkingPolygon = new ymaps.Polygon([corners], {
+                hintContent: `Парковка ${PARKING_LENGTH}м × ${PARKING_WIDTH}м`
+            }, {
+                fillColor: '#007AFF33',
+                strokeColor: '#007AFF',
+                strokeWidth: 2,
+                draggable: true
+            });
+            
+            // Добавляем возможность перетаскивания
+            parkingPolygon.events.add('drag', function(e) {
+                const coords = e.get('target').geometry.getCoordinates();
+                // Пересчитываем центр как среднее всех углов
+                const newCenterLat = coords.reduce((sum, c) => sum + c[0], 0) / 4;
+                const newCenterLng = coords.reduce((sum, c) => sum + c[1], 0) / 4;
+                parkingCenter = [newCenterLat, newCenterLng];
+            });
+            
+            map.geoObjects.add(parkingPolygon);
+            parkingCenter = [centerLat, centerLng];
+            parkingRotation = rotation;
+        }
+
         function getUserLocation() {
             return new Promise(function(resolve, reject) {
-                // Приоритет 1: Telegram Geolocation API (работает внутри Telegram)
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.Geolocation) {
-                    console.log('Используем Telegram Geolocation API...');
                     window.Telegram.WebApp.Geolocation.getLocation()
                         .then(function(location) {
-                            resolve({
-                                lat: location.latitude,
-                                lng: location.longitude
-                            });
+                            resolve({ lat: location.latitude, lng: location.longitude });
                         })
                         .catch(function(err) {
-                            console.warn('Telegram Geolocation failed:', err);
-                            // Пробуем fallback
                             tryBrowserGeolocation(resolve, reject);
                         });
                 } else {
-                    // Приоритет 2: Стандартный браузерный API
                     tryBrowserGeolocation(resolve, reject);
                 }
             });
         }
 
         function tryBrowserGeolocation(resolve, reject) {
-            console.log('Используем браузерную геолокацию...');
-            
-            // Сначала пробуем ymaps.geolocation
             if (typeof ymaps !== 'undefined') {
                 ymaps.geolocation.get({
                     provider: 'browser',
@@ -255,16 +336,12 @@
                     const coords = result.geoObjects.get(0).geometry.getCoordinates();
                     resolve({ lat: coords[0], lng: coords[1] });
                 }).catch(function(err) {
-                    console.warn('Yandex geolocation failed:', err);
-                    // Последний fallback: navigator.geolocation
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(
                             function(pos) {
                                 resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                             },
-                            function(err) {
-                                reject(err);
-                            },
+                            function(err) { reject(err); },
                             { enableHighAccuracy: true, timeout: 10000 }
                         );
                     } else {
@@ -276,9 +353,7 @@
                     function(pos) {
                         resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                     },
-                    function(err) {
-                        reject(err);
-                    },
+                    function(err) { reject(err); },
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
             } else {
@@ -289,26 +364,32 @@
         function initMap() {
             map = new ymaps.Map("map", {
                 center: [55.7558, 37.6173],
-                zoom: 12,
+                zoom: 18, // Увеличенный зум для лучшего отображения парковки
                 controls: ['zoomControl'],
                 type: 'yandex#map'
             });
             
-            const testPlacemark = new ymaps.Placemark([55.7558, 37.6173], {
-                balloonContent: '<strong>Тестовая парковка</strong><br>Если вы это видите, карта работает!'
-            }, { preset: 'islands#redDotIcon' });
-            map.geoObjects.add(testPlacemark);
-
             document.getElementById('addBtn').onclick = function() {
                 if (!currentUser) {
                     showPanel('profile');
                     return;
                 }
                 const center = map.getCenter();
+                
+                // Рисуем парковочное место на карте
+                drawParkingOnMap(center[0], center[1], 0);
+                
+                // Показываем подсказку
+                const hint = document.createElement('div');
+                hint.className = 'map-hint';
+                hint.textContent = 'Перетащите парковку на нужное место';
+                document.body.appendChild(hint);
+                setTimeout(() => hint.remove(), 3000);
+                
+                // Открываем панель добавления
                 openAddPanel(center);
             };
 
-            // ✅ ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КНОПКИ ГЕОЛОКАЦИИ
             document.getElementById('geoBtn').onclick = function() {
                 if (!map) return;
                 
@@ -320,12 +401,10 @@
                     .then(function(coords) {
                         btn.innerHTML = originalContent;
                         
-                        // Удаляем старую метку
                         if (myLocationPlacemark) {
                             map.geoObjects.remove(myLocationPlacemark);
                         }
                         
-                        // Создаём метку "Вы здесь"
                         myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
                             hintContent: 'Вы здесь',
                             balloonContent: '<strong>Ваше местоположение</strong>'
@@ -335,11 +414,8 @@
                         myLocationPlacemark.properties.set('caption', 'Вы здесь');
                         
                         map.geoObjects.add(myLocationPlacemark);
-                        
-                        // Плавно приближаем
                         map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
                         
-                        // Вибрация при успехе
                         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                         }
@@ -348,13 +424,9 @@
                         btn.innerHTML = originalContent;
                         console.error("Ошибка геолокации:", err);
                         
-                        // Показываем понятное сообщение
                         let message = 'Не удалось определить местоположение.\n\n';
-                        
                         if (window.Telegram && window.Telegram.WebApp) {
-                            message += 'Проверьте:\n' +
-                                '• Настройки телефона → Конфиденциальность → Службы геолокации → Telegram (включено)\n' +
-                                '• Разрешение на геолокацию для Telegram';
+                            message += 'Проверьте:\n• Настройки телефона → Конфиденциальность → Службы геолокации → Telegram (включено)';
                         } else {
                             message += 'Разрешите доступ к геоданным в настройках браузера.';
                         }
@@ -369,7 +441,6 @@
 
             loadAllParkings();
             
-            // ✅ Автоматически определяем геолокацию при запуске (опционально)
             setTimeout(function() {
                 getUserLocation()
                     .then(function(coords) {
@@ -383,10 +454,10 @@
                         });
                         myLocationPlacemark.properties.set('caption', 'Вы здесь');
                         map.geoObjects.add(myLocationPlacemark);
-                        map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
+                        map.setCenter([coords.lat, coords.lng], 18, { duration: 500 });
                     })
                     .catch(function(err) {
-                        console.log('Автогеолокация не удалась (это нормально):', err.message);
+                        console.log('Автогеолокация не удалась:', err.message);
                     });
             }, 1000);
         }
@@ -404,10 +475,19 @@
             document.getElementById('panelTitle').textContent = 'Новая парковка';
             document.getElementById('panelContent').innerHTML = `
                 <div class="form-group">
-                    <label>Координаты</label>
-                    <input type="text" class="input-field" value="${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}" readonly style="background:#F2F2F7; color:#8E8E93;">
+                    <label>Размер парковки</label>
+                    <input type="text" class="input-field" value="${PARKING_LENGTH}м × ${PARKING_WIDTH}м" readonly style="background:#F2F2F7; color:#8E8E93;">
                 </div>
                 <div class="form-group">
+                    <label>Поворот (градусы)</label>
+                    <input type="number" id="parkRotation" class="input-field" value="${parkingRotation}" min="0" max="360" step="5">
+                </div>
+                <div class="rotation-controls">
+                    <button onclick="rotateParking(-15)">↺ -15°</button>
+                    <button onclick="rotateParking(15)">↻ +15°</button>
+                    <button onclick="rotateParking(90)">⟳ 90°</button>
+                </div>
+                <div class="form-group" style="margin-top:16px;">
                     <label>Название *</label>
                     <input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ">
                 </div>
@@ -415,16 +495,52 @@
                     <label>Описание</label>
                     <textarea id="parkDesc" class="input-field" rows="3" placeholder="Бесплатно, есть шлагбаум..."></textarea>
                 </div>
-                <button class="btn-primary" id="saveParkBtn" onclick="submitParking(${coords[0]}, ${coords[1]})">Сохранить</button>
+                <button class="btn-primary" id="saveParkBtn" onclick="submitParking()">Сохранить парковку</button>
+                <button class="btn-secondary" onclick="removeParkingFromMap()">Удалить с карты</button>
             `;
         }
 
-        function submitParking(lat, lng) {
+        function rotateParking(degrees) {
+            parkingRotation = (parkingRotation + degrees) % 360;
+            if (parkingRotation < 0) parkingRotation += 360;
+            
+            // Обновляем поле ввода
+            const rotationInput = document.getElementById('parkRotation');
+            if (rotationInput) {
+                rotationInput.value = parkingRotation;
+            }
+            
+            // Перерисовываем парковку
+            if (parkingCenter) {
+                drawParkingOnMap(parkingCenter[0], parkingCenter[1], parkingRotation);
+            }
+            
+            // Вибрация
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        }
+
+        function removeParkingFromMap() {
+            if (parkingPolygon) {
+                map.geoObjects.remove(parkingPolygon);
+                parkingPolygon = null;
+            }
+            closePanel();
+        }
+
+        function submitParking() {
             const name = document.getElementById('parkName').value.trim();
             const desc = document.getElementById('parkDesc').value.trim();
+            const rotation = parseInt(document.getElementById('parkRotation').value) || 0;
             
             if (!name) {
                 alert('Пожалуйста, введите название парковки');
+                return;
+            }
+            
+            if (!parkingCenter) {
+                alert('Парковочное место не размещено на карте');
                 return;
             }
 
@@ -434,8 +550,11 @@
 
             const newRef = database.ref('parkings').push();
             const parkingData = {
-                lat: parseFloat(lat),
-                lng: parseFloat(lng),
+                lat: parseFloat(parkingCenter[0]),
+                lng: parseFloat(parkingCenter[1]),
+                rotation: rotation,
+                length: PARKING_LENGTH,
+                width: PARKING_WIDTH,
                 name: name,
                 desc: desc,
                 authorId: currentUser.id,
@@ -446,11 +565,21 @@
             newRef.set(parkingData).then(() => {
                 database.ref(`users/${currentUser.id}/history`).push({
                     parkingId: newRef.key,
-                    name: name, lat: parseFloat(lat), lng: parseFloat(lng), 
+                    name: name, 
+                    lat: parseFloat(parkingCenter[0]), 
+                    lng: parseFloat(parkingCenter[1]),
+                    rotation: rotation,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
                 
                 addMarkerToMap(newRef.key, parkingData);
+                
+                // Удаляем временную парковку
+                if (parkingPolygon) {
+                    map.geoObjects.remove(parkingPolygon);
+                    parkingPolygon = null;
+                }
+                
                 closePanel();
                 showMap();
                 
@@ -460,7 +589,7 @@
             }).catch(err => {
                 console.error("Ошибка Firebase:", err);
                 alert('Ошибка сохранения: ' + err.message);
-                btn.textContent = 'Сохранить';
+                btn.textContent = 'Сохранить парковку';
                 btn.disabled = false;
             });
         }
@@ -486,21 +615,40 @@
         function addMarkerToMap(id, data) {
             if (mapMarkers[id]) return;
             
-            const placemark = new ymaps.Placemark([data.lat, data.lng], {
-                balloonContentHeader: `<strong>${data.name}</strong>`,
-                balloonContentBody: data.desc || 'Нет описания',
-                balloonContentFooter: `Добавил: ${data.authorName}`
-            }, {
-                preset: 'islands#blueParkingIcon'
-            });
-            
-            map.geoObjects.add(placemark);
-            mapMarkers[id] = placemark;
+            // Если есть данные о размерах и повороте, рисуем полигон
+            if (data.length && data.width && data.rotation !== undefined) {
+                const corners = calculateParkingCorners(data.lat, data.lng, data.length, data.width, data.rotation);
+                
+                const placemark = new ymaps.Polygon([corners], {
+                    balloonContentHeader: `<strong>${data.name}</strong>`,
+                    balloonContentBody: data.desc || 'Нет описания',
+                    balloonContentFooter: `Добавил: ${data.authorName}`
+                }, {
+                    fillColor: '#007AFF22',
+                    strokeColor: '#007AFF',
+                    strokeWidth: 2
+                });
+                
+                map.geoObjects.add(placemark);
+                mapMarkers[id] = placemark;
+            } else {
+                // Fallback для старых записей без размеров
+                const placemark = new ymaps.Placemark([data.lat, data.lng], {
+                    balloonContentHeader: `<strong>${data.name}</strong>`,
+                    balloonContentBody: data.desc || 'Нет описания',
+                    balloonContentFooter: `Добавил: ${data.authorName}`
+                }, {
+                    preset: 'islands#blueParkingIcon'
+                });
+                
+                map.geoObjects.add(placemark);
+                mapMarkers[id] = placemark;
+            }
         }
 
         function focusMap(lat, lng, parkingId) {
             closePanel();
-            map.setCenter([lat, lng], 16, { duration: 300 });
+            map.setCenter([lat, lng], 18, { duration: 300 });
             if (mapMarkers[parkingId]) {
                 setTimeout(() => {
                     mapMarkers[parkingId].balloon.open();
@@ -532,7 +680,7 @@
             if (!currentUser) {
                 contentEl.innerHTML = `
                     <div class="profile-header">
-                        <div class="profile-avatar"></div>
+                        <div class="profile-avatar">👤</div>
                         <div class="profile-name">Добро пожаловать</div>
                         <div class="profile-username">Войдите, чтобы сохранять данные</div>
                     </div>
