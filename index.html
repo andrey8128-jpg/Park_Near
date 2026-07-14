@@ -39,7 +39,15 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        /* Карта с отступом снизу */
+        #map { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1;
+        }
 
         .floating-controls { position: absolute; top: 60px; left: 16px; right: 16px; z-index: 900; display: flex; gap: 10px; pointer-events: none; }
         .control-btn { 
@@ -147,6 +155,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 10px 0;
         }
         #telegram-widget-direct iframe {
             border-radius: 10px !important;
@@ -190,7 +199,7 @@
 
     <div id="tabBar">
         <div class="tabItem active" onclick="switchToMap()"><div class="tab-icon">🗺️</div><div class="tab-label">Карта</div></div>
-        <div class="tabItem" onclick="openList('history')"><div class="tab-icon"></div><div class="tab-label">История</div></div>
+        <div class="tabItem" onclick="openList('history')"><div class="tab-icon">🕘</div><div class="tab-label">История</div></div>
         <div class="tabItem" onclick="openList('favorites')"><div class="tab-icon">⭐</div><div class="tab-label">Избранное</div></div>
         <div class="tabItem" onclick="openList('profile')"><div class="tab-icon">👤</div><div class="tab-label">Профиль</div></div>
     </div>
@@ -265,13 +274,13 @@
             if(saved) { currentUser = JSON.parse(saved); }
         });
 
-        // Функция для загрузки виджета Telegram
         function loginWithTelegram() {
             const container = document.getElementById('telegram-widget-direct');
             if (!container) return;
             
-            container.innerHTML = '<div style="color: var(--secondary-text);">Загрузка...</div>';
+            container.innerHTML = '<div style="color: var(--secondary-text); font-size: 14px;">Загрузка кнопки...</div>';
             
+            // Очищаем и создаём виджет с небольшой задержкой
             setTimeout(() => {
                 container.innerHTML = '';
                 
@@ -287,11 +296,21 @@
                 const script = document.createElement('script');
                 script.src = 'https://telegram.org/js/telegram-widget.js?22';
                 script.async = true;
+                script.onerror = () => {
+                    container.innerHTML = '<div style="color: #FF3B30; font-size: 12px;">⚠️ Ошибка загрузки. Проверьте настройку домена в @BotFather</div>';
+                };
                 container.appendChild(script);
+                
+                // Если через 3 секунды кнопка не появилась
+                setTimeout(() => {
+                    if(container.children.length === 1 && container.querySelector('iframe') === null) {
+                        container.innerHTML = '<div style="color: #FF9500; font-size: 12px;">⚠️ Кнопка не загрузилась. Настройте домен в @BotFather командой /setdomain</div>';
+                    }
+                }, 3000);
+                
             }, 100);
         }
 
-        // Эта функция вызывается автоматически когда пользователь подтвердил вход в Telegram
         function onTelegramAuthConfirmed(user) {
             const userData = {
                 id: 'tg_' + user.id,
@@ -331,6 +350,7 @@
                 center: [55.7558, 37.6173], 
                 zoom: 13, 
                 controls: [],
+                // Отступы: [верх, право, низ, лево] - низ 100px чтобы не перекрывалось панелью
                 margin: [10, 10, 100, 10]
             });
             
@@ -420,7 +440,7 @@
             const btn = document.getElementById("addBtn");
             btn.classList.add('drawing'); btn.textContent = '💾';
             closeModal();
-            showToast('Кликайте на карте, чтобы перерисовать фигуру. Нажмите 💾 для сохранения.');
+            showToast('Кликайте на карте, чтобы перерисовать фигуру. Нажмите  для сохранения.');
         }
 
         function finishEditingShape() {
@@ -516,7 +536,7 @@
             if(!currentUser) return;
             try {
                 const coords = JSON.parse(coordsStr);
-                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast('🏠 Добавлено'); loadHomes(); closeModal(); });
+                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast(' Добавлено'); loadHomes(); closeModal(); });
             } catch(e){}
         }
 
@@ -565,7 +585,7 @@
         }
 
         function renderHistory(c) {
-            if(!currentUser) { c.innerHTML='<div class="empty-state"> Войдите через Telegram</div>'; return; }
+            if(!currentUser) { c.innerHTML='<div class="empty-state">🔒 Войдите через Telegram</div>'; return; }
             const list = Object.keys(parkingsData).filter(id=>parkingsData[id].owner===currentUser.id).map(id=>({id,...parkingsData[id]})).sort((a,b)=>new Date(b.created)-new Date(a.created));
             if(!list.length) { c.innerHTML='<div class="empty-state">📋 Пусто</div>'; return; }
             c.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==="free"?"status-free":p.status==="busy"?"status-busy":"status-unknown"}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
@@ -580,10 +600,10 @@
             if (!currentUser) {
                 container.innerHTML = `
                     <div style="text-align:center; padding: 20px;">
-                        <div style="font-size: 60px; margin-bottom: 20px;"></div>
+                        <div style="font-size: 60px; margin-bottom: 20px;">👤</div>
                         <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--text-color);">Вход через Telegram</div>
                         <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 20px;">
-                            Нажмите кнопку ниже и подтвердите вход<br>в приложении Telegram
+                            Нажмите кнопку и подтвердите вход<br>в приложении Telegram
                         </div>
                         
                         <div class="telegram-widget-wrapper">
