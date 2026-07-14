@@ -140,12 +140,24 @@
         input:checked + .slider { background-color: #34C759; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Кнопка входа Telegram */
-        .tg-login-btn { 
-            background: #0088cc; color: white; border: none; padding: 14px 24px; 
-            border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; 
-            display: inline-flex; align-items: center; justify-content: center; gap: 10px; 
-            width: 100%; max-width: 280px; box-shadow: 0 4px 12px rgba(0,136,204,0.3);
+        /* Стили для всплывающего окна входа */
+        #tg-login-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 5000;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        #tg-login-overlay.active { display: flex; }
+        .tg-login-box {
+            background: var(--card-bg); padding: 30px; border-radius: 20px;
+            text-align: center; width: 90%; max-width: 320px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .tg-close-btn {
+            position: absolute; top: 15px; right: 15px;
+            background: none; border: none; font-size: 24px;
+            color: var(--secondary-text); cursor: pointer;
         }
 
         #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 20px; z-index: 3000; transition: transform 0.3s; }
@@ -203,6 +215,18 @@
         </div>
     </div>
 
+    <!-- Всплывающее окно для Telegram Login Widget -->
+    <div id="tg-login-overlay" onclick="if(event.target===this) document.getElementById('tg-login-overlay').classList.remove('active')">
+        <div class="tg-login-box">
+            <button class="tg-close-btn" onclick="document.getElementById('tg-login-overlay').classList.remove('active')">×</button>
+            <h3 style="margin-bottom: 20px; font-size: 20px;">Вход через Telegram</h3>
+            <div id="telegram-widget-container"></div>
+            <p style="font-size: 12px; color: var(--secondary-text); margin-top: 15px;">
+                Нажмите кнопку ниже,<br>чтобы подтвердить вход
+            </p>
+        </div>
+    </div>
+
     <div id="toast"></div>
 
     <script>
@@ -244,7 +268,6 @@
             currentTheme = currentTheme === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', currentTheme);
             localStorage.setItem('appTheme', currentTheme);
-            // Перерисовываем карту для применения новой темы (если поддерживается API)
             if(map) map.setType(currentMapType); 
             const toggle = document.getElementById('themeSwitch');
             if(toggle) toggle.checked = currentTheme === 'dark';
@@ -260,7 +283,7 @@
         function getStatusText(s) { return s==='free'?'✅ Свободно':s==='busy'?'❌ Занято':'❓ Неизвестно'; }
 
         // ============================
-        // АВТОРИЗАЦИЯ (ИСПРАВЛЕНО ДЛЯ IPHONE)
+        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM WIDGET
         // ============================
         window.addEventListener('load', () => {
             const saved = localStorage.getItem('tgUser');
@@ -268,43 +291,71 @@
         });
 
         function loginWithTelegram() {
-            // 1. Пытаемся открыть приложение Telegram напрямую через системную ссылку
-            window.location.href = `tg://resolve?domain=${TELEGRAM_BOT_NAME}&start=login`;
+            const overlay = document.getElementById('tg-login-overlay');
+            const container = document.getElementById('telegram-widget-container');
             
-            // 2. Если приложение не открылось за 1.5 секунды (пользователь остался в браузере),
-            // то показываем поля для ввода вручную.
-            setTimeout(() => {
-                const username = prompt('Если Telegram не открылся, введите ваш username (без @):');
-                if (!username) return;
-                
-                const firstName = prompt('Ваше имя:') || 'Пользователь';
-                
-                const userData = { 
-                    id: 'tg_'+Date.now(), 
-                    username, 
-                    firstName, 
-                    lastName:'', 
-                    authDate: new Date().toISOString() 
-                };
-                
-                database.ref('users/'+userData.id).set(userData).then(() => {
+            // Очищаем контейнер перед созданием нового виджета
+            container.innerHTML = '';
+            
+            // Создаем div для виджета
+            const widgetDiv = document.createElement('div');
+            widgetDiv.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME);
+            widgetDiv.setAttribute('data-size', 'large');
+            widgetDiv.setAttribute('data-radius', '10');
+            widgetDiv.setAttribute('data-onauth', 'onTelegramAuthConfirmed');
+            widgetDiv.setAttribute('data-request-access', 'write');
+            
+            container.appendChild(widgetDiv);
+            
+            // Загружаем скрипт виджета
+            const script = document.createElement('script');
+            script.src = 'https://telegram.org/js/telegram-widget.js?22';
+            script.async = true;
+            container.appendChild(script);
+            
+            // Показываем оверлей
+            overlay.classList.add('active');
+        }
+
+        // Эта функция вызывается ТОЛЬКО когда Telegram подтвердил вход
+        function onTelegramAuthConfirmed(user) {
+            // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
+            
+            const userData = {
+                id: 'tg_' + user.id,
+                telegramId: user.id,
+                username: user.username || 'user' + user.id,
+                firstName: user.first_name,
+                lastName: user.last_name || '',
+                photoUrl: user.photo_url || '',
+                authDate: new Date().toISOString(),
+                hash: user.hash 
+            };
+
+            // Сохраняем в базу и локально
+            database.ref('users/' + userData.id).set(userData)
+                .then(() => {
                     currentUser = userData;
                     localStorage.setItem('tgUser', JSON.stringify(userData));
-                    showToast(`Привет, ${firstName}! 👋`);
+                    
+                    // Убираем виджет
+                    document.getElementById('tg-login-overlay').classList.remove('active');
+                    
+                    showToast(`Добро пожаловать, ${userData.firstName}! 👋`);
                     
                     // Обновляем экран профиля
                     if(document.getElementById('fullScreenPanel').classList.contains('active')) {
                         openList('profile');
                     }
-                });
-            }, 1500);
+                })
+                .catch(err => showToast('Ошибка сохранения: ' + err.message));
         }
 
         function logout() {
             currentUser = null; 
             localStorage.removeItem('tgUser');
             showToast('Вы вышли'); 
-            openList('profile'); // Обновляем вид профиля
+            openList('profile');
         }
 
         // ============================
@@ -315,7 +366,6 @@
         function initMap() {
             map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 13, controls: [] });
             
-            // Геолокация при старте
             if(navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     userLocation = [pos.coords.latitude, pos.coords.longitude];
@@ -324,16 +374,12 @@
                 }, ()=>{});
             }
 
-            // Обработка кликов по карте
             map.events.add("click", e => {
-                // Режим создания новой парковки
                 if(drawing) {
                     points.push(e.get("coords"));
                     drawTempPolygon();
                     return;
                 }
-                
-                // Режим редактирования существующей фигуры
                 if(editingParkingId) {
                     points.push(e.get("coords"));
                     drawTempPolygon();
@@ -341,17 +387,11 @@
                 }
             });
 
-            // Кнопка "+" / "💾"
             document.getElementById("addBtn").onclick = async function() {
                 if(!currentUser) { showToast('Сначала войдите в профиль'); openList('profile'); return; }
-                
-                // Завершение редактирования
                 if(editingParkingId) { finishEditingShape(); return; }
-                
-                // Завершение создания
                 if(drawing) { finishDrawingNew(); return; }
                 
-                // Начало создания
                 drawing = true; points = [];
                 this.classList.add('drawing'); this.textContent = '✕';
                 showToast('Нажмите на карту, чтобы поставить точки');
@@ -401,16 +441,12 @@
             });
         }
 
-        // Редактирование фигуры
         function startEditingShape(id) {
             editingParkingId = id;
             const p = parkingsData[id];
-            points = [...p.coordinates]; // Копируем текущие точки
-            
-            loadParkings(); // Убираем старый полигон с карты
+            points = [...p.coordinates];
+            loadParkings();
             if(tempPolygon) map.geoObjects.remove(tempPolygon);
-            
-            // Рисуем временный полигон
             drawTempPolygon();
             
             const btn = document.getElementById("addBtn");
@@ -437,7 +473,6 @@
 
         function resetAddBtn() { const b=document.getElementById("addBtn"); b.classList.remove('drawing'); b.textContent='+'; }
 
-        // Типы карты
         function toggleMapTypeMenu() { document.getElementById('mapTypeMenu').classList.toggle('show'); }
         function setMapType(type) {
             currentMapType = type;
@@ -456,7 +491,6 @@
             }, ()=>showToast('❌ Нет GPS'));
         }
 
-        // Загрузка парковок
         function loadParkings() {
             database.ref("parkings").on("value", snap => {
                 const data = snap.val();
@@ -496,7 +530,7 @@
                 <div class="status-selector">
                     <button class="status-btn free ${p.status==='free'?'selected':''}" onclick="updateField('${id}','status','free')">✅ Свободно</button>
                     <button class="status-btn busy ${p.status==='busy'?'selected':''}" onclick="updateField('${id}','status','busy')">❌ Занято</button>
-                    <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')"> Неизв.</button>
+                    <button class="status-btn unknown ${p.status==='unknown'?'selected':''}" onclick="updateField('${id}','status','unknown')">❓ Неизв.</button>
                 </div>
                 <div class="modal-actions">
                     <button class="modal-btn modal-btn-secondary" onclick="startEditingShape('${id}')">️ Изменить фигуру</button>
@@ -517,7 +551,7 @@
             if(!currentUser) return;
             try {
                 const coords = JSON.parse(coordsStr);
-                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast('🏠 Добавлено'); loadHomes(); closeModal(); });
+                database.ref(`homes/${currentUser.id}/${Date.now()}`).set({coords, address:name, created:new Date().toISOString()}).then(() => { showToast(' Добавлено'); loadHomes(); closeModal(); });
             } catch(e){}
         }
 
@@ -535,7 +569,6 @@
             if(!currentUser) return;
             database.ref(`homes/${currentUser.id}`).on("value", snap => {
                 const d = snap.val(); myHomes = d ? Object.values(d) : [];
-                // Если открыт список избранного, обновляем его
                 if(document.getElementById('panelTitle').textContent === 'Избранное') {
                     renderFavorites(document.getElementById('panelContent'));
                 }
@@ -546,7 +579,6 @@
             let c=0; Object.values(parkingsData).forEach(p => { if(p.center && Math.sqrt(Math.pow(p.center[0]-coords[0],2)+Math.pow(p.center[1]-coords[1],2))<0.005) c++; }); return c; 
         }
 
-        // Навигация
         function switchToMap() {
             document.querySelectorAll('.tabItem').forEach(i => i.classList.remove('active'));
             document.querySelector('.tabItem:first-child').classList.add('active');
@@ -555,7 +587,6 @@
 
         function openList(type) {
             document.querySelectorAll('.tabItem').forEach(i => i.classList.remove('active'));
-            // Находим нужную вкладку по типу
             const tabs = ['map', 'history', 'favorites', 'profile'];
             const idx = tabs.indexOf(type);
             if(idx > -1) document.querySelectorAll('.tabItem')[idx].classList.add('active');
@@ -572,7 +603,7 @@
         }
 
         function renderHistory(c) {
-            if(!currentUser) { c.innerHTML='<div class="empty-state">🔒 Войдите через Telegram</div>'; return; }
+            if(!currentUser) { c.innerHTML='<div class="empty-state"> Войдите через Telegram</div>'; return; }
             const list = Object.keys(parkingsData).filter(id=>parkingsData[id].owner===currentUser.id).map(id=>({id,...parkingsData[id]})).sort((a,b)=>new Date(b.created)-new Date(a.created));
             if(!list.length) { c.innerHTML='<div class="empty-state">📋 Пусто</div>'; return; }
             c.innerHTML = '<div class="ios-list">' + list.map(p => `<div class="ios-list-item" onclick='showParkingModal("${p.id}", parkingsData["${p.id}"])'><div class="list-icon ${p.status==="free"?"status-free":p.status==="busy"?"status-busy":"status-unknown"}"></div><div class="list-content"><div class="list-title">${p.name}</div><div class="list-subtitle">${getStatusText(p.status)}</div></div><div class="list-badge">${p.places}</div></div>`).join('') + '</div>';
@@ -580,12 +611,10 @@
 
         function renderFavorites(c) {
             if(!myHomes.length) { c.innerHTML='<div class="empty-state">🏠 Нет домов<br><small>Отметьте дом в модалке парковки</small></div>'; return; }
-            c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;">🏠</div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
+            c.innerHTML = '<div class="ios-list">' + myHomes.map(h => { const cnt=countNear(h.coords); return `<div class="ios-list-item"><div class="list-icon" style="background:#FF9500;"></div><div class="list-content"><div class="list-title">${h.address} <span style="background:#FF9500;color:white;padding:2px 8px;border-radius:8px;font-size:11px;">${cnt}</span></div><div class="list-subtitle">${cnt} парковок рядом</div></div><span style="font-size:22px;color:#FF9500;cursor:pointer;" onclick="database.ref('homes/${currentUser.id}/${h.id}').remove().then(()=>{showToast('Удалено');loadHomes()})">★</span></div>`; }).join('') + '</div>';
         }
 
-        // ИСПРАВЛЕННАЯ ФУНКЦИЯ ПРОФИЛЯ
         function renderProfile(container) {
-            // Если пользователь НЕ авторизован - показываем кнопку входа сразу в панели
             if (!currentUser) {
                 container.innerHTML = `
                     <div style="text-align:center; padding: 40px 20px;">
@@ -594,7 +623,7 @@
                         <div style="font-size: 14px; color: var(--secondary-text); margin-bottom: 30px;">
                             Войдите через Telegram,<br>чтобы сохранять парковки<br>и пользоваться всеми функциями
                         </div>
-                        <button class="tg-login-btn" onclick="loginWithTelegram()" style="max-width: 250px; margin: 0 auto;">
+                        <button class="tg-login-btn" onclick="loginWithTelegram()" style="max-width: 250px; margin: 0 auto; background: #0088cc; color: white; border: none; padding: 14px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; box-shadow: 0 4px 12px rgba(0,136,204,0.3);">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
                             </svg>
@@ -605,7 +634,6 @@
                 return;
             }
 
-            // Если авторизован - показываем профиль
             const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
             const free = myP.filter(p => p.status === 'free').length;
             const busy = myP.filter(p => p.status === 'busy').length;
