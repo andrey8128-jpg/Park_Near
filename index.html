@@ -106,7 +106,6 @@
         }
         .btn:active { transform: scale(0.95); }
 
-        /* Плашка изменения слоя карты */
         .map-type-panel {
             position: fixed;
             top: 80px;
@@ -139,7 +138,6 @@
         .map-type-btn:last-child { margin-bottom: 0; }
         .map-type-btn.active { background: #007AFF; color: #fff; }
 
-        /* Кнопка добавления */
         #addBtn {
             position: fixed;
             bottom: 100px;
@@ -161,7 +159,6 @@
         }
         #addBtn.drawing { background: #FF3B30; }
 
-        /* Нижняя панель */
         .tabBar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -186,7 +183,6 @@
         .tab .label { font-size: 10px; color: #8E8E93; }
         .tab.active .label { color: #007AFF; font-weight: 600; }
 
-        /* Полноэкранная панель */
         .panel {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -210,7 +206,6 @@
         .panel-close { color: #007AFF; background: none; border: none; font-size: 17px; cursor: pointer; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
 
-        /* Toast */
         .toast {
             position: fixed;
             top: 80px;
@@ -226,25 +221,6 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
 
-        /* Кнопка входа */
-        .login-btn {
-            background: #0088cc;
-            color: #fff;
-            border: none;
-            padding: 16px 24px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        /* Списки */
         .ios-list { background: #fff; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
         body.dark .ios-list { background: #1C1C1E; }
         .ios-list-item {
@@ -271,7 +247,6 @@
         .list-title { font-size: 16px; font-weight: 600; }
         .list-subtitle { font-size: 13px; color: #8E8E93; }
 
-        /* Модальное окно */
         .modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -333,7 +308,6 @@
         body.dark .modal-btn-secondary { background: #2C2C2E; color: #fff; }
         .modal-btn-danger { background: #FF3B30; color: #fff; }
 
-        /* Переключатель темы */
         .theme-toggle {
             display: flex;
             align-items: center;
@@ -368,7 +342,6 @@
         input:checked + .slider { background: #34C759; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Статистика */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
         .stat-card { background: #fff; border-radius: 12px; padding: 14px 10px; text-align: center; }
         body.dark .stat-card { background: #1C1C1E; }
@@ -441,7 +414,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // Firebase
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
             authDomain: "parknear-bef41.firebaseapp.com",
@@ -454,7 +427,7 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Состояние
+        // --- Состояние ---
         let map = null;
         let currentUser = null;
         let parkingsData = {};
@@ -464,7 +437,7 @@
         let points = [];
         let tempPolygon = null;
 
-        // Toast
+        // --- Toast ---
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -472,7 +445,7 @@
             setTimeout(() => t.classList.remove('show'), 2500);
         }
 
-        // Инициализация карты
+        // --- Карта ---
         function initMap() {
             map = new ymaps.Map("map", {
                 center: [55.7558, 37.6173],
@@ -481,7 +454,6 @@
                 type: 'yandex#map'
             });
 
-            // Геолокация
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     const coords = [pos.coords.latitude, pos.coords.longitude];
@@ -494,7 +466,6 @@
                 }, () => {});
             }
 
-            // Клик по карте
             map.events.add("click", e => {
                 if (drawing || editingParkingId) {
                     points.push(e.get("coords"));
@@ -509,7 +480,6 @@
                 }
             });
 
-            // Кнопка добавления
             document.getElementById("addBtn").onclick = function() {
                 if (!currentUser) {
                     showToast('Сначала войдите');
@@ -531,7 +501,6 @@
                 showToast('Нажмите на карту');
             };
 
-            // Загрузка пользователя
             const saved = localStorage.getItem('tgUser');
             if (saved) currentUser = JSON.parse(saved);
 
@@ -548,7 +517,6 @@
             });
         }
 
-        // Переключение типа карты
         function toggleMapType() {
             document.getElementById('mapTypePanel').classList.toggle('show');
         }
@@ -564,7 +532,6 @@
             }, 300);
         }
 
-        // Завершение рисования новой парковки
         function finishDrawing() {
             drawing = false;
             const btn = document.getElementById("addBtn");
@@ -598,7 +565,6 @@
             });
         }
 
-        // Редактирование фигуры
         function startEditingShape(id) {
             editingParkingId = id;
             const p = parkingsData[id];
@@ -645,7 +611,6 @@
             btn.textContent = '+';
         }
 
-        // Загрузка парковок
         function loadParkings() {
             database.ref("parkings").on("value", snap => {
                 const data = snap.val();
@@ -670,7 +635,6 @@
             });
         }
 
-        // Модальное окно парковки
         function showParkingModal(id, p) {
             if (editingParkingId && editingParkingId !== id) {
                 showToast('Завершите редактирование');
@@ -723,7 +687,6 @@
             }
         }
 
-        // Геолокация
         function showMyLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
@@ -741,7 +704,7 @@
             }
         }
 
-        // Панели
+        // --- Панели и Telegram Login ---
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent =
@@ -756,14 +719,10 @@
                         <div style="text-align:center; padding:40px 20px;">
                             <div style="font-size:60px; margin-bottom:20px;">👤</div>
                             <div style="font-size:18px; font-weight:600; margin-bottom:20px;">Вход через Telegram</div>
-                            <button class="login-btn" onclick="loginWithTelegram()">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.342-.213-.333-.373.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/>
-                                </svg>
-                                Войти через Telegram
-                            </button>
+                            <div id="telegramWidgetContainer"></div>
                         </div>
                     `;
+                    loadTelegramWidget();
                 } else {
                     const myP = Object.values(parkingsData).filter(p => p.owner === currentUser.id);
                     const free = myP.filter(p => p.status === 'free').length;
@@ -771,11 +730,12 @@
 
                     content.innerHTML = `
                         <div style="text-align:center; padding:20px;">
-                            <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px;">
-                                ${getInitials(currentUser.firstName)}
+                            <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;margin:0 auto 12px; 
+                                ${currentUser.photoUrl ? `background-image:url(${currentUser.photoUrl}); background-size:cover;` : ''}">
+                                ${currentUser.photoUrl ? '' : getInitials(currentUser.firstName)}
                             </div>
                             <div style="font-size:18px;font-weight:700;">${currentUser.firstName}</div>
-                            <div style="color:#8E8E93;">@${currentUser.username}</div>
+                            <div style="color:#8E8E93;">@${currentUser.username || 'username'}</div>
                         </div>
                         <div class="theme-toggle">
                             <span>🌙 Темная тема</span>
@@ -840,22 +800,38 @@
             document.querySelector('.tab:first-child').classList.add('active');
         }
 
-        // Вход через Telegram
-        function loginWithTelegram() {
-            const username = prompt('Введите ваш Telegram username (без @):');
-            if (username && username.trim()) {
-                const firstName = prompt('Ваше имя:') || 'Пользователь';
-                currentUser = {
-                    id: 'tg_' + Date.now(),
-                    username: username.replace('@', ''),
-                    firstName: firstName
-                };
-                database.ref('users/' + currentUser.id).set(currentUser);
-                localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                showToast('Добро пожаловать, ' + firstName + '!');
-                showPanel('profile');
-            }
+        // --- Telegram Login Widget ---
+        function loadTelegramWidget() {
+            const container = document.getElementById('telegramWidgetContainer');
+            if (!container || document.getElementById('telegramScript')) return;
+
+            const script = document.createElement('script');
+            script.id = 'telegramScript';
+            script.async = true;
+            script.src = 'https://telegram.org/js/telegram-widget.js?22';
+            script.setAttribute('data-telegram-login', 'parknear_bot'); // ← ваш бот
+            script.setAttribute('data-size', 'large');
+            script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+            script.setAttribute('data-request-access', 'write');
+            container.appendChild(script);
         }
+
+        window.onTelegramAuth = function(user) {
+            if (!user || !user.id) return;
+
+            // Сохраняем пользователя
+            currentUser = {
+                id: user.id,
+                username: user.username || '',
+                firstName: user.first_name || 'Пользователь',
+                photoUrl: user.photo_url || ''
+            };
+
+            database.ref('users/' + currentUser.id).set(currentUser);
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            showToast(`Добро пожаловать, ${currentUser.firstName}!`);
+            showPanel('profile'); // обновить панель
+        };
 
         function logout() {
             currentUser = null;
@@ -880,7 +856,7 @@
             document.body.classList.toggle('dark');
         }
 
-        // Закрытие плашки типа карты при клике вне
+        // Закрытие панели типов карты при клике вне
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('mapTypePanel');
             const btn = e.target.closest('.btn');
