@@ -854,8 +854,15 @@
                     <input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ">
                 </div>
                 <div class="form-group">
-                    <label>Описание</label>
-                    <textarea id="parkDesc" class="input-field" rows="3" placeholder="Бесплатно, есть шлагбаум..."></textarea>
+                    <label>Тип парковки</label>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);">
+                        <span style="color:var(--text-primary);">Бесплатная</span>
+                        <label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;">
+                            <input type="checkbox" id="parkIsPaid" onchange="document.getElementById('paidLabel').textContent=this.checked?'Платная':'Бесплатная'">
+                            <span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span>
+                        </label>
+                        <span id="paidLabel" style="color:var(--text-primary);">Бесплатная</span>
+                    </div>
                 </div>
                 <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
                 <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
@@ -864,8 +871,8 @@
 
         function submitParkingWithPolygon() {
             const name = document.getElementById('parkName').value.trim();
-            const desc = document.getElementById('parkDesc').value.trim();
             const totalSpots = parseInt(document.getElementById('parkSpots').value);
+            const isPaid = document.getElementById('parkIsPaid').checked;
             
             if (!currentUser) {
                 alert('Ошибка: пользователь не авторизован');
@@ -906,7 +913,7 @@
                 totalSpots: totalSpots,
                 occupiedSpots: 0,
                 name: name,
-                desc: desc,
+                isPaid: isPaid,
                 authorId: currentUser.id,
                 authorName: currentUser.firstName,
                 authorUsername: currentUser.username,
@@ -977,10 +984,8 @@
                 });
         }
 
-        // Плавный градиент от зелёного (0%) к красному (100%)
         function getOccupancyColor(occupied, total) {
             const ratio = Math.min(1, total > 0 ? occupied / total : 0);
-            // Зелёный (0,255,0) -> Красный (255,0,0)
             const r = Math.round(255 * ratio);
             const g = Math.round(255 * (1 - ratio));
             const b = 0;
@@ -1008,6 +1013,7 @@
             const status = data.status || 'unknown';
             const statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
             const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
+            const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
             
             let placemark;
             
@@ -1015,7 +1021,7 @@
                 placemark = new ymaps.Polygon([data.coordinates], {
                     hintContent: `${data.name} (${freeSpots} св.)`
                 }, {
-                    fillColor: color + '55',  // полупрозрачная заливка
+                    fillColor: color + '55',
                     strokeColor: color,
                     strokeWidth: 2
                 });
@@ -1043,15 +1049,11 @@
                 
                 if (clickTimeout) clearTimeout(clickTimeout);
                 
-                const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
-                const street = data.street || 'Улица не указана';
-                
                 placemark.balloon.setContent(`
                     <div style="padding:12px;">
                         <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
                             <span class="status-indicator ${statusClass}"></span>${data.name}
                         </div>
-                        <div style="font-size:13px;color:#8E8E93;margin-bottom:4px;">📍 ${street}</div>
                         <div style="font-size:13px;color:#8E8E93;margin-bottom:12px;">💰 ${isPaid} | Статус: ${statusText}</div>
                         <div style="display:flex;gap:12px;font-size:14px;">
                             <span style="color:#34C759;">✓ Свободно: ${freeSpots}</span>
@@ -1095,6 +1097,7 @@
             const status = data.status || 'unknown';
             const statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
             const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
+            const isPaid = data.isPaid || false;
             
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 'Редактирование';
@@ -1104,7 +1107,6 @@
                     <div class="occupancy-title">
                         <span class="status-indicator ${statusClass}"></span>${data.name}
                     </div>
-                    <div class="occupancy-subtitle">${data.desc || 'Нет описания'}</div>
                 </div>
                 
                 <div class="occupancy-stats">
@@ -1137,10 +1139,6 @@
                         <input type="text" id="editName" class="input-field" value="${data.name}">
                     </div>
                     <div class="form-group">
-                        <label>Описание</label>
-                        <textarea id="editDesc" class="input-field" rows="2">${data.desc || ''}</textarea>
-                    </div>
-                    <div class="form-group">
                         <label>Количество мест</label>
                         <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1">
                     </div>
@@ -1152,11 +1150,22 @@
                             <option value="unknown" ${status === 'unknown' ? 'selected' : ''}>⚪ Неизвестно</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Тип парковки</label>
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);">
+                            <span style="color:var(--text-primary);">Бесплатная</span>
+                            <label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;">
+                                <input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''} onchange="document.getElementById('paidLabelEdit').textContent=this.checked?'Платная':'Бесплатная'">
+                                <span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span>
+                            </label>
+                            <span id="paidLabelEdit" style="color:var(--text-primary);">${isPaid ? 'Платная' : 'Бесплатная'}</span>
+                        </div>
+                    </div>
                     <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
                     <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
                 `;
             } else {
-                html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong></div>`;
+                html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
             }
             
             html += `
@@ -1179,9 +1188,9 @@
             if (!currentParkingId || !currentParkingData) return;
             
             const name = document.getElementById('editName').value.trim();
-            const desc = document.getElementById('editDesc').value.trim();
             const totalSpots = parseInt(document.getElementById('editTotalSpots').value);
             const status = document.getElementById('editStatus').value;
+            const isPaid = document.getElementById('editIsPaid').checked;
             
             if (!name) {
                 alert('Введите название');
@@ -1198,9 +1207,9 @@
             
             const updates = {
                 name: name,
-                desc: desc,
                 totalSpots: totalSpots,
-                status: status
+                status: status,
+                isPaid: isPaid
             };
             
             database.ref(`parkings/${currentParkingId}`).update(updates)
