@@ -64,12 +64,12 @@
             transition: filter 0.5s ease;
         }
         
-        /* 🌙 ТЁМНАЯ ТЕМА ТОЛЬКО ДЛЯ СХЕМЫ */
-        body.dark-theme #map.yandex#map {
+        /* Тёмная тема для схемы (исправлен селектор) */
+        body.dark-theme #map {
             filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
         }
-        body.dark-theme #map.yandex#map .ymaps-2-1-79-map-pane img,
-        body.dark-theme #map.yandex#map .ymaps-2-1-79-ground-pane img {
+        body.dark-theme #map .ymaps-2-1-79-map-pane img,
+        body.dark-theme #map .ymaps-2-1-79-ground-pane img {
             filter: invert(1) hue-rotate(180deg);
         }
         
@@ -420,17 +420,14 @@
         const database = firebase.database();
         
         database.ref('.info/connected').on('value', function(snapshot) {
-            if (snapshot.val() === true) {
-                console.log('✅ Подключено к Firebase');
-            } else {
-                console.log('❌ Отключено от Firebase');
-            }
+            console.log(snapshot.val() === true ? '✅ Подключено к Firebase' : '❌ Отключено от Firebase');
         });
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
         let drawingPolygon = null, isDrawingMode = false;
-        let lastClickTime = 0;
-        let lastClickParkingId = null;
+        // Больше не используем lastClickTime/lastClickParkingId
+        let currentParkingId = null;         // ID открытой в панели парковки
+        let currentParkingData = null;       // её актуальные данные
         
         const MAX_ZONE_WIDTH = 100;
         const MAX_ZONE_LENGTH = 100;
@@ -490,12 +487,12 @@
         };
 
         function initAuth() {
-            if (window.Telegram && window.Telegram.WebApp) {
+            if (window.Telegram?.WebApp) {
                 const tg = window.Telegram.WebApp;
                 tg.ready();
                 tg.expand();
                 
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                if (tg.initDataUnsafe?.user) {
                     const user = tg.initDataUnsafe.user;
                     currentUser = {
                         id: 'tg_' + user.id,
@@ -558,7 +555,6 @@
             document.querySelectorAll('.map-type-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // Применяем тёмную тему только для схемы
             const mapEl = document.getElementById('map');
             if (type === 'yandex#map' && document.body.classList.contains('dark-theme')) {
                 mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
@@ -569,6 +565,13 @@
 
         function startDrawingMode() {
             if (!map || !currentUser) return;
+            
+            // Убираем предыдущий незавершённый полигон
+            if (drawingPolygon) {
+                map.geoObjects.remove(drawingPolygon);
+                drawingPolygon = null;
+            }
+            
             isDrawingMode = true;
             
             document.getElementById('addBtn').classList.add('drawing');
@@ -596,7 +599,7 @@
             `;
             document.body.appendChild(controls);
             
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
             }
         }
@@ -649,7 +652,8 @@
 
         function getUserLocation() {
             return new Promise(function(resolve, reject) {
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.Geolocation) {
+                // Проверяем Telegram Geolocation API
+                if (window.Telegram?.WebApp?.Geolocation?.getLocation && typeof window.Telegram.WebApp.Geolocation.getLocation === 'function') {
                     window.Telegram.WebApp.Geolocation.getLocation()
                         .then(function(location) {
                             resolve({ lat: location.latitude, lng: location.longitude });
@@ -743,7 +747,7 @@
                         map.geoObjects.add(myLocationPlacemark);
                         map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
                         
-                        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
                             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                         }
                     })
@@ -752,13 +756,13 @@
                         console.error("Ошибка геолокации:", err);
                         
                         let message = 'Не удалось определить местоположение.\n\n';
-                        if (window.Telegram && window.Telegram.WebApp) {
+                        if (window.Telegram?.WebApp) {
                             message += 'Проверьте:\n• Настройки телефона → Конфиденциальность → Службы геолокации → Telegram (включено)';
                         } else {
                             message += 'Разрешите доступ к геоданным в настройках браузера.';
                         }
                         
-                        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
+                        if (window.Telegram?.WebApp?.showAlert) {
                             window.Telegram.WebApp.showAlert(message);
                         } else {
                             alert(message);
@@ -880,7 +884,6 @@
             
             newRef.set(parkingData)
                 .then(() => {
-                    // Сохраняем в историю создание
                     return database.ref(`parkings/${newRef.key}/history`).push({
                         action: 'created',
                         timestamp: Date.now(),
@@ -902,25 +905,21 @@
                     closePanel();
                     showMap();
                     
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
                 })
                 .catch(err => {
                     console.error("Ошибка Firebase:", err);
-                    
                     let errorMsg = 'Ошибка сохранения: ';
-                    
                     if (err.code === 'PERMISSION_DENIED') {
-                        errorMsg += 'Нет доступа к базе данных.\n\nПроверьте правила Firebase:\n{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}';
+                        errorMsg += 'Нет доступа к базе данных.';
                     } else if (err.code === 'NETWORK_ERROR') {
                         errorMsg += 'Проблема с сетью.';
                     } else {
                         errorMsg += err.message;
                     }
-                    
                     alert(errorMsg);
-                    
                     btn.textContent = 'Сохранить парковку';
                     btn.disabled = false;
                 });
@@ -988,57 +987,51 @@
                 });
             }
             
-            // Обработка кликов (одинарный и двойной)
+            // Одинарный клик – открываем балун с кнопкой «Изменить занятость»
             placemark.events.add('click', function(e) {
-                const now = Date.now();
-                const timeDiff = now - lastClickTime;
+                const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
+                const street = data.street || 'Улица не указана';
                 
-                if (lastClickParkingId === id && timeDiff < 300) {
-                    // Двойной клик - открываем редактор
-                    openOccupancyPanel(id, data);
-                    lastClickTime = 0;
-                    lastClickParkingId = null;
-                } else {
-                    // Одинарный клик - показываем краткую информацию
-                    const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
-                    const street = data.street || 'Улица не указана';
-                    
-                    placemark.balloon.setContent(`
-                        <div style="padding:12px;">
-                            <div style="font-size:16px;font-weight:700;margin-bottom:8px;">${data.name}</div>
-                            <div style="font-size:13px;color:#8E8E93;margin-bottom:4px;">📍 ${street}</div>
-                            <div style="font-size:13px;color:#8E8E93;margin-bottom:12px;">💰 ${isPaid}</div>
-                            <div style="display:flex;gap:12px;font-size:14px;">
-                                <span style="color:#34C759;">✓ Свободно: ${freeSpots}</span>
-                                <span style="color:#FF3B30;">✗ Занято: ${occupiedSpots}</span>
-                            </div>
-                            <div style="margin-top:8px;font-size:12px;color:#8E8E93;">Всего мест: ${totalSpots}</div>
-                            <div style="margin-top:8px;font-size:11px;color:#8E8E93;">Двойное нажатие для редактирования</div>
+                placemark.balloon.setContent(`
+                    <div style="padding:12px;">
+                        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">${data.name}</div>
+                        <div style="font-size:13px;color:#8E8E93;margin-bottom:4px;">📍 ${street}</div>
+                        <div style="font-size:13px;color:#8E8E93;margin-bottom:12px;">💰 ${isPaid}</div>
+                        <div style="display:flex;gap:12px;font-size:14px;">
+                            <span style="color:#34C759;">✓ Свободно: ${freeSpots}</span>
+                            <span style="color:#FF3B30;">✗ Занято: ${occupiedSpots}</span>
                         </div>
-                    `);
-                    placemark.balloon.open();
-                    
-                    lastClickTime = now;
-                    lastClickParkingId = id;
-                    
-                    setTimeout(() => {
-                        lastClickTime = 0;
-                        lastClickParkingId = null;
-                    }, 300);
-                }
+                        <div style="margin-top:8px;font-size:12px;color:#8E8E93;">Всего мест: ${totalSpots}</div>
+                        <button style="margin-top:10px;padding:6px 12px;background:#007AFF;color:#fff;border:none;border-radius:6px;cursor:pointer;"
+                                onclick="openOccupancyPanel('${id}')">Изменить занятость</button>
+                    </div>
+                `);
+                placemark.balloon.open();
             });
             
             map.geoObjects.add(placemark);
             mapMarkers[id] = placemark;
         }
 
-        function openOccupancyPanel(parkingId, data) {
+        function openOccupancyPanel(parkingId) {
+            // Загружаем актуальные данные и отображаем панель
+            database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                currentParkingId = parkingId;
+                currentParkingData = data;
+                
+                renderOccupancyPanel(data);
+            });
+        }
+
+        function renderOccupancyPanel(data) {
             const totalSpots = data.totalSpots || 0;
             const occupiedSpots = data.occupiedSpots || 0;
             const freeSpots = totalSpots - occupiedSpots;
             const color = getOccupancyColor(occupiedSpots, totalSpots);
             const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
-            
             const isAuthor = currentUser && currentUser.id === data.authorId;
             
             document.getElementById('panel').classList.add('active');
@@ -1052,45 +1045,72 @@
                 
                 <div class="occupancy-stats">
                     <div class="stat-card stat-total">
-                        <div class="stat-value">${totalSpots}</div>
+                        <div class="stat-value" id="statTotal">${totalSpots}</div>
                         <div class="stat-label">Всего мест</div>
                     </div>
                     <div class="stat-card stat-free">
-                        <div class="stat-value">${freeSpots}</div>
+                        <div class="stat-value" id="statFree">${freeSpots}</div>
                         <div class="stat-label">Свободно</div>
                     </div>
                     <div class="stat-card stat-occupied">
-                        <div class="stat-value">${occupiedSpots}</div>
+                        <div class="stat-value" id="statOccupied">${occupiedSpots}</div>
                         <div class="stat-label">Занято</div>
                     </div>
                 </div>
                 
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width:${occupancyPercent}%;background:${color};"></div>
+                    <div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div>
                 </div>
-                <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+                <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">
                     Загруженность: ${occupancyPercent}%
                 </div>
                 
                 <div class="occupancy-control">
                     <label>Изменить количество занятых мест:</label>
                     <div class="counter-row">
-                        <button class="counter-btn minus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, -1)">−</button>
+                        <button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
                         <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-                        <button class="counter-btn plus" onclick="changeOccupancy('${parkingId}', ${totalSpots}, ${occupiedSpots}, 1)">+</button>
+                        <button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
                     </div>
                 </div>
                 
-                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${parkingId}')"> Удалить парковку</button>` : ''}
+                ${isAuthor ? `<button class="btn-danger" style="margin-top:20px;" onclick="deleteParking('${currentParkingId}')"> Удалить парковку</button>` : ''}
                 
                 <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
             `;
         }
 
-        function deleteParking(parkingId) {
-            if (!confirm('Вы уверены, что хотите удалить эту парковку? Это действие нельзя отменить.')) {
-                return;
+        function updateOccupancyDisplay(newOccupied) {
+            if (!currentParkingData) return;
+            const totalSpots = currentParkingData.totalSpots || 0;
+            const freeSpots = totalSpots - newOccupied;
+            const color = getOccupancyColor(newOccupied, totalSpots);
+            const percent = totalSpots > 0 ? Math.round((newOccupied / totalSpots) * 100) : 0;
+            
+            // Обновляем элементы DOM, если они существуют
+            const elTotal = document.getElementById('statTotal');
+            const elFree = document.getElementById('statFree');
+            const elOccupied = document.getElementById('statOccupied');
+            const elCurrent = document.getElementById('currentOccupied');
+            const elProgress = document.getElementById('progressFill');
+            const elPercentText = document.getElementById('occupancyPercentText');
+            
+            if (elTotal) elTotal.textContent = totalSpots;
+            if (elFree) elFree.textContent = freeSpots;
+            if (elOccupied) elOccupied.textContent = newOccupied;
+            if (elCurrent) elCurrent.textContent = newOccupied;
+            if (elProgress) {
+                elProgress.style.width = percent + '%';
+                elProgress.style.background = color;
             }
+            if (elPercentText) elPercentText.textContent = `Загруженность: ${percent}%`;
+            
+            // Обновляем данные в currentParkingData
+            currentParkingData.occupiedSpots = newOccupied;
+        }
+
+        function deleteParking(parkingId) {
+            if (!confirm('Вы уверены, что хотите удалить эту парковку? Это действие нельзя отменить.')) return;
             
             database.ref(`parkings/${parkingId}`).remove()
                 .then(() => {
@@ -1098,17 +1118,12 @@
                         map.geoObjects.remove(mapMarkers[parkingId]);
                         delete mapMarkers[parkingId];
                     }
-                    
                     console.log('Парковка удалена:', parkingId);
-                    
                     closePanel();
                     showMap();
-                    
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
-                    
-                    alert('Парковка успешно удалена');
                 })
                 .catch(err => {
                     console.error('Ошибка удаления:', err);
@@ -1116,11 +1131,14 @@
                 });
         }
 
-        function changeOccupancy(parkingId, totalSpots, currentOccupied, delta) {
+        function changeOccupancy(delta) {
+            if (!currentParkingId || !currentParkingData) return;
+            const totalSpots = currentParkingData.totalSpots || 0;
+            const currentOccupied = currentParkingData.occupiedSpots || 0;
             const newOccupied = currentOccupied + delta;
             
             if (newOccupied < 0 || newOccupied > totalSpots) {
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                if (window.Telegram?.WebApp?.HapticFeedback) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
                 }
                 return;
@@ -1128,14 +1146,12 @@
             
             const now = Date.now();
             
-            // Получаем данные автомобиля пользователя
             database.ref(`users/${currentUser.id}/car`).once('value').then(carSnapshot => {
                 const carData = carSnapshot.val() || {};
                 
-                database.ref(`parkings/${parkingId}/occupiedSpots`).set(newOccupied)
+                database.ref(`parkings/${currentParkingId}/occupiedSpots`).set(newOccupied)
                     .then(() => {
-                        // Сохраняем в историю изменений
-                        return database.ref(`parkings/${parkingId}/history`).push({
+                        return database.ref(`parkings/${currentParkingId}/history`).push({
                             action: delta < 0 ? 'freed' : 'occupied',
                             timestamp: now,
                             userId: currentUser.id,
@@ -1148,27 +1164,21 @@
                         });
                     })
                     .then(() => {
-                        document.getElementById('currentOccupied').textContent = newOccupied;
+                        // Обновляем UI без перерисовки всей панели
+                        updateOccupancyDisplay(newOccupied);
                         
-                        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
                             window.Telegram.WebApp.HapticFeedback.selectionChanged();
                         }
                         
-                        database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+                        // Обновляем маркер на карте
+                        database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
                             const data = snapshot.val();
-                            if (mapMarkers[parkingId]) {
-                                map.geoObjects.remove(mapMarkers[parkingId]);
-                                delete mapMarkers[parkingId];
+                            if (mapMarkers[currentParkingId]) {
+                                map.geoObjects.remove(mapMarkers[currentParkingId]);
+                                delete mapMarkers[currentParkingId];
                             }
-                            addMarkerToMap(parkingId, data);
-                        });
-                        
-                        openOccupancyPanel(parkingId, {
-                            ...mapMarkers[parkingId] ? {} : {},
-                            totalSpots: totalSpots,
-                            occupiedSpots: newOccupied,
-                            name: document.querySelector('.occupancy-title').textContent,
-                            desc: document.querySelector('.occupancy-subtitle').textContent
+                            addMarkerToMap(currentParkingId, data);
                         });
                     })
                     .catch(err => {
@@ -1320,7 +1330,6 @@
             const isDark = document.body.classList.toggle('dark-theme');
             localStorage.setItem('darkTheme', isDark);
             
-            // Применяем тёмную тему только если текущий тип карты - схема
             const mapEl = document.getElementById('map');
             const currentType = map.getType();
             
@@ -1330,7 +1339,7 @@
                 mapEl.style.filter = 'none';
             }
             
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.selectionChanged();
             }
         }
@@ -1413,37 +1422,20 @@
             const color = document.getElementById('carColor').value;
             const plate = document.getElementById('carPlate').value.trim();
             
-            if (!brand) {
-                alert('Пожалуйста, выберите марку автомобиля');
-                return;
-            }
-            
-            if (!model) {
-                alert('Пожалуйста, выберите модель автомобиля');
-                return;
-            }
-            
-            if (!color) {
-                alert('Пожалуйста, выберите цвет кузова');
-                return;
-            }
-            
-            if (!plate) {
-                alert('Пожалуйста, введите гос номер');
+            if (!brand || !model || !color || !plate) {
+                alert('Пожалуйста, заполните все поля автомобиля');
                 return;
             }
             
             const carData = {
-                brand: brand,
-                model: model,
-                color: color,
+                brand, model, color,
                 plate: plate.toUpperCase(),
                 timestamp: Date.now()
             };
             
             database.ref(`users/${currentUser.id}/car`).set(carData)
                 .then(() => {
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
                     renderProfile(document.getElementById('panelContent'));
@@ -1466,21 +1458,14 @@
             }
             
             if (type === 'history') {
-                // Загружаем историю всех парковок
                 database.ref('parkings').once('value').then(parkingsSnapshot => {
                     const parkingsData = parkingsSnapshot.val();
                     if (!parkingsData) {
-                        contentEl.innerHTML = `
-                            <div class="empty-state">
-                                <div class="icon"></div>
-                                <p>История пуста</p>
-                            </div>`;
+                        contentEl.innerHTML = `<div class="empty-state"><div class="icon"></div><p>История пуста</p></div>`;
                         return;
                     }
                     
                     let html = '<div class="list-container">';
-                    
-                    // Собираем все парковки
                     Object.keys(parkingsData).forEach(parkingId => {
                         const parking = parkingsData[parkingId];
                         if (parking && parking.name) {
@@ -1491,11 +1476,9 @@
                                         <div class="list-title">${parking.name}</div>
                                         <div class="list-subtitle">Нажмите для просмотра истории изменений</div>
                                     </div>
-                                </div>
-                            `;
+                                </div>`;
                         }
                     });
-                    
                     html += '</div>';
                     contentEl.innerHTML = html;
                 }).catch(err => {
@@ -1532,8 +1515,7 @@
                                     <div class="list-subtitle">${actionText}</div>
                                     ${timeText ? `<div class="list-time">${timeText}</div>` : ''}
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                     });
                     html += '</div>';
                     contentEl.innerHTML = html;
@@ -1547,7 +1529,8 @@
         function showParkingHistory(parkingId, parkingName) {
             document.getElementById('panelTitle').textContent = parkingName;
             
-            database.ref(`parkings/${parkingId}/history`).once('value').then(snapshot => {
+            // Используем limitToLast(100) для предотвращения переполнения
+            database.ref(`parkings/${parkingId}/history`).limitToLast(100).once('value').then(snapshot => {
                 const historyData = snapshot.val();
                 
                 if (!historyData) {
@@ -1580,22 +1563,18 @@
                                 <div class="history-detail-row">
                                     <span class="history-detail-label">Пользователь:</span>
                                     <span class="history-detail-value">@${item.username}</span>
-                                </div>
-                            ` : ''}
+                                </div>` : ''}
                             ${item.carBrand ? `
                                 <div class="history-detail-row">
                                     <span class="history-detail-label">Автомобиль:</span>
                                     <span class="history-detail-value">${item.carBrand} ${item.carModel || ''} ${item.carPlate ? '(' + item.carPlate + ')' : ''}</span>
-                                </div>
-                            ` : ''}
+                                </div>` : ''}
                             ${item.previousOccupied !== undefined && item.newOccupied !== undefined ? `
                                 <div class="history-detail-row">
                                     <span class="history-detail-label">Изменение:</span>
                                     <span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied} занятых мест</span>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
+                                </div>` : ''}
+                        </div>`;
                 });
                 
                 html += '</div>';
@@ -1615,6 +1594,8 @@
             document.getElementById('panel').classList.remove('active'); 
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
+            currentParkingId = null;
+            currentParkingData = null;
         }
         
         function showMap() {
@@ -1622,7 +1603,7 @@
         }
 
         function openTelegramBot() {
-            if (window.Telegram && window.Telegram.WebApp) {
+            if (window.Telegram?.WebApp?.showAlert) {
                 window.Telegram.WebApp.showAlert('Для входа перезапустите приложение через бота @parknear_bot');
             } else {
                 window.open('https://t.me/parknear_bot', '_blank');
@@ -1645,7 +1626,7 @@
             if (confirm('Вы уверены, что хотите выйти? Все гостевые данные будут удалены.')) {
                 currentUser = null;
                 localStorage.removeItem('tgUser');
-                if (window.Telegram && window.Telegram.WebApp) {
+                if (window.Telegram?.WebApp) {
                     window.Telegram.WebApp.close();
                 } else {
                     showPanel('profile');
