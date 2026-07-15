@@ -16,7 +16,6 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     
     <style>
-        /* Весь CSS без изменений (тот же самый) */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
         :root {
@@ -1035,7 +1034,6 @@
                 
                 const btn = document.getElementById('zonesBtn');
                 
-                // Если не удалось получить геолокацию, просто центрируем на текущем центре
                 const centerFallback = map.getCenter();
                 
                 getUserLocation()
@@ -1043,7 +1041,6 @@
                         let closestDistance = Infinity;
                         let closestCoords = null;
                         
-                        // Ищем ближайшую парковку
                         Object.keys(parkingDataCache).forEach(id => {
                             const p = parkingDataCache[id];
                             if (p && p.lat && p.lng) {
@@ -1073,7 +1070,6 @@
                     })
                     .catch(function(err) {
                         console.error("Ошибка геолокации:", err);
-                        // Просто центрируем на текущем центре карты
                         map.setCenter(centerFallback || [55.7558, 37.6173], 14, { duration: 500 });
                         
                         btn.classList.add('active');
@@ -1790,16 +1786,147 @@
         }
 
         function addHomeAddress() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                alert('Необходимо войти в аккаунт');
+                return;
+            }
+            
             const homeRef = database.ref(`users/${currentUser.id}/homeAddresses`);
             homeRef.once('value').then(snap => {
                 const addresses = snap.val() || {};
+                
                 if (Object.keys(addresses).length >= 3) {
                     alert('Можно добавить не более 3 адресов.');
                     return;
                 }
+                
                 openAddressPicker();
+            }).catch(err => {
+                console.error('Ошибка при проверке адресов:', err);
+                alert('Произошла ошибка. Попробуйте позже.');
             });
+        }
+
+        function openAddressPicker() {
+            if (!currentUser) {
+                alert('Необходимо войти в аккаунт');
+                return;
+            }
+            
+            isAddressPickerOpen = true;
+            document.getElementById('addressPickerOverlay').style.display = 'block';
+            
+            setTimeout(() => {
+                if (!addressPickerMap) {
+                    addressPickerMap = new ymaps.Map('addressPickerMap', {
+                        center: map.getCenter() || [55.7558, 37.6173],
+                        zoom: 15,
+                        controls: ['zoomControl']
+                    });
+                    
+                    addressPickerMap.events.add('click', function(e) {
+                        const coords = e.get('coords');
+                        setAddressPickerCoords(coords);
+                    });
+                    
+                    const initCoords = addressPickerMap.getCenter();
+                    setAddressPickerCoords(initCoords);
+                } else {
+                    addressPickerMap.container.fitToViewport();
+                }
+            }, 100);
+        }
+
+        function setAddressPickerCoords(coords) {
+            addressPickerCoords = coords;
+            if (addressPickerPlacemark) {
+                addressPickerPlacemark.geometry.setCoordinates(coords);
+            } else {
+                addressPickerPlacemark = new ymaps.Placemark(coords, {
+                    hintContent: 'Ваш дом'
+                }, {
+                    preset: 'islands#redHomeIcon',
+                    draggable: true
+                });
+                addressPickerMap.geoObjects.add(addressPickerPlacemark);
+                
+                addressPickerPlacemark.events.add('dragend', function() {
+                    const newCoords = addressPickerPlacemark.geometry.getCoordinates();
+                    addressPickerCoords = newCoords;
+                });
+            }
+        }
+
+        function cancelAddressPicker() {
+            document.getElementById('addressPickerOverlay').style.display = 'none';
+            isAddressPickerOpen = false;
+            if (addressPickerPlacemark) {
+                addressPickerMap.geoObjects.remove(addressPickerPlacemark);
+                addressPickerPlacemark = null;
+            }
+            addressPickerCoords = null;
+        }
+
+        function saveAddressFromPicker() {
+            if (!currentUser) {
+                alert('Необходимо войти в аккаунт');
+                cancelAddressPicker();
+                return;
+            }
+            
+            if (!addressPickerCoords) {
+                alert('Сначала установите метку на карте, нажав на нужное место');
+                return;
+            }
+            
+            const saveBtn = document.querySelector('#addressPickerContainer .btn-primary');
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Сохранение...';
+            saveBtn.disabled = true;
+            
+            ymaps.geocode(addressPickerCoords)
+                .then(res => {
+                    const firstGeoObject = res.geoObjects.get(0);
+                    const addressText = firstGeoObject 
+                        ? firstGeoObject.getAddressLine() 
+                        : `Точка на карте (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
+                    
+                    const homeRef = database.ref(`users/${currentUser.id}/homeAddresses`);
+                    
+                    return homeRef.once('value').then(snap => {
+                        const addresses = snap.val() || {};
+                        
+                        if (Object.keys(addresses).length >= 3) {
+                            alert('Можно добавить не более 3 адресов.');
+                            saveBtn.textContent = originalText;
+                            saveBtn.disabled = false;
+                            return;
+                        }
+                        
+                        const newAddrRef = homeRef.push();
+                        return newAddrRef.set({
+                            address: addressText,
+                            lat: addressPickerCoords[0],
+                            lng: addressPickerCoords[1],
+                            timestamp: Date.now()
+                        }).then(() => {
+                            cancelAddressPicker();
+                            
+                            if (window.Telegram?.WebApp?.HapticFeedback) {
+                                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                            }
+                            
+                            alert('Адрес сохранён!');
+                            showPanel('favorites');
+                        });
+                    });
+                })
+                .catch(err => {
+                    console.error('Ошибка при сохранении адреса:', err);
+                    alert('Не удалось сохранить адрес. Попробуйте ещё раз.');
+                    saveBtn.textContent = originalText;
+                    saveBtn.disabled = false;
+                });
         }
 
         function removeHomeAddress(addressId) {
@@ -2083,442 +2210,4 @@
                     option.value = model;
                     option.textContent = model;
                     modelSelect.appendChild(option);
-                });
-            }
-        }
-
-        function editCarData() {
-            const carSection = document.getElementById('carEditSection');
-            if (carSection) {
-                carSection.remove();
-            }
-            
-            database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
-                const carData = snapshot.val() || {};
-                const brand = carData.brand || '';
-                const model = carData.model || '';
-                const plate = carData.plate || '';
-                const color = carData.color || '';
-                
-                const editForm = document.createElement('div');
-                editForm.className = 'car-section';
-                editForm.id = 'carEditSection';
-                editForm.innerHTML = `
-                    <div class="car-section-title">🚗 Редактирование автомобиля</div>
-                    <div class="form-group">
-                        <label>Марка</label>
-                        <select id="carBrand" class="input-field" onchange="updateCarModels()">
-                            <option value="">Выберите марку</option>
-                            ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Модель</label>
-                        <select id="carModel" class="input-field">
-                            <option value="">Выберите модель</option>
-                            ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Цвет кузова</label>
-                        <select id="carColor" class="input-field">
-                            <option value="">Выберите цвет</option>
-                            ${Object.keys(carColors).map(c => {
-                                const isSelected = c === color ? 'selected' : '';
-                                return `<option value="${c}" ${isSelected}><span class="color-preview" style="background:${carColors[c]}"></span>${c}</option>`;
-                            }).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Гос номер</label>
-                        <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
-                    </div>
-                    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить изменения</button>
-                    <button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>
-                `;
-                
-                const carSectionElement = document.querySelector('.car-section');
-                carSectionElement.parentNode.insertBefore(editForm, carSectionElement.nextSibling);
-                carSectionElement.remove();
-            });
-        }
-
-        function saveCarData() {
-            const brand = document.getElementById('carBrand').value;
-            const model = document.getElementById('carModel').value;
-            const color = document.getElementById('carColor').value;
-            const plate = document.getElementById('carPlate').value.trim();
-            
-            if (!brand || !model || !color || !plate) {
-                alert('Пожалуйста, заполните все поля автомобиля');
-                return;
-            }
-            
-            const carData = {
-                brand, model, color,
-                plate: plate.toUpperCase(),
-                timestamp: Date.now()
-            };
-            
-            database.ref(`users/${currentUser.id}/car`).set(carData)
-                .then(() => {
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                    renderProfile(document.getElementById('panelContent'));
-                })
-                .catch(err => {
-                    console.error('Ошибка сохранения:', err);
-                    alert('Ошибка сохранения: ' + err.message);
-                });
-        }
-
-        function loadUserData(type, contentEl) {
-            if (!currentUser) {
-                contentEl.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon">🔒</div>
-                        <p>Войдите в аккаунт</p>
-                    </div>`;
-                return;
-            }
-            
-            if (type === 'history') {
-                database.ref('parkings').once('value').then(parkingsSnapshot => {
-                    const parkingsData = parkingsSnapshot.val();
-                    if (!parkingsData) {
-                        contentEl.innerHTML = `<div class="empty-state"><div class="icon"></div><p>История пуста</p></div>`;
-                        return;
-                    }
-                    let html = '<div class="list-container">';
-                    Object.keys(parkingsData).forEach(parkingId => {
-                        const parking = parkingsData[parkingId];
-                        if (parking && parking.name) {
-                            html += `
-                                <div class="swipe-container">
-                                    <div class="swipe-item" onclick="showParkingHistory('${parkingId}', '${parking.name.replace(/'/g, "\\'")}')">
-                                        <div class="list-icon">️</div>
-                                        <div class="list-info">
-                                            <div class="list-title">${parking.name}</div>
-                                            <div class="list-subtitle">Нажмите для просмотра истории</div>
-                                        </div>
-                                    </div>
-                                    <div class="swipe-delete" onclick="deleteParkingSwipe('${parkingId}')">Удалить</div>
-                                </div>`;
-                        }
-                    });
-                    html += '</div>';
-                    contentEl.innerHTML = html;
-                    attachSwipeToContainers(contentEl);
-                });
-            } else if (type === 'favorites') {
-                Promise.all([
-                    database.ref(`users/${currentUser.id}/favorites`).once('value'),
-                    database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
-                ]).then(([favSnap, homeSnap]) => {
-                    let html = '';
-                    const homeAddresses = homeSnap.val() || {};
-                    html += `<div class="home-card"><div style="font-size:18px; font-weight:600; margin-bottom:12px;">🏠 Мой дом</div>`;
-                    if (Object.keys(homeAddresses).length > 0) {
-                        Object.entries(homeAddresses).forEach(([id, addr]) => {
-                            html += `
-                                <div class="swipe-container" style="margin-bottom:8px;">
-                                    <div class="swipe-item" style="padding:10px 0;">
-                                        <span style="flex:1;">${addr.address}</span>
-                                        <div style="display:flex; gap:6px;">
-                                            <button class="btn-secondary" style="padding:4px 10px; font-size:13px;" onclick="highlightNearbyFreeParkings(${addr.lat}, ${addr.lng})">🔍 Рядом</button>
-                                        </div>
-                                    </div>
-                                    <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
-                                </div>`;
-                        });
-                    } else {
-                        html += `<p style="color:var(--text-secondary); margin-bottom:12px;">Нет сохранённых адресов</p>`;
-                    }
-                    if (Object.keys(homeAddresses).length < 3) {
-                        html += `<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес (на карте)</button>`;
-                    } else {
-                        html += `<p style="color:var(--text-secondary);">Максимум 3 адреса</p>`;
-                    }
-                    html += `</div>`;
-
-                    const favData = favSnap.val();
-                    if (!favData) {
-                        html += `<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных парковок</p></div>`;
-                    } else {
-                        html += `<div class="list-container">`;
-                        Object.values(favData).forEach(item => {
-                            if (item && item.parkingId) {
-                                html += `<div class="list-item" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId}')">
-                                    <div class="list-icon">⭐</div>
-                                    <div class="list-info">
-                                        <div class="list-title">${item.name || 'Без названия'}</div>
-                                        <div class="list-subtitle">Добавлено ${item.timestamp ? formatDateTime(item.timestamp) : ''}</div>
-                                    </div>
-                                </div>`;
-                            }
-                        });
-                        html += `</div>`;
-                    }
-
-                    contentEl.innerHTML = html;
-                    attachSwipeToContainers(contentEl);
-                });
-            }
-        }
-
-        function attachSwipeToContainers(container) {
-            const containers = container.querySelectorAll('.swipe-container');
-            containers.forEach(cnt => {
-                const item = cnt.querySelector('.swipe-item');
-                if (!item) return;
-                let startX = 0, currentX = 0, isDragging = false;
-                item.addEventListener('touchstart', (e) => {
-                    startX = e.touches[0].clientX;
-                    isDragging = true;
-                    item.style.transition = 'none';
-                });
-                item.addEventListener('touchmove', (e) => {
-                    if (!isDragging) return;
-                    currentX = e.touches[0].clientX - startX;
-                    if (currentX < 0) {
-                        item.style.transform = `translateX(${Math.max(currentX, -80)}px)`;
-                    }
-                });
-                item.addEventListener('touchend', () => {
-                    isDragging = false;
-                    item.style.transition = 'transform 0.2s ease';
-                    if (currentX < -40) {
-                        item.style.transform = 'translateX(-80px)';
-                    } else {
-                        item.style.transform = 'translateX(0)';
-                    }
-                    currentX = 0;
-                });
-                cnt.querySelector('.swipe-delete').addEventListener('click', () => {
-                    item.style.transform = 'translateX(0)';
-                });
-            });
-        }
-
-        function deleteParkingSwipe(parkingId) {
-            if (!confirm('Удалить эту парковку? (Сама парковка будет удалена)')) return;
-            deleteParking(parkingId);
-        }
-
-        function openAddressPicker() {
-            isAddressPickerOpen = true;
-            document.getElementById('addressPickerOverlay').style.display = 'block';
-            if (!addressPickerMap) {
-                addressPickerMap = new ymaps.Map('addressPickerMap', {
-                    center: map.getCenter() || [55.7558, 37.6173],
-                    zoom: 15,
-                    controls: ['zoomControl']
-                });
-                addressPickerMap.events.add('click', function(e) {
-                    const coords = e.get('coords');
-                    setAddressPickerCoords(coords);
-                });
-            } else {
-                addressPickerMap.container.fitToViewport();
-            }
-        }
-
-        function setAddressPickerCoords(coords) {
-            addressPickerCoords = coords;
-            if (addressPickerPlacemark) {
-                addressPickerPlacemark.geometry.setCoordinates(coords);
-            } else {
-                addressPickerPlacemark = new ymaps.Placemark(coords, {}, { draggable: true });
-                addressPickerMap.geoObjects.add(addressPickerPlacemark);
-                addressPickerPlacemark.events.add('dragend', function() {
-                    const newCoords = addressPickerPlacemark.geometry.getCoordinates();
-                    addressPickerCoords = newCoords;
-                });
-            }
-        }
-
-        function cancelAddressPicker() {
-            document.getElementById('addressPickerOverlay').style.display = 'none';
-            isAddressPickerOpen = false;
-            if (addressPickerPlacemark) {
-                addressPickerMap.geoObjects.remove(addressPickerPlacemark);
-                addressPickerPlacemark = null;
-            }
-            addressPickerCoords = null;
-        }
-
-        function saveAddressFromPicker() {
-            if (!currentUser) {
-                alert('Необходимо войти в аккаунт');
-                return;
-            }
-            if (!addressPickerCoords) {
-                alert('Сначала установите метку на карте');
-                return;
-            }
-            ymaps.geocode(addressPickerCoords).then(res => {
-                const firstGeoObject = res.geoObjects.get(0);
-                const addressText = firstGeoObject ? firstGeoObject.getAddressLine() : 'Адрес не найден';
-                const homeRef = database.ref(`users/${currentUser.id}/homeAddresses`);
-                homeRef.once('value').then(snap => {
-                    const addresses = snap.val() || {};
-                    if (Object.keys(addresses).length >= 3) {
-                        alert('Можно добавить не более 3 адресов.');
-                        return;
-                    }
-                    const newAddrRef = homeRef.push();
-                    newAddrRef.set({
-                        address: addressText,
-                        lat: addressPickerCoords[0],
-                        lng: addressPickerCoords[1]
-                    }).then(() => {
-                        cancelAddressPicker();
-                        showPanel('favorites');
-                    });
-                });
-            }).catch(err => {
-                alert('Ошибка получения адреса: ' + err.message);
-            });
-        }
-
-        function showParkingHistory(parkingId, parkingName) {
-            document.getElementById('panelTitle').textContent = parkingName;
-            
-            database.ref(`parkings/${parkingId}/history`).limitToLast(100).once('value').then(snapshot => {
-                const historyData = snapshot.val();
-                
-                if (!historyData) {
-                    document.getElementById('panelContent').innerHTML = `
-                        <div class="empty-state">
-                            <div class="icon">🕘</div>
-                            <p>История изменений пуста</p>
-                        </div>
-                        <button class="btn-secondary" onclick="showPanel('history')">Назад</button>
-                    `;
-                    return;
-                }
-                
-                let html = '<div class="list-container">';
-                const items = Object.values(historyData).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                items.forEach(item => {
-                    const actionText = item.action === 'freed' ? '🟢 Место освобождено' : 
-                                      item.action === 'occupied' ? '🔴 Место занято' :
-                                      item.action === 'created' ? '🟦 Парковка создана' : 'Изменение';
-                    const timeText = item.timestamp ? formatDateTime(item.timestamp) : '';
-                    
-                    html += `
-                        <div class="history-detail">
-                            <div class="history-detail-header">
-                                <div class="history-detail-title">${actionText}</div>
-                                <div class="history-detail-time">${timeText}</div>
-                            </div>
-                            ${item.username ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Пользователь:</span>
-                                    <span class="history-detail-value">@${item.username}</span>
-                                </div>` : ''}
-                            ${item.carBrand ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Автомобиль:</span>
-                                    <span class="history-detail-value">${item.carBrand} ${item.carModel || ''} ${item.carPlate ? '(' + item.carPlate + ')' : ''}</span>
-                                </div>` : ''}
-                            ${item.previousOccupied !== undefined && item.newOccupied !== undefined ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Изменение:</span>
-                                    <span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied} занятых мест</span>
-                                </div>` : ''}
-                        </div>`;
-                });
-                
-                html += '</div>';
-                html += '<button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>';
-                
-                document.getElementById('panelContent').innerHTML = html;
-            }).catch(err => {
-                console.error("Ошибка загрузки истории парковки:", err);
-                document.getElementById('panelContent').innerHTML = `
-                    <div class="empty-state"><p>Ошибка загрузки истории.</p></div>
-                    <button class="btn-secondary" onclick="showPanel('history')">Назад</button>
-                `;
-            });
-        }
-
-        function closePanel() { 
-            if (isAddressPickerOpen) cancelAddressPicker();
-            document.getElementById('panel').classList.remove('active'); 
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('.tab:first-child').classList.add('active');
-            currentParkingId = null;
-            currentParkingData = null;
-            originalPolyCoords = null;
-            if (editingPolygon) {
-                map.geoObjects.remove(editingPolygon);
-                editingPolygon = null;
-                document.getElementById('addBtn').classList.remove('drawing');
-                document.getElementById('addBtn').textContent = '+';
-                isDrawingMode = false;
-                const controls = document.getElementById('drawingControls');
-                if (controls) controls.remove();
-            }
-            if (clickTimeout) {
-                clearTimeout(clickTimeout);
-                clickTimeout = null;
-            }
-            lastClickParkingId = null;
-            lastClickTime = 0;
-            resetHighlightedParkings();
-        }
-        
-        function showMap() {
-            closePanel();
-        }
-
-        function openTelegramBot() {
-            if (window.Telegram?.WebApp?.showAlert) {
-                window.Telegram.WebApp.showAlert('Для входа перезапустите приложение через бота @parknear_bot');
-            } else {
-                window.open('https://t.me/parknear_bot', '_blank');
-            }
-        }
-
-        function continueAsGuest() {
-            currentUser = { 
-                id: 'guest_' + Date.now(), 
-                username: 'guest', 
-                firstName: 'Гость', 
-                photoUrl: '',
-                isGuest: true
-            };
-            localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            
-            const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
-            userStatsRef.set({
-                registeredAt: Date.now(),
-                lastActive: Date.now(),
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
-                activeDates: [new Date().toISOString().split('T')[0]]
-            });
-            
-            showPanel('profile');
-        }
-
-        function logout() {
-            if (confirm('Вы уверены, что хотите выйти? Все гостевые данные будут удалены.')) {
-                currentUser = null;
-                localStorage.removeItem('tgUser');
-                if (window.Telegram?.WebApp) {
-                    window.Telegram.WebApp.close();
-                } else {
-                    showPanel('profile');
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+               
