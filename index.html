@@ -387,6 +387,17 @@
             font-size: 17px;
             font-weight: 600;
             margin-bottom: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stats-body {
+            transition: max-height 0.3s ease;
+            overflow: hidden;
+        }
+        .stats-body.collapsed {
+            max-height: 0;
         }
         .stats-row {
             display: flex;
@@ -991,7 +1002,6 @@
             
             newRef.set(parkingData)
                 .then(() => {
-                    // Увеличиваем счётчик созданных парковок
                     database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
                         .transaction(count => (count || 0) + 1);
                     
@@ -1150,7 +1160,6 @@
                 const data = snapshot.val();
                 if (!data) return;
                 
-                // Увеличиваем просмотры, если смотрит не автор
                 if (currentUser && currentUser.id !== data.authorId) {
                     database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
                     database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
@@ -1159,11 +1168,19 @@
                 currentParkingId = parkingId;
                 currentParkingData = data;
                 
-                renderEditPanel(data);
+                // Проверим, в избранном ли парковка
+                if (currentUser) {
+                    database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => {
+                        const isFavorite = favSnap.exists();
+                        renderEditPanel(data, isFavorite);
+                    });
+                } else {
+                    renderEditPanel(data, false);
+                }
             });
         }
 
-        function renderEditPanel(data) {
+        function renderEditPanel(data, isFavorite) {
             const totalSpots = data.totalSpots || 0;
             const occupiedSpots = data.occupiedSpots || 0;
             const freeSpots = totalSpots - occupiedSpots;
@@ -1208,6 +1225,15 @@
                 </div>
             `;
             
+            // Кнопка избранного для всех, кроме автора (автор может добавлять свои, но обычно это не нужно; разрешим и автору)
+            if (currentUser) {
+                html += `
+                    <button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">
+                        ${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}
+                    </button>
+                `;
+            }
+            
             if (isAuthor) {
                 html += `
                     <div class="form-group">
@@ -1246,7 +1272,7 @@
             }
             
             html += `
-                <div class="occupancy-control">
+                <div class="occupancy-control" style="margin-top:20px;">
                     <label>Изменить количество занятых мест:</label>
                     <div class="counter-row">
                         <button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
@@ -1259,6 +1285,37 @@
             `;
             
             document.getElementById('panelContent').innerHTML = html;
+        }
+
+        function toggleFavorite(parkingId) {
+            if (!currentUser || !parkingId) return;
+            const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
+            favRef.once('value').then(snap => {
+                if (snap.exists()) {
+                    favRef.remove();
+                    // Обновим кнопку
+                    const btn = document.getElementById('favBtn');
+                    if (btn) btn.innerHTML = '⭐ Добавить в избранное';
+                    // Обновим счётчик избранного у автора (если знаем автора)
+                    if (currentParkingData && currentParkingData.authorId) {
+                        database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(count => Math.max(0, (count || 1) - 1));
+                    }
+                } else {
+                    const favData = {
+                        parkingId: parkingId,
+                        name: currentParkingData ? currentParkingData.name : '',
+                        lat: currentParkingData ? currentParkingData.lat : 0,
+                        lng: currentParkingData ? currentParkingData.lng : 0,
+                        timestamp: Date.now()
+                    };
+                    favRef.set(favData);
+                    const btn = document.getElementById('favBtn');
+                    if (btn) btn.innerHTML = '✅ В избранном';
+                    if (currentParkingData && currentParkingData.authorId) {
+                        database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(count => (count || 0) + 1);
+                    }
+                }
+            });
         }
 
         function saveParkingDetails() {
@@ -1299,7 +1356,10 @@
                     currentParkingData = {...currentParkingData, ...updates};
                     updateOccupancyDisplay(currentParkingData.occupiedSpots);
                     refreshParkingMarker();
-                    renderEditPanel(currentParkingData);
+                    // Перерендерим с сохранением статуса избранного
+                    database.ref(`users/${currentUser.id}/favorites/${currentParkingId}`).once('value').then(favSnap => {
+                        renderEditPanel(currentParkingData, favSnap.exists());
+                    });
                     if (window.Telegram?.WebApp?.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
@@ -1516,10 +1576,8 @@
                 const isGuest = currentUser.id.startsWith('guest_');
                 const isDark = document.body.classList.contains('dark-theme');
                 
-                // Сначала получаем статистику
                 database.ref(`users/${currentUser.id}/stats`).once('value').then(statsSnapshot => {
                     const stats = statsSnapshot.val() || {};
-                    // Затем данные автомобиля
                     database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
                         const carData = snapshot.val() || {};
                         const brand = carData.brand || '';
@@ -1596,7 +1654,6 @@
                             `;
                         }
                         
-                        // Статистика
                         const created = stats.parkingsCreated || 0;
                         const updated = stats.parkingsUpdated || 0;
                         const confirmations = stats.confirmations || 0;
@@ -1622,38 +1679,43 @@
                         
                         html += `
                             <div class="stats-card">
-                                <div class="stats-title">📊 Статистика</div>
-                                <div class="stats-row">
-                                    <span class="stats-label">🅿️ Создано парковок</span>
-                                    <span class="stats-value">${created}</span>
+                                <div class="stats-title" onclick="document.getElementById('statsBody').classList.toggle('collapsed'); this.querySelector('span:last-child').textContent = document.getElementById('statsBody').classList.contains('collapsed') ? '▶' : '▼';">
+                                    <span>📊 Статистика</span>
+                                    <span>▼</span>
                                 </div>
-                                <div class="stats-row">
-                                    <span class="stats-label">✏️ Обновлено парковок</span>
-                                    <span class="stats-value">${updated}</span>
-                                </div>
-                                <div class="stats-row">
-                                    <span class="stats-label">👍 Подтверждений</span>
-                                    <span class="stats-value">${confirmations}</span>
-                                </div>
-                                <div class="stats-row">
-                                    <span class="stats-label">👁 Просмотров</span>
-                                    <span class="stats-value">${views}</span>
-                                </div>
-                                <div class="stats-row">
-                                    <span class="stats-label">❤️ В избранном</span>
-                                    <span class="stats-value">${favorites}</span>
-                                </div>
-                                <div class="stats-row">
-                                    <span class="stats-label">📅 Регистрация</span>
-                                    <span class="stats-value">${registered}</span>
-                                </div>
-                                <div class="stats-row">
-                                    <span class="stats-label">🕒 Активность</span>
-                                    <span class="stats-value">${lastActive}</span>
-                                </div>
-                                <div class="stats-row">
-                                    <span class="stats-label">🔥 Серия</span>
-                                    <span class="stats-value stats-streak">${streak} дн. подряд</span>
+                                <div class="stats-body" id="statsBody">
+                                    <div class="stats-row">
+                                        <span class="stats-label">🅿️ Создано парковок</span>
+                                        <span class="stats-value">${created}</span>
+                                    </div>
+                                    <div class="stats-row">
+                                        <span class="stats-label">✏️ Обновлено парковок</span>
+                                        <span class="stats-value">${updated}</span>
+                                    </div>
+                                    <div class="stats-row">
+                                        <span class="stats-label">👍 Подтверждений</span>
+                                        <span class="stats-value">${confirmations}</span>
+                                    </div>
+                                    <div class="stats-row">
+                                        <span class="stats-label">👁 Просмотров</span>
+                                        <span class="stats-value">${views}</span>
+                                    </div>
+                                    <div class="stats-row">
+                                        <span class="stats-label">❤️ В избранном</span>
+                                        <span class="stats-value">${favorites}</span>
+                                    </div>
+                                    <div class="stats-row">
+                                        <span class="stats-label">📅 Регистрация</span>
+                                        <span class="stats-value">${registered}</span>
+                                    </div>
+                                    <div class="stats-row">
+                                        <span class="stats-label">🕒 Активность</span>
+                                        <span class="stats-value">${lastActive}</span>
+                                    </div>
+                                    <div class="stats-row">
+                                        <span class="stats-label">🔥 Серия</span>
+                                        <span class="stats-value stats-streak">${streak} дн. подряд</span>
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -1832,43 +1894,32 @@
                     console.error("Ошибка загрузки истории:", err);
                     contentEl.innerHTML = `<div class="empty-state"><p>Ошибка загрузки.</p></div>`;
                 });
-            } else {
-                const refPath = `users/${currentUser.id}/${type}`;
-                database.ref(refPath).once('value').then(snapshot => {
+            } else if (type === 'favorites') {
+                database.ref(`users/${currentUser.id}/favorites`).once('value').then(snapshot => {
                     const data = snapshot.val();
                     if (!data) {
-                        contentEl.innerHTML = `
-                            <div class="empty-state">
-                                <div class="icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
-                                <p>Здесь пока пусто</p>
-                            </div>`;
+                        contentEl.innerHTML = `<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных парковок</p></div>`;
                         return;
                     }
                     
                     let html = '<div class="list-container">';
-                    const items = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                    
-                    items.forEach(item => {
-                        const actionText = item.action === 'freed' ? 'Освободилось место' : 
-                                          item.action === 'occupied' ? 'Место занято' :
-                                          item.action === 'created' ? 'Парковка создана' : 'Изменение';
-                        const timeText = item.timestamp ? formatDateTime(item.timestamp) : '';
-                        
-                        html += `
-                            <div class="list-item" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId || 'unknown'}')">
-                                <div class="list-icon">${type === 'favorites' ? '⭐' : '🕘'}</div>
-                                <div class="list-info">
-                                    <div class="list-title">${item.name || 'Без названия'}</div>
-                                    <div class="list-subtitle">${actionText}</div>
-                                    ${timeText ? `<div class="list-time">${timeText}</div>` : ''}
-                                </div>
-                            </div>`;
+                    Object.values(data).forEach(item => {
+                        if (item && item.parkingId) {
+                            html += `
+                                <div class="list-item" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId}')">
+                                    <div class="list-icon">⭐</div>
+                                    <div class="list-info">
+                                        <div class="list-title">${item.name || 'Без названия'}</div>
+                                        <div class="list-subtitle">Добавлено ${item.timestamp ? formatDateTime(item.timestamp) : ''}</div>
+                                    </div>
+                                </div>`;
+                        }
                     });
                     html += '</div>';
                     contentEl.innerHTML = html;
                 }).catch(err => {
-                    console.error("Ошибка загрузки истории:", err);
-                    contentEl.innerHTML = `<div class="empty-state"><p>Ошибка загрузки. Проверьте правила Firebase.</p></div>`;
+                    console.error("Ошибка загрузки избранного:", err);
+                    contentEl.innerHTML = `<div class="empty-state"><p>Ошибка загрузки.</p></div>`;
                 });
             }
         }
@@ -1982,7 +2033,6 @@
             };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
             
-            // Инициализируем статистику для гостя
             const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
             userStatsRef.set({
                 registeredAt: Date.now(),
