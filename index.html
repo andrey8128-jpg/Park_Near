@@ -437,7 +437,6 @@
         let editingPolygon = null;
         let originalPolyCoords = null;
         
-        // Для обработки двойного клика
         let lastClickTime = 0;
         let lastClickParkingId = null;
         let clickTimeout = null;
@@ -978,11 +977,14 @@
                 });
         }
 
+        // Плавный градиент от зелёного (0%) к красному (100%)
         function getOccupancyColor(occupied, total) {
-            const ratio = occupied / total;
-            if (ratio < 0.5) return '#34C759';
-            if (ratio < 0.8) return '#FF9500';
-            return '#FF3B30';
+            const ratio = Math.min(1, total > 0 ? occupied / total : 0);
+            // Зелёный (0,255,0) -> Красный (255,0,0)
+            const r = Math.round(255 * ratio);
+            const g = Math.round(255 * (1 - ratio));
+            const b = 0;
+            return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
         }
 
         function formatDateTime(timestamp) {
@@ -1013,7 +1015,7 @@
                 placemark = new ymaps.Polygon([data.coordinates], {
                     hintContent: `${data.name} (${freeSpots} св.)`
                 }, {
-                    fillColor: color + '33',
+                    fillColor: color + '55',  // полупрозрачная заливка
                     strokeColor: color,
                     strokeWidth: 2
                 });
@@ -1025,11 +1027,9 @@
                 });
             }
             
-            // Обработка клика с определением одиночного/двойного
             placemark.events.add('click', function(e) {
                 const now = Date.now();
                 
-                // Проверяем двойной клик
                 if (lastClickParkingId === id && (now - lastClickTime) < 300) {
                     clearTimeout(clickTimeout);
                     openOccupancyPanel(id);
@@ -1038,13 +1038,11 @@
                     return;
                 }
                 
-                // Одиночный клик
                 lastClickParkingId = id;
                 lastClickTime = now;
                 
                 if (clickTimeout) clearTimeout(clickTimeout);
                 
-                // Показываем балун с краткой информацией
                 const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
                 const street = data.street || 'Улица не указана';
                 
@@ -1065,7 +1063,6 @@
                 `);
                 placemark.balloon.open();
                 
-                // Сбрасываем состояние двойного клика через 300 мс
                 clickTimeout = setTimeout(() => {
                     lastClickParkingId = null;
                     lastClickTime = 0;
@@ -1156,7 +1153,6 @@
                         </select>
                     </div>
                     <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-                    <!-- Кнопка "Редактировать границы" убрана -->
                     <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
                 `;
             } else {
@@ -1221,12 +1217,6 @@
                     console.error('Ошибка сохранения:', err);
                     alert('Ошибка: ' + err.message);
                 });
-        }
-
-        // Функция editPolygon оставлена, но из интерфейса она больше не вызывается.
-        function editPolygon() {
-            // пустая заглушка, чтобы избежать ошибок при случайном вызове
-            console.warn('Редактирование границ отключено в интерфейсе.');
         }
 
         function saveEditedPolygon(newCoords) {
@@ -1792,7 +1782,6 @@
                 const controls = document.getElementById('drawingControls');
                 if (controls) controls.remove();
             }
-            // Сброс таймера двойного клика
             if (clickTimeout) {
                 clearTimeout(clickTimeout);
                 clickTimeout = null;
