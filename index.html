@@ -437,6 +437,11 @@
         let editingPolygon = null;
         let originalPolyCoords = null;
         
+        // Для обработки двойного клика
+        let lastClickTime = 0;
+        let lastClickParkingId = null;
+        let clickTimeout = null;
+        
         const MAX_ZONE_WIDTH = 100;
         const MAX_ZONE_LENGTH = 100;
 
@@ -1020,9 +1025,51 @@
                 });
             }
             
-            // При клике сразу открываем редактор
+            // Обработка клика с определением одиночного/двойного
             placemark.events.add('click', function(e) {
-                openOccupancyPanel(id);
+                const now = Date.now();
+                
+                // Проверяем двойной клик
+                if (lastClickParkingId === id && (now - lastClickTime) < 300) {
+                    clearTimeout(clickTimeout);
+                    openOccupancyPanel(id);
+                    lastClickParkingId = null;
+                    lastClickTime = 0;
+                    return;
+                }
+                
+                // Одиночный клик
+                lastClickParkingId = id;
+                lastClickTime = now;
+                
+                if (clickTimeout) clearTimeout(clickTimeout);
+                
+                // Показываем балун с краткой информацией
+                const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
+                const street = data.street || 'Улица не указана';
+                
+                placemark.balloon.setContent(`
+                    <div style="padding:12px;">
+                        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
+                            <span class="status-indicator ${statusClass}"></span>${data.name}
+                        </div>
+                        <div style="font-size:13px;color:#8E8E93;margin-bottom:4px;">📍 ${street}</div>
+                        <div style="font-size:13px;color:#8E8E93;margin-bottom:12px;">💰 ${isPaid} | Статус: ${statusText}</div>
+                        <div style="display:flex;gap:12px;font-size:14px;">
+                            <span style="color:#34C759;">✓ Свободно: ${freeSpots}</span>
+                            <span style="color:#FF3B30;">✗ Занято: ${occupiedSpots}</span>
+                        </div>
+                        <div style="margin-top:8px;font-size:12px;color:#8E8E93;">Всего мест: ${totalSpots}</div>
+                        <div style="margin-top:8px;font-size:11px;color:#8E8E93;">Двойное нажатие — редактировать</div>
+                    </div>
+                `);
+                placemark.balloon.open();
+                
+                // Сбрасываем состояние двойного клика через 300 мс
+                clickTimeout = setTimeout(() => {
+                    lastClickParkingId = null;
+                    lastClickTime = 0;
+                }, 300);
             });
             
             map.geoObjects.add(placemark);
@@ -1109,7 +1156,7 @@
                         </select>
                     </div>
                     <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-                    <button class="btn-secondary" onclick="editPolygon()">✏️ Редактировать границы</button>
+                    <!-- Кнопка "Редактировать границы" убрана -->
                     <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
                 `;
             } else {
@@ -1176,45 +1223,10 @@
                 });
         }
 
+        // Функция editPolygon оставлена, но из интерфейса она больше не вызывается.
         function editPolygon() {
-            if (!currentParkingId || !currentParkingData || !currentParkingData.coordinates) {
-                alert('У этой парковки нет полигона для редактирования.');
-                return;
-            }
-            
-            if (mapMarkers[currentParkingId]) {
-                map.geoObjects.remove(mapMarkers[currentParkingId]);
-                delete mapMarkers[currentParkingId];
-            }
-            
-            originalPolyCoords = currentParkingData.coordinates;
-            
-            editingPolygon = new ymaps.Polygon([originalPolyCoords], {}, {
-                editorDrawingCursor: "crosshair",
-                fillColor: '#007AFF22',
-                strokeColor: '#007AFF',
-                strokeWidth: 3,
-                draggable: false
-            });
-            
-            map.geoObjects.add(editingPolygon);
-            editingPolygon.editor.startEditing();
-            
-            document.getElementById('addBtn').classList.add('drawing');
-            document.getElementById('addBtn').textContent = '✕';
-            isDrawingMode = true;
-            
-            const controls = document.createElement('div');
-            controls.className = 'drawing-controls';
-            controls.id = 'drawingControls';
-            controls.innerHTML = `
-                <button class="btn-finish" onclick="finishDrawing()">✓ Завершить</button>
-                <button class="btn-cancel" onclick="cancelDrawing()">✕ Отмена</button>
-            `;
-            document.body.appendChild(controls);
-            
-            showMapHint('Редактируйте вершины полигона');
-            closePanel();
+            // пустая заглушка, чтобы избежать ошибок при случайном вызове
+            console.warn('Редактирование границ отключено в интерфейсе.');
         }
 
         function saveEditedPolygon(newCoords) {
@@ -1370,9 +1382,7 @@
 
         function focusMap(lat, lng, parkingId) {
             closePanel();
-            // Просто центрируем карту, без открытия балуна
             map.setCenter([lat, lng], 16, { duration: 300 });
-            // Пользователь сам кликнет по маркеру, чтобы открыть редактор
         }
 
         function showPanel(type) {
@@ -1782,6 +1792,13 @@
                 const controls = document.getElementById('drawingControls');
                 if (controls) controls.remove();
             }
+            // Сброс таймера двойного клика
+            if (clickTimeout) {
+                clearTimeout(clickTimeout);
+                clickTimeout = null;
+            }
+            lastClickParkingId = null;
+            lastClickTime = 0;
         }
         
         function showMap() {
