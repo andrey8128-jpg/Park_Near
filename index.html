@@ -422,6 +422,21 @@
             color: #FF9500;
             font-weight: 600;
         }
+        .reputation-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px var(--card-shadow);
+        }
+        .reputation-title {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .reputation-stars {
+            color: #FF9500;
+        }
     </style>
 </head>
 <body>
@@ -1168,7 +1183,6 @@
                 currentParkingId = parkingId;
                 currentParkingData = data;
                 
-                // Проверим, в избранном ли парковка
                 if (currentUser) {
                     database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => {
                         const isFavorite = favSnap.exists();
@@ -1225,7 +1239,6 @@
                 </div>
             `;
             
-            // Кнопка избранного для всех, кроме автора (автор может добавлять свои, но обычно это не нужно; разрешим и автору)
             if (currentUser) {
                 html += `
                     <button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">
@@ -1293,10 +1306,8 @@
             favRef.once('value').then(snap => {
                 if (snap.exists()) {
                     favRef.remove();
-                    // Обновим кнопку
                     const btn = document.getElementById('favBtn');
                     if (btn) btn.innerHTML = '⭐ Добавить в избранное';
-                    // Обновим счётчик избранного у автора (если знаем автора)
                     if (currentParkingData && currentParkingData.authorId) {
                         database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(count => Math.max(0, (count || 1) - 1));
                     }
@@ -1356,7 +1367,6 @@
                     currentParkingData = {...currentParkingData, ...updates};
                     updateOccupancyDisplay(currentParkingData.occupiedSpots);
                     refreshParkingMarker();
-                    // Перерендерим с сохранением статуса избранного
                     database.ref(`users/${currentUser.id}/favorites/${currentParkingId}`).once('value').then(favSnap => {
                         renderEditPanel(currentParkingData, favSnap.exists());
                     });
@@ -1716,6 +1726,35 @@
                                         <span class="stats-label">🔥 Серия</span>
                                         <span class="stats-value stats-streak">${streak} дн. подряд</span>
                                     </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Расчет репутации
+                        const activeDaysCount = activeDates.length;
+                        const score = created * 5 + updated * 2 + confirmations * 10 + Math.floor(views / 5) + favorites * 10 + activeDaysCount;
+                        const reputationPercent = Math.min(100, score);
+                        const rating = (reputationPercent / 20).toFixed(1); // от 0 до 5
+                        let level = '🌱 Новичок';
+                        if (score >= 200) level = '👑 Легенда ParkNear';
+                        else if (score >= 100) level = '🏆 Эксперт';
+                        else if (score >= 50) level = '🅿️ Знаток парковок';
+                        else if (score >= 10) level = '🚗 Водитель';
+                        
+                        html += `
+                            <div class="reputation-card">
+                                <div class="reputation-title">🏆 Репутация</div>
+                                <div class="stats-row">
+                                    <span class="stats-label">⭐ Общий рейтинг</span>
+                                    <span class="stats-value">${rating} / 5</span>
+                                </div>
+                                <div class="stats-row">
+                                    <span class="stats-label">📈 Репутация</span>
+                                    <span class="stats-value">${reputationPercent}%</span>
+                                </div>
+                                <div class="stats-row">
+                                    <span class="stats-label">🎖 Уровень</span>
+                                    <span class="stats-value">${level}</span>
                                 </div>
                             </div>
                         `;
