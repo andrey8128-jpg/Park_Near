@@ -639,7 +639,6 @@
     
     <div id="map"></div>
     
-    <!-- Переключатель слоёв -->
     <div class="layer-switcher" id="layerSwitcher" onclick="toggleLayerMenu()">🗺️</div>
     <div class="layer-menu" id="layerMenu">
         <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
@@ -674,7 +673,6 @@
         </div>
     </div>
 
-    <!-- Bottom Sheet для информации о парковке -->
     <div class="bottom-sheet" id="parkingSheet">
         <div class="sheet-header">
             <div class="sheet-handle" onclick="closeParkingSheet()"></div>
@@ -683,7 +681,6 @@
         <div class="sheet-content" id="sheetContent"></div>
     </div>
 
-    <!-- Карточка маршрута -->
     <div class="route-card" id="routeCard">
         <button class="route-close" onclick="closeRoute()">✕</button>
         <div id="routeInfo"></div>
@@ -720,30 +717,13 @@
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
         let drawingPolygon = null, isDrawingMode = false;
-        let currentParkingId = null;
-        let currentParkingData = null;
-        let editingPolygon = null;
-        let originalPolyCoords = null;
-        let parkingDataCache = {};
-        let highlightedParkings = {};
-        
-        let lastClickTime = 0;
-        let lastClickParkingId = null;
-        let clickTimeout = null;
-        
-        const MAX_ZONE_WIDTH = 100;
-        const MAX_ZONE_LENGTH = 100;
-
-        let addressPickerMap = null;
-        let addressPickerPlacemark = null;
-        let addressPickerCoords = null;
-        let isAddressPickerOpen = false;
-
-        // Переменные для маршрута
-        let currentRoute = null;
-        let routeStartCoords = null;
-        let routeEndCoords = null;
-        let routeParkingData = null;
+        let currentParkingId = null, currentParkingData = null;
+        let editingPolygon = null, originalPolyCoords = null;
+        let parkingDataCache = {}, highlightedParkings = {};
+        let lastClickTime = 0, lastClickParkingId = null, clickTimeout = null;
+        const MAX_ZONE_WIDTH = 100, MAX_ZONE_LENGTH = 100;
+        let addressPickerMap = null, addressPickerPlacemark = null, addressPickerCoords = null, isAddressPickerOpen = false;
+        let currentRoute = null, routeStartCoords = null, routeEndCoords = null, routeParkingData = null;
 
         const carBrands = {
             'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
@@ -777,930 +757,380 @@
         };
 
         const carColors = {
-            'Белый': '#FFFFFF',
-            'Чёрный': '#000000',
-            'Серебристый': '#C0C0C0',
-            'Серый': '#808080',
-            'Красный': '#FF0000',
-            'Синий': '#0000FF',
-            'Тёмно-синий': '#00008B',
-            'Зелёный': '#008000',
-            'Тёмно-зелёный': '#006400',
-            'Жёлтый': '#FFFF00',
-            'Оранжевый': '#FFA500',
-            'Коричневый': '#8B4513',
-            'Бежевый': '#F5F5DC',
-            'Золотой': '#FFD700',
-            'Бронзовый': '#CD7F32',
-            'Бордовый': '#800020',
-            'Фиолетовый': '#800080',
-            'Голубой': '#87CEEB',
-            'Розовый': '#FFC0CB',
-            'Другой': '#808080'
+            'Белый': '#FFFFFF', 'Чёрный': '#000000', 'Серебристый': '#C0C0C0', 'Серый': '#808080',
+            'Красный': '#FF0000', 'Синий': '#0000FF', 'Тёмно-синий': '#00008B', 'Зелёный': '#008000',
+            'Тёмно-зелёный': '#006400', 'Жёлтый': '#FFFF00', 'Оранжевый': '#FFA500', 'Коричневый': '#8B4513',
+            'Бежевый': '#F5F5DC', 'Золотой': '#FFD700', 'Бронзовый': '#CD7F32', 'Бордовый': '#800020',
+            'Фиолетовый': '#800080', 'Голубой': '#87CEEB', 'Розовый': '#FFC0CB', 'Другой': '#808080'
         };
 
         function initAuth() {
             if (window.Telegram?.WebApp) {
                 const tg = window.Telegram.WebApp;
-                tg.ready();
-                tg.expand();
-                
+                tg.ready(); tg.expand();
                 if (tg.initDataUnsafe?.user) {
                     const user = tg.initDataUnsafe.user;
-                    currentUser = {
-                        id: 'tg_' + user.id,
-                        username: user.username || 'tg_user',
-                        firstName: user.first_name || 'Пользователь',
-                        photoUrl: user.photo_url || '',
-                        isGuest: false
-                    };
+                    currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
                     localStorage.setItem('tgUser', JSON.stringify(currentUser));
                 }
             }
-            
-            if (!currentUser) {
-                const saved = localStorage.getItem('tgUser');
-                if (saved) currentUser = JSON.parse(saved);
-            }
-            
+            if (!currentUser) { const saved = localStorage.getItem('tgUser'); if (saved) currentUser = JSON.parse(saved); }
             if (currentUser) {
                 const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
                 userStatsRef.once('value').then(snapshot => {
                     if (!snapshot.exists()) {
-                        const initialStats = {
-                            registeredAt: Date.now(),
-                            lastActive: Date.now(),
-                            parkingsCreated: 0,
-                            parkingsUpdated: 0,
-                            confirmations: 0,
-                            views: 0,
-                            favorites: 0,
-                            activeDates: [new Date().toISOString().split('T')[0]]
-                        };
+                        const initialStats = { registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] };
                         userStatsRef.set(initialStats);
                     } else {
-                        const stats = snapshot.val();
-                        const today = new Date().toISOString().split('T')[0];
+                        const stats = snapshot.val(); const today = new Date().toISOString().split('T')[0];
                         let activeDates = stats.activeDates || [];
-                        if (!activeDates.includes(today)) {
-                            activeDates.push(today);
-                        }
-                        userStatsRef.update({
-                            lastActive: Date.now(),
-                            activeDates: activeDates
-                        });
+                        if (!activeDates.includes(today)) activeDates.push(today);
+                        userStatsRef.update({ lastActive: Date.now(), activeDates: activeDates });
                     }
                 });
             }
-            
             const savedTheme = localStorage.getItem('darkTheme');
-            if (savedTheme === 'true') {
-                document.body.classList.add('dark-theme');
-            }
+            if (savedTheme === 'true') document.body.classList.add('dark-theme');
         }
 
         function getDistanceInMeters(lat1, lng1, lat2, lng2) {
             const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             return R * c;
         }
 
         function checkPolygonSize(coordinates) {
             if (!coordinates || coordinates.length < 3) return { valid: false, error: 'Минимум 3 точки' };
-            
-            const lats = coordinates.map(c => c[0]);
-            const lngs = coordinates.map(c => c[1]);
-            const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-            const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-            
-            const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng);
-            const lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
-            
-            if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) {
-                return { 
-                    valid: false, 
-                    error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` 
-                };
-            }
-            
+            const lats = coordinates.map(c => c[0]), lngs = coordinates.map(c => c[1]);
+            const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+            const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng), lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
+            if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) return { valid: false, error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` };
             return { valid: true, width: widthM, length: lengthM };
         }
 
-        function toggleLayerMenu() {
-            const menu = document.getElementById('layerMenu');
-            menu.classList.toggle('active');
-        }
-
+        function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
         function setMapType(option) {
-            const type = option.dataset.type;
             if (!map) return;
-            map.setType(type);
+            map.setType(option.dataset.type);
             document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
             option.classList.add('selected');
             document.getElementById('layerMenu').classList.remove('active');
-
             const mapEl = document.getElementById('map');
-            if (type === 'yandex#map' && document.body.classList.contains('dark-theme')) {
-                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            } else {
-                mapEl.style.filter = 'none';
-            }
+            if (option.dataset.type === 'yandex#map' && document.body.classList.contains('dark-theme')) mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+            else mapEl.style.filter = 'none';
         }
-
-        // Закрывать меню при клике вне его
         document.addEventListener('click', function(e) {
-            const menu = document.getElementById('layerMenu');
-            const btn = document.getElementById('layerSwitcher');
+            const menu = document.getElementById('layerMenu'), btn = document.getElementById('layerSwitcher');
             if (!menu.classList.contains('active')) return;
-            if (!btn.contains(e.target) && !menu.contains(e.target)) {
-                menu.classList.remove('active');
-            }
+            if (!btn.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('active');
         });
 
         function startDrawingMode() {
             if (!map || !currentUser) return;
-            
-            if (drawingPolygon) {
-                map.geoObjects.remove(drawingPolygon);
-                drawingPolygon = null;
-            }
-            
+            if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
             isDrawingMode = true;
-            
-            document.getElementById('addBtn').classList.add('drawing');
-            document.getElementById('addBtn').textContent = '✕';
-            
-            drawingPolygon = new ymaps.Polygon([[]], {}, {
-                editorDrawingCursor: "crosshair",
-                fillColor: '#007AFF22',
-                strokeColor: '#007AFF',
-                strokeWidth: 3,
-                draggable: false
-            });
-            
-            map.geoObjects.add(drawingPolygon);
-            drawingPolygon.editor.startDrawing();
-            
+            document.getElementById('addBtn').classList.add('drawing'); document.getElementById('addBtn').textContent = '✕';
+            drawingPolygon = new ymaps.Polygon([[]], {}, { editorDrawingCursor: "crosshair", fillColor: '#007AFF22', strokeColor: '#007AFF', strokeWidth: 3, draggable: false });
+            map.geoObjects.add(drawingPolygon); drawingPolygon.editor.startDrawing();
             showMapHint('Нажимайте на карту для рисования зоны');
-            
-            const controls = document.createElement('div');
-            controls.className = 'drawing-controls';
-            controls.id = 'drawingControls';
-            controls.innerHTML = `
-                <button class="btn-finish" onclick="finishDrawing()">✓ Завершить</button>
-                <button class="btn-cancel" onclick="cancelDrawing()">✕ Отмена</button>
-            `;
+            const controls = document.createElement('div'); controls.className = 'drawing-controls'; controls.id = 'drawingControls';
+            controls.innerHTML = `<button class="btn-finish" onclick="finishDrawing()">✓ Завершить</button><button class="btn-cancel" onclick="cancelDrawing()">✕ Отмена</button>`;
             document.body.appendChild(controls);
-            
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-            }
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
         }
 
         function finishDrawing() {
             if (!drawingPolygon) return;
-            
-            drawingPolygon.editor.stopDrawing();
-            const coordinates = drawingPolygon.geometry.getCoordinates()[0];
-            
+            drawingPolygon.editor.stopDrawing(); const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             const sizeCheck = checkPolygonSize(coordinates);
-            if (!sizeCheck.valid) {
-                alert(sizeCheck.error);
-                cancelDrawing();
-                return;
-            }
-            
-            const controls = document.getElementById('drawingControls');
-            if (controls) controls.remove();
-            
-            document.getElementById('addBtn').classList.remove('drawing');
-            document.getElementById('addBtn').textContent = '+';
-            
+            if (!sizeCheck.valid) { alert(sizeCheck.error); cancelDrawing(); return; }
+            const controls = document.getElementById('drawingControls'); if (controls) controls.remove();
+            document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+';
             isDrawingMode = false;
-            
-            if (currentParkingId && editingPolygon) {
-                saveEditedPolygon(coordinates);
-                return;
-            }
-            
+            if (currentParkingId && editingPolygon) { saveEditedPolygon(coordinates); return; }
             openAddPanelWithPolygon(coordinates, sizeCheck);
         }
 
         function cancelDrawing() {
             if (editingPolygon) {
-                map.geoObjects.remove(editingPolygon);
-                editingPolygon = null;
-                if (originalPolyCoords && currentParkingId) {
-                    addMarkerToMap(currentParkingId, {...currentParkingData, coordinates: originalPolyCoords});
-                }
-                const controls = document.getElementById('drawingControls');
-                if (controls) controls.remove();
-                document.getElementById('addBtn').classList.remove('drawing');
-                document.getElementById('addBtn').textContent = '+';
-                isDrawingMode = false;
-                currentParkingId = null;
-                currentParkingData = null;
-                originalPolyCoords = null;
-                closePanel();
-                return;
+                map.geoObjects.remove(editingPolygon); editingPolygon = null;
+                if (originalPolyCoords && currentParkingId) addMarkerToMap(currentParkingId, {...currentParkingData, coordinates: originalPolyCoords});
+                const controls = document.getElementById('drawingControls'); if (controls) controls.remove();
+                document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+';
+                isDrawingMode = false; currentParkingId = null; currentParkingData = null; originalPolyCoords = null; closePanel(); return;
             }
-            
-            if (drawingPolygon) {
-                map.geoObjects.remove(drawingPolygon);
-                drawingPolygon = null;
-            }
+            if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
             isDrawingMode = false;
-            
-            document.getElementById('addBtn').classList.remove('drawing');
-            document.getElementById('addBtn').textContent = '+';
-            
-            const controls = document.getElementById('drawingControls');
-            if (controls) controls.remove();
+            document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+';
+            const controls = document.getElementById('drawingControls'); if (controls) controls.remove();
         }
 
         function showMapHint(text) {
-            const hint = document.createElement('div');
-            hint.className = 'map-hint';
-            hint.textContent = text;
-            document.body.appendChild(hint);
-            setTimeout(() => hint.remove(), 3000);
+            const hint = document.createElement('div'); hint.className = 'map-hint'; hint.textContent = text;
+            document.body.appendChild(hint); setTimeout(() => hint.remove(), 3000);
         }
 
         function getUserLocation() {
             return new Promise(function(resolve, reject) {
                 if (window.Telegram?.WebApp?.Geolocation?.getLocation && typeof window.Telegram.WebApp.Geolocation.getLocation === 'function') {
-                    window.Telegram.WebApp.Geolocation.getLocation()
-                        .then(function(location) {
-                            resolve({ lat: location.latitude, lng: location.longitude });
-                        })
-                        .catch(function(err) {
-                            tryBrowserGeolocation(resolve, reject);
-                        });
-                } else {
-                    tryBrowserGeolocation(resolve, reject);
-                }
+                    window.Telegram.WebApp.Geolocation.getLocation().then(loc => resolve({ lat: loc.latitude, lng: loc.longitude })).catch(() => tryBrowserGeolocation(resolve, reject));
+                } else tryBrowserGeolocation(resolve, reject);
             });
         }
 
         function tryBrowserGeolocation(resolve, reject) {
             if (typeof ymaps !== 'undefined') {
-                ymaps.geolocation.get({
-                    provider: 'browser',
-                    timeout: 10000
-                }).then(function(result) {
-                    const coords = result.geoObjects.get(0).geometry.getCoordinates();
-                    resolve({ lat: coords[0], lng: coords[1] });
-                }).catch(function(err) {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            function(pos) {
-                                resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                            },
-                            function(err) { reject(err); },
-                            { enableHighAccuracy: true, timeout: 10000 }
-                        );
-                    } else {
-                        reject(new Error('Геолокация не поддерживается'));
-                    }
+                ymaps.geolocation.get({ provider: 'browser', timeout: 10000 }).then(result => {
+                    const coords = result.geoObjects.get(0).geometry.getCoordinates(); resolve({ lat: coords[0], lng: coords[1] });
+                }).catch(() => {
+                    if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }), reject, { enableHighAccuracy: true, timeout: 10000 });
+                    else reject(new Error('Геолокация не поддерживается'));
                 });
-            } else if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                    },
-                    function(err) { reject(err); },
-                    { enableHighAccuracy: true, timeout: 10000 }
-                );
-            } else {
-                reject(new Error('Геолокация не поддерживается'));
-            }
+            } else if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }), reject, { enableHighAccuracy: true, timeout: 10000 });
+            else reject(new Error('Геолокация не поддерживается'));
         }
 
         function initMap() {
-            map = new ymaps.Map("map", {
-                center: [55.7558, 37.6173],
-                zoom: 14,
-                controls: ['zoomControl'],
-                type: 'yandex#map'
-            });
-            
-            document.getElementById('addBtn').onclick = function() {
-                if (!currentUser) {
-                    showPanel('profile');
-                    return;
-                }
-                if (isDrawingMode) {
-                    cancelDrawing();
-                } else {
-                    startDrawingMode();
-                }
-            };
-
-            document.getElementById('geoBtn').onclick = function() {
+            map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'], type: 'yandex#map' });
+            document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
+            document.getElementById('geoBtn').onclick = () => {
                 if (!map) return;
-                
-                const btn = document.getElementById('geoBtn');
-                const originalContent = btn.innerHTML;
+                const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
                 btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-                
-                getUserLocation()
-                    .then(function(coords) {
-                        btn.innerHTML = originalContent;
-                        
-                        if (myLocationPlacemark) {
-                            map.geoObjects.remove(myLocationPlacemark);
-                        }
-                        
-                        myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                            hintContent: 'Вы здесь',
-                            balloonContent: '<strong>Ваше местоположение</strong>'
-                        }, {
-                            preset: 'islands#blueCircleDotIconWithCaption'
-                        });
-                        myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                        
-                        map.geoObjects.add(myLocationPlacemark);
-                        map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                        
-                        if (window.Telegram?.WebApp?.HapticFeedback) {
-                            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                        }
-                    })
-                    .catch(function(err) {
-                        btn.innerHTML = originalContent;
-                        console.error("Ошибка геолокации:", err);
-                        
-                        let message = 'Не удалось определить местоположение.\n\n';
-                        if (window.Telegram?.WebApp) {
-                            message += 'Проверьте:\n• Настройки телефона → Конфиденциальность → Службы геолокации → Telegram (включено)';
-                        } else {
-                            message += 'Разрешите доступ к геоданным в настройках браузера.';
-                        }
-                        
-                        if (window.Telegram?.WebApp?.showAlert) {
-                            window.Telegram.WebApp.showAlert(message);
-                        } else {
-                            alert(message);
-                        }
-                    });
+                getUserLocation().then(coords => {
+                    btn.innerHTML = originalContent;
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+                    if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }).catch(err => {
+                    btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
+                    let message = 'Не удалось определить местоположение.';
+                    if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
+                    if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
+                });
             };
-
             loadAllParkings();
-            
-            setTimeout(function() {
-                getUserLocation()
-                    .then(function(coords) {
-                        if (myLocationPlacemark) {
-                            map.geoObjects.remove(myLocationPlacemark);
-                        }
-                        myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                            hintContent: 'Вы здесь'
-                        }, {
-                            preset: 'islands#blueCircleDotIconWithCaption'
-                        });
-                        myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                        map.geoObjects.add(myLocationPlacemark);
-                        map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
-                    })
-                    .catch(function(err) {
-                        console.log('Автогеолокация не удалась:', err.message);
-                    });
+            setTimeout(() => {
+                getUserLocation().then(coords => {
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь' }, { preset: 'islands#blueCircleDotIconWithCaption' });
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
+                }).catch(() => console.log('Автогеолокация не удалась'));
             }, 1000);
-            
-            // Свайп для закрытия карточки маршрута
             const routeCard = document.getElementById('routeCard');
-            let startY = 0;
-            let swipeDown = false;
-            routeCard.addEventListener('touchstart', (e) => {
-                startY = e.touches[0].clientY;
-                swipeDown = false;
-            });
-            routeCard.addEventListener('touchmove', (e) => {
-                if (e.touches[0].clientY - startY > 50) swipeDown = true;
-            });
-            routeCard.addEventListener('touchend', () => {
-                if (swipeDown) closeRoute();
-            });
-            
-            // Свайп для закрытия Bottom Sheet
+            let startY = 0, swipeDown = false;
+            routeCard.addEventListener('touchstart', e => { startY = e.touches[0].clientY; swipeDown = false; });
+            routeCard.addEventListener('touchmove', e => { if (e.touches[0].clientY - startY > 50) swipeDown = true; });
+            routeCard.addEventListener('touchend', () => { if (swipeDown) closeRoute(); });
             const parkingSheet = document.getElementById('parkingSheet');
-            let sheetStartY = 0;
-            let sheetSwipeDown = false;
-            parkingSheet.addEventListener('touchstart', (e) => {
-                if (!parkingSheet.classList.contains('active')) return;
-                sheetStartY = e.touches[0].clientY;
-                sheetSwipeDown = false;
-            });
-            parkingSheet.addEventListener('touchmove', (e) => {
-                if (!parkingSheet.classList.contains('active')) return;
-                if (e.touches[0].clientY - sheetStartY > 60) {
-                    sheetSwipeDown = true;
-                }
-            });
-            parkingSheet.addEventListener('touchend', () => {
-                if (sheetSwipeDown) {
-                    closeParkingSheet();
-                }
-            });
+            let sheetStartY = 0, sheetSwipeDown = false;
+            parkingSheet.addEventListener('touchstart', e => { if (!parkingSheet.classList.contains('active')) return; sheetStartY = e.touches[0].clientY; sheetSwipeDown = false; });
+            parkingSheet.addEventListener('touchmove', e => { if (!parkingSheet.classList.contains('active')) return; if (e.touches[0].clientY - sheetStartY > 60) sheetSwipeDown = true; });
+            parkingSheet.addEventListener('touchend', () => { if (sheetSwipeDown) closeParkingSheet(); });
         }
-        
-        if (typeof ymaps !== 'undefined') {
-            ymaps.ready(() => { initAuth(); initMap(); });
-        } else {
-            window.addEventListener('load', () => {
-                ymaps.ready(() => { initAuth(); initMap(); });
-            });
-        }
+        if (typeof ymaps !== 'undefined') ymaps.ready(() => { initAuth(); initMap(); });
+        else window.addEventListener('load', () => { ymaps.ready(() => { initAuth(); initMap(); }); });
 
         function openAddPanelWithPolygon(coordinates, sizeCheck) {
-            document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = 'Новая парковка';
-            
+            document.getElementById('panel').classList.add('active'); document.getElementById('panelTitle').textContent = 'Новая парковка';
             const area = Math.round(sizeCheck.width * sizeCheck.length);
-            
             document.getElementById('panelContent').innerHTML = `
-                <div class="form-group">
-                    <label>Размер зоны</label>
-                    <input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);">
-                </div>
-                <div class="form-group">
-                    <label>Количество парковочных мест *</label>
-                    <input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500">
-                </div>
-                <div class="form-group">
-                    <label>Название *</label>
-                    <input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ">
-                </div>
-                <div class="form-group">
-                    <label>Тип парковки</label>
-                    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);">
-                        <span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span>
-                        <label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;">
-                            <input type="checkbox" id="parkIsPaid">
-                            <span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span>
-                        </label>
-                        <span style="color:var(--text-primary);white-space:nowrap;">Платная</span>
-                    </div>
-                </div>
+                <div class="form-group"><label>Размер зоны</label><input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);"></div>
+                <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
+                <div class="form-group"><label>Название *</label><input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ"></div>
+                <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="parkIsPaid"><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
                 <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
-                <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
-            `;
+                <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>`;
         }
 
         function submitParkingWithPolygon() {
-            const name = document.getElementById('parkName').value.trim();
-            const totalSpots = parseInt(document.getElementById('parkSpots').value);
-            const isPaid = document.getElementById('parkIsPaid').checked;
-            
-            if (!currentUser) {
-                alert('Ошибка: пользователь не авторизован');
-                return;
-            }
-            
-            if (!name) {
-                alert('Пожалуйста, введите название парковки');
-                return;
-            }
-            if (!totalSpots || totalSpots < 1) {
-                alert('Пожалуйста, укажите количество парковочных мест');
-                return;
-            }
-            if (!drawingPolygon) {
-                alert('Парковочная зона не нарисована');
-                return;
-            }
-
-            const btn = document.getElementById('saveParkBtn');
-            btn.textContent = 'Сохранение...';
-            btn.disabled = true;
-
+            const name = document.getElementById('parkName').value.trim(), totalSpots = parseInt(document.getElementById('parkSpots').value), isPaid = document.getElementById('parkIsPaid').checked;
+            if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
+            if (!name) { alert('Пожалуйста, введите название парковки'); return; }
+            if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
+            if (!drawingPolygon) { alert('Парковочная зона не нарисована'); return; }
+            const btn = document.getElementById('saveParkBtn'); btn.textContent = 'Сохранение...'; btn.disabled = true;
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
-            
-            const cleanCoordinates = coordinates.map(coord => [
-                parseFloat(coord[0]),
-                parseFloat(coord[1])
-            ]);
-            
-            const centerLat = cleanCoordinates.reduce((sum, c) => sum + c[0], 0) / cleanCoordinates.length;
-            const centerLng = cleanCoordinates.reduce((sum, c) => sum + c[1], 0) / cleanCoordinates.length;
-
-            const parkingData = {
-                lat: centerLat,
-                lng: centerLng,
-                coordinates: cleanCoordinates,
-                totalSpots: totalSpots,
-                occupiedSpots: 0,
-                name: name,
-                isPaid: isPaid,
-                authorId: currentUser.id,
-                authorName: currentUser.firstName,
-                authorUsername: currentUser.username,
-                timestamp: Date.now(),
-                status: 'unknown'
-            };
-
+            const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+            const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
+            const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
+            const parkingData = { lat: centerLat, lng: centerLng, coordinates: cleanCoordinates, totalSpots, occupiedSpots: 0, name, isPaid, authorId: currentUser.id, authorName: currentUser.firstName, authorUsername: currentUser.username, timestamp: Date.now(), status: 'unknown' };
             const newRef = database.ref('parkings').push();
-            
-            newRef.set(parkingData)
-                .then(() => {
-                    database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-                        .transaction(count => (count || 0) + 1);
-                    
-                    return database.ref(`parkings/${newRef.key}/history`).push({
-                        action: 'created',
-                        timestamp: Date.now(),
-                        userId: currentUser.id,
-                        username: currentUser.username,
-                        carBrand: '',
-                        carModel: '',
-                        carPlate: ''
-                    });
-                })
-                .then(() => {
-                    addMarkerToMap(newRef.key, parkingData);
-                    
-                    if (drawingPolygon) {
-                        map.geoObjects.remove(drawingPolygon);
-                        drawingPolygon = null;
-                    }
-                    
-                    closePanel();
-                    showMap();
-                    
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                })
-                .catch(err => {
-                    console.error("Ошибка Firebase:", err);
-                    let errorMsg = 'Ошибка сохранения: ';
-                    if (err.code === 'PERMISSION_DENIED') {
-                        errorMsg += 'Нет доступа к базе данных.';
-                    } else if (err.code === 'NETWORK_ERROR') {
-                        errorMsg += 'Проблема с сетью.';
-                    } else {
-                        errorMsg += err.message;
-                    }
-                    alert(errorMsg);
-                    btn.textContent = 'Сохранить парковку';
-                    btn.disabled = false;
-                });
+            newRef.set(parkingData).then(() => {
+                database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
+                return database.ref(`parkings/${newRef.key}/history`).push({ action: 'created', timestamp: Date.now(), userId: currentUser.id, username: currentUser.username, carBrand: '', carModel: '', carPlate: '' });
+            }).then(() => {
+                addMarkerToMap(newRef.key, parkingData);
+                if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+                closePanel(); showMap();
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }).catch(err => {
+                console.error("Ошибка Firebase:", err);
+                alert('Ошибка сохранения: ' + (err.code === 'PERMISSION_DENIED' ? 'Нет доступа' : err.message));
+                btn.textContent = 'Сохранить парковку'; btn.disabled = false;
+            });
         }
 
         function loadAllParkings() {
-            database.ref('parkings').once('value')
-                .then(snapshot => {
-                    const data = snapshot.val();
-                    if (data) {
-                        Object.keys(data).forEach(key => {
-                            const p = data[key];
-                            if (p && p.lat && p.lng) {
-                                parkingDataCache[key] = p;
-                                addMarkerToMap(key, p);
-                            }
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
-                });
+            database.ref('parkings').once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (data) Object.keys(data).forEach(key => { const p = data[key]; if (p && p.lat && p.lng) { parkingDataCache[key] = p; addMarkerToMap(key, p); } });
+            }).catch(error => console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error));
         }
 
         function getOccupancyColor(occupied, total) {
             const ratio = Math.min(1, total > 0 ? occupied / total : 0);
-            const r = Math.round(255 * ratio);
-            const g = Math.round(255 * (1 - ratio));
-            const b = 0;
-            return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+            return '#' + [Math.round(255 * ratio), Math.round(255 * (1 - ratio)), 0].map(c => c.toString(16).padStart(2, '0')).join('');
         }
 
         function formatDateTime(timestamp) {
             if (!timestamp) return 'Неизвестно';
-            const date = new Date(timestamp);
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            return `${day}.${month}.${year} ${hours}:${minutes}`;
+            const d = new Date(timestamp);
+            return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
         }
 
         function addMarkerToMap(id, data) {
             if (mapMarkers[id]) return;
-            
-            const totalSpots = data.totalSpots || 0;
-            const occupiedSpots = data.occupiedSpots || 0;
-            const freeSpots = totalSpots - occupiedSpots;
+            const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
             const color = getOccupancyColor(occupiedSpots, totalSpots);
-            const status = data.status || 'unknown';
-            const statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
+            const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
             const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
             const isPaid = data.isPaid ? 'Платная' : 'Бесплатная';
-            
             let placemark;
-            
             if (data.coordinates && data.coordinates.length >= 3) {
-                placemark = new ymaps.Polygon([data.coordinates], {
-                    hintContent: `${data.name} (${freeSpots} св.)`
-                }, {
-                    fillColor: color + '55',
-                    strokeColor: color,
-                    strokeWidth: 2
-                });
+                placemark = new ymaps.Polygon([data.coordinates], { hintContent: `${data.name} (${freeSpots} св.)` }, { fillColor: color + '55', strokeColor: color, strokeWidth: 2 });
             } else {
-                placemark = new ymaps.Placemark([data.lat, data.lng], {
-                    hintContent: `${data.name} (${freeSpots} св.)`
-                }, {
-                    preset: 'islands#blueParkingIcon'
-                });
+                placemark = new ymaps.Placemark([data.lat, data.lng], { hintContent: `${data.name} (${freeSpots} св.)` }, { preset: 'islands#blueParkingIcon' });
             }
-            
             placemark.events.add('click', function(e) {
                 const now = Date.now();
-                
                 if (lastClickParkingId === id && (now - lastClickTime) < 300) {
                     clearTimeout(clickTimeout);
                     openOccupancyPanel(id);
-                    lastClickParkingId = null;
-                    lastClickTime = 0;
+                    lastClickParkingId = null; lastClickTime = 0;
                     return;
                 }
-                
-                lastClickParkingId = id;
-                lastClickTime = now;
-                
+                lastClickParkingId = id; lastClickTime = now;
                 if (clickTimeout) clearTimeout(clickTimeout);
-                
-                // Открываем Bottom Sheet с информацией о парковке
                 openParkingSheet(id, data);
-                
-                clickTimeout = setTimeout(() => {
-                    lastClickParkingId = null;
-                    lastClickTime = 0;
-                }, 300);
+                clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; }, 300);
             });
-            
-            map.geoObjects.add(placemark);
-            mapMarkers[id] = placemark;
+            map.geoObjects.add(placemark); mapMarkers[id] = placemark;
         }
 
-        // Открытие Bottom Sheet
         function openParkingSheet(parkingId, data) {
-            const sheet = document.getElementById('parkingSheet');
-            const content = document.getElementById('sheetContent');
-            
+            const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
+            const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
+            const free = data.totalSpots - data.occupiedSpots;
             getUserLocation().then(coords => {
                 const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
                 const distKm = (dist / 1000).toFixed(1);
-                const walkTime = Math.round(dist / 80);
-                const driveTime = Math.round(dist / 500);
-                const free = data.totalSpots - data.occupiedSpots;
-                const statusText = data.status === 'free' ? 'Свободно' : data.status === 'occupied' ? 'Занято' : 'Неизвестно';
-                const lastUpdate = data.timestamp ? formatDateTime(data.timestamp) : '—';
-
+                const driveTime = Math.round(dist / 500); // ~30 км/ч
                 content.innerHTML = `
                     <h3>${data.name}</h3>
-                    <p>📍 ${data.address || 'Адрес не указан'}</p>
+                    <p>📍 ${addr}</p>
                     <p>📏 ${distKm} км от вас</p>
-                    <p>🚶 Пешком: ${walkTime} мин</p>
                     <p>🚗 На авто: ${driveTime} мин</p>
                     <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-                    <p>📊 Статус: ${statusText}</p>
-                    <p>🕒 Обновлено: ${lastUpdate}</p>
-                    <p>👤 Автор: ${data.authorName || 'Неизвестен'}</p>
                     <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-                    <button class="btn-secondary" style="margin-top:8px;" onclick="openOccupancyPanel('${parkingId}')">✏️ Редактировать</button>
                 `;
                 sheet.classList.add('active');
             }).catch(() => {
-                const free = data.totalSpots - data.occupiedSpots;
-                const statusText = data.status === 'free' ? 'Свободно' : data.status === 'occupied' ? 'Занято' : 'Неизвестно';
                 content.innerHTML = `
                     <h3>${data.name}</h3>
-                    <p>📍 ${data.address || 'Адрес не указан'}</p>
+                    <p>📍 ${addr}</p>
                     <p>📏 Расстояние неизвестно</p>
                     <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-                    <p>📊 Статус: ${statusText}</p>
-                    <p>🕒 Обновлено: ${data.timestamp ? formatDateTime(data.timestamp) : '—'}</p>
-                    <p>👤 Автор: ${data.authorName || 'Неизвестен'}</p>
                     <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-                    <button class="btn-secondary" style="margin-top:8px;" onclick="openOccupancyPanel('${parkingId}')">✏️ Редактировать</button>
                 `;
                 sheet.classList.add('active');
             });
         }
 
-        function closeParkingSheet() {
-            document.getElementById('parkingSheet').classList.remove('active');
-        }
+        function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
 
-        // Построение маршрута
         function buildRouteToParking(parkingId) {
             closeParkingSheet();
-            const data = parkingDataCache[parkingId];
-            if (!data) return;
-
+            const data = parkingDataCache[parkingId]; if (!data) return;
             getUserLocation().then(coords => {
-                routeStartCoords = [coords.lat, coords.lng];
-                routeEndCoords = [data.lat, data.lng];
-                routeParkingData = data;
-
-                if (currentRoute) {
-                    map.geoObjects.remove(currentRoute);
-                }
-
-                ymaps.route([routeStartCoords, routeEndCoords], {
-                    mapStateAutoApply: false
-                }).then(function (route) {
-                    map.geoObjects.add(route);
-                    currentRoute = route;
-
+                routeStartCoords = [coords.lat, coords.lng]; routeEndCoords = [data.lat, data.lng]; routeParkingData = data;
+                if (currentRoute) map.geoObjects.remove(currentRoute);
+                ymaps.route([routeStartCoords, routeEndCoords], { mapStateAutoApply: false }).then(route => {
+                    map.geoObjects.add(route); currentRoute = route;
                     const paths = route.getPaths();
                     if (paths && paths.length > 0) {
-                        const activeRoute = paths[0];
-                        const distance = activeRoute.getLength() / 1000;
-                        const time = activeRoute.getTime() / 60;
-                        const arrival = new Date(Date.now() + activeRoute.getTime() * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-
+                        const active = paths[0];
+                        const dist = active.getLength() / 1000, time = active.getTime() / 60;
+                        const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
                         const free = data.totalSpots - data.occupiedSpots;
-                        document.getElementById('routeInfo').innerHTML = `
-                            <div>🚗 До парковки</div>
-                            <div>📍 ${distance.toFixed(1)} км</div>
-                            <div>⏱ ${Math.round(time)} мин</div>
-                            <div>🚦 Прибытие: ${arrival}</div>
-                            <div>🚘 Свободных мест: ${free}</div>
-                            <div>🔄 Обновлено: ${formatDateTime(data.timestamp)}</div>
-                        `;
+                        document.getElementById('routeInfo').innerHTML = `<div>🚗 До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div><div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div><div>🔄 Обновлено: ${formatDateTime(data.timestamp)}</div>`;
                         document.getElementById('routeCard').classList.add('active');
                     }
-
                     map.setBounds(route.getBounds(), { duration: 500 });
-                }).catch(err => {
-                    console.error('Ошибка маршрута:', err);
-                    alert('Не удалось построить маршрут. Попробуйте позже.');
-                });
-            }).catch(err => {
-                alert('Не удалось определить местоположение. Разрешите доступ к геолокации.');
-            });
+                }).catch(err => { console.error('Ошибка маршрута:', err); alert('Не удалось построить маршрут.'); });
+            }).catch(() => alert('Не удалось определить местоположение.'));
         }
 
-        function startNavigation() {
-            if (routeEndCoords) {
-                const url = `https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${routeEndCoords[1]}`;
-                window.open(url, '_blank');
-            }
-        }
-
+        function startNavigation() { if (routeEndCoords) window.open(`https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${routeEndCoords[1]}`, '_blank'); }
         function rebuildRoute() {
             if (routeStartCoords && routeEndCoords) {
-                if (currentRoute) {
-                    map.geoObjects.remove(currentRoute);
-                    currentRoute = null;
-                }
-                ymaps.route([routeStartCoords, routeEndCoords]).then(function (route) {
-                    map.geoObjects.add(route);
-                    currentRoute = route;
-                    const activeRoute = route.getPaths()[0];
-                    const distance = activeRoute.getLength() / 1000;
-                    const time = activeRoute.getTime() / 60;
-                    const arrival = new Date(Date.now() + activeRoute.getTime() * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+                ymaps.route([routeStartCoords, routeEndCoords]).then(route => {
+                    map.geoObjects.add(route); currentRoute = route;
+                    const active = route.getPaths()[0];
+                    const dist = active.getLength() / 1000, time = active.getTime() / 60;
+                    const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
                     const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-                    document.getElementById('routeInfo').innerHTML = `
-                        <div>🚗 До парковки</div>
-                        <div>📍 ${distance.toFixed(1)} км</div>
-                        <div>⏱ ${Math.round(time)} мин</div>
-                        <div>🚦 Прибытие: ${arrival}</div>
-                        <div>🚘 Свободных мест: ${free}</div>
-                    `;
+                    document.getElementById('routeInfo').innerHTML = `<div>🚗 До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div><div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div>`;
                 }).catch(err => alert('Ошибка при перестроении маршрута'));
             }
         }
-
         function closeRoute() {
-            if (currentRoute) {
-                map.geoObjects.remove(currentRoute);
-                currentRoute = null;
-            }
+            if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
             document.getElementById('routeCard').classList.remove('active');
-            routeStartCoords = null;
-            routeEndCoords = null;
-            routeParkingData = null;
+            routeStartCoords = null; routeEndCoords = null; routeParkingData = null;
         }
 
         function openOccupancyPanel(parkingId) {
             database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
-                const data = snapshot.val();
-                if (!data) return;
-                
+                const data = snapshot.val(); if (!data) return;
                 if (currentUser && currentUser.id !== data.authorId) {
                     database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
                     database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
                 }
-                
-                currentParkingId = parkingId;
-                currentParkingData = data;
-                parkingDataCache[parkingId] = data;
-                
+                currentParkingId = parkingId; currentParkingData = data; parkingDataCache[parkingId] = data;
                 if (currentUser) {
-                    database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => {
-                        const isFavorite = favSnap.exists();
-                        renderEditPanel(data, isFavorite);
-                    });
-                } else {
-                    renderEditPanel(data, false);
-                }
+                    database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => renderEditPanel(data, favSnap.exists()));
+                } else renderEditPanel(data, false);
             });
         }
 
         function renderEditPanel(data, isFavorite) {
-            const totalSpots = data.totalSpots || 0;
-            const occupiedSpots = data.occupiedSpots || 0;
-            const freeSpots = totalSpots - occupiedSpots;
-            const color = getOccupancyColor(occupiedSpots, totalSpots);
-            const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+            const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
+            const color = getOccupancyColor(occupiedSpots, totalSpots), occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
             const isAuthor = currentUser && currentUser.id === data.authorId;
-            const status = data.status || 'unknown';
-            const statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
+            const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
             const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
             const isPaid = data.isPaid || false;
             
-            document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = 'Редактирование';
-            
+            document.getElementById('panel').classList.add('active'); document.getElementById('panelTitle').textContent = 'Редактирование';
             let html = `
-                <div class="occupancy-header">
-                    <div class="occupancy-title">
-                        <span class="status-indicator ${statusClass}"></span>${data.name}
-                    </div>
-                </div>
-                
+                <div class="occupancy-header"><div class="occupancy-title"><span class="status-indicator ${statusClass}"></span>${data.name}</div></div>
                 <div class="occupancy-stats">
-                    <div class="stat-card stat-total">
-                        <div class="stat-value" id="statTotal">${totalSpots}</div>
-                        <div class="stat-label">Всего мест</div>
-                    </div>
-                    <div class="stat-card stat-free">
-                        <div class="stat-value" id="statFree">${freeSpots}</div>
-                        <div class="stat-label">Свободно</div>
-                    </div>
-                    <div class="stat-card stat-occupied">
-                        <div class="stat-value" id="statOccupied">${occupiedSpots}</div>
-                        <div class="stat-label">Занято</div>
-                    </div>
+                    <div class="stat-card stat-total"><div class="stat-value" id="statTotal">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
+                    <div class="stat-card stat-free"><div class="stat-value" id="statFree">${freeSpots}</div><div class="stat-label">Свободно</div></div>
+                    <div class="stat-card stat-occupied"><div class="stat-value" id="statOccupied">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
                 </div>
-                
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div>
-                </div>
-                <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">
-                    Загруженность: ${occupancyPercent}%
-                </div>
-            `;
-            
-            if (currentUser) {
-                html += `
-                    <button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">
-                        ${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}
-                    </button>
-                `;
-            }
-            
-            if (isAuthor) {
-                html += `
-                    <div class="form-group">
-                        <label>Название</label>
-                        <input type="text" id="editName" class="input-field" value="${data.name}">
-                    </div>
-                    <div class="form-group">
-                        <label>Количество мест</label>
-                        <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Тип парковки</label>
-                        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);">
-                            <span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span>
-                            <label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;">
-                                <input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''}>
-                                <span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span>
-                            </label>
-                            <span style="color:var(--text-primary);white-space:nowrap;">Платная</span>
-                        </div>
-                    </div>
-                    <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-                    <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
-                `;
-            } else {
-                html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
-                html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
-            }
-            
-            html += `
-                <div class="occupancy-control" style="margin-top:20px;">
+                <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div></div>
+                <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">Загруженность: ${occupancyPercent}%</div>
+                <!-- Счетчик занятых мест (переносим выше) -->
+                <div class="occupancy-control" style="margin-bottom:15px;">
                     <label>Изменить количество занятых мест:</label>
                     <div class="counter-row">
                         <button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
@@ -1708,10 +1138,23 @@
                         <button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
                     </div>
                 </div>
-                
-                <button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>
             `;
-            
+            if (currentUser) {
+                html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
+            }
+            if (isAuthor) {
+                html += `
+                    <div class="form-group"><label>Название</label><input type="text" id="editName" class="input-field" value="${data.name}"></div>
+                    <div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
+                    <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''}><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
+                    <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
+                    <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
+                `;
+            } else {
+                html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
+                html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
+            }
+            html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>`;
             document.getElementById('panelContent').innerHTML = html;
         }
 
@@ -1720,232 +1163,97 @@
             const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
             favRef.once('value').then(snap => {
                 if (snap.exists()) {
-                    favRef.remove();
-                    const btn = document.getElementById('favBtn');
-                    if (btn) btn.innerHTML = '⭐ Добавить в избранное';
-                    if (currentParkingData && currentParkingData.authorId) {
-                        database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(count => Math.max(0, (count || 1) - 1));
-                    }
+                    favRef.remove(); const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '⭐ Добавить в избранное';
+                    if (currentParkingData && currentParkingData.authorId) database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(c => Math.max(0, (c || 1) - 1));
                 } else {
-                    const favData = {
-                        parkingId: parkingId,
-                        name: currentParkingData ? currentParkingData.name : '',
-                        lat: currentParkingData ? currentParkingData.lat : 0,
-                        lng: currentParkingData ? currentParkingData.lng : 0,
-                        timestamp: Date.now()
-                    };
-                    favRef.set(favData);
-                    const btn = document.getElementById('favBtn');
-                    if (btn) btn.innerHTML = '✅ В избранном';
-                    if (currentParkingData && currentParkingData.authorId) {
-                        database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(count => (count || 0) + 1);
-                    }
+                    const favData = { parkingId, name: currentParkingData ? currentParkingData.name : '', lat: currentParkingData ? currentParkingData.lat : 0, lng: currentParkingData ? currentParkingData.lng : 0, timestamp: Date.now() };
+                    favRef.set(favData); const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '✅ В избранном';
+                    if (currentParkingData && currentParkingData.authorId) database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(c => (c || 0) + 1);
                 }
             });
         }
 
         function saveParkingDetails() {
             if (!currentParkingId || !currentParkingData) return;
-            
             const name = document.getElementById('editName').value.trim();
             const totalSpots = parseInt(document.getElementById('editTotalSpots').value);
             const isPaid = document.getElementById('editIsPaid').checked;
-            
-            if (!name) {
-                alert('Введите название');
-                return;
-            }
-            if (isNaN(totalSpots) || totalSpots < 1) {
-                alert('Количество мест должно быть больше 0');
-                return;
-            }
-            if (totalSpots < currentParkingData.occupiedSpots) {
-                alert('Общее число мест не может быть меньше занятых.');
-                return;
-            }
-            
-            const updates = {
-                name: name,
-                totalSpots: totalSpots,
-                isPaid: isPaid
-            };
-            
-            database.ref(`parkings/${currentParkingId}`).update(updates)
-                .then(() => {
-                    if (currentUser.id === currentParkingData.authorId) {
-                        database.ref(`users/${currentUser.id}/stats/parkingsUpdated`)
-                            .transaction(count => (count || 0) + 1);
-                    }
-                    
-                    currentParkingData = {...currentParkingData, ...updates};
-                    parkingDataCache[currentParkingId] = currentParkingData;
-                    updateOccupancyDisplay(currentParkingData.occupiedSpots);
-                    refreshParkingMarker();
-                    database.ref(`users/${currentUser.id}/favorites/${currentParkingId}`).once('value').then(favSnap => {
-                        renderEditPanel(currentParkingData, favSnap.exists());
-                    });
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                })
-                .catch(err => {
-                    console.error('Ошибка сохранения:', err);
-                    alert('Ошибка: ' + err.message);
-                });
+            if (!name) { alert('Введите название'); return; }
+            if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
+            if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
+            const updates = { name, totalSpots, isPaid };
+            database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
+                if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
+                currentParkingData = {...currentParkingData, ...updates};
+                parkingDataCache[currentParkingId] = currentParkingData;
+                updateOccupancyDisplay(currentParkingData.occupiedSpots);
+                refreshParkingMarker();
+                database.ref(`users/${currentUser.id}/favorites/${currentParkingId}`).once('value').then(favSnap => renderEditPanel(currentParkingData, favSnap.exists()));
+                showMapHint('Изменения сохранены');
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
         }
 
         function saveEditedPolygon(newCoords) {
             if (!currentParkingId) return;
-            
             const sizeCheck = checkPolygonSize(newCoords);
-            if (!sizeCheck.valid) {
-                alert(sizeCheck.error);
-                cancelDrawing();
-                return;
-            }
-            
-            database.ref(`parkings/${currentParkingId}/coordinates`).set(newCoords)
-                .then(() => {
-                    map.geoObjects.remove(editingPolygon);
-                    editingPolygon = null;
-                    document.getElementById('addBtn').classList.remove('drawing');
-                    document.getElementById('addBtn').textContent = '+';
-                    isDrawingMode = false;
-                    const controls = document.getElementById('drawingControls');
-                    if (controls) controls.remove();
-                    
-                    currentParkingData.coordinates = newCoords;
-                    parkingDataCache[currentParkingId] = currentParkingData;
-                    refreshParkingMarker();
-                    
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                    alert('Границы обновлены');
-                })
-                .catch(err => {
-                    console.error('Ошибка обновления полигона:', err);
-                    alert('Ошибка: ' + err.message);
-                    cancelDrawing();
-                });
+            if (!sizeCheck.valid) { alert(sizeCheck.error); cancelDrawing(); return; }
+            database.ref(`parkings/${currentParkingId}/coordinates`).set(newCoords).then(() => {
+                map.geoObjects.remove(editingPolygon); editingPolygon = null;
+                document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+';
+                isDrawingMode = false; const controls = document.getElementById('drawingControls'); if (controls) controls.remove();
+                currentParkingData.coordinates = newCoords; parkingDataCache[currentParkingId] = currentParkingData;
+                refreshParkingMarker();
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                alert('Границы обновлены');
+            }).catch(err => { console.error('Ошибка обновления полигона:', err); alert('Ошибка: ' + err.message); cancelDrawing(); });
         }
 
         function refreshParkingMarker() {
             if (!currentParkingId) return;
             database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
                 const data = snapshot.val();
-                if (mapMarkers[currentParkingId]) {
-                    map.geoObjects.remove(mapMarkers[currentParkingId]);
-                    delete mapMarkers[currentParkingId];
-                }
-                parkingDataCache[currentParkingId] = data;
-                addMarkerToMap(currentParkingId, data);
+                if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
+                parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
             });
         }
 
         function updateOccupancyDisplay(newOccupied) {
             if (!currentParkingData) return;
-            const totalSpots = currentParkingData.totalSpots || 0;
-            const freeSpots = totalSpots - newOccupied;
-            const color = getOccupancyColor(newOccupied, totalSpots);
-            const percent = totalSpots > 0 ? Math.round((newOccupied / totalSpots) * 100) : 0;
-            
-            const elTotal = document.getElementById('statTotal');
-            const elFree = document.getElementById('statFree');
-            const elOccupied = document.getElementById('statOccupied');
-            const elCurrent = document.getElementById('currentOccupied');
-            const elProgress = document.getElementById('progressFill');
-            const elPercentText = document.getElementById('occupancyPercentText');
-            
-            if (elTotal) elTotal.textContent = totalSpots;
-            if (elFree) elFree.textContent = freeSpots;
-            if (elOccupied) elOccupied.textContent = newOccupied;
-            if (elCurrent) elCurrent.textContent = newOccupied;
-            if (elProgress) {
-                elProgress.style.width = percent + '%';
-                elProgress.style.background = color;
-            }
-            if (elPercentText) elPercentText.textContent = `Загруженность: ${percent}%`;
-            
+            const total = currentParkingData.totalSpots || 0, free = total - newOccupied, color = getOccupancyColor(newOccupied, total), percent = total > 0 ? Math.round((newOccupied / total) * 100) : 0;
+            ['statTotal','statFree','statOccupied','currentOccupied'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = id === 'statTotal' ? total : (id === 'statFree' ? free : (id === 'statOccupied' ? newOccupied : newOccupied)); });
+            const progress = document.getElementById('progressFill'); if (progress) { progress.style.width = percent + '%'; progress.style.background = color; }
+            const percentText = document.getElementById('occupancyPercentText'); if (percentText) percentText.textContent = `Загруженность: ${percent}%`;
             currentParkingData.occupiedSpots = newOccupied;
         }
 
         function deleteParking(parkingId) {
-            if (!confirm('Вы уверены, что хотите удалить эту парковку? Это действие нельзя отменить.')) return;
-            
-            database.ref(`parkings/${parkingId}`).remove()
-                .then(() => {
-                    if (mapMarkers[parkingId]) {
-                        map.geoObjects.remove(mapMarkers[parkingId]);
-                        delete mapMarkers[parkingId];
-                    }
-                    delete parkingDataCache[parkingId];
-                    console.log('Парковка удалена:', parkingId);
-                    closePanel();
-                    showMap();
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                })
-                .catch(err => {
-                    console.error('Ошибка удаления:', err);
-                    alert('Ошибка удаления: ' + err.message);
-                });
+            if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
+            database.ref(`parkings/${parkingId}`).remove().then(() => {
+                if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]); delete mapMarkers[parkingId]; }
+                delete parkingDataCache[parkingId]; closePanel(); showMap();
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }).catch(err => { console.error('Ошибка удаления:', err); alert('Ошибка удаления: ' + err.message); });
         }
 
         function changeOccupancy(delta) {
             if (!currentParkingId || !currentParkingData) return;
-            const totalSpots = currentParkingData.totalSpots || 0;
-            const currentOccupied = currentParkingData.occupiedSpots || 0;
-            const newOccupied = currentOccupied + delta;
-            
-            if (newOccupied < 0 || newOccupied > totalSpots) {
-                if (window.Telegram?.WebApp?.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                }
-                return;
-            }
-            
+            const total = currentParkingData.totalSpots || 0, cur = currentParkingData.occupiedSpots || 0, newOcc = cur + delta;
+            if (newOcc < 0 || newOcc > total) { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); return; }
             const now = Date.now();
-            
-            database.ref(`users/${currentUser.id}/car`).once('value').then(carSnapshot => {
-                const carData = carSnapshot.val() || {};
-                
-                database.ref(`parkings/${currentParkingId}/occupiedSpots`).set(newOccupied)
-                    .then(() => {
-                        return database.ref(`parkings/${currentParkingId}/history`).push({
-                            action: delta < 0 ? 'freed' : 'occupied',
-                            timestamp: now,
-                            userId: currentUser.id,
-                            username: currentUser.username,
-                            carBrand: carData.brand || '',
-                            carModel: carData.model || '',
-                            carPlate: carData.plate || '',
-                            previousOccupied: currentOccupied,
-                            newOccupied: newOccupied
-                        });
-                    })
-                    .then(() => {
-                        updateOccupancyDisplay(newOccupied);
-                        
-                        if (window.Telegram?.WebApp?.HapticFeedback) {
-                            window.Telegram.WebApp.HapticFeedback.selectionChanged();
-                        }
-                        
-                        database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
-                            const data = snapshot.val();
-                            if (mapMarkers[currentParkingId]) {
-                                map.geoObjects.remove(mapMarkers[currentParkingId]);
-                                delete mapMarkers[currentParkingId];
-                            }
-                            parkingDataCache[currentParkingId] = data;
-                            addMarkerToMap(currentParkingId, data);
-                        });
-                    })
-                    .catch(err => {
-                        console.error("Ошибка обновления:", err);
-                        alert('Ошибка обновления: ' + err.message);
+            database.ref(`users/${currentUser.id}/car`).once('value').then(carSnap => {
+                const carData = carSnap.val() || {};
+                database.ref(`parkings/${currentParkingId}/occupiedSpots`).set(newOcc).then(() => {
+                    return database.ref(`parkings/${currentParkingId}/history`).push({ action: delta < 0 ? 'freed' : 'occupied', timestamp: now, userId: currentUser.id, username: currentUser.username, carBrand: carData.brand || '', carModel: carData.model || '', carPlate: carData.plate || '', previousOccupied: cur, newOccupied: newOcc });
+                }).then(() => {
+                    updateOccupancyDisplay(newOcc);
+                    if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+                    database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
+                        const data = snapshot.val();
+                        if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
+                        parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
                     });
+                }).catch(err => { console.error("Ошибка обновления:", err); alert('Ошибка обновления: ' + err.message); });
             });
         }
 
@@ -1954,8 +1262,7 @@
             database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
                 const data = snapshot.val();
                 if (data && data.authorId !== currentUser.id) {
-                    database.ref(`users/${data.authorId}/stats/confirmations`)
-                        .transaction(count => (count || 0) + 1);
+                    database.ref(`users/${data.authorId}/stats/confirmations`).transaction(c => (c || 0) + 1);
                     alert('Спасибо за подтверждение!');
                 }
             });
@@ -1963,23 +1270,15 @@
 
         function highlightNearbyFreeParkings(lat, lng) {
             resetHighlightedParkings();
-            
             Object.keys(parkingDataCache).forEach(id => {
-                const p = parkingDataCache[id];
-                const free = p.totalSpots - p.occupiedSpots;
+                const p = parkingDataCache[id]; const free = p.totalSpots - p.occupiedSpots;
                 if (free > 0 && mapMarkers[id]) {
                     const d = getDistanceInMeters(lat, lng, p.lat, p.lng);
                     if (d <= 200) {
                         const marker = mapMarkers[id];
                         if (marker.geometry && marker.geometry.getType() === 'Polygon') {
-                            highlightedParkings[id] = {
-                                fillColor: marker.options.get('fillColor'),
-                                strokeColor: marker.options.get('strokeColor')
-                            };
-                            marker.options.set({
-                                fillColor: '#00FF0088',
-                                strokeColor: '#00FF00'
-                            });
+                            highlightedParkings[id] = { fillColor: marker.options.get('fillColor'), strokeColor: marker.options.get('strokeColor') };
+                            marker.options.set({ fillColor: '#00FF0088', strokeColor: '#00FF00' });
                         } else if (marker.geometry && marker.geometry.getType() === 'Point') {
                             highlightedParkings[id] = { preset: marker.options.get('preset') };
                             marker.options.set('preset', 'islands#greenParkingIcon');
@@ -1987,817 +1286,236 @@
                     }
                 }
             });
-            
-            if (Object.keys(highlightedParkings).length > 0) {
-                setTimeout(resetHighlightedParkings, 8000);
-            } else {
-                alert('В радиусе 200 м нет свободных парковок.');
-            }
+            if (Object.keys(highlightedParkings).length > 0) setTimeout(resetHighlightedParkings, 8000);
+            else alert('В радиусе 200 м нет свободных парковок.');
         }
-
         function resetHighlightedParkings() {
             Object.keys(highlightedParkings).forEach(id => {
                 if (mapMarkers[id]) {
                     const orig = highlightedParkings[id];
-                    if (orig.fillColor) {
-                        mapMarkers[id].options.set({
-                            fillColor: orig.fillColor,
-                            strokeColor: orig.strokeColor
-                        });
-                    } else if (orig.preset) {
-                        mapMarkers[id].options.set('preset', orig.preset);
-                    }
+                    if (orig.fillColor) mapMarkers[id].options.set({ fillColor: orig.fillColor, strokeColor: orig.strokeColor });
+                    else if (orig.preset) mapMarkers[id].options.set('preset', orig.preset);
                 }
             });
             highlightedParkings = {};
         }
 
         function addHomeAddress() {
-            if (!currentUser) {
-                alert('Необходимо войти в аккаунт');
-                return;
-            }
-            
-            const homeRef = database.ref(`users/${currentUser.id}/homeAddresses`);
-            homeRef.once('value').then(snap => {
-                const addresses = snap.val() || {};
-                
-                if (Object.keys(addresses).length >= 3) {
-                    alert('Можно добавить не более 3 адресов.');
-                    return;
-                }
-                
+            if (!currentUser) { alert('Необходимо войти'); return; }
+            database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
+                if (Object.keys(snap.val() || {}).length >= 3) { alert('Максимум 3 адреса'); return; }
                 openAddressPicker();
-            }).catch(err => {
-                console.error('Ошибка при проверке адресов:', err);
-                alert('Произошла ошибка. Попробуйте позже.');
-            });
+            }).catch(err => { console.error(err); alert('Ошибка'); });
         }
-
         function openAddressPicker() {
-            if (!currentUser) {
-                alert('Необходимо войти в аккаунт');
-                return;
-            }
-            
-            isAddressPickerOpen = true;
-            document.getElementById('addressPickerOverlay').style.display = 'block';
-            
+            if (!currentUser) { alert('Необходимо войти'); return; }
+            isAddressPickerOpen = true; document.getElementById('addressPickerOverlay').style.display = 'block';
             setTimeout(() => {
                 if (!addressPickerMap) {
-                    addressPickerMap = new ymaps.Map('addressPickerMap', {
-                        center: map.getCenter() || [55.7558, 37.6173],
-                        zoom: 15,
-                        controls: ['zoomControl']
-                    });
-                    
-                    addressPickerMap.events.add('click', function(e) {
-                        const coords = e.get('coords');
-                        setAddressPickerCoords(coords);
-                    });
-                    
-                    const initCoords = addressPickerMap.getCenter();
-                    setAddressPickerCoords(initCoords);
-                } else {
-                    addressPickerMap.container.fitToViewport();
-                }
+                    addressPickerMap = new ymaps.Map('addressPickerMap', { center: map.getCenter() || [55.7558, 37.6173], zoom: 15, controls: ['zoomControl'] });
+                    addressPickerMap.events.add('click', e => setAddressPickerCoords(e.get('coords')));
+                    setAddressPickerCoords(addressPickerMap.getCenter());
+                } else addressPickerMap.container.fitToViewport();
             }, 100);
         }
-
         function setAddressPickerCoords(coords) {
             addressPickerCoords = coords;
-            if (addressPickerPlacemark) {
-                addressPickerPlacemark.geometry.setCoordinates(coords);
-            } else {
-                addressPickerPlacemark = new ymaps.Placemark(coords, {
-                    hintContent: 'Ваш дом'
-                }, {
-                    preset: 'islands#redHomeIcon',
-                    draggable: true
-                });
+            if (addressPickerPlacemark) addressPickerPlacemark.geometry.setCoordinates(coords);
+            else {
+                addressPickerPlacemark = new ymaps.Placemark(coords, { hintContent: 'Ваш дом' }, { preset: 'islands#redHomeIcon', draggable: true });
                 addressPickerMap.geoObjects.add(addressPickerPlacemark);
-                
-                addressPickerPlacemark.events.add('dragend', function() {
-                    const newCoords = addressPickerPlacemark.geometry.getCoordinates();
-                    addressPickerCoords = newCoords;
-                });
+                addressPickerPlacemark.events.add('dragend', () => { addressPickerCoords = addressPickerPlacemark.geometry.getCoordinates(); });
             }
         }
-
         function cancelAddressPicker() {
-            document.getElementById('addressPickerOverlay').style.display = 'none';
-            isAddressPickerOpen = false;
-            if (addressPickerPlacemark) {
-                addressPickerMap.geoObjects.remove(addressPickerPlacemark);
-                addressPickerPlacemark = null;
-            }
+            document.getElementById('addressPickerOverlay').style.display = 'none'; isAddressPickerOpen = false;
+            if (addressPickerPlacemark) { addressPickerMap.geoObjects.remove(addressPickerPlacemark); addressPickerPlacemark = null; }
             addressPickerCoords = null;
         }
-
         function saveAddressFromPicker() {
-            if (!currentUser) {
-                alert('Необходимо войти в аккаунт');
-                cancelAddressPicker();
-                return;
-            }
-            
-            if (!addressPickerCoords) {
-                alert('Сначала установите метку на карте, нажав на нужное место');
-                return;
-            }
-            
-            const saveBtn = document.querySelector('#addressPickerContainer .btn-primary');
-            const originalText = saveBtn.textContent;
-            saveBtn.textContent = 'Сохранение...';
-            saveBtn.disabled = true;
-            
-            ymaps.geocode(addressPickerCoords)
-                .then(res => {
-                    const firstGeoObject = res.geoObjects.get(0);
-                    const addressText = firstGeoObject 
-                        ? firstGeoObject.getAddressLine() 
-                        : `Точка на карте (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
-                    
-                    const homeRef = database.ref(`users/${currentUser.id}/homeAddresses`);
-                    
-                    return homeRef.once('value').then(snap => {
-                        const addresses = snap.val() || {};
-                        
-                        if (Object.keys(addresses).length >= 3) {
-                            alert('Можно добавить не более 3 адресов.');
-                            saveBtn.textContent = originalText;
-                            saveBtn.disabled = false;
-                            return;
-                        }
-                        
-                        const newAddrRef = homeRef.push();
-                        return newAddrRef.set({
-                            address: addressText,
-                            lat: addressPickerCoords[0],
-                            lng: addressPickerCoords[1],
-                            timestamp: Date.now()
-                        }).then(() => {
-                            cancelAddressPicker();
-                            
-                            if (window.Telegram?.WebApp?.HapticFeedback) {
-                                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                            }
-                            
-                            alert('Адрес сохранён!');
-                            showPanel('favorites');
-                        });
+            if (!currentUser) { alert('Необходимо войти'); cancelAddressPicker(); return; }
+            if (!addressPickerCoords) { alert('Установите метку'); return; }
+            const saveBtn = document.querySelector('#addressPickerContainer .btn-primary'), origText = saveBtn.textContent;
+            saveBtn.textContent = 'Сохранение...'; saveBtn.disabled = true;
+            ymaps.geocode(addressPickerCoords).then(res => {
+                const addrText = res.geoObjects.get(0) ? res.geoObjects.get(0).getAddressLine() : `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
+                database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
+                    if (Object.keys(snap.val() || {}).length >= 3) { alert('Максимум 3 адреса'); saveBtn.textContent = origText; saveBtn.disabled = false; return; }
+                    database.ref(`users/${currentUser.id}/homeAddresses`).push({ address: addrText, lat: addressPickerCoords[0], lng: addressPickerCoords[1], timestamp: Date.now() }).then(() => {
+                        cancelAddressPicker(); alert('Адрес сохранён!'); showPanel('favorites');
                     });
-                })
-                .catch(err => {
-                    console.error('Ошибка при сохранении адреса:', err);
-                    alert('Не удалось сохранить адрес. Попробуйте ещё раз.');
-                    saveBtn.textContent = originalText;
-                    saveBtn.disabled = false;
                 });
+            }).catch(err => { alert('Ошибка: ' + err.message); saveBtn.textContent = origText; saveBtn.disabled = false; });
         }
-
-        function removeHomeAddress(addressId) {
-            if (!confirm('Удалить адрес?')) return;
-            database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove()
-                .then(() => showPanel('favorites'));
-        }
-
-        function focusMap(lat, lng, parkingId) {
-            closePanel();
-            map.setCenter([lat, lng], 16, { duration: 300 });
-        }
+        function removeHomeAddress(addressId) { if (confirm('Удалить адрес?')) database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove().then(() => showPanel('favorites')); }
+        function focusMap(lat, lng, parkingId) { closePanel(); map.setCenter([lat, lng], 16, { duration: 300 }); }
 
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = 
-                type === 'profile' ? 'Профиль' : 
-                type === 'history' ? 'История' : 'Избранное';
-            
+            document.getElementById('panelTitle').textContent = type === 'profile' ? 'Профиль' : type === 'history' ? 'История' : 'Избранное';
             const content = document.getElementById('panelContent');
-
-            if (type === 'profile') {
-                renderProfile(content);
-            } else if (type === 'favorites' || type === 'history') {
-                content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка данных...</p></div>';
-                loadUserData(type, content);
-            }
-            
+            if (type === 'profile') renderProfile(content);
+            else { content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка данных...</p></div>'; loadUserData(type, content); }
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            const tabIndex = type === 'profile' ? 3 : type === 'history' ? 1 : 2;
-            document.querySelectorAll('.tab')[tabIndex].classList.add('active');
+            document.querySelectorAll('.tab')[type === 'profile' ? 3 : (type === 'history' ? 1 : 2)].classList.add('active');
         }
 
         function renderProfile(contentEl) {
             if (!currentUser) {
-                contentEl.innerHTML = `
-                    <div class="profile-header">
-                        <div class="profile-avatar">👤</div>
-                        <div class="profile-name">Добро пожаловать</div>
-                        <div class="profile-username">Войдите, чтобы сохранять данные</div>
-                    </div>
-                    <button class="telegram-btn" onclick="openTelegramBot()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.97 9.291c-.145.658-.537.818-1.084.508l-3-2.211-1.447 1.394c-.161.161-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.342-.213-.333-.373.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.932z"/></svg>
-                        Войти через Telegram
-                    </button>
-                    <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
-                `;
-            } else {
-                const isGuest = currentUser.id.startsWith('guest_');
-                const isDark = document.body.classList.contains('dark-theme');
-                
-                database.ref(`users/${currentUser.id}/stats`).once('value').then(statsSnapshot => {
-                    const stats = statsSnapshot.val() || {};
-                    database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
-                        const carData = snapshot.val() || {};
-                        const brand = carData.brand || '';
-                        const model = carData.model || '';
-                        const plate = carData.plate || '';
-                        const color = carData.color || '';
-                        
-                        let html = `
-                            <div class="profile-header">
-                                <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div>
-                                <div class="profile-name">${currentUser.firstName}</div>
-                                <div class="profile-username">@${currentUser.username}</div>
-                                ${isGuest ? '<span class="badge">Гостевой режим</span>' : '<span class="badge">Telegram</span>'}
-                            </div>
-                            
-                            <div class="theme-toggle-row">
-                                <div class="theme-toggle-label">🌙 Тёмная тема</div>
-                                <label class="theme-switch">
-                                    <input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
-                                    <span class="theme-slider"></span>
-                                </label>
-                            </div>
-                        `;
-                        
-                        if (brand && model && plate) {
-                            const colorHex = carColors[color] || '#808080';
-                            html += `
-                                <div class="car-section">
-                                    <div class="car-section-title">🚗 Мой автомобиль</div>
-                                    <div class="car-summary">
-                                        <div class="car-summary-info">
-                                            <div class="car-summary-title">${brand} ${model}</div>
-                                            <div class="car-summary-subtitle">${plate}</div>
-                                        </div>
-                                        <div class="car-summary-color" style="background: ${colorHex};"></div>
-                                    </div>
-                                    <button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button>
-                                </div>
-                            `;
-                        } else {
-                            html += `
-                                <div class="car-section" id="carEditSection">
-                                    <div class="car-section-title">🚗 Мой автомобиль</div>
-                                    <div class="form-group">
-                                        <label>Марка</label>
-                                        <select id="carBrand" class="input-field" onchange="updateCarModels()">
-                                            <option value="">Выберите марку</option>
-                                            ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Модель</label>
-                                        <select id="carModel" class="input-field">
-                                            <option value="">Выберите модель</option>
-                                            ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Цвет кузова</label>
-                                        <select id="carColor" class="input-field">
-                                            <option value="">Выберите цвет</option>
-                                            ${Object.keys(carColors).map(c => {
-                                                const isSelected = c === color ? 'selected' : '';
-                                                return `<option value="${c}" ${isSelected}><span class="color-preview" style="background:${carColors[c]}"></span>${c}</option>`;
-                                            }).join('')}
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Гос номер</label>
-                                        <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
-                                    </div>
-                                    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button>
-                                </div>
-                            `;
-                        }
-                        
-                        const created = stats.parkingsCreated || 0;
-                        const updated = stats.parkingsUpdated || 0;
-                        const confirmations = stats.confirmations || 0;
-                        const views = stats.views || 0;
-                        const favorites = stats.favorites || 0;
-                        const registered = stats.registeredAt ? new Date(stats.registeredAt).toLocaleDateString() : '—';
-                        const lastActive = stats.lastActive ? new Date(stats.lastActive).toLocaleString() : '—';
-                        
-                        const activeDates = stats.activeDates || [];
-                        activeDates.sort();
-                        let streak = 0;
-                        const todayStr = new Date().toISOString().split('T')[0];
-                        if (activeDates.length > 0 && activeDates[activeDates.length-1] === todayStr) {
-                            streak = 1;
-                            for (let i = activeDates.length-2; i >= 0; i--) {
-                                const prev = new Date(activeDates[i]);
-                                const next = new Date(activeDates[i+1]);
-                                const diff = Math.round((next - prev) / (1000 * 60 * 60 * 24));
-                                if (diff === 1) streak++;
-                                else break;
-                            }
-                        }
-                        
-                        html += `
-                            <div class="stats-card">
-                                <div class="stats-title" onclick="document.getElementById('statsBody').classList.toggle('collapsed'); this.querySelector('span:last-child').textContent = document.getElementById('statsBody').classList.contains('collapsed') ? '▶' : '▼';">
-                                    <span>📊 Статистика</span>
-                                    <span>▼</span>
-                                </div>
-                                <div class="stats-body" id="statsBody">
-                                    <div class="stats-row">
-                                        <span class="stats-label">🅿️ Создано парковок</span>
-                                        <span class="stats-value">${created}</span>
-                                    </div>
-                                    <div class="stats-row">
-                                        <span class="stats-label">✏️ Обновлено парковок</span>
-                                        <span class="stats-value">${updated}</span>
-                                    </div>
-                                    <div class="stats-row">
-                                        <span class="stats-label">👍 Подтверждений</span>
-                                        <span class="stats-value">${confirmations}</span>
-                                    </div>
-                                    <div class="stats-row">
-                                        <span class="stats-label">👁 Просмотров</span>
-                                        <span class="stats-value">${views}</span>
-                                    </div>
-                                    <div class="stats-row">
-                                        <span class="stats-label">❤️ В избранном</span>
-                                        <span class="stats-value">${favorites}</span>
-                                    </div>
-                                    <div class="stats-row">
-                                        <span class="stats-label">📅 Регистрация</span>
-                                        <span class="stats-value">${registered}</span>
-                                    </div>
-                                    <div class="stats-row">
-                                        <span class="stats-label">🕒 Активность</span>
-                                        <span class="stats-value">${lastActive}</span>
-                                    </div>
-                                    <div class="stats-row">
-                                        <span class="stats-label">🔥 Серия</span>
-                                        <span class="stats-value stats-streak">${streak} дн. подряд</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        const activeDaysCount = activeDates.length;
-                        const score = created * 5 + updated * 2 + confirmations * 10 + Math.floor(views / 5) + favorites * 10 + activeDaysCount;
-                        const reputationPercent = Math.min(100, score);
-                        const rating = (reputationPercent / 20).toFixed(1);
-                        let levelEmoji = '🌱';
-                        let levelText = 'Новичок';
-                        if (score >= 200) { levelEmoji = '👑'; levelText = 'Легенда ParkNear'; }
-                        else if (score >= 100) { levelEmoji = '🏆'; levelText = 'Эксперт'; }
-                        else if (score >= 50) { levelEmoji = '🅿️'; levelText = 'Знаток парковок'; }
-                        else if (score >= 10) { levelEmoji = '🚗'; levelText = 'Водитель'; }
-                        
-                        const dashArray = `${reputationPercent} 100`;
-                        
-                        html += `
-                            <div class="reputation-card">
-                                <div class="reputation-title" onclick="
-                                    var body = document.getElementById('repBody');
-                                    body.classList.toggle('collapsed');
-                                    this.querySelector('span:last-child').textContent = body.classList.contains('collapsed') ? '▶' : '▼';
-                                ">
-                                    <span>🏆 Репутация</span><span>▼</span>
-                                </div>
-                                <div class="reputation-body" id="repBody">
-                                    <div class="reputation-full">
-                                        <div class="stats-row"><span class="stats-label">⭐ Общий рейтинг</span><span class="stats-value">${rating} / 5</span></div>
-                                        <div class="stats-row"><span class="stats-label">📈 Репутация</span><span class="stats-value">${reputationPercent}%</span></div>
-                                        <div class="stats-row"><span class="stats-label">🎖 Уровень</span><span class="stats-value">${levelEmoji} ${levelText}</span></div>
-                                    </div>
-                                    <div class="reputation-mini">
-                                        <div class="reputation-circle">
-                                            <svg width="80" height="80" viewBox="0 0 36 36">
-                                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E5E5EA" stroke-width="3"/>
-                                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#34C759" stroke-width="3"
-                                                        stroke-dasharray="${dashArray}" stroke-linecap="round" transform="rotate(-90 18 18)"/>
-                                                <text x="18" y="21" text-anchor="middle" fill="currentColor" font-size="10">${levelEmoji}</text>
-                                            </svg>
-                                            <div style="margin-top:8px; font-weight:600;">${reputationPercent}%</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        html += `
-                            <div style="padding: 0 20px;">
-                                <p style="font-size:14px; color:var(--text-secondary); text-align:center; margin-bottom:20px;">
-                                    ${isGuest ? 'Ваши данные сохраняются только в этом браузере.' : 'Ваши данные синхронизированы с аккаунтом Telegram.'}
-                                </p>
-                                <button class="btn-danger" onclick="logout()">🚪 Выйти из аккаунта</button>
-                            </div>
-                        `;
-                        
-                        contentEl.innerHTML = html;
-                    });
-                });
+                contentEl.innerHTML = `<div class="profile-header"><div class="profile-avatar">👤</div><div class="profile-name">Добро пожаловать</div><div class="profile-username">Войдите, чтобы сохранять данные</div></div><button class="telegram-btn" onclick="openTelegramBot()">Войти через Telegram</button><button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>`;
+                return;
             }
+            const isGuest = currentUser.id.startsWith('guest_'), isDark = document.body.classList.contains('dark-theme');
+            database.ref(`users/${currentUser.id}/stats`).once('value').then(statsSnap => {
+                const stats = statsSnap.val() || {};
+                database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
+                    const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
+                    let html = `<div class="profile-header"><div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div><div class="profile-name">${currentUser.firstName}</div><div class="profile-username">@${currentUser.username}</div>${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}</div><div class="theme-toggle-row"><div class="theme-toggle-label">🌙 Тёмная тема</div><label class="theme-switch"><input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()"><span class="theme-slider"></span></label></div>`;
+                    if (brand && model && plate) {
+                        html += `<div class="car-section"><div class="car-section-title">🚗 Мой автомобиль</div><div class="car-summary"><div class="car-summary-info"><div class="car-summary-title">${brand} ${model}</div><div class="car-summary-subtitle">${plate}</div></div><div class="car-summary-color" style="background:${carColors[color] || '#808080'};"></div></div><button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button></div>`;
+                    } else {
+                        html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
+                    }
+                    const created = stats.parkingsCreated || 0, updated = stats.parkingsUpdated || 0, confirmations = stats.confirmations || 0, views = stats.views || 0, favorites = stats.favorites || 0;
+                    const registered = stats.registeredAt ? new Date(stats.registeredAt).toLocaleDateString() : '—', lastActive = stats.lastActive ? new Date(stats.lastActive).toLocaleString() : '—';
+                    const activeDates = stats.activeDates || []; activeDates.sort(); let streak = 0;
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    if (activeDates.length > 0 && activeDates[activeDates.length-1] === todayStr) {
+                        streak = 1;
+                        for (let i = activeDates.length-2; i >= 0; i--) {
+                            const prev = new Date(activeDates[i]), next = new Date(activeDates[i+1]);
+                            if (Math.round((next - prev) / (1000*60*60*24)) === 1) streak++; else break;
+                        }
+                    }
+                    html += `<div class="stats-card"><div class="stats-title" onclick="document.getElementById('statsBody').classList.toggle('collapsed'); this.querySelector('span:last-child').textContent = document.getElementById('statsBody').classList.contains('collapsed') ? '▶' : '▼';"><span>📊 Статистика</span><span>▼</span></div><div class="stats-body" id="statsBody">${['🅿️ Создано парковок',created,'✏️ Обновлено',updated,'👍 Подтверждений',confirmations,'👁 Просмотров',views,'❤️ В избранном',favorites,'📅 Регистрация',registered,'🕒 Активность',lastActive,'🔥 Серия',`${streak} дн. подряд`].reduce((a,_,i)=> i%2 ? a : a+`<div class="stats-row"><span class="stats-label">${arguments[0]}</span><span class="stats-value">${arguments[1]}</span></div>`, '')}</div></div>`;
+                    const score = created*5 + updated*2 + confirmations*10 + Math.floor(views/5) + favorites*10 + activeDates.length;
+                    const reputationPercent = Math.min(100, score), rating = (reputationPercent/20).toFixed(1);
+                    let levelEmoji = '🌱', levelText = 'Новичок';
+                    if (score >= 200) { levelEmoji = '👑'; levelText = 'Легенда ParkNear'; }
+                    else if (score >= 100) { levelEmoji = '🏆'; levelText = 'Эксперт'; }
+                    else if (score >= 50) { levelEmoji = '🅿️'; levelText = 'Знаток парковок'; }
+                    else if (score >= 10) { levelEmoji = '🚗'; levelText = 'Водитель'; }
+                    html += `<div class="reputation-card"><div class="reputation-title" onclick="var b=document.getElementById('repBody');b.classList.toggle('collapsed');this.querySelector('span:last-child').textContent=b.classList.contains('collapsed')?'▶':'▼';"><span>🏆 Репутация</span><span>▼</span></div><div class="reputation-body" id="repBody"><div class="reputation-full"><div class="stats-row"><span class="stats-label">⭐ Общий рейтинг</span><span class="stats-value">${rating} / 5</span></div><div class="stats-row"><span class="stats-label">📈 Репутация</span><span class="stats-value">${reputationPercent}%</span></div><div class="stats-row"><span class="stats-label">🎖 Уровень</span><span class="stats-value">${levelEmoji} ${levelText}</span></div></div><div class="reputation-mini"><div class="reputation-circle"><svg width="80" height="80" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9" fill="none" stroke="#E5E5EA" stroke-width="3"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="#34C759" stroke-width="3" stroke-dasharray="${reputationPercent} 100" stroke-linecap="round" transform="rotate(-90 18 18)"/><text x="18" y="21" text-anchor="middle" fill="currentColor" font-size="10">${levelEmoji}</text></svg><div style="margin-top:8px;font-weight:600;">${reputationPercent}%</div></div></div></div></div>`;
+                    html += `<div style="padding:0 20px;"><p style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:20px;">${isGuest ? 'Данные сохраняются локально' : 'Данные синхронизированы'}</p><button class="btn-danger" onclick="logout()">🚪 Выйти</button></div>`;
+                    contentEl.innerHTML = html;
+                });
+            });
         }
 
         function toggleTheme() {
-            const isDark = document.body.classList.toggle('dark-theme');
-            localStorage.setItem('darkTheme', isDark);
-            
+            const isDark = document.body.classList.toggle('dark-theme'); localStorage.setItem('darkTheme', isDark);
             const mapEl = document.getElementById('map');
-            const currentType = map.getType();
-            
-            if (isDark && currentType === 'yandex#map') {
-                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            } else {
-                mapEl.style.filter = 'none';
-            }
-            
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
+            if (isDark && map.getType() === 'yandex#map') mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+            else mapEl.style.filter = 'none';
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
-
         function updateCarModels() {
-            const brand = document.getElementById('carBrand').value;
-            const modelSelect = document.getElementById('carModel');
-            
+            const brand = document.getElementById('carBrand').value, modelSelect = document.getElementById('carModel');
             modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-            
-            if (brand && carBrands[brand]) {
-                carBrands[brand].forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    option.textContent = model;
-                    modelSelect.appendChild(option);
-                });
-            }
+            if (brand && carBrands[brand]) carBrands[brand].forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSelect.appendChild(opt); });
         }
-
         function editCarData() {
-            const carSection = document.getElementById('carEditSection');
-            if (carSection) {
-                carSection.remove();
-            }
-            
-            database.ref(`users/${currentUser.id}/car`).once('value').then(snapshot => {
-                const carData = snapshot.val() || {};
-                const brand = carData.brand || '';
-                const model = carData.model || '';
-                const plate = carData.plate || '';
-                const color = carData.color || '';
-                
-                const editForm = document.createElement('div');
-                editForm.className = 'car-section';
-                editForm.id = 'carEditSection';
-                editForm.innerHTML = `
-                    <div class="car-section-title">🚗 Редактирование автомобиля</div>
-                    <div class="form-group">
-                        <label>Марка</label>
-                        <select id="carBrand" class="input-field" onchange="updateCarModels()">
-                            <option value="">Выберите марку</option>
-                            ${Object.keys(carBrands).map(b => `<option value="${b}" ${b === brand ? 'selected' : ''}>${b}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Модель</label>
-                        <select id="carModel" class="input-field">
-                            <option value="">Выберите модель</option>
-                            ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`).join('') : ''}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Цвет кузова</label>
-                        <select id="carColor" class="input-field">
-                            <option value="">Выберите цвет</option>
-                            ${Object.keys(carColors).map(c => {
-                                const isSelected = c === color ? 'selected' : '';
-                                return `<option value="${c}" ${isSelected}><span class="color-preview" style="background:${carColors[c]}"></span>${c}</option>`;
-                            }).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Гос номер</label>
-                        <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
-                    </div>
-                    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить изменения</button>
-                    <button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>
-                `;
-                
-                const carSectionElement = document.querySelector('.car-section');
-                carSectionElement.parentNode.insertBefore(editForm, carSectionElement.nextSibling);
-                carSectionElement.remove();
+            const sec = document.getElementById('carEditSection'); if (sec) sec.remove();
+            database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
+                const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
+                const form = document.createElement('div'); form.className = 'car-section'; form.id = 'carEditSection';
+                form.innerHTML = `<div class="car-section-title">🚗 Редактирование</div>
+                <div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}" ${b===brand?'selected':''}>${b}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option>${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m===model?'selected':''}>${m}</option>`).join('') : ''}</select></div>
+                <div class="form-group"><label>Цвет</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10"></div>
+                <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button><button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>`;
+                document.querySelector('.car-section').parentNode.insertBefore(form, document.querySelector('.car-section').nextSibling);
+                document.querySelector('.car-section').remove();
             });
         }
-
         function saveCarData() {
-            const brand = document.getElementById('carBrand').value;
-            const model = document.getElementById('carModel').value;
-            const color = document.getElementById('carColor').value;
-            const plate = document.getElementById('carPlate').value.trim();
-            
-            if (!brand || !model || !color || !plate) {
-                alert('Пожалуйста, заполните все поля автомобиля');
-                return;
-            }
-            
-            const carData = {
-                brand, model, color,
-                plate: plate.toUpperCase(),
-                timestamp: Date.now()
-            };
-            
-            database.ref(`users/${currentUser.id}/car`).set(carData)
-                .then(() => {
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                    renderProfile(document.getElementById('panelContent'));
-                })
-                .catch(err => {
-                    console.error('Ошибка сохранения:', err);
-                    alert('Ошибка сохранения: ' + err.message);
-                });
+            const brand = document.getElementById('carBrand').value, model = document.getElementById('carModel').value, color = document.getElementById('carColor').value, plate = document.getElementById('carPlate').value.trim().toUpperCase();
+            if (!brand || !model || !color || !plate) { alert('Заполните все поля'); return; }
+            database.ref(`users/${currentUser.id}/car`).set({ brand, model, color, plate, timestamp: Date.now() }).then(() => {
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                renderProfile(document.getElementById('panelContent'));
+            }).catch(err => { alert('Ошибка: ' + err.message); });
         }
 
         function loadUserData(type, contentEl) {
-            if (!currentUser) {
-                contentEl.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon">🔒</div>
-                        <p>Войдите в аккаунт</p>
-                    </div>`;
-                return;
-            }
-            
+            if (!currentUser) { contentEl.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
             if (type === 'history') {
-                database.ref('parkings').once('value').then(parkingsSnapshot => {
-                    const parkingsData = parkingsSnapshot.val();
-                    if (!parkingsData) {
-                        contentEl.innerHTML = `<div class="empty-state"><div class="icon"></div><p>История пуста</p></div>`;
-                        return;
-                    }
+                database.ref('parkings').once('value').then(pSnap => {
+                    const data = pSnap.val(); if (!data) { contentEl.innerHTML = '<div class="empty-state"><div class="icon">️</div><p>Пусто</p></div>'; return; }
                     let html = '<div class="list-container">';
-                    Object.keys(parkingsData).forEach(parkingId => {
-                        const parking = parkingsData[parkingId];
-                        if (parking && parking.name) {
-                            html += `
-                                <div class="swipe-container">
-                                    <div class="swipe-item" onclick="showParkingHistory('${parkingId}', '${parking.name.replace(/'/g, "\\'")}')">
-                                        <div class="list-icon">️</div>
-                                        <div class="list-info">
-                                            <div class="list-title">${parking.name}</div>
-                                            <div class="list-subtitle">Нажмите для просмотра истории</div>
-                                        </div>
-                                    </div>
-                                    <div class="swipe-delete" onclick="deleteParkingSwipe('${parkingId}')">Удалить</div>
-                                </div>`;
-                        }
-                    });
-                    html += '</div>';
-                    contentEl.innerHTML = html;
-                    attachSwipeToContainers(contentEl);
+                    Object.keys(data).forEach(id => { const p = data[id]; if (p && p.name) html += `<div class="swipe-container"><div class="swipe-item" onclick="showParkingHistory('${id}','${p.name.replace(/'/g,"\\'")}')"><div class="list-icon">️</div><div class="list-info"><div class="list-title">${p.name}</div><div class="list-subtitle">Нажмите для истории</div></div></div><div class="swipe-delete" onclick="deleteParkingSwipe('${id}')">Удалить</div></div>`; });
+                    html += '</div>'; contentEl.innerHTML = html; attachSwipeToContainers(contentEl);
                 });
             } else if (type === 'favorites') {
-                Promise.all([
-                    database.ref(`users/${currentUser.id}/favorites`).once('value'),
-                    database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
-                ]).then(([favSnap, homeSnap]) => {
-                    let html = '';
-                    const homeAddresses = homeSnap.val() || {};
-                    html += `<div class="home-card"><div style="font-size:18px; font-weight:600; margin-bottom:12px;">🏠 Мой дом</div>`;
-                    if (Object.keys(homeAddresses).length > 0) {
-                        Object.entries(homeAddresses).forEach(([id, addr]) => {
-                            html += `
-                                <div class="swipe-container" style="margin-bottom:8px;">
-                                    <div class="swipe-item" style="padding:10px 0;">
-                                        <span style="flex:1;">${addr.address}</span>
-                                        <div style="display:flex; gap:6px;">
-                                            <button class="btn-secondary" style="padding:4px 10px; font-size:13px;" onclick="highlightNearbyFreeParkings(${addr.lat}, ${addr.lng})">🔍 Рядом</button>
-                                        </div>
-                                    </div>
-                                    <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
-                                </div>`;
-                        });
-                    } else {
-                        html += `<p style="color:var(--text-secondary); margin-bottom:12px;">Нет сохранённых адресов</p>`;
+                Promise.all([database.ref(`users/${currentUser.id}/favorites`).once('value'), database.ref(`users/${currentUser.id}/homeAddresses`).once('value')]).then(([favSnap, homeSnap]) => {
+                    let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мой дом</div>';
+                    const addrs = homeSnap.val() || {};
+                    if (Object.keys(addrs).length > 0) {
+                        Object.entries(addrs).forEach(([id, addr]) => { html += `<div class="swipe-container" style="margin-bottom:8px;"><div class="swipe-item" style="padding:10px 0;"><span style="flex:1;">${addr.address}</span><div><button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="highlightNearbyFreeParkings(${addr.lat},${addr.lng})">🔍 Рядом</button></div></div><div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div></div>`; });
+                    } else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
+                    html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
+                    html += '</div>';
+                    const favs = favSnap.val();
+                    if (!favs) html += '<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных</p></div>';
+                    else {
+                        html += '<div class="list-container">';
+                        Object.values(favs).forEach(item => { if (item && item.parkingId) html += `<div class="list-item" onclick="focusMap(${item.lat||0},${item.lng||0},'${item.parkingId}')"><div class="list-icon">⭐</div><div class="list-info"><div class="list-title">${item.name||'Без названия'}</div><div class="list-subtitle">Добавлено ${item.timestamp?formatDateTime(item.timestamp):''}</div></div></div>`; });
+                        html += '</div>';
                     }
-                    if (Object.keys(homeAddresses).length < 3) {
-                        html += `<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес (на карте)</button>`;
-                    } else {
-                        html += `<p style="color:var(--text-secondary);">Максимум 3 адреса</p>`;
-                    }
-                    html += `</div>`;
-
-                    const favData = favSnap.val();
-                    if (!favData) {
-                        html += `<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных парковок</p></div>`;
-                    } else {
-                        html += `<div class="list-container">`;
-                        Object.values(favData).forEach(item => {
-                            if (item && item.parkingId) {
-                                html += `<div class="list-item" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId}')">
-                                    <div class="list-icon">⭐</div>
-                                    <div class="list-info">
-                                        <div class="list-title">${item.name || 'Без названия'}</div>
-                                        <div class="list-subtitle">Добавлено ${item.timestamp ? formatDateTime(item.timestamp) : ''}</div>
-                                    </div>
-                                </div>`;
-                            }
-                        });
-                        html += `</div>`;
-                    }
-
-                    contentEl.innerHTML = html;
-                    attachSwipeToContainers(contentEl);
+                    contentEl.innerHTML = html; attachSwipeToContainers(contentEl);
                 });
             }
         }
-
         function attachSwipeToContainers(container) {
-            const containers = container.querySelectorAll('.swipe-container');
-            containers.forEach(cnt => {
-                const item = cnt.querySelector('.swipe-item');
-                if (!item) return;
-                let startX = 0, currentX = 0, isDragging = false;
-                item.addEventListener('touchstart', (e) => {
-                    startX = e.touches[0].clientX;
-                    isDragging = true;
-                    item.style.transition = 'none';
-                });
-                item.addEventListener('touchmove', (e) => {
-                    if (!isDragging) return;
-                    currentX = e.touches[0].clientX - startX;
-                    if (currentX < 0) {
-                        item.style.transform = `translateX(${Math.max(currentX, -80)}px)`;
-                    }
-                });
-                item.addEventListener('touchend', () => {
-                    isDragging = false;
-                    item.style.transition = 'transform 0.2s ease';
-                    if (currentX < -40) {
-                        item.style.transform = 'translateX(-80px)';
-                    } else {
-                        item.style.transform = 'translateX(0)';
-                    }
-                    currentX = 0;
-                });
-                cnt.querySelector('.swipe-delete').addEventListener('click', () => {
-                    item.style.transform = 'translateX(0)';
-                });
+            container.querySelectorAll('.swipe-container').forEach(cnt => {
+                const item = cnt.querySelector('.swipe-item'); if (!item) return;
+                let startX = 0, curX = 0, dragging = false;
+                item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; dragging = true; item.style.transition = 'none'; });
+                item.addEventListener('touchmove', e => { if (!dragging) return; curX = e.touches[0].clientX - startX; if (curX < 0) item.style.transform = `translateX(${Math.max(curX, -80)}px)`; });
+                item.addEventListener('touchend', () => { dragging = false; item.style.transition = 'transform 0.2s'; if (curX < -40) item.style.transform = 'translateX(-80px)'; else item.style.transform = 'translateX(0)'; curX = 0; });
+                cnt.querySelector('.swipe-delete').addEventListener('click', () => item.style.transform = 'translateX(0)');
             });
         }
-
-        function deleteParkingSwipe(parkingId) {
-            if (!confirm('Удалить эту парковку? (Сама парковка будет удалена)')) return;
-            deleteParking(parkingId);
-        }
+        function deleteParkingSwipe(parkingId) { if (confirm('Удалить парковку?')) deleteParking(parkingId); }
 
         function showParkingHistory(parkingId, parkingName) {
             document.getElementById('panelTitle').textContent = parkingName;
-            
             database.ref(`parkings/${parkingId}/history`).limitToLast(100).once('value').then(snapshot => {
-                const historyData = snapshot.val();
-                
-                if (!historyData) {
-                    document.getElementById('panelContent').innerHTML = `
-                        <div class="empty-state">
-                            <div class="icon">🕘</div>
-                            <p>История изменений пуста</p>
-                        </div>
-                        <button class="btn-secondary" onclick="showPanel('history')">Назад</button>
-                    `;
-                    return;
-                }
-                
+                const data = snapshot.val();
+                if (!data) { document.getElementById('panelContent').innerHTML = '<div class="empty-state"><div class="icon">🕘</div><p>Пусто</p></div><button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>'; return; }
                 let html = '<div class="list-container">';
-                const items = Object.values(historyData).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                items.forEach(item => {
-                    const actionText = item.action === 'freed' ? '🟢 Место освобождено' : 
-                                      item.action === 'occupied' ? '🔴 Место занято' :
-                                      item.action === 'created' ? '🟦 Парковка создана' : 'Изменение';
-                    const timeText = item.timestamp ? formatDateTime(item.timestamp) : '';
-                    
-                    html += `
-                        <div class="history-detail">
-                            <div class="history-detail-header">
-                                <div class="history-detail-title">${actionText}</div>
-                                <div class="history-detail-time">${timeText}</div>
-                            </div>
-                            ${item.username ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Пользователь:</span>
-                                    <span class="history-detail-value">@${item.username}</span>
-                                </div>` : ''}
-                            ${item.carBrand ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Автомобиль:</span>
-                                    <span class="history-detail-value">${item.carBrand} ${item.carModel || ''} ${item.carPlate ? '(' + item.carPlate + ')' : ''}</span>
-                                </div>` : ''}
-                            ${item.previousOccupied !== undefined && item.newOccupied !== undefined ? `
-                                <div class="history-detail-row">
-                                    <span class="history-detail-label">Изменение:</span>
-                                    <span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied} занятых мест</span>
-                                </div>` : ''}
-                        </div>`;
+                Object.values(data).sort((a,b) => (b.timestamp||0)-(a.timestamp||0)).forEach(item => {
+                    html += `<div class="history-detail"><div class="history-detail-header"><div class="history-detail-title">${item.action==='freed'?'🟢 Освобождено':item.action==='occupied'?'🔴 Занято':item.action==='created'?'🟦 Создано':'Изменение'}</div><div class="history-detail-time">${item.timestamp?formatDateTime(item.timestamp):''}</div></div>${item.username?`<div class="history-detail-row"><span class="history-detail-label">Пользователь:</span><span class="history-detail-value">@${item.username}</span></div>`:''}${item.carBrand?`<div class="history-detail-row"><span class="history-detail-label">Авто:</span><span class="history-detail-value">${item.carBrand} ${item.carModel||''} ${item.carPlate?'('+item.carPlate+')':''}</span></div>`:''}${item.previousOccupied!==undefined?`<div class="history-detail-row"><span class="history-detail-label">Изменение:</span><span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied}</span></div>`:''}</div>`;
                 });
-                
-                html += '</div>';
-                html += '<button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>';
-                
+                html += '</div><button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>';
                 document.getElementById('panelContent').innerHTML = html;
-            }).catch(err => {
-                console.error("Ошибка загрузки истории парковки:", err);
-                document.getElementById('panelContent').innerHTML = `
-                    <div class="empty-state"><p>Ошибка загрузки истории.</p></div>
-                    <button class="btn-secondary" onclick="showPanel('history')">Назад</button>
-                `;
-            });
+            }).catch(err => { console.error(err); document.getElementById('panelContent').innerHTML = '<div class="empty-state"><p>Ошибка</p></div><button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>'; });
         }
 
-        function closePanel() { 
+        function closePanel() {
             if (isAddressPickerOpen) cancelAddressPicker();
-            closeParkingSheet();
-            closeRoute();
-            document.getElementById('panel').classList.remove('active'); 
+            closeParkingSheet(); closeRoute();
+            document.getElementById('panel').classList.remove('active');
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
-            currentParkingId = null;
-            currentParkingData = null;
-            originalPolyCoords = null;
-            if (editingPolygon) {
-                map.geoObjects.remove(editingPolygon);
-                editingPolygon = null;
-                document.getElementById('addBtn').classList.remove('drawing');
-                document.getElementById('addBtn').textContent = '+';
-                isDrawingMode = false;
-                const controls = document.getElementById('drawingControls');
-                if (controls) controls.remove();
-            }
-            if (clickTimeout) {
-                clearTimeout(clickTimeout);
-                clickTimeout = null;
-            }
-            lastClickParkingId = null;
-            lastClickTime = 0;
+            currentParkingId = null; currentParkingData = null;
+            if (editingPolygon) { map.geoObjects.remove(editingPolygon); editingPolygon = null; document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+'; isDrawingMode = false; const c = document.getElementById('drawingControls'); if (c) c.remove(); }
+            if (clickTimeout) { clearTimeout(clickTimeout); clickTimeout = null; }
+            lastClickParkingId = null; lastClickTime = 0;
             resetHighlightedParkings();
         }
-        
-        function showMap() {
-            closePanel();
-        }
+        function showMap() { closePanel(); }
 
-        function openTelegramBot() {
-            if (window.Telegram?.WebApp?.showAlert) {
-                window.Telegram.WebApp.showAlert('Для входа перезапустите приложение через бота @parknear_bot');
-            } else {
-                window.open('https://t.me/parknear_bot', '_blank');
-            }
-        }
-
+        function openTelegramBot() { if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert('Запустите бота @parknear_bot'); else window.open('https://t.me/parknear_bot', '_blank'); }
         function continueAsGuest() {
-            currentUser = { 
-                id: 'guest_' + Date.now(), 
-                username: 'guest', 
-                firstName: 'Гость', 
-                photoUrl: '',
-                isGuest: true
-            };
+            currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '', isGuest: true };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            
-            const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
-            userStatsRef.set({
-                registeredAt: Date.now(),
-                lastActive: Date.now(),
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
-                activeDates: [new Date().toISOString().split('T')[0]]
-            });
-            
+            database.ref(`users/${currentUser.id}/stats`).set({ registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] });
             showPanel('profile');
         }
-
         function logout() {
-            if (confirm('Вы уверены, что хотите выйти? Все гостевые данные будут удалены.')) {
-                currentUser = null;
-                localStorage.removeItem('tgUser');
-                if (window.Telegram?.WebApp) {
-                    window.Telegram.WebApp.close();
-                } else {
-                    showPanel('profile');
-                }
-            }
+            if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
         }
     </script>
 </body>
