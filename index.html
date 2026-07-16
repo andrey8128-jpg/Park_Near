@@ -82,23 +82,33 @@
             filter: invert(1) hue-rotate(180deg);
         }
         
-        .map-type-switcher {
+        .layer-switcher {
             position: fixed; top: 70px; right: 12px; z-index: 900;
-            background: var(--blur-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-radius: 14px; overflow: hidden;
-            box-shadow: var(--card-shadow);
-            display: flex; flex-direction: column;
-            transition: background 0.3s;
+            background: var(--bg-secondary); backdrop-filter: blur(20px);
+            border-radius: 14px; box-shadow: var(--card-shadow);
+            overflow: hidden; transition: background 0.3s;
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
         }
-        .map-type-btn {
-            padding: 10px 14px; border: none; background: transparent;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            color: var(--text-primary); border-bottom: 0.5px solid var(--border-color);
-            transition: background 0.2s, color 0.2s;
+        .layer-switcher.active-layer { background: var(--accent); color: #fff; }
+        .layer-menu {
+            position: absolute; top: 48px; right: 0;
+            background: var(--bg-secondary); backdrop-filter: blur(20px);
+            border-radius: 14px; box-shadow: var(--card-shadow);
+            display: none; flex-direction: column; overflow: hidden;
+            z-index: 901;
         }
-        .map-type-btn:last-child { border-bottom: none; }
-        .map-type-btn:active { background: var(--bg-primary); transform: scale(0.96); }
-        .map-type-btn.active { background: var(--accent); color: #fff; }
+        .layer-menu.active { display: flex; }
+        .layer-option {
+            padding: 12px 16px; font-size: 14px; font-weight: 500;
+            cursor: pointer; border-bottom: 0.5px solid var(--border-color);
+            white-space: nowrap; color: var(--text-primary);
+            transition: background 0.2s;
+        }
+        .layer-option:last-child { border-bottom: none; }
+        .layer-option:active { background: var(--bg-primary); }
+        .layer-option.selected { color: var(--accent); font-weight: 600; }
         
         #geoBtn {
             position: fixed; bottom: 170px; right: 20px; z-index: 900;
@@ -610,10 +620,12 @@
     
     <div id="map"></div>
     
-    <div class="map-type-switcher">
-        <button class="map-type-btn active" data-type="yandex#map" onclick="switchMapType(this)">🗺️ Схема</button>
-        <button class="map-type-btn" data-type="yandex#satellite" onclick="switchMapType(this)">🛰️ Спутник</button>
-        <button class="map-type-btn" data-type="yandex#hybrid" onclick="switchMapType(this)">🌍 Гибрид</button>
+    <!-- Переключатель слоёв -->
+    <div class="layer-switcher" id="layerSwitcher" onclick="toggleLayerMenu()">🗺️</div>
+    <div class="layer-menu" id="layerMenu">
+        <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
+        <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
+        <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
     </div>
     
     <button id="geoBtn" title="Моё местоположение">
@@ -857,13 +869,19 @@
             return { valid: true, width: widthM, length: lengthM };
         }
 
-        function switchMapType(btn) {
+        function toggleLayerMenu() {
+            const menu = document.getElementById('layerMenu');
+            menu.classList.toggle('active');
+        }
+
+        function setMapType(option) {
+            const type = option.dataset.type;
             if (!map) return;
-            const type = btn.dataset.type;
             map.setType(type);
-            document.querySelectorAll('.map-type-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
+            document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
+            option.classList.add('selected');
+            document.getElementById('layerMenu').classList.remove('active');
+
             const mapEl = document.getElementById('map');
             if (type === 'yandex#map' && document.body.classList.contains('dark-theme')) {
                 mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
@@ -871,6 +889,16 @@
                 mapEl.style.filter = 'none';
             }
         }
+
+        // Закрывать меню при клике вне его
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('layerMenu');
+            const btn = document.getElementById('layerSwitcher');
+            if (!menu.classList.contains('active')) return;
+            if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.remove('active');
+            }
+        });
 
         function startDrawingMode() {
             if (!map || !currentUser) return;
