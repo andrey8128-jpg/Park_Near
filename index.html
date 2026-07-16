@@ -16,6 +16,7 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     
     <style>
+        /* ... весь предыдущий CSS без изменений ... */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
         :root {
@@ -72,9 +73,7 @@
             filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
         }
         body.dark-theme #map .ymaps-2-1-79-map-pane img,
-        body.dark-theme #map .ymaps-2-1-79-ground-pane img {
-            filter: invert(1) hue-rotate(180deg);
-        }
+        body.dark-theme #map .ymaps-2-1-79-ground-pane img { filter: invert(1) hue-rotate(180deg); }
         
         .layer-switcher {
             position: fixed; top: 54px; right: 12px; z-index: 900;
@@ -506,6 +505,7 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
+        // Глобальные переменные
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
         let drawingPolygon = null, isDrawingMode = false;
         let currentParkingId = null, currentParkingData = null;
@@ -516,6 +516,7 @@
         let addressPickerMap = null, addressPickerPlacemark = null, addressPickerCoords = null, isAddressPickerOpen = false;
         let currentRoute = null, routeStartCoords = null, routeEndCoords = null, routeParkingData = null;
 
+        // Марки автомобилей и цвета (без изменений)
         const carBrands = {
             'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
             'BMW': ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X3', 'X5', 'X6', 'X7', 'Z4', 'M3', 'M4', 'M5'],
@@ -555,6 +556,93 @@
             'Фиолетовый': '#800080', 'Голубой': '#87CEEB', 'Розовый': '#FFC0CB', 'Другой': '#808080'
         };
 
+        // Справочник регионов и городов (основные)
+        const regionsData = {
+            "Москва": ["Москва", "Зеленоград", "Троицк", "Щербинка"],
+            "Санкт-Петербург": ["Санкт-Петербург", "Пушкин", "Петергоф", "Колпино"],
+            "Московская область": ["Балашиха", "Подольск", "Химки", "Мытищи", "Королёв", "Люберцы", "Электросталь", "Красногорск"],
+            "Ленинградская область": ["Гатчина", "Выборг", "Всеволожск", "Сосновый Бор", "Тихвин"],
+            "Республика Татарстан": ["Казань", "Набережные Челны", "Нижнекамск", "Альметьевск"],
+            "Свердловская область": ["Екатеринбург", "Нижний Тагил", "Каменск-Уральский", "Первоуральск"],
+            "Новосибирская область": ["Новосибирск", "Бердск", "Искитим", "Куйбышев"],
+            "Нижегородская область": ["Нижний Новгород", "Дзержинск", "Арзамас", "Кстово"],
+            "Краснодарский край": ["Краснодар", "Сочи", "Новороссийск", "Армавир"],
+            "Ростовская область": ["Ростов-на-Дону", "Таганрог", "Шахты", "Новочеркасск", "Волгодонск"],
+            "Республика Башкортостан": ["Уфа", "Стерлитамак", "Салават", "Нефтекамск"],
+            "Челябинская область": ["Челябинск", "Магнитогорск", "Златоуст", "Миасс", "Копейск"],
+            "Самарская область": ["Самара", "Тольятти", "Сызрань", "Новокуйбышевск"],
+            "Красноярский край": ["Красноярск", "Норильск", "Ачинск", "Канск"],
+            "Пермский край": ["Пермь", "Березники", "Соликамск", "Чайковский"],
+            "Воронежская область": ["Воронеж", "Борисоглебск", "Россошь", "Лиски"],
+            "Волгоградская область": ["Волгоград", "Волжский", "Камышин", "Михайловка"],
+            "Саратовская область": ["Саратов", "Энгельс", "Балаково", "Балашов"],
+            "Омская область": ["Омск", "Тара", "Исилькуль"],
+            "Приморский край": ["Владивосток", "Уссурийск", "Находка", "Артём"],
+            "Хабаровский край": ["Хабаровск", "Комсомольск-на-Амуре", "Амурск"],
+            "Иркутская область": ["Иркутск", "Братск", "Ангарск", "Усть-Илимск"],
+            "Кемеровская область": ["Кемерово", "Новокузнецк", "Прокопьевск", "Ленинск-Кузнецкий"],
+            "Тюменская область": ["Тюмень", "Тобольск", "Ишим"],
+            "Удмуртская Республика": ["Ижевск", "Воткинск", "Глазов", "Сарапул"],
+            "Алтайский край": ["Барнаул", "Бийск", "Рубцовск", "Новоалтайск"],
+            "Тульская область": ["Тула", "Новомосковск", "Узловая", "Алексин"],
+            "Калужская область": ["Калуга", "Обнинск", "Людиново", "Киров"],
+            "Ярославская область": ["Ярославль", "Рыбинск", "Переславль-Залесский"],
+            "Калининградская область": ["Калининград", "Советск", "Черняховск", "Балтийск"],
+            "Белгородская область": ["Белгород", "Старый Оскол", "Губкин", "Шебекино"],
+            "Липецкая область": ["Липецк", "Елец", "Грязи"],
+            "Рязанская область": ["Рязань", "Касимов", "Скопин"],
+            "Владимирская область": ["Владимир", "Ковров", "Муром", "Александров"],
+            "Тверская область": ["Тверь", "Ржев", "Вышний Волочёк", "Кимры"],
+            "Смоленская область": ["Смоленск", "Вязьма", "Рославль"],
+            "Брянская область": ["Брянск", "Клинцы", "Новозыбков"],
+            "Курская область": ["Курск", "Железногорск", "Курчатов"],
+            "Орловская область": ["Орёл", "Ливны", "Мценск"],
+            "Псковская область": ["Псков", "Великие Луки"],
+            "Новгородская область": ["Великий Новгород", "Боровичи", "Старая Русса"],
+            "Республика Крым": ["Симферополь", "Севастополь", "Керчь", "Евпатория", "Ялта"],
+            "Севастополь": ["Севастополь"],
+            "Кабардино-Балкарская Республика": ["Нальчик", "Прохладный", "Баксан"],
+            "Чеченская Республика": ["Грозный", "Урус-Мартан", "Шали"],
+            "Республика Дагестан": ["Махачкала", "Дербент", "Хасавюрт", "Каспийск"],
+            "Ставропольский край": ["Ставрополь", "Пятигорск", "Кисловодск", "Ессентуки", "Невинномысск"],
+            "Республика Саха (Якутия)": ["Якутск", "Нерюнгри", "Мирный"],
+            "Камчатский край": ["Петропавловск-Камчатский", "Елизово"],
+            "Сахалинская область": ["Южно-Сахалинск", "Корсаков", "Холмск"],
+            "Магаданская область": ["Магадан"],
+            "Чукотский АО": ["Анадырь"],
+            "Республика Коми": ["Сыктывкар", "Ухта", "Воркута"],
+            "Архангельская область": ["Архангельск", "Северодвинск", "Котлас"],
+            "Мурманская область": ["Мурманск", "Апатиты", "Североморск"],
+            "Республика Карелия": ["Петрозаводск", "Кондопога", "Костомукша"],
+            "Кировская область": ["Киров", "Кирово-Чепецк", "Вятские Поляны"],
+            "Ульяновская область": ["Ульяновск", "Димитровград"],
+            "Пензенская область": ["Пенза", "Кузнецк", "Заречный"],
+            "Тамбовская область": ["Тамбов", "Мичуринск", "Рассказово"],
+            "Астраханская область": ["Астрахань", "Ахтубинск"],
+            "Республика Калмыкия": ["Элиста"],
+            "Республика Адыгея": ["Майкоп"],
+            "Республика Северная Осетия — Алания": ["Владикавказ", "Моздок"],
+            "Республика Ингушетия": ["Магас", "Назрань"],
+            "Карачаево-Черкесская Республика": ["Черкесск", "Карачаевск"],
+            "Республика Мордовия": ["Саранск", "Рузаевка"],
+            "Республика Марий Эл": ["Йошкар-Ола", "Волжск"],
+            "Чувашская Республика": ["Чебоксары", "Новочебоксарск"],
+            "Республика Хакасия": ["Абакан", "Черногорск"],
+            "Республика Тыва": ["Кызыл"],
+            "Республика Алтай": ["Горно-Алтайск"],
+            "Курганская область": ["Курган", "Шадринск"],
+            "Оренбургская область": ["Оренбург", "Орск", "Новотроицк", "Бузулук"],
+            "Вологодская область": ["Вологда", "Череповец"],
+            "Костромская область": ["Кострома", "Буй"],
+            "Ивановская область": ["Иваново", "Кинешма", "Шуя"],
+            "Амурская область": ["Благовещенск", "Белогорск", "Свободный"],
+            "Еврейская АО": ["Биробиджан"],
+            "Забайкальский край": ["Чита", "Краснокаменск"],
+            "Республика Бурятия": ["Улан-Удэ", "Северобайкальск"],
+            "Томская область": ["Томск", "Северск"]
+        };
+
+        // Функции (initAuth, getDistanceInMeters, checkPolygonSize и т.д.) без изменений
         function initAuth() {
             if (window.Telegram?.WebApp) {
                 const tg = window.Telegram.WebApp;
@@ -619,6 +707,7 @@
             if (!btn.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('active');
         });
 
+        // Функции рисования и работы с картой (без изменений)
         function startDrawingMode() {
             if (!map || !currentUser) return;
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
@@ -1145,7 +1234,6 @@
             document.getElementById('panelTitle').textContent = 
                 type === 'profile' ? 'Профиль' : 
                 type === 'search' ? 'Поиск' : 'Избранное';
-            
             const content = document.getElementById('panelContent');
             if (type === 'profile') renderProfile(content);
             else if (type === 'favorites') {
@@ -1154,7 +1242,6 @@
             } else if (type === 'search') {
                 renderSearchPanel(content);
             }
-            
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             const tabIndex = type === 'profile' ? 3 : (type === 'search' ? 1 : 2);
             document.querySelectorAll('.tab')[tabIndex].classList.add('active');
@@ -1176,7 +1263,6 @@
                     } else {
                         html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
                     }
-                    // Статистика удалена, сразу репутация
                     const created = stats.parkingsCreated || 0, updated = stats.parkingsUpdated || 0, confirmations = stats.confirmations || 0, views = stats.views || 0, favorites = stats.favorites || 0;
                     const activeDates = stats.activeDates || [];
                     const score = created*5 + updated*2 + confirmations*10 + Math.floor(views/5) + favorites*10 + activeDates.length;
@@ -1194,12 +1280,18 @@
         }
 
         function renderSearchPanel(contentEl) {
-            const cities = ['Москва', 'Санкт-Петербург', 'Казань', 'Новосибирск', 'Екатеринбург', 'Все города'];
             let html = `
+                <div class="city-selector">
+                    <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Регион</label>
+                    <select id="regionSelect" class="input-field" onchange="updateCitySelect()">
+                        <option value="">Все регионы</option>
+                        ${Object.keys(regionsData).sort().map(r => `<option value="${r}">${r}</option>`).join('')}
+                    </select>
+                </div>
                 <div class="city-selector">
                     <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Город</label>
                     <select id="citySelect" class="input-field" onchange="filterParkings()">
-                        ${cities.map(c => `<option value="${c}">${c}</option>`).join('')}
+                        <option value="">Все города</option>
                     </select>
                 </div>
                 <div class="search-bar">
@@ -1213,21 +1305,42 @@
             filterParkings();
         }
 
+        function updateCitySelect() {
+            const region = document.getElementById('regionSelect').value;
+            const citySelect = document.getElementById('citySelect');
+            citySelect.innerHTML = '<option value="">Все города</option>';
+            if (region && regionsData[region]) {
+                regionsData[region].forEach(city => {
+                    const opt = document.createElement('option');
+                    opt.value = city;
+                    opt.textContent = city;
+                    citySelect.appendChild(opt);
+                });
+            }
+            filterParkings();
+        }
+
         function filterParkings() {
             const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
-            const city = document.getElementById('citySelect')?.value || 'Все города';
+            const city = document.getElementById('citySelect')?.value || '';
+            const region = document.getElementById('regionSelect')?.value || '';
             const resultsContainer = document.getElementById('searchResults');
             if (!resultsContainer) return;
 
             let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
             
-            if (city !== 'Все города') {
+            if (region) {
                 parkings = parkings.filter(p => 
-                    (p.name && p.name.toLowerCase().includes(city.toLowerCase())) ||
-                    (p.address && p.address.toLowerCase().includes(city.toLowerCase()))
+                    (p.address && p.address.toLowerCase().includes(region.toLowerCase())) ||
+                    (p.name && p.name.toLowerCase().includes(region.toLowerCase()))
                 );
             }
-            
+            if (city) {
+                parkings = parkings.filter(p => 
+                    (p.address && p.address.toLowerCase().includes(city.toLowerCase())) ||
+                    (p.name && p.name.toLowerCase().includes(city.toLowerCase()))
+                );
+            }
             if (query) {
                 parkings = parkings.filter(p => 
                     (p.name && p.name.toLowerCase().includes(query)) ||
