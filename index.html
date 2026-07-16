@@ -568,12 +568,31 @@
         .bottom-sheet.active {
             transform: translateY(0);
         }
+        .sheet-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px 12px 4px;
+            position: relative;
+        }
         .sheet-handle {
             width: 40px;
             height: 5px;
             background: var(--gray);
             border-radius: 3px;
-            margin: 12px auto 8px;
+            cursor: pointer;
+        }
+        .sheet-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
         }
         .sheet-content {
             padding: 0 20px 20px;
@@ -657,7 +676,10 @@
 
     <!-- Bottom Sheet для информации о парковке -->
     <div class="bottom-sheet" id="parkingSheet">
-        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <div class="sheet-handle" onclick="closeParkingSheet()"></div>
+            <button class="sheet-close" onclick="closeParkingSheet()">✕</button>
+        </div>
         <div class="sheet-content" id="sheetContent"></div>
     </div>
 
@@ -1163,6 +1185,27 @@
             });
             routeCard.addEventListener('touchend', () => {
                 if (swipeDown) closeRoute();
+            });
+            
+            // Свайп для закрытия Bottom Sheet
+            const parkingSheet = document.getElementById('parkingSheet');
+            let sheetStartY = 0;
+            let sheetSwipeDown = false;
+            parkingSheet.addEventListener('touchstart', (e) => {
+                if (!parkingSheet.classList.contains('active')) return;
+                sheetStartY = e.touches[0].clientY;
+                sheetSwipeDown = false;
+            });
+            parkingSheet.addEventListener('touchmove', (e) => {
+                if (!parkingSheet.classList.contains('active')) return;
+                if (e.touches[0].clientY - sheetStartY > 60) {
+                    sheetSwipeDown = true;
+                }
+            });
+            parkingSheet.addEventListener('touchend', () => {
+                if (sheetSwipeDown) {
+                    closeParkingSheet();
+                }
             });
         }
         
