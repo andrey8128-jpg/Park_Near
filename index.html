@@ -16,7 +16,6 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     
     <style>
-        /* ... весь предыдущий CSS без изменений ... */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
         :root {
@@ -516,7 +515,6 @@
         let addressPickerMap = null, addressPickerPlacemark = null, addressPickerCoords = null, isAddressPickerOpen = false;
         let currentRoute = null, routeStartCoords = null, routeEndCoords = null, routeParkingData = null;
 
-        // Марки автомобилей и цвета (без изменений)
         const carBrands = {
             'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
             'BMW': ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X3', 'X5', 'X6', 'X7', 'Z4', 'M3', 'M4', 'M5'],
@@ -556,7 +554,6 @@
             'Фиолетовый': '#800080', 'Голубой': '#87CEEB', 'Розовый': '#FFC0CB', 'Другой': '#808080'
         };
 
-        // Справочник регионов и городов (основные)
         const regionsData = {
             "Москва": ["Москва", "Зеленоград", "Троицк", "Щербинка"],
             "Санкт-Петербург": ["Санкт-Петербург", "Пушкин", "Петергоф", "Колпино"],
@@ -642,7 +639,6 @@
             "Томская область": ["Томск", "Северск"]
         };
 
-        // Функции (initAuth, getDistanceInMeters, checkPolygonSize и т.д.) без изменений
         function initAuth() {
             if (window.Telegram?.WebApp) {
                 const tg = window.Telegram.WebApp;
@@ -707,7 +703,6 @@
             if (!btn.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('active');
         });
 
-        // Функции рисования и работы с картой (без изменений)
         function startDrawingMode() {
             if (!map || !currentUser) return;
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
@@ -835,24 +830,50 @@
             if (!name) { alert('Пожалуйста, введите название парковки'); return; }
             if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
             if (!drawingPolygon) { alert('Парковочная зона не нарисована'); return; }
+
             const btn = document.getElementById('saveParkBtn'); btn.textContent = 'Сохранение...'; btn.disabled = true;
+
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
             const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
             const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
-            const parkingData = { lat: centerLat, lng: centerLng, coordinates: cleanCoordinates, totalSpots, occupiedSpots: 0, name, isPaid, authorId: currentUser.id, authorName: currentUser.firstName, authorUsername: currentUser.username, timestamp: Date.now(), status: 'unknown' };
-            const newRef = database.ref('parkings').push();
-            newRef.set(parkingData).then(() => {
-                database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
-                return database.ref(`parkings/${newRef.key}/history`).push({ action: 'created', timestamp: Date.now(), userId: currentUser.id, username: currentUser.username, carBrand: '', carModel: '', carPlate: '' });
-            }).then(() => {
-                addMarkerToMap(newRef.key, parkingData);
-                if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
-                closePanel(); showMap();
-                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }).catch(err => {
-                console.error("Ошибка Firebase:", err);
-                alert('Ошибка сохранения: ' + (err.code === 'PERMISSION_DENIED' ? 'Нет доступа' : err.message));
+
+            ymaps.geocode([centerLat, centerLng]).then(function (res) {
+                const firstGeoObject = res.geoObjects.get(0);
+                const address = firstGeoObject ? firstGeoObject.getAddressLine() : 'Адрес не найден';
+
+                const parkingData = {
+                    lat: centerLat,
+                    lng: centerLng,
+                    coordinates: cleanCoordinates,
+                    totalSpots,
+                    occupiedSpots: 0,
+                    name,
+                    isPaid,
+                    address,
+                    authorId: currentUser.id,
+                    authorName: currentUser.firstName,
+                    authorUsername: currentUser.username,
+                    timestamp: Date.now(),
+                    status: 'unknown'
+                };
+
+                const newRef = database.ref('parkings').push();
+                return newRef.set(parkingData).then(() => {
+                    database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
+                    return database.ref(`parkings/${newRef.key}/history`).push({
+                        action: 'created', timestamp: Date.now(), userId: currentUser.id,
+                        username: currentUser.username, carBrand: '', carModel: '', carPlate: ''
+                    });
+                }).then(() => {
+                    addMarkerToMap(newRef.key, parkingData);
+                    if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+                    closePanel(); showMap();
+                    if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                });
+            }).catch(function (err) {
+                console.error('Ошибка геокодирования или Firebase:', err);
+                alert('Ошибка сохранения парковки. Попробуйте ещё раз.');
                 btn.textContent = 'Сохранить парковку'; btn.disabled = false;
             });
         }
