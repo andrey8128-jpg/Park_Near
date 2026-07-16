@@ -639,6 +639,55 @@
             "Томская область": ["Томск", "Северск"]
         };
 
+        // Функция разбора адреса на регион, город, улицу
+        function parseAddress(fullAddress) {
+            if (!fullAddress) return { region: '', city: '', street: '' };
+            // Убираем "Россия, " если есть
+            let addr = fullAddress.replace(/^Россия,\s*/i, '');
+            let region = '';
+            let city = '';
+            // Ищем регион
+            for (const reg of Object.keys(regionsData)) {
+                if (addr.includes(reg)) {
+                    region = reg;
+                    break;
+                }
+            }
+            // Если регион найден, ищем город в его списке
+            if (region) {
+                const cities = regionsData[region];
+                for (const c of cities) {
+                    if (addr.includes(c)) {
+                        city = c;
+                        break;
+                    }
+                }
+                // Если город не найден, может быть регион и город совпадают (Москва)
+                if (!city && cities.includes(region)) {
+                    city = region;
+                }
+            } else {
+                // Ищем любой город из всех списков
+                for (const reg of Object.keys(regionsData)) {
+                    const cities = regionsData[reg];
+                    for (const c of cities) {
+                        if (addr.includes(c)) {
+                            region = reg;
+                            city = c;
+                            break;
+                        }
+                    }
+                    if (region) break;
+                }
+            }
+            // Получаем улицу: убираем регион и город из строки
+            let street = addr;
+            if (region) street = street.replace(new RegExp(region, 'i'), '').trim();
+            if (city && city !== region) street = street.replace(new RegExp(city, 'i'), '').trim();
+            street = street.replace(/^[, ]+/, '').trim();
+            return { region, city, street };
+        }
+
         function initAuth() {
             if (window.Telegram?.WebApp) {
                 const tg = window.Telegram.WebApp;
@@ -824,26 +873,20 @@
                 <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>`;
         }
 
-        // ИСПРАВЛЕННАЯ ФУНКЦИЯ СОЗДАНИЯ ПАРКОВКИ
         function submitParkingWithPolygon() {
-            const name = document.getElementById('parkName').value.trim();
-            const totalSpots = parseInt(document.getElementById('parkSpots').value);
-            const isPaid = document.getElementById('parkIsPaid').checked;
+            const name = document.getElementById('parkName').value.trim(), totalSpots = parseInt(document.getElementById('parkSpots').value), isPaid = document.getElementById('parkIsPaid').checked;
             if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
             if (!name) { alert('Пожалуйста, введите название парковки'); return; }
             if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
             if (!drawingPolygon) { alert('Парковочная зона не нарисована'); return; }
 
-            const btn = document.getElementById('saveParkBtn');
-            btn.textContent = 'Сохранение...';
-            btn.disabled = true;
+            const btn = document.getElementById('saveParkBtn'); btn.textContent = 'Сохранение...'; btn.disabled = true;
 
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
             const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
             const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
 
-            // Геокодирование для получения адреса
             ymaps.geocode([centerLat, centerLng])
                 .then(res => {
                     const firstGeoObject = res.geoObjects.get(0);
@@ -855,6 +898,7 @@
                     return '';
                 })
                 .then(address => {
+                    const parsed = parseAddress(address);
                     const parkingData = {
                         lat: centerLat,
                         lng: centerLng,
@@ -864,6 +908,9 @@
                         name,
                         isPaid,
                         address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+                        region: parsed.region,
+                        city: parsed.city,
+                        street: parsed.street,
                         authorId: currentUser.id,
                         authorName: currentUser.firstName,
                         authorUsername: currentUser.username,
@@ -1270,6 +1317,50 @@
         function removeHomeAddress(addressId) { if (confirm('Удалить адрес?')) database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove().then(() => showPanel('favorites')); }
         function focusMap(lat, lng, parkingId) { closePanel(); map.setCenter([lat, lng], 16, { duration: 300 }); }
 
+        // Новая функция для избранного: подсветка, приближение и показ bottom sheet
+        function highlightAndShowParking(parkingId) {
+            const data = parkingDataCache[parkingId];
+            if (!data) return;
+            const marker = mapMarkers[parkingId];
+            if (marker && marker.geometry) {
+                let bounds;
+                if (marker.geometry.getType() === 'Polygon' && data.coordinates && data.coordinates.length > 0) {
+                    // Вычисляем границы полигона
+                    const coords = data.coordinates;
+                    let minLat = coords[0][0], maxLat = coords[0][0], minLng = coords[0][1], maxLng = coords[0][1];
+                    coords.forEach(c => { if (c[0] < minLat) minLat = c[0]; if (c[0] > maxLat) maxLat = c[0]; if (c[1] < minLng) minLng = c[1]; if (c[1] > maxLng) maxLng = c[1]; });
+                    bounds = [[minLat, minLng], [maxLat, maxLng]];
+                } else {
+                    // Если нет полигона, просто приближаем к точке
+                    bounds = [[data.lat - 0.001, data.lng - 0.001], [data.lat + 0.001, data.lng + 0.001]];
+                }
+                map.setBounds(bounds, { duration: 300 }).then(() => {
+                    if (map.getZoom() > 17) map.setZoom(17);
+                });
+            }
+            // Подсветка синим цветом и пульсация
+            if (marker) {
+                const origFillColor = marker.options.get('fillColor');
+                const origStrokeColor = marker.options.get('strokeColor');
+                marker.options.set({ fillColor: '#007AFF55', strokeColor: '#007AFF' });
+                let opacity = 0.3;
+                let direction = 1;
+                const interval = setInterval(() => {
+                    opacity += direction * 0.1;
+                    if (opacity >= 1) { opacity = 1; direction = -1; }
+                    if (opacity <= 0.3) { opacity = 0.3; direction = 1; }
+                    marker.options.set({ fillColor: `rgba(0,122,255,${opacity.toFixed(1)})` });
+                }, 150);
+                setTimeout(() => {
+                    clearInterval(interval);
+                    marker.options.set({ fillColor: origFillColor, strokeColor: origStrokeColor });
+                }, 3000);
+            }
+            // Показываем bottom sheet
+            openParkingSheet(parkingId, data);
+            closePanel(); // Закрываем панель избранного, возвращаемся на карту
+        }
+
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 
@@ -1372,12 +1463,14 @@
             
             if (region) {
                 parkings = parkings.filter(p => 
+                    (p.region && p.region.toLowerCase().includes(region.toLowerCase())) ||
                     (p.address && p.address.toLowerCase().includes(region.toLowerCase())) ||
                     (p.name && p.name.toLowerCase().includes(region.toLowerCase()))
                 );
             }
             if (city) {
                 parkings = parkings.filter(p => 
+                    (p.city && p.city.toLowerCase().includes(city.toLowerCase())) ||
                     (p.address && p.address.toLowerCase().includes(city.toLowerCase())) ||
                     (p.name && p.name.toLowerCase().includes(city.toLowerCase()))
                 );
@@ -1385,7 +1478,8 @@
             if (query) {
                 parkings = parkings.filter(p => 
                     (p.name && p.name.toLowerCase().includes(query)) ||
-                    (p.address && p.address.toLowerCase().includes(query))
+                    (p.address && p.address.toLowerCase().includes(query)) ||
+                    (p.street && p.street.toLowerCase().includes(query))
                 );
             }
             
@@ -1463,10 +1557,21 @@
                     if (!favs) html += '<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных</p></div>';
                     else {
                         html += '<div class="list-container">';
-                        Object.values(favs).forEach(item => { if (item && item.parkingId) html += `<div class="list-item" onclick="focusMap(${item.lat||0},${item.lng||0},'${item.parkingId}')"><div class="list-icon">⭐</div><div class="list-info"><div class="list-title">${item.name||'Без названия'}</div><div class="list-subtitle">Добавлено ${item.timestamp?formatDateTime(item.timestamp):''}</div></div></div>`; });
+                        Object.values(favs).forEach(item => {
+                            if (item && item.parkingId) {
+                                html += `<div class="list-item" onclick="highlightAndShowParking('${item.parkingId}')">
+                                    <div class="list-icon">⭐</div>
+                                    <div class="list-info">
+                                        <div class="list-title">${item.name||'Без названия'}</div>
+                                        <div class="list-subtitle">Добавлено ${item.timestamp?formatDateTime(item.timestamp):''}</div>
+                                    </div>
+                                </div>`;
+                            }
+                        });
                         html += '</div>';
                     }
-                    contentEl.innerHTML = html; attachSwipeToContainers(contentEl);
+                    contentEl.innerHTML = html;
+                    attachSwipeToContainers(contentEl);
                 });
             }
         }
