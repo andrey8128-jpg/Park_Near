@@ -406,7 +406,52 @@
         .status-occupied { background: var(--red); }
         .status-unknown { background: var(--gray); }
         
-        /* Статистика удалена, но репутация остается */
+        .stats-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--card-shadow);
+        }
+        .stats-card .stats-title {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stats-body {
+            transition: max-height 0.3s ease;
+            overflow: hidden;
+        }
+        .stats-body.collapsed {
+            max-height: 0;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 0.5px solid var(--border-color);
+        }
+        .stats-row:last-child {
+            border-bottom: none;
+        }
+        .stats-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .stats-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .stats-streak {
+            color: var(--orange);
+            font-weight: 600;
+        }
         .reputation-card {
             background: var(--bg-secondary);
             border-radius: 16px;
@@ -1330,7 +1375,7 @@
                     } else {
                         html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
                     }
-                    // Статистика удалена, сразу репутация
+                    // Блок статистики удалён, сразу репутация
                     const created = stats.parkingsCreated || 0, updated = stats.parkingsUpdated || 0, confirmations = stats.confirmations || 0, views = stats.views || 0, favorites = stats.favorites || 0;
                     const activeDates = stats.activeDates || [];
                     const score = created*5 + updated*2 + confirmations*10 + Math.floor(views/5) + favorites*10 + activeDates.length;
