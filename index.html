@@ -27,9 +27,6 @@
             --input-bg: #FFFFFF;
             --input-border: #C7C7CC;
             --card-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            --blur-bg: rgba(242,242,247,0.8);
-            --header-blur: rgba(255,255,255,0.7);
-            --tab-blur: rgba(255,255,255,0.85);
             --accent: #007AFF;
             --green: #34C759;
             --red: #FF3B30;
@@ -46,9 +43,6 @@
             --input-bg: #2C2C2E;
             --input-border: #3A3A3C;
             --card-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            --blur-bg: rgba(0,0,0,0.8);
-            --header-blur: rgba(28,28,30,0.7);
-            --tab-blur: rgba(28,28,30,0.85);
         }
         
         body {
@@ -61,16 +55,16 @@
         
         .app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 44px;
-            background: var(--header-blur); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             z-index: 1000; display: flex; align-items: center; justify-content: center;
             border-bottom: 0.5px solid var(--border-color); padding-top: env(safe-area-inset-top);
-            transition: background 0.3s;
         }
+        body.dark-theme .app-header { background: rgba(28,28,30,0.7); }
         .app-title { font-size: 17px; font-weight: 600; letter-spacing: -0.5px; }
         .app-title span { color: var(--accent); }
         
-        #map { 
-            position: fixed; top: 44px; left: 0; right: 0; bottom: 83px; 
+        #map {
+            position: fixed; top: 44px; left: 0; right: 0; bottom: 83px;
             background: #E5E5EA; transition: filter 0.5s ease;
         }
         
@@ -86,7 +80,6 @@
             position: fixed; top: 54px; right: 12px; z-index: 900;
             background: var(--bg-secondary); backdrop-filter: blur(20px);
             border-radius: 14px; box-shadow: var(--card-shadow);
-            overflow: hidden; transition: background 0.3s;
             width: 44px; height: 44px;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
@@ -96,15 +89,13 @@
             position: absolute; top: 48px; right: 0;
             background: var(--bg-secondary); backdrop-filter: blur(20px);
             border-radius: 14px; box-shadow: var(--card-shadow);
-            display: none; flex-direction: column; overflow: hidden;
-            z-index: 901;
+            display: none; flex-direction: column; overflow: hidden; z-index: 901;
         }
         .layer-menu.active { display: flex; }
         .layer-option {
             padding: 12px 16px; font-size: 14px; font-weight: 500;
             cursor: pointer; border-bottom: 0.5px solid var(--border-color);
             white-space: nowrap; color: var(--text-primary);
-            transition: background 0.2s;
         }
         .layer-option:last-child { border-bottom: none; }
         .layer-option:active { background: var(--bg-primary); }
@@ -116,9 +107,9 @@
             background: var(--bg-secondary); color: var(--accent); border: none;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
         }
-        #geoBtn:active { transform: scale(0.9); background: var(--bg-primary); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        #geoBtn:active { transform: scale(0.9); background: var(--bg-primary); }
         #geoBtn svg { width: 24px; height: 24px; fill: var(--accent); }
 
         #addBtn {
@@ -126,23 +117,22 @@
             width: 56px; height: 56px; border-radius: 50%;
             background: var(--accent); color: #fff; border: none;
             font-size: 32px; line-height: 56px; text-align: center;
-            cursor: pointer; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.4);
-            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            cursor: pointer; box-shadow: 0 4px 14px rgba(0,122,255,0.4);
+            transition: transform 0.2s;
         }
-        #addBtn:active { transform: scale(0.9); background: #0051D5; box-shadow: 0 2px 8px rgba(0, 81, 213, 0.4); }
-        #addBtn.drawing { background: var(--orange); box-shadow: 0 4px 14px rgba(255, 149, 0, 0.4); }
+        #addBtn:active { transform: scale(0.9); background: #0051D5; }
+        #addBtn.drawing { background: var(--orange); }
         
         .tabBar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
-            background: var(--tab-blur); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
             z-index: 1000; display: flex;
             border-top: 0.5px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom);
-            transition: background 0.3s;
         }
+        body.dark-theme .tabBar { background: rgba(28,28,30,0.85); }
         .tab {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center; cursor: pointer;
-            transition: opacity 0.2s, transform 0.1s;
         }
         .tab:active { opacity: 0.6; transform: scale(0.95); }
         .tab .icon { font-size: 24px; margin-bottom: 4px; }
@@ -159,80 +149,59 @@
         .panel-header {
             padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
             border-bottom: 0.5px solid var(--border-color); background: var(--bg-secondary);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            padding-top: calc(16px + env(safe-area-inset-top));
+            backdrop-filter: blur(20px); padding-top: calc(16px + env(safe-area-inset-top));
         }
         .panel-title { font-size: 17px; font-weight: 600; }
-        .panel-close { color: var(--accent); background: none; border: none; font-size: 17px; cursor: pointer; padding: 8px; transition: opacity 0.2s; }
-        .panel-close:active { opacity: 0.6; }
-        .panel-content { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
+        .panel-close { color: var(--accent); background: none; border: none; font-size: 17px; cursor: pointer; padding: 8px; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
         
-        .telegram-btn {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+        .btn-primary {
             width: 100%; padding: 16px; border-radius: 14px; border: none;
-            font-size: 16px; font-weight: 600; cursor: pointer; color: #fff;
-            background: #0088cc; margin: 8px 0; transition: opacity 0.2s, transform 0.1s;
-            box-shadow: 0 2px 8px rgba(0,136,204,0.3);
+            background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
+            cursor: pointer; margin-top: 8px; transition: background 0.2s;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.3);
         }
-        .telegram-btn:active { opacity: 0.8; transform: scale(0.98); }
-        .guest-btn {
+        .btn-primary:active { background: #0051D5; }
+        .btn-primary:disabled { opacity: 0.6; }
+        .btn-danger {
             width: 100%; padding: 16px; border-radius: 14px;
-            border: 1px solid var(--accent); font-size: 16px; font-weight: 600;
-            cursor: pointer; color: var(--accent); background: transparent; margin: 8px 0;
-            transition: background 0.2s, transform 0.1s;
+            border: 1px solid var(--red); font-size: 16px; font-weight: 600;
+            cursor: pointer; color: var(--red); background: transparent; margin-top: 24px;
         }
-        .guest-btn:active { background: rgba(0,122,255,0.1); transform: scale(0.98); }
+        .btn-danger:active { background: rgba(255,59,48,0.1); }
+        .btn-secondary {
+            width: 100%; padding: 14px; border-radius: 14px;
+            border: 1px solid var(--accent); font-size: 15px; font-weight: 600;
+            cursor: pointer; color: var(--accent); background: transparent; margin-top: 8px;
+        }
+        .btn-secondary:active { background: rgba(0,122,255,0.1); }
         
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
         .input-field {
             width: 100%; padding: 12px 16px; border-radius: 12px;
-            border: 1px solid var(--input-border); background: var(--input-bg); 
+            border: 1px solid var(--input-border); background: var(--input-bg);
             color: var(--text-primary); font-size: 16px;
-            outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+            outline: none; transition: border-color 0.2s; font-family: inherit;
         }
         .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,122,255,0.2); }
-        textarea.input-field { resize: none; }
-        select.input-field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
-        
-        .btn-primary {
-            width: 100%; padding: 16px; border-radius: 14px; border: none;
-            background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
-            cursor: pointer; margin-top: 8px; transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-            box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+        select.input-field {
+            appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 16px center;
         }
-        .btn-primary:active { background: #0051D5; transform: scale(0.98); box-shadow: 0 1px 4px rgba(0,81,213,0.4); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-danger {
-            width: 100%; padding: 16px; border-radius: 14px;
-            border: 1px solid var(--red); font-size: 16px; font-weight: 600;
-            cursor: pointer; color: var(--red); background: transparent; margin-top: 24px;
-            transition: background 0.2s, transform 0.1s;
-        }
-        .btn-danger:active { background: rgba(255,59,48,0.1); transform: scale(0.98); }
-        .btn-secondary {
-            width: 100%; padding: 14px; border-radius: 14px;
-            border: 1px solid var(--accent); font-size: 15px; font-weight: 600;
-            cursor: pointer; color: var(--accent); background: transparent; margin-top: 8px;
-            transition: background 0.2s, transform 0.1s;
-        }
-        .btn-secondary:active { background: rgba(0,122,255,0.1); transform: scale(0.98); }
         
         .list-container { display: flex; flex-direction: column; gap: 12px; }
         .list-item {
             background: var(--bg-secondary); padding: 16px; border-radius: 16px;
             display: flex; align-items: center; gap: 12px;
             box-shadow: var(--card-shadow); cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.2s;
-            position: relative; overflow: hidden;
+            transition: transform 0.1s;
         }
-        .list-item:active { transform: scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .list-item:active { transform: scale(0.98); }
         .list-icon { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border-radius: 50%; }
         .list-info { flex: 1; }
         .list-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
         .list-subtitle { font-size: 13px; color: var(--text-secondary); }
-        .list-time { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-        
         .empty-state, .loading-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
         .spinner {
@@ -250,26 +219,19 @@
         .badge { display: inline-block; padding: 4px 10px; background: var(--accent); color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px; }
         
         .map-hint {
-            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 54px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
             border-radius: 20px; font-size: 14px; z-index: 800;
-            animation: fadeInOut 3s ease-in-out;
-            white-space: nowrap;
+            animation: fadeInOut 3s ease-in-out; white-space: nowrap;
         }
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; }
-            20%, 80% { opacity: 1; }
-        }
+        @keyframes fadeInOut { 0%,100%{opacity:0;} 20%,80%{opacity:1;} }
         
         .occupancy-header { text-align: center; padding: 10px 0 20px; }
         .occupancy-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-        .occupancy-subtitle { font-size: 14px; color: var(--text-secondary); }
-        
         .occupancy-stats { display: flex; gap: 12px; margin-bottom: 20px; }
         .stat-card {
             flex: 1; background: var(--bg-secondary); border-radius: 16px;
-            padding: 16px; text-align: center;
-            box-shadow: var(--card-shadow); transition: background 0.3s;
+            padding: 16px; text-align: center; box-shadow: var(--card-shadow);
         }
         .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
         .stat-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
@@ -281,33 +243,22 @@
             background: var(--bg-secondary); border-radius: 16px; padding: 20px;
             box-shadow: var(--card-shadow); transition: background 0.3s;
         }
-        .occupancy-control label {
-            display: block; font-size: 14px; font-weight: 600;
-            margin-bottom: 12px; text-align: center;
-        }
-        .counter-row {
-            display: flex; align-items: center; justify-content: center; gap: 20px;
-        }
+        .occupancy-control label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 12px; text-align: center; }
+        .counter-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
         .counter-btn {
             width: 48px; height: 48px; border-radius: 50%;
             border: 1px solid var(--input-border); background: var(--bg-secondary);
             color: var(--text-primary); font-size: 24px; font-weight: 600; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s, transform 0.1s, border-color 0.2s;
+            transition: background 0.2s, transform 0.1s;
         }
         .counter-btn:active { background: var(--bg-primary); transform: scale(0.95); }
         .counter-btn.minus { color: var(--red); border-color: var(--red); }
         .counter-btn.plus { color: var(--green); border-color: var(--green); }
         .counter-value { font-size: 32px; font-weight: 700; min-width: 60px; text-align: center; }
         
-        .progress-bar {
-            height: 8px; background: var(--bg-primary); border-radius: 4px;
-            margin: 16px 0; overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%; border-radius: 4px;
-            transition: width 0.3s, background 0.3s;
-        }
+        .progress-bar { height: 8px; background: var(--bg-primary); border-radius: 4px; margin: 16px 0; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s, background 0.3s; }
         
         .drawing-controls {
             position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -316,7 +267,7 @@
         .drawing-controls button {
             padding: 12px 20px; border-radius: 20px; border: none;
             font-size: 14px; font-weight: 600; cursor: pointer;
-            box-shadow: var(--card-shadow); transition: transform 0.1s, opacity 0.2s;
+            box-shadow: var(--card-shadow); transition: transform 0.1s;
         }
         .btn-finish { background: var(--green); color: #fff; }
         .btn-cancel { background: var(--red); color: #fff; }
@@ -328,9 +279,7 @@
             margin-bottom: 16px; box-shadow: var(--card-shadow);
         }
         .theme-toggle-label { font-size: 16px; font-weight: 600; }
-        .theme-switch {
-            position: relative; width: 51px; height: 31px;
-        }
+        .theme-switch { position: relative; width: 51px; height: 31px; }
         .theme-switch input { opacity: 0; width: 0; height: 0; }
         .theme-slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -339,8 +288,7 @@
         .theme-slider:before {
             position: absolute; content: ""; height: 27px; width: 27px;
             left: 2px; bottom: 2px; background-color: white;
-            transition: .3s; border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         input:checked + .theme-slider { background-color: var(--green); }
         input:checked + .theme-slider:before { transform: translateX(20px); }
@@ -353,51 +301,18 @@
             font-size: 14px; font-weight: 600; color: var(--text-secondary);
             margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        
         .car-summary {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 16px; background: var(--bg-primary); border-radius: 12px;
-            margin-bottom: 12px;
+            padding: 16px; background: var(--bg-primary); border-radius: 12px; margin-bottom: 12px;
         }
         .car-summary-info { flex: 1; }
         .car-summary-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
         .car-summary-subtitle { font-size: 13px; color: var(--text-secondary); }
         .car-summary-color {
             width: 32px; height: 32px; border-radius: 50%;
-            border: 2px solid var(--border-color);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 2px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        .history-item-time {
-            font-size: 12px; color: var(--text-secondary); margin-top: 4px;
-        }
-        .history-item-time span {
-            color: var(--green); font-weight: 600;
-        }
-        
-        .color-preview {
-            display: inline-block; width: 20px; height: 20px;
-            border-radius: 50%; margin-right: 8px; vertical-align: middle;
-            border: 1px solid var(--border-color);
-        }
-
-        .history-detail {
-            background: var(--bg-secondary); border-radius: 16px; padding: 16px;
-            margin-bottom: 12px; box-shadow: var(--card-shadow);
-        }
-        .history-detail-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 12px; padding-bottom: 12px; border-bottom: 0.5px solid var(--border-color);
-        }
-        .history-detail-title { font-size: 15px; font-weight: 600; }
-        .history-detail-time { font-size: 12px; color: var(--text-secondary); }
-        .history-detail-row {
-            display: flex; justify-content: space-between; margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .history-detail-label { color: var(--text-secondary); }
-        .history-detail-value { font-weight: 500; }
-
         .status-indicator {
             display: inline-block; width: 12px; height: 12px; border-radius: 50%;
             margin-right: 8px; vertical-align: middle;
@@ -407,227 +322,108 @@
         .status-unknown { background: var(--gray); }
         
         .stats-card {
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: var(--card-shadow);
+            background: var(--bg-secondary); border-radius: 16px; padding: 20px;
+            margin-bottom: 16px; box-shadow: var(--card-shadow);
         }
         .stats-card .stats-title {
-            font-size: 17px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-size: 17px; font-weight: 600; margin-bottom: 16px;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
         }
-        .stats-body {
-            transition: max-height 0.3s ease;
-            overflow: hidden;
-        }
-        .stats-body.collapsed {
-            max-height: 0;
-        }
+        .stats-body { transition: max-height 0.3s ease; overflow: hidden; }
+        .stats-body.collapsed { max-height: 0; }
         .stats-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 0.5px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; border-bottom: 0.5px solid var(--border-color);
         }
-        .stats-row:last-child {
-            border-bottom: none;
-        }
-        .stats-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-        .stats-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .stats-streak {
-            color: var(--orange);
-            font-weight: 600;
-        }
+        .stats-row:last-child { border-bottom: none; }
+        .stats-label { font-size: 14px; color: var(--text-secondary); }
+        .stats-value { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+        .stats-streak { color: var(--orange); font-weight: 600; }
         .reputation-card {
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: var(--card-shadow);
+            background: var(--bg-secondary); border-radius: 16px; padding: 20px;
+            margin-bottom: 16px; box-shadow: var(--card-shadow);
         }
         .reputation-title {
-            font-size: 17px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-size: 17px; font-weight: 600; margin-bottom: 16px;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
         }
-        .reputation-body {
-            transition: max-height 0.3s ease;
-            overflow: hidden;
-        }
-        .reputation-body.collapsed {
-            max-height: 0;
-        }
-        .reputation-mini {
-            display: none;
-        }
-        .reputation-body.collapsed .reputation-mini {
-            display: block;
-        }
-        .reputation-full {
-            display: block;
-        }
-        .reputation-body.collapsed .reputation-full {
-            display: none;
-        }
-        .reputation-circle {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
+        .reputation-body { transition: max-height 0.3s ease; overflow: hidden; }
+        .reputation-body.collapsed { max-height: 0; }
+        .reputation-mini { display: none; }
+        .reputation-body.collapsed .reputation-mini { display: block; }
+        .reputation-full { display: block; }
+        .reputation-body.collapsed .reputation-full { display: none; }
+        .reputation-circle { display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .home-card {
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--card-shadow);
+            background: var(--bg-secondary); border-radius: 16px; padding: 20px;
+            margin-bottom: 20px; box-shadow: var(--card-shadow);
         }
         .home-address-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 0.5px solid var(--border-color);
-            position: relative;
-            overflow: hidden;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; border-bottom: 0.5px solid var(--border-color);
         }
         .home-address-item:last-child { border-bottom: none; }
         
         .swipe-container {
-            position: relative;
-            overflow: hidden;
-            border-radius: 16px;
-            background: var(--bg-secondary);
-            box-shadow: var(--card-shadow);
-            margin-bottom: 12px;
+            position: relative; overflow: hidden; border-radius: 16px;
+            background: var(--bg-secondary); box-shadow: var(--card-shadow); margin-bottom: 12px;
         }
         .swipe-item {
-            position: relative;
-            z-index: 2;
-            background: var(--bg-secondary);
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: transform 0.2s ease;
-            will-change: transform;
+            position: relative; z-index: 2; background: var(--bg-secondary);
+            padding: 16px; display: flex; align-items: center; gap: 12px;
+            transition: transform 0.2s ease; will-change: transform;
         }
         .swipe-delete {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            width: 80px;
-            background: var(--red);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-            z-index: 1;
-            border-radius: 0 16px 16px 0;
-            cursor: pointer;
+            position: absolute; top: 0; right: 0; bottom: 0; width: 80px;
+            background: var(--red); color: white; display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 14px; z-index: 1; border-radius: 0 16px 16px 0; cursor: pointer;
         }
 
         /* Bottom Sheet */
         .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-secondary);
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-            z-index: 2500;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            max-height: 70vh;
-            display: flex;
-            flex-direction: column;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--bg-secondary); border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 2500;
+            transform: translateY(100%); transition: transform 0.3s ease;
+            max-height: 70vh; display: flex; flex-direction: column;
             padding-bottom: env(safe-area-inset-bottom);
         }
-        .bottom-sheet.active {
-            transform: translateY(0);
-        }
+        .bottom-sheet.active { transform: translateY(0); }
         .sheet-header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 8px 12px 4px;
-            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            padding: 8px 12px 4px; position: relative;
         }
-        .sheet-handle {
-            width: 40px;
-            height: 5px;
-            background: var(--gray);
-            border-radius: 3px;
-            cursor: pointer;
-        }
+        .sheet-handle { width: 40px; height: 5px; background: var(--gray); border-radius: 3px; cursor: pointer; }
         .sheet-close {
-            position: absolute;
-            top: 8px;
-            right: 12px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            line-height: 1;
-            padding: 4px;
+            position: absolute; top: 8px; right: 12px;
+            background: none; border: none; font-size: 24px;
+            color: var(--text-secondary); cursor: pointer; line-height: 1; padding: 4px;
         }
-        .sheet-content {
-            padding: 0 20px 20px;
-            overflow-y: auto;
-        }
+        .sheet-content { padding: 0 20px 20px; overflow-y: auto; }
         .route-card {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            padding: 16px;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-            z-index: 2500;
-            display: none;
+            position: fixed; bottom: 20px; left: 20px; right: 20px;
+            background: var(--bg-secondary); border-radius: 20px; padding: 16px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 2500; display: none;
         }
-        .route-card.active {
-            display: block;
-        }
+        .route-card.active { display: block; }
         .route-close {
-            position: absolute;
-            top: 8px;
-            right: 12px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            line-height: 1;
+            position: absolute; top: 8px; right: 12px;
+            background: none; border: none; font-size: 24px;
+            color: var(--text-secondary); cursor: pointer; line-height: 1;
         }
-        .route-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
+        .route-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+        /* поиск */
+        .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+        .search-bar input {
+            flex: 1; padding: 10px 14px; border-radius: 12px;
+            border: 1px solid var(--input-border); background: var(--input-bg);
+            color: var(--text-primary); font-size: 15px;
+        }
+        .city-selector { margin-bottom: 12px; }
+        .alphabet-list-item {
+            cursor: pointer; padding: 12px 0; border-bottom: 0.5px solid var(--border-color);
+            font-size: 15px; font-weight: 500;
         }
     </style>
 </head>
@@ -692,7 +488,7 @@
 
     <div class="tabBar">
         <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
-        <div class="tab" onclick="showPanel('history')"><div class="icon">🕘</div><div class="label">История</div></div>
+        <div class="tab" onclick="showPanel('search')"><div class="icon">🔍</div><div class="label">Поиск</div></div>
         <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
         <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
     </div>
@@ -707,13 +503,8 @@
             messagingSenderId: "1066552333578",
             appId: "1:1066552333578:web:e60e333cf877852eba16f3"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        
-        database.ref('.info/connected').on('value', function(snapshot) {
-            console.log(snapshot.val() === true ? '✅ Подключено к Firebase' : '❌ Отключено от Firebase');
-        });
         
         let map, currentUser = null, mapMarkers = {}, myLocationPlacemark = null;
         let drawingPolygon = null, isDrawingMode = false;
@@ -1351,12 +1142,22 @@
 
         function showPanel(type) {
             document.getElementById('panel').classList.add('active');
-            document.getElementById('panelTitle').textContent = type === 'profile' ? 'Профиль' : type === 'history' ? 'История' : 'Избранное';
+            document.getElementById('panelTitle').textContent = 
+                type === 'profile' ? 'Профиль' : 
+                type === 'search' ? 'Поиск' : 'Избранное';
+            
             const content = document.getElementById('panelContent');
             if (type === 'profile') renderProfile(content);
-            else { content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка данных...</p></div>'; loadUserData(type, content); }
+            else if (type === 'favorites') {
+                content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
+                loadUserData('favorites', content);
+            } else if (type === 'search') {
+                renderSearchPanel(content);
+            }
+            
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab')[type === 'profile' ? 3 : (type === 'history' ? 1 : 2)].classList.add('active');
+            const tabIndex = type === 'profile' ? 3 : (type === 'search' ? 1 : 2);
+            document.querySelectorAll('.tab')[tabIndex].classList.add('active');
         }
 
         function renderProfile(contentEl) {
@@ -1375,7 +1176,7 @@
                     } else {
                         html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
                     }
-                    // Блок статистики удалён, сразу репутация
+                    // Статистика удалена, сразу репутация
                     const created = stats.parkingsCreated || 0, updated = stats.parkingsUpdated || 0, confirmations = stats.confirmations || 0, views = stats.views || 0, favorites = stats.favorites || 0;
                     const activeDates = stats.activeDates || [];
                     const score = created*5 + updated*2 + confirmations*10 + Math.floor(views/5) + favorites*10 + activeDates.length;
@@ -1390,6 +1191,71 @@
                     contentEl.innerHTML = html;
                 });
             });
+        }
+
+        function renderSearchPanel(contentEl) {
+            const cities = ['Москва', 'Санкт-Петербург', 'Казань', 'Новосибирск', 'Екатеринбург', 'Все города'];
+            let html = `
+                <div class="city-selector">
+                    <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Город</label>
+                    <select id="citySelect" class="input-field" onchange="filterParkings()">
+                        ${cities.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()">
+                </div>
+                <div id="searchResults" class="list-container">
+                    <p style="color:var(--text-secondary); text-align:center;">Введите улицу для поиска</p>
+                </div>
+            `;
+            contentEl.innerHTML = html;
+            filterParkings();
+        }
+
+        function filterParkings() {
+            const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+            const city = document.getElementById('citySelect')?.value || 'Все города';
+            const resultsContainer = document.getElementById('searchResults');
+            if (!resultsContainer) return;
+
+            let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
+            
+            if (city !== 'Все города') {
+                parkings = parkings.filter(p => 
+                    (p.name && p.name.toLowerCase().includes(city.toLowerCase())) ||
+                    (p.address && p.address.toLowerCase().includes(city.toLowerCase()))
+                );
+            }
+            
+            if (query) {
+                parkings = parkings.filter(p => 
+                    (p.name && p.name.toLowerCase().includes(query)) ||
+                    (p.address && p.address.toLowerCase().includes(query))
+                );
+            }
+            
+            parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            
+            let html = '';
+            if (parkings.length === 0) {
+                html = '<div class="empty-state"><p>Ничего не найдено</p></div>';
+            } else {
+                html = '<div class="list-container">';
+                parkings.forEach(p => {
+                    const free = p.totalSpots - (p.occupiedSpots || 0);
+                    html += `
+                        <div class="list-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                            <div class="list-icon">🅿️</div>
+                            <div class="list-info">
+                                <div class="list-title">${p.name || 'Без названия'}</div>
+                                <div class="list-subtitle">${p.address || ''} · Свободно: ${free}/${p.totalSpots}</div>
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+            }
+            resultsContainer.innerHTML = html;
         }
 
         function toggleTheme() {
@@ -1430,14 +1296,7 @@
 
         function loadUserData(type, contentEl) {
             if (!currentUser) { contentEl.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
-            if (type === 'history') {
-                database.ref('parkings').once('value').then(pSnap => {
-                    const data = pSnap.val(); if (!data) { contentEl.innerHTML = '<div class="empty-state"><div class="icon">️</div><p>Пусто</p></div>'; return; }
-                    let html = '<div class="list-container">';
-                    Object.keys(data).forEach(id => { const p = data[id]; if (p && p.name) html += `<div class="swipe-container"><div class="swipe-item" onclick="showParkingHistory('${id}','${p.name.replace(/'/g,"\\'")}')"><div class="list-icon">️</div><div class="list-info"><div class="list-title">${p.name}</div><div class="list-subtitle">Нажмите для истории</div></div></div><div class="swipe-delete" onclick="deleteParkingSwipe('${id}')">Удалить</div></div>`; });
-                    html += '</div>'; contentEl.innerHTML = html; attachSwipeToContainers(contentEl);
-                });
-            } else if (type === 'favorites') {
+            if (type === 'favorites') {
                 Promise.all([database.ref(`users/${currentUser.id}/favorites`).once('value'), database.ref(`users/${currentUser.id}/homeAddresses`).once('value')]).then(([favSnap, homeSnap]) => {
                     let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мой дом</div>';
                     const addrs = homeSnap.val() || {};
@@ -1473,14 +1332,14 @@
             document.getElementById('panelTitle').textContent = parkingName;
             database.ref(`parkings/${parkingId}/history`).limitToLast(100).once('value').then(snapshot => {
                 const data = snapshot.val();
-                if (!data) { document.getElementById('panelContent').innerHTML = '<div class="empty-state"><div class="icon">🕘</div><p>Пусто</p></div><button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>'; return; }
+                if (!data) { document.getElementById('panelContent').innerHTML = '<div class="empty-state"><div class="icon">🕘</div><p>Пусто</p></div><button class="btn-secondary" onclick="showPanel(\'search\')">Назад</button>'; return; }
                 let html = '<div class="list-container">';
                 Object.values(data).sort((a,b) => (b.timestamp||0)-(a.timestamp||0)).forEach(item => {
                     html += `<div class="history-detail"><div class="history-detail-header"><div class="history-detail-title">${item.action==='freed'?'🟢 Освобождено':item.action==='occupied'?'🔴 Занято':item.action==='created'?'🟦 Создано':'Изменение'}</div><div class="history-detail-time">${item.timestamp?formatDateTime(item.timestamp):''}</div></div>${item.username?`<div class="history-detail-row"><span class="history-detail-label">Пользователь:</span><span class="history-detail-value">@${item.username}</span></div>`:''}${item.carBrand?`<div class="history-detail-row"><span class="history-detail-label">Авто:</span><span class="history-detail-value">${item.carBrand} ${item.carModel||''} ${item.carPlate?'('+item.carPlate+')':''}</span></div>`:''}${item.previousOccupied!==undefined?`<div class="history-detail-row"><span class="history-detail-label">Изменение:</span><span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied}</span></div>`:''}</div>`;
                 });
-                html += '</div><button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>';
+                html += '</div><button class="btn-secondary" onclick="showPanel(\'search\')">Назад</button>';
                 document.getElementById('panelContent').innerHTML = html;
-            }).catch(err => { console.error(err); document.getElementById('panelContent').innerHTML = '<div class="empty-state"><p>Ошибка</p></div><button class="btn-secondary" onclick="showPanel(\'history\')">Назад</button>'; });
+            }).catch(err => { console.error(err); document.getElementById('panelContent').innerHTML = '<div class="empty-state"><p>Ошибка</p></div><button class="btn-secondary" onclick="showPanel(\'search\')">Назад</button>'; });
         }
 
         function closePanel() {
