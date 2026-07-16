@@ -824,58 +824,78 @@
                 <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>`;
         }
 
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ СОЗДАНИЯ ПАРКОВКИ
         function submitParkingWithPolygon() {
-            const name = document.getElementById('parkName').value.trim(), totalSpots = parseInt(document.getElementById('parkSpots').value), isPaid = document.getElementById('parkIsPaid').checked;
+            const name = document.getElementById('parkName').value.trim();
+            const totalSpots = parseInt(document.getElementById('parkSpots').value);
+            const isPaid = document.getElementById('parkIsPaid').checked;
             if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
             if (!name) { alert('Пожалуйста, введите название парковки'); return; }
             if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
             if (!drawingPolygon) { alert('Парковочная зона не нарисована'); return; }
 
-            const btn = document.getElementById('saveParkBtn'); btn.textContent = 'Сохранение...'; btn.disabled = true;
+            const btn = document.getElementById('saveParkBtn');
+            btn.textContent = 'Сохранение...';
+            btn.disabled = true;
 
             const coordinates = drawingPolygon.geometry.getCoordinates()[0];
             const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
             const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
             const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
 
-            ymaps.geocode([centerLat, centerLng]).then(function (res) {
-                const firstGeoObject = res.geoObjects.get(0);
-                const address = firstGeoObject ? firstGeoObject.getAddressLine() : 'Адрес не найден';
+            // Геокодирование для получения адреса
+            ymaps.geocode([centerLat, centerLng])
+                .then(res => {
+                    const firstGeoObject = res.geoObjects.get(0);
+                    const address = firstGeoObject ? firstGeoObject.getAddressLine() : '';
+                    return address;
+                })
+                .catch(err => {
+                    console.warn('Ошибка геокодирования, сохраняем без адреса:', err);
+                    return '';
+                })
+                .then(address => {
+                    const parkingData = {
+                        lat: centerLat,
+                        lng: centerLng,
+                        coordinates: cleanCoordinates,
+                        totalSpots,
+                        occupiedSpots: 0,
+                        name,
+                        isPaid,
+                        address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+                        authorId: currentUser.id,
+                        authorName: currentUser.firstName,
+                        authorUsername: currentUser.username,
+                        timestamp: Date.now(),
+                        status: 'unknown'
+                    };
 
-                const parkingData = {
-                    lat: centerLat,
-                    lng: centerLng,
-                    coordinates: cleanCoordinates,
-                    totalSpots,
-                    occupiedSpots: 0,
-                    name,
-                    isPaid,
-                    address,
-                    authorId: currentUser.id,
-                    authorName: currentUser.firstName,
-                    authorUsername: currentUser.username,
-                    timestamp: Date.now(),
-                    status: 'unknown'
-                };
-
-                const newRef = database.ref('parkings').push();
-                return newRef.set(parkingData).then(() => {
-                    database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
-                    return database.ref(`parkings/${newRef.key}/history`).push({
-                        action: 'created', timestamp: Date.now(), userId: currentUser.id,
-                        username: currentUser.username, carBrand: '', carModel: '', carPlate: ''
+                    const newRef = database.ref('parkings').push();
+                    return newRef.set(parkingData).then(() => {
+                        database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
+                            .transaction(count => (count || 0) + 1);
+                        return database.ref(`parkings/${newRef.key}/history`).push({
+                            action: 'created', timestamp: Date.now(), userId: currentUser.id,
+                            username: currentUser.username, carBrand: '', carModel: '', carPlate: ''
+                        });
+                    }).then(() => {
+                        addMarkerToMap(newRef.key, parkingData);
+                        if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+                        closePanel(); showMap();
+                        if (window.Telegram?.WebApp?.HapticFeedback) {
+                            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                        }
                     });
-                }).then(() => {
-                    addMarkerToMap(newRef.key, parkingData);
-                    if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
-                    closePanel(); showMap();
-                    if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                })
+                .catch(err => {
+                    console.error('Ошибка сохранения:', err);
+                    alert('Ошибка сохранения парковки. Попробуйте ещё раз.');
+                })
+                .finally(() => {
+                    btn.textContent = 'Сохранить парковку';
+                    btn.disabled = false;
                 });
-            }).catch(function (err) {
-                console.error('Ошибка геокодирования или Firebase:', err);
-                alert('Ошибка сохранения парковки. Попробуйте ещё раз.');
-                btn.textContent = 'Сохранить парковку'; btn.disabled = false;
-            });
         }
 
         function loadAllParkings() {
