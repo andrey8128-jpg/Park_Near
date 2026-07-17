@@ -174,6 +174,21 @@
         }
         .btn-secondary:active { background: rgba(0,122,255,0.1); }
         
+        /* Стили для кнопок входа */
+        .telegram-btn, .guest-btn {
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px;
+        }
+        .telegram-btn {
+            background: #0088cc; color: #fff;
+        }
+        .telegram-btn:active { background: #006699; }
+        .guest-btn {
+            background: var(--bg-secondary); color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        .guest-btn:active { background: var(--bg-primary); }
+        
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
         .input-field {
@@ -1118,6 +1133,7 @@
         }
 
         function saveParkingDetails() {
+            if (!currentUser) { alert('Необходимо авторизоваться'); return; }
             if (!currentParkingId || !currentParkingData) return;
             const name = document.getElementById('editName').value.trim();
             const totalSpots = parseInt(document.getElementById('editTotalSpots').value);
@@ -1172,6 +1188,7 @@
         }
 
         function deleteParking(parkingId) {
+            if (!currentUser) { alert('Необходимо авторизоваться'); return; }
             if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
             database.ref(`parkings/${parkingId}`).remove().then(() => {
                 if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]); delete mapMarkers[parkingId]; }
@@ -1181,6 +1198,7 @@
         }
 
         function changeOccupancy(delta) {
+            if (!currentUser) { alert('Необходимо авторизоваться'); return; }
             if (!currentParkingId || !currentParkingData) return;
             const total = currentParkingData.totalSpots || 0, cur = currentParkingData.occupiedSpots || 0, newOcc = cur + delta;
             if (newOcc < 0 || newOcc > total) { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); return; }
@@ -1556,6 +1574,7 @@
             if (brand && carBrands[brand]) carBrands[brand].forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSelect.appendChild(opt); });
         }
         function editCarData() {
+            if (!currentUser) { alert('Необходимо авторизоваться'); return; }
             const sec = document.getElementById('carEditSection'); if (sec) sec.remove();
             database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
                 const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
@@ -1571,6 +1590,7 @@
             });
         }
         function saveCarData() {
+            if (!currentUser) { alert('Необходимо авторизоваться'); return; }
             const brand = document.getElementById('carBrand').value, model = document.getElementById('carModel').value, color = document.getElementById('carColor').value, plate = document.getElementById('carPlate').value.trim().toUpperCase();
             if (!brand || !model || !color || !plate) { alert('Заполните все поля'); return; }
             database.ref(`users/${currentUser.id}/car`).set({ brand, model, color, plate, timestamp: Date.now() }).then(() => {
