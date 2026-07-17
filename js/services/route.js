@@ -13,7 +13,6 @@ export function showRoute(route) {
     if (currentRoute) map.geoObjects.remove(currentRoute);
     map.geoObjects.add(route);
     currentRoute = route;
-    // обновление информации в UI (вызывается из контроллера)
 }
 
 export function clearRoute() {
@@ -34,4 +33,23 @@ export function getRouteInfo(route) {
         };
     }
     return null;
+}
+
+export function showDirectLine(from, to, data) {
+    const map = getMap();
+    if (currentRoute) map.geoObjects.remove(currentRoute);
+    const line = new ymaps.Polyline([from, to], {}, {
+        strokeColor: '#007AFF',
+        strokeWidth: 4,
+        strokeOpacity: 0.8
+    });
+    map.geoObjects.add(line);
+    currentRoute = line;
+    const dist = getDistanceInMeters(from[0], from[1], to[0], to[1]) / 1000;
+    const time = Math.round(dist * 2);
+    return { distance: dist, time: time };
+}
+
+export function openNavigator(lat, lng) {
+    window.open(`https://yandex.com/navi/?build=full&lat=${lat}&lon=${lng}`, '_blank');
 }
