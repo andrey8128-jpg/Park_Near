@@ -1533,7 +1533,7 @@
             saveBtn.textContent = 'Поиск...';
             saveBtn.disabled = true;
 
-            // Проверяем, что ymaps загружен
+            // Используем глобальный ymaps (он уже загружен)
             if (typeof ymaps === 'undefined') {
                 alert('Карты не загружены, попробуйте позже');
                 saveBtn.textContent = '🔍 Найти и сохранить';
@@ -1541,27 +1541,12 @@
                 return;
             }
 
-            ymaps.ready(function() {
-                ymaps.geocode(fullAddress, { results: 1 })
-                    .then(res => {
-                        const geoObject = res.geoObjects.get(0);
-                        if (!geoObject) {
-                            alert('Адрес не найден. Проверьте правильность ввода.');
-                            saveBtn.textContent = '🔍 Найти и сохранить';
-                            saveBtn.disabled = false;
-                            return;
-                        }
-                        const coords = geoObject.geometry.getCoordinates();
-                        const addressLine = geoObject.getAddressLine();
-                        pendingAddressData = { address: addressLine || fullAddress, lat: coords[0], lng: coords[1] };
-                        document.getElementById('labelPickerOverlay').classList.add('active');
-                        saveBtn.textContent = '🔍 Найти и сохранить';
-                        saveBtn.disabled = false;
-                    })
-                    .catch(err => {
-                        console.error('Ошибка геокодирования:', err);
-                        // Пробуем сохранить без координат
-                        if (confirm('Не удалось определить координаты по адресу. Сохранить адрес без координат? (поиск рядом будет недоступен)')) {
+            ymaps.geocode(fullAddress, { results: 1 })
+                .then(res => {
+                    const geoObject = res.geoObjects.get(0);
+                    if (!geoObject) {
+                        // Если адрес не найден, предлагаем сохранить без координат
+                        if (confirm('Адрес не найден. Сохранить без координат? (поиск рядом будет недоступен)')) {
                             pendingAddressData = { address: fullAddress, lat: null, lng: null };
                             document.getElementById('labelPickerOverlay').classList.add('active');
                         } else {
@@ -1569,8 +1554,26 @@
                         }
                         saveBtn.textContent = '🔍 Найти и сохранить';
                         saveBtn.disabled = false;
-                    });
-            });
+                        return;
+                    }
+                    const coords = geoObject.geometry.getCoordinates();
+                    const addressLine = geoObject.getAddressLine();
+                    pendingAddressData = { address: addressLine || fullAddress, lat: coords[0], lng: coords[1] };
+                    document.getElementById('labelPickerOverlay').classList.add('active');
+                    saveBtn.textContent = '🔍 Найти и сохранить';
+                    saveBtn.disabled = false;
+                })
+                .catch(err => {
+                    console.error('Ошибка геокодирования:', err);
+                    if (confirm('Ошибка поиска адреса. Сохранить без координат? (поиск рядом будет недоступен)')) {
+                        pendingAddressData = { address: fullAddress, lat: null, lng: null };
+                        document.getElementById('labelPickerOverlay').classList.add('active');
+                    } else {
+                        alert('Отменено');
+                    }
+                    saveBtn.textContent = '🔍 Найти и сохранить';
+                    saveBtn.disabled = false;
+                });
         }
 
         function openAddressPicker() {
@@ -1990,6 +1993,52 @@
             
             let html = '';
             if (parkings.length === 0) {
+                html = '<div class="empty-state"><p>Ничего
+                            // ===== ЗАВЕРШЕНИЕ ФУНКЦИИ filterParkings =====
+        function filterParkings() {
+            const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+            const city = document.getElementById('citySelect')?.value || '';
+            const region = document.getElementById('regionSelect')?.value || '';
+            const resultsContainer = document.getElementById('searchResults');
+            if (!resultsContainer) return;
+
+            let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
+            
+            if (region) {
+                parkings = parkings.filter(p => 
+                    (p.region && p.region.toLowerCase().includes(region.toLowerCase())) ||
+                    (p.address && p.address.toLowerCase().includes(region.toLowerCase())) ||
+                    (p.name && p.name.toLowerCase().includes(region.toLowerCase()))
+                );
+            }
+            if (city) {
+                parkings = parkings.filter(p => 
+                    (p.city && p.city.toLowerCase().includes(city.toLowerCase())) ||
+                    (p.address && p.address.toLowerCase().includes(city.toLowerCase())) ||
+                    (p.name && p.name.toLowerCase().includes(city.toLowerCase()))
+                );
+            }
+            if (query) {
+                parkings = parkings.filter(p => 
+                    (p.name && p.name.toLowerCase().includes(query)) ||
+                    (p.address && p.address.toLowerCase().includes(query)) ||
+                    (p.street && p.street.toLowerCase().includes(query)) ||
+                    (p.houseNumber && p.houseNumber.toLowerCase().includes(query))
+                );
+            }
+
+            if (nearbySearchFilter) {
+                const { lat, lng, radius } = nearbySearchFilter;
+                parkings = parkings.filter(p => {
+                    const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
+                    return dist <= radius;
+                });
+            }
+            
+            parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            
+            let html = '';
+            if (parkings.length === 0) {
                 html = '<div class="empty-state"><p>Ничего не найдено</p></div>';
             } else {
                 html = '<div class="list-container">';
@@ -2021,48 +2070,123 @@
             attachSwipeToContainers(resultsContainer);
         }
 
+        // ===== ОСТАЛЬНЫЕ ФУНКЦИИ =====
         function toggleTheme() {
-            const isDark = document.body.classList.toggle('dark-theme'); localStorage.setItem('darkTheme', isDark);
+            const isDark = document.body.classList.toggle('dark-theme');
+            localStorage.setItem('darkTheme', isDark);
             const mapEl = document.getElementById('map');
-            if (isDark && map.getType() === 'yandex#map') mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            else mapEl.style.filter = 'none';
-            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            if (isDark && map.getType() === 'yandex#map') {
+                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+            } else {
+                mapEl.style.filter = 'none';
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
         }
+
         function updateCarModels() {
-            const brand = document.getElementById('carBrand').value, modelSelect = document.getElementById('carModel');
+            const brand = document.getElementById('carBrand').value;
+            const modelSelect = document.getElementById('carModel');
             modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-            if (brand && carBrands[brand]) carBrands[brand].forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSelect.appendChild(opt); });
+            if (brand && carBrands[brand]) {
+                carBrands[brand].forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    modelSelect.appendChild(opt);
+                });
+            }
         }
+
         function editCarData() {
-            if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-            const sec = document.getElementById('carEditSection'); if (sec) sec.remove();
+            if (!currentUser) {
+                alert('Необходимо авторизоваться');
+                return;
+            }
+            const sec = document.getElementById('carEditSection');
+            if (sec) sec.remove();
             database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
-                const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
-                const form = document.createElement('div'); form.className = 'car-section'; form.id = 'carEditSection';
-                form.innerHTML = `<div class="car-section-title">🚗 Редактирование</div>
-                <div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}" ${b===brand?'selected':''}>${b}</option>`).join('')}</select></div>
-                <div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option>${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m===model?'selected':''}>${m}</option>`).join('') : ''}</select></div>
-                <div class="form-group"><label>Цвет</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select></div>
-                <div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10"></div>
-                <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button><button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>`;
+                const car = snap.val() || {};
+                const brand = car.brand || '';
+                const model = car.model || '';
+                const plate = car.plate || '';
+                const color = car.color || '';
+                const form = document.createElement('div');
+                form.className = 'car-section';
+                form.id = 'carEditSection';
+                form.innerHTML = `
+                    <div class="car-section-title">🚗 Редактирование</div>
+                    <div class="form-group">
+                        <label>Марка</label>
+                        <select id="carBrand" class="input-field" onchange="updateCarModels()">
+                            ${Object.keys(carBrands).map(b => `<option value="${b}" ${b===brand?'selected':''}>${b}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Модель</label>
+                        <select id="carModel" class="input-field">
+                            <option value="">Выберите модель</option>
+                            ${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m===model?'selected':''}>${m}</option>`).join('') : ''}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Цвет</label>
+                        <select id="carColor" class="input-field">
+                            ${Object.keys(carColors).map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Гос номер</label>
+                        <input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10">
+                    </div>
+                    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
+                    <button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>
+                `;
                 document.querySelector('.car-section').parentNode.insertBefore(form, document.querySelector('.car-section').nextSibling);
                 document.querySelector('.car-section').remove();
             });
         }
+
         function saveCarData() {
-            if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-            const brand = document.getElementById('carBrand').value, model = document.getElementById('carModel').value, color = document.getElementById('carColor').value, plate = document.getElementById('carPlate').value.trim().toUpperCase();
-            if (!brand || !model || !color || !plate) { alert('Заполните все поля'); return; }
-            database.ref(`users/${currentUser.id}/car`).set({ brand, model, color, plate, timestamp: Date.now() }).then(() => {
-                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            if (!currentUser) {
+                alert('Необходимо авторизоваться');
+                return;
+            }
+            const brand = document.getElementById('carBrand').value;
+            const model = document.getElementById('carModel').value;
+            const color = document.getElementById('carColor').value;
+            const plate = document.getElementById('carPlate').value.trim().toUpperCase();
+            if (!brand || !model || !color || !plate) {
+                alert('Заполните все поля');
+                return;
+            }
+            database.ref(`users/${currentUser.id}/car`).set({
+                brand,
+                model,
+                color,
+                plate,
+                timestamp: Date.now()
+            }).then(() => {
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
                 renderProfile(document.getElementById('panelContent'));
-            }).catch(err => { alert('Ошибка: ' + err.message); });
+            }).catch(err => {
+                alert('Ошибка: ' + err.message);
+            });
         }
 
         function loadUserData(type, contentEl) {
-            if (!currentUser) { contentEl.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
+            if (!currentUser) {
+                contentEl.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>';
+                return;
+            }
             if (type === 'favorites') {
-                Promise.all([database.ref(`users/${currentUser.id}/favorites`).once('value'), database.ref(`users/${currentUser.id}/homeAddresses`).once('value')]).then(([favSnap, homeSnap]) => {
+                Promise.all([
+                    database.ref(`users/${currentUser.id}/favorites`).once('value'),
+                    database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
+                ]).then(([favSnap, homeSnap]) => {
                     let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мой дом</div>';
                     const addrs = homeSnap.val() || {};
                     if (Object.keys(addrs).length > 0) {
@@ -2079,12 +2203,16 @@
                                 <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
                             </div>`;
                         });
-                    } else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
+                    } else {
+                        html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
+                    }
                     html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
                     html += '</div>';
+
                     const favs = favSnap.val();
-                    if (!favs) html += '<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных</p></div>';
-                    else {
+                    if (!favs) {
+                        html += '<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных</p></div>';
+                    } else {
                         html += '<div class="list-container">';
                         Object.values(favs).forEach(item => {
                             if (item && item.parkingId) {
@@ -2104,56 +2232,148 @@
                 });
             }
         }
+
         function attachSwipeToContainers(container) {
             container.querySelectorAll('.swipe-container').forEach(cnt => {
-                const item = cnt.querySelector('.swipe-item'); if (!item) return;
+                const item = cnt.querySelector('.swipe-item');
+                if (!item) return;
                 let startX = 0, curX = 0, dragging = false;
-                item.addEventListener('touchstart', e => { startX = e.touches[0].clientX; dragging = true; item.style.transition = 'none'; });
-                item.addEventListener('touchmove', e => { if (!dragging) return; curX = e.touches[0].clientX - startX; if (curX < 0) item.style.transform = `translateX(${Math.max(curX, -80)}px)`; });
-                item.addEventListener('touchend', () => { dragging = false; item.style.transition = 'transform 0.2s'; if (curX < -40) item.style.transform = 'translateX(-80px)'; else item.style.transform = 'translateX(0)'; curX = 0; });
-                cnt.querySelector('.swipe-delete').addEventListener('click', () => item.style.transform = 'translateX(0)');
+                item.addEventListener('touchstart', e => {
+                    startX = e.touches[0].clientX;
+                    dragging = true;
+                    item.style.transition = 'none';
+                });
+                item.addEventListener('touchmove', e => {
+                    if (!dragging) return;
+                    curX = e.touches[0].clientX - startX;
+                    if (curX < 0) {
+                        item.style.transform = `translateX(${Math.max(curX, -80)}px)`;
+                    }
+                });
+                item.addEventListener('touchend', () => {
+                    dragging = false;
+                    item.style.transition = 'transform 0.2s';
+                    if (curX < -40) {
+                        item.style.transform = 'translateX(-80px)';
+                    } else {
+                        item.style.transform = 'translateX(0)';
+                    }
+                    curX = 0;
+                });
+                const del = cnt.querySelector('.swipe-delete');
+                if (del) {
+                    del.addEventListener('click', () => {
+                        item.style.transform = 'translateX(0)';
+                    });
+                }
             });
         }
-        function deleteParkingSwipe(parkingId) { if (confirm('Удалить парковку?')) deleteParking(parkingId); }
+
+        function deleteParkingSwipe(parkingId) {
+            if (confirm('Удалить парковку?')) deleteParking(parkingId);
+        }
 
         function showParkingHistory(parkingId, parkingName) {
             document.getElementById('panelTitle').textContent = parkingName;
             database.ref(`parkings/${parkingId}/history`).limitToLast(100).once('value').then(snapshot => {
                 const data = snapshot.val();
-                if (!data) { document.getElementById('panelContent').innerHTML = '<div class="empty-state"><div class="icon">🕘</div><p>Пусто</p></div><button class="btn-secondary" onclick="showPanel(\'search\')">Назад</button>'; return; }
+                if (!data) {
+                    document.getElementById('panelContent').innerHTML = `
+                        <div class="empty-state"><div class="icon">🕘</div><p>Пусто</p></div>
+                        <button class="btn-secondary" onclick="showPanel('search')">Назад</button>
+                    `;
+                    return;
+                }
                 let html = '<div class="list-container">';
                 Object.values(data).sort((a,b) => (b.timestamp||0)-(a.timestamp||0)).forEach(item => {
-                    html += `<div class="history-detail"><div class="history-detail-header"><div class="history-detail-title">${item.action==='freed'?'🟢 Освобождено':item.action==='occupied'?'🔴 Занято':item.action==='created'?'🟦 Создано':'Изменение'}</div><div class="history-detail-time">${item.timestamp?formatDateTime(item.timestamp):''}</div></div>${item.username?`<div class="history-detail-row"><span class="history-detail-label">Пользователь:</span><span class="history-detail-value">@${item.username}</span></div>`:''}${item.carBrand?`<div class="history-detail-row"><span class="history-detail-label">Авто:</span><span class="history-detail-value">${item.carBrand} ${item.carModel||''} ${item.carPlate?'('+item.carPlate+')':''}</span></div>`:''}${item.previousOccupied!==undefined?`<div class="history-detail-row"><span class="history-detail-label">Изменение:</span><span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied}</span></div>`:''}</div>`;
+                    html += `<div class="history-detail"><div class="history-detail-header">
+                        <div class="history-detail-title">${item.action==='freed'?'🟢 Освобождено':item.action==='occupied'?'🔴 Занято':item.action==='created'?'🟦 Создано':'Изменение'}</div>
+                        <div class="history-detail-time">${item.timestamp?formatDateTime(item.timestamp):''}</div>
+                    </div>${item.username?`<div class="history-detail-row"><span class="history-detail-label">Пользователь:</span><span class="history-detail-value">@${item.username}</span></div>`:''}${item.carBrand?`<div class="history-detail-row"><span class="history-detail-label">Авто:</span><span class="history-detail-value">${item.carBrand} ${item.carModel||''} ${item.carPlate?'('+item.carPlate+')':''}</span></div>`:''}${item.previousOccupied!==undefined?`<div class="history-detail-row"><span class="history-detail-label">Изменение:</span><span class="history-detail-value">${item.previousOccupied} → ${item.newOccupied}</span></div>`:''}</div>`;
                 });
                 html += '</div><button class="btn-secondary" onclick="showPanel(\'search\')">Назад</button>';
                 document.getElementById('panelContent').innerHTML = html;
-            }).catch(err => { console.error(err); document.getElementById('panelContent').innerHTML = '<div class="empty-state"><p>Ошибка</p></div><button class="btn-secondary" onclick="showPanel(\'search\')">Назад</button>'; });
+            }).catch(err => {
+                console.error(err);
+                document.getElementById('panelContent').innerHTML = `
+                    <div class="empty-state"><p>Ошибка</p></div>
+                    <button class="btn-secondary" onclick="showPanel('search')">Назад</button>
+                `;
+            });
         }
 
         function closePanel() {
             nearbySearchFilter = null;
             if (isAddressPickerOpen) cancelAddressPicker();
-            closeParkingSheet(); closeRoute();
+            closeParkingSheet();
+            closeRoute();
             document.getElementById('panel').classList.remove('active');
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector('.tab:first-child').classList.add('active');
-            currentParkingId = null; currentParkingData = null;
-            if (editingPolygon) { map.geoObjects.remove(editingPolygon); editingPolygon = null; document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+'; isDrawingMode = false; const c = document.getElementById('drawingControls'); if (c) c.remove(); }
-            if (clickTimeout) { clearTimeout(clickTimeout); clickTimeout = null; }
-            lastClickParkingId = null; lastClickTime = 0;
+            currentParkingId = null;
+            currentParkingData = null;
+            if (editingPolygon) {
+                map.geoObjects.remove(editingPolygon);
+                editingPolygon = null;
+                document.getElementById('addBtn').classList.remove('drawing');
+                document.getElementById('addBtn').textContent = '+';
+                isDrawingMode = false;
+                const c = document.getElementById('drawingControls');
+                if (c) c.remove();
+            }
+            if (clickTimeout) {
+                clearTimeout(clickTimeout);
+                clickTimeout = null;
+            }
+            lastClickParkingId = null;
+            lastClickTime = 0;
             resetHighlightedParkings();
         }
-        function showMap() { closePanel(); }
 
-        function openTelegramBot() { if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert('Запустите бота @parknear_bot'); else window.open('https://t.me/parknear_bot', '_blank'); }
+        function showMap() {
+            closePanel();
+        }
+
+        function openTelegramBot() {
+            if (window.Telegram?.WebApp?.showAlert) {
+                window.Telegram.WebApp.showAlert('Запустите бота @parknear_bot');
+            } else {
+                window.open('https://t.me/parknear_bot', '_blank');
+            }
+        }
+
         function continueAsGuest() {
-            currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '', isGuest: true };
+            currentUser = {
+                id: 'guest_' + Date.now(),
+                username: 'guest',
+                firstName: 'Гость',
+                photoUrl: '',
+                isGuest: true
+            };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            database.ref(`users/${currentUser.id}/stats`).set({ registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] });
+            database.ref(`users/${currentUser.id}/stats`).set({
+                registeredAt: Date.now(),
+                lastActive: Date.now(),
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [new Date().toISOString().split('T')[0]]
+            });
             showPanel('profile');
         }
+
         function logout() {
-            if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
+            if (confirm('Выйти?')) {
+                currentUser = null;
+                localStorage.removeItem('tgUser');
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.close();
+                } else {
+                    showPanel('profile');
+                }
+            }
         }
     </script>
 </body>
