@@ -10,7 +10,7 @@ export function addAddress(addressData) {
 
 export function removeAddress(addressId) {
     const user = getUser();
-    if (!user) return;
+    if (!user) return Promise.reject('Не авторизован');
     return addressModel.removeAddress(user.id, addressId);
 }
 
