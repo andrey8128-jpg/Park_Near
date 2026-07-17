@@ -538,7 +538,8 @@
         const MAX_ZONE_WIDTH = 100, MAX_ZONE_LENGTH = 100;
         let addressPickerMap = null, addressPickerPlacemark = null, addressPickerCoords = null, isAddressPickerOpen = false;
         let currentRoute = null, routeStartCoords = null, routeEndCoords = null, routeParkingData = null;
-        let userCityPrefs = { region: '', city: '' }; // для хранения выбранных пользователем
+        let userCityPrefs = { region: '', city: '' };
+        let nearbySearchFilter = null; // { lat, lng, radius }
 
         const carBrands = {
             'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
@@ -729,7 +730,6 @@
                         userStatsRef.update({ lastActive: Date.now(), activeDates: activeDates });
                     }
                 });
-                // Загружаем предпочтения города
                 database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
                     if (snap.exists()) {
                         userCityPrefs = snap.val();
@@ -924,11 +924,9 @@
                 })
                 .then(address => {
                     const parsed = parseAddress(address);
-                    // Если у пользователя есть предпочтения города, переопределяем регион и город
                     if (userCityPrefs && userCityPrefs.region && userCityPrefs.city) {
                         parsed.region = userCityPrefs.region;
                         parsed.city = userCityPrefs.city;
-                        // также обновляем адрес для отображения (можно оставить как есть)
                     }
                     const parkingData = {
                         lat: centerLat,
@@ -1234,7 +1232,6 @@
                 if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]); delete mapMarkers[parkingId]; }
                 delete parkingDataCache[parkingId]; closePanel(); showMap();
                 if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                // Обновить поиск, если он открыт
                 const panelContent = document.getElementById('panelContent');
                 if (panelContent && document.getElementById('searchResults')) {
                     filterParkings();
@@ -1431,7 +1428,16 @@
             });
         }
 
-        function showPanel(type) {
+        // Новая функция для поиска парковок рядом с адресом
+        function findParkingsNearAddress(lat, lng) {
+            nearbySearchFilter = { lat, lng, radius: 300 };
+            showPanel('search', true);
+        }
+
+        function showPanel(type, keepFilter = false) {
+            if (type === 'search' && !keepFilter) {
+                nearbySearchFilter = null;
+            }
             document.getElementById('panel').classList.add('active');
             document.getElementById('panelTitle').textContent = 
                 type === 'profile' ? 'Профиль' : 
@@ -1459,13 +1465,11 @@
                 const stats = statsSnap.val() || {};
                 database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
                     const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
-                    // Загружаем предпочтения города
                     database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(prefSnap => {
                         const prefs = prefSnap.val() || { region: '', city: '' };
                         userCityPrefs = prefs;
                         let html = `<div class="profile-header"><div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div><div class="profile-name">${currentUser.firstName}</div><div class="profile-username">@${currentUser.username}</div>${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}</div><div class="theme-toggle-row"><div class="theme-toggle-label">🌙 Тёмная тема</div><label class="theme-switch"><input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()"><span class="theme-slider"></span></label></div>`;
 
-                        // Карточка выбора города
                         html += `<div class="city-pref-card">
                             <div class="city-pref-title">🏙️ Мой город</div>
                             <div class="city-pref-row">
@@ -1487,14 +1491,12 @@
                             <button class="btn-secondary" style="margin-top:8px;" onclick="saveCityPreferences()">Сохранить город</button>
                         </div>`;
 
-                        // Секция автомобиля
                         if (brand && model && plate) {
                             html += `<div class="car-section"><div class="car-section-title">🚗 Мой автомобиль</div><div class="car-summary"><div class="car-summary-info"><div class="car-summary-title">${brand} ${model}</div><div class="car-summary-subtitle">${plate}</div></div><div class="car-summary-color" style="background:${carColors[color] || '#808080'};"></div></div><button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button></div>`;
                         } else {
                             html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
                         }
                         
-                        // Репутация
                         const created = stats.parkingsCreated || 0;
                         const updated = stats.parkingsUpdated || 0;
                         const confirmations = stats.confirmations || 0;
@@ -1644,6 +1646,19 @@
                     (p.houseNumber && p.houseNumber.toLowerCase().includes(query))
                 );
             }
+
+            // Фильтр по радиусу
+            if (nearbySearchFilter) {
+                const { lat, lng, radius } = nearbySearchFilter;
+                parkings = parkings.filter(p => {
+                    const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
+                    return dist <= radius;
+                });
+                // Добавляем подсказку о фильтре
+                if (parkings.length === 0) {
+                    // Можно показать сообщение
+                }
+            }
             
             parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             
@@ -1725,7 +1740,17 @@
                     let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мой дом</div>';
                     const addrs = homeSnap.val() || {};
                     if (Object.keys(addrs).length > 0) {
-                        Object.entries(addrs).forEach(([id, addr]) => { html += `<div class="swipe-container" style="margin-bottom:8px;"><div class="swipe-item" style="padding:10px 0;"><span style="flex:1;">${addr.address}</span><div><button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="highlightNearbyFreeParkings(${addr.lat},${addr.lng})">🔍 Рядом</button></div></div><div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div></div>`; });
+                        Object.entries(addrs).forEach(([id, addr]) => {
+                            html += `<div class="swipe-container" style="margin-bottom:8px;">
+                                <div class="swipe-item" style="padding:10px 0;">
+                                    <span style="flex:1;">${addr.address}</span>
+                                    <div>
+                                        <button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat},${addr.lng})">Найти парковку</button>
+                                    </div>
+                                </div>
+                                <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
+                            </div>`;
+                        });
                     } else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
                     html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
                     html += '</div>';
@@ -1778,6 +1803,7 @@
         }
 
         function closePanel() {
+            nearbySearchFilter = null; // сбрасываем фильтр при закрытии
             if (isAddressPickerOpen) cancelAddressPicker();
             closeParkingSheet(); closeRoute();
             document.getElementById('panel').classList.remove('active');
