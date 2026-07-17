@@ -447,6 +447,41 @@
         .city-pref-row .form-group {
             flex: 1;
         }
+
+        /* Стили для выбора метки */
+        .label-picker-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 4000;
+            align-items: center;
+            justify-content: center;
+        }
+        .label-picker-overlay.active {
+            display: flex;
+        }
+        .label-picker-box {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 340px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .label-picker-box h3 {
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .label-picker-box .btn-secondary {
+            margin-top: 8px;
+        }
+        .label-picker-box .label-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -488,6 +523,20 @@
             <div style="padding:12px; background:var(--bg-secondary); border-top:0.5px solid var(--border-color);">
                 <button class="btn-primary" onclick="saveAddressFromPicker()">💾 Сохранить адрес</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Оверлей для выбора метки адреса -->
+    <div class="label-picker-overlay" id="labelPickerOverlay">
+        <div class="label-picker-box">
+            <h3>🏷️ Выберите метку</h3>
+            <div class="label-options">
+                <button class="btn-secondary" onclick="selectLabel('Дом')">🏠 Дом</button>
+                <button class="btn-secondary" onclick="selectLabel('Работа')">💼 Работа</button>
+                <button class="btn-secondary" onclick="selectLabel('Родственники')">👨‍👩‍👧‍👦 Родственники</button>
+                <button class="btn-secondary" onclick="selectLabel('Другое')">✏️ Другое</button>
+            </div>
+            <button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
         </div>
     </div>
 
@@ -540,6 +589,7 @@
         let currentRoute = null, routeStartCoords = null, routeEndCoords = null, routeParkingData = null;
         let userCityPrefs = { region: '', city: '' };
         let nearbySearchFilter = null; // { lat, lng, radius }
+        let pendingAddressData = null; // для временного хранения перед выбором метки
 
         const carBrands = {
             'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
@@ -1304,6 +1354,7 @@
             highlightedParkings = {};
         }
 
+        // Функции для работы с домашними адресами с метками
         function addHomeAddress() {
             if (!currentUser) { alert('Необходимо войти'); return; }
             database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
@@ -1311,6 +1362,7 @@
                 openAddressPicker();
             }).catch(err => { console.error(err); alert('Ошибка'); });
         }
+
         function openAddressPicker() {
             if (!currentUser) { alert('Необходимо войти'); return; }
             isAddressPickerOpen = true; document.getElementById('addressPickerOverlay').style.display = 'block';
@@ -1322,6 +1374,7 @@
                 } else addressPickerMap.container.fitToViewport();
             }, 100);
         }
+
         function setAddressPickerCoords(coords) {
             addressPickerCoords = coords;
             if (addressPickerPlacemark) addressPickerPlacemark.geometry.setCoordinates(coords);
@@ -1331,54 +1384,86 @@
                 addressPickerPlacemark.events.add('dragend', () => { addressPickerCoords = addressPickerPlacemark.geometry.getCoordinates(); });
             }
         }
+
         function cancelAddressPicker() {
             document.getElementById('addressPickerOverlay').style.display = 'none'; isAddressPickerOpen = false;
             if (addressPickerPlacemark) { addressPickerMap.geoObjects.remove(addressPickerPlacemark); addressPickerPlacemark = null; }
             addressPickerCoords = null;
+            pendingAddressData = null;
         }
+
         function saveAddressFromPicker() {
             if (!currentUser) { alert('Необходимо войти'); cancelAddressPicker(); return; }
             if (!addressPickerCoords) { alert('Установите метку'); return; }
             const saveBtn = document.querySelector('#addressPickerContainer .btn-primary'), origText = saveBtn.textContent;
-            saveBtn.textContent = 'Сохранение...'; saveBtn.disabled = true;
+            saveBtn.textContent = 'Обработка...'; saveBtn.disabled = true;
+
             ymaps.geocode(addressPickerCoords)
                 .then(res => {
                     const addrText = res.geoObjects.get(0) ? res.geoObjects.get(0).getAddressLine() : `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
-                    return database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
-                        .then(snap => {
-                            const count = Object.keys(snap.val() || {}).length;
-                            if (count >= 3) {
-                                alert('Максимум 3 адреса');
-                                cancelAddressPicker();
-                                saveBtn.textContent = origText;
-                                saveBtn.disabled = false;
-                                return null;
-                            }
-                            return database.ref(`users/${currentUser.id}/homeAddresses`).push({
-                                address: addrText,
-                                lat: addressPickerCoords[0],
-                                lng: addressPickerCoords[1],
-                                timestamp: Date.now()
-                            });
-                        });
+                    // Сохраняем временно и открываем выбор метки
+                    pendingAddressData = { address: addrText, lat: addressPickerCoords[0], lng: addressPickerCoords[1] };
+                    document.getElementById('addressPickerOverlay').style.display = 'none';
+                    document.getElementById('labelPickerOverlay').classList.add('active');
+                    saveBtn.textContent = origText;
+                    saveBtn.disabled = false;
                 })
-                .then(() => {
-                    if (saveBtn.disabled) {
-                        // уже обработано ошибкой или лимитом
+                .catch(err => {
+                    console.error('Ошибка геокодирования:', err);
+                    alert('Ошибка определения адреса: ' + err.message);
+                    saveBtn.textContent = origText;
+                    saveBtn.disabled = false;
+                });
+        }
+
+        function selectLabel(label) {
+            if (!pendingAddressData) return;
+            const data = pendingAddressData;
+            database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
+                .then(snap => {
+                    const count = Object.keys(snap.val() || {}).length;
+                    if (count >= 3) {
+                        alert('Максимум 3 адреса');
+                        cancelLabelPicker();
                         return;
                     }
-                    cancelAddressPicker();
+                    return database.ref(`users/${currentUser.id}/homeAddresses`).push({
+                        address: data.address,
+                        lat: data.lat,
+                        lng: data.lng,
+                        label: label,
+                        timestamp: Date.now()
+                    });
+                })
+                .then(() => {
+                    cancelLabelPicker();
                     alert('Адрес сохранён!');
                     showPanel('favorites');
                 })
                 .catch(err => {
                     console.error('Ошибка сохранения адреса:', err);
                     alert('Ошибка сохранения: ' + err.message);
-                    saveBtn.textContent = origText;
-                    saveBtn.disabled = false;
+                    cancelLabelPicker();
                 });
         }
-        function removeHomeAddress(addressId) { if (confirm('Удалить адрес?')) database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove().then(() => showPanel('favorites')); }
+
+        function cancelLabelPicker() {
+            document.getElementById('labelPickerOverlay').classList.remove('active');
+            pendingAddressData = null;
+            // Возвращаем карту выбора адреса, если она была открыта
+            if (addressPickerCoords) {
+                document.getElementById('addressPickerOverlay').style.display = 'block';
+            }
+        }
+
+        function removeHomeAddress(addressId) {
+            if (confirm('Удалить адрес?')) {
+                database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove()
+                    .then(() => showPanel('favorites'))
+                    .catch(err => alert('Ошибка: ' + err.message));
+            }
+        }
+
         function focusMap(lat, lng, parkingId) { closePanel(); map.setCenter([lat, lng], 16, { duration: 300 }); }
 
         function highlightAndShowParking(parkingId) {
@@ -1455,7 +1540,7 @@
             });
         }
 
-        // Новая функция для поиска парковок рядом с адресом
+        // Поиск парковок рядом с адресом
         function findParkingsNearAddress(lat, lng) {
             nearbySearchFilter = { lat, lng, radius: 300 };
             showPanel('search', true);
@@ -1681,10 +1766,6 @@
                     const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
                     return dist <= radius;
                 });
-                // Добавляем подсказку о фильтре
-                if (parkings.length === 0) {
-                    // Можно показать сообщение
-                }
             }
             
             parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -1768,9 +1849,11 @@
                     const addrs = homeSnap.val() || {};
                     if (Object.keys(addrs).length > 0) {
                         Object.entries(addrs).forEach(([id, addr]) => {
+                            const label = addr.label || 'Адрес';
+                            const icon = label === 'Дом' ? '🏠' : label === 'Работа' ? '💼' : label === 'Родственники' ? '👨‍👩‍👧‍👦' : '📍';
                             html += `<div class="swipe-container" style="margin-bottom:8px;">
                                 <div class="swipe-item" style="padding:10px 0;">
-                                    <span style="flex:1;">${addr.address}</span>
+                                    <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
                                     <div>
                                         <button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat},${addr.lng})">Найти парковку</button>
                                     </div>
@@ -1830,7 +1913,7 @@
         }
 
         function closePanel() {
-            nearbySearchFilter = null; // сбрасываем фильтр при закрытии
+            nearbySearchFilter = null;
             if (isAddressPickerOpen) cancelAddressPicker();
             closeParkingSheet(); closeRoute();
             document.getElementById('panel').classList.remove('active');
