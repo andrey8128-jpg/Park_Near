@@ -449,6 +449,34 @@
             flex-direction: column;
             gap: 8px;
         }
+
+        /* Стили для ручного добавления адреса */
+        .address-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .address-toggle button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .address-toggle button.active {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: #fff;
+        }
+        .address-toggle button:active { transform: scale(0.96); }
+        .manual-address-form { display: none; }
+        .manual-address-form.active { display: block; }
+        .map-address-form { display: none; }
+        .map-address-form.active { display: block; }
     </style>
 </head>
 <body>
@@ -1067,7 +1095,7 @@
 
         function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
 
-        // ========== ИСПРАВЛЕННЫЙ МАРШРУТ ==========
+        // ========== МАРШРУТ ==========
         function buildRouteToParking(parkingId) {
             closeParkingSheet();
             const data = parkingDataCache[parkingId];
@@ -1133,7 +1161,6 @@
                 });
         }
 
-        // Запасной вариант – прямая линия
         function showDirectLine() {
             if (!routeStartCoords || !routeEndCoords) return;
             if (currentRoute) {
@@ -1415,12 +1442,122 @@
             highlightedParkings = {};
         }
 
+        // ========== ФУНКЦИИ ДЛЯ АДРЕСОВ ==========
         function addHomeAddress() {
             if (!currentUser) { alert('Необходимо войти'); return; }
             database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
                 if (Object.keys(snap.val() || {}).length >= 3) { alert('Максимум 3 адреса'); return; }
-                openAddressPicker();
+                // Показываем форму добавления адреса в панели
+                showAddressForm();
             }).catch(err => { console.error(err); alert('Ошибка'); });
+        }
+
+        function showAddressForm() {
+            const content = document.getElementById('panelContent');
+            const html = `
+                <div class="home-card">
+                    <div style="font-size:18px;font-weight:600;margin-bottom:12px;">➕ Добавить адрес</div>
+                    <div class="address-toggle">
+                        <button class="active" onclick="switchAddressMethod('manual')">✏️ Вручную</button>
+                        <button onclick="switchAddressMethod('map')">🗺️ На карте</button>
+                    </div>
+                    <div class="manual-address-form active" id="manualAddressForm">
+                        <div class="form-group">
+                            <label>Регион</label>
+                            <select id="addrRegion" class="input-field" onchange="updateAddrCity()">
+                                <option value="">Выберите регион</option>
+                                ${Object.keys(regionsData).sort().map(r => `<option value="${r}">${r}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Город</label>
+                            <select id="addrCity" class="input-field">
+                                <option value="">Сначала выберите регион</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Улица</label>
+                            <input type="text" id="addrStreet" class="input-field" placeholder="ул. Ленина">
+                        </div>
+                        <div class="form-group">
+                            <label>Номер дома</label>
+                            <input type="text" id="addrHouse" class="input-field" placeholder="15">
+                        </div>
+                        <button class="btn-primary" onclick="saveAddressManually()">🔍 Найти и сохранить</button>
+                    </div>
+                    <div class="map-address-form" id="mapAddressForm">
+                        <p style="text-align:center;color:var(--text-secondary);margin-bottom:16px;">Выберите точку на карте</p>
+                        <button class="btn-primary" onclick="openAddressPicker()">🗺️ Открыть карту</button>
+                    </div>
+                    <button class="btn-secondary" style="margin-top:12px;" onclick="showPanel('favorites')">Отмена</button>
+                </div>
+            `;
+            content.innerHTML = html;
+        }
+
+        function switchAddressMethod(method) {
+            document.querySelectorAll('.address-toggle button').forEach(btn => btn.classList.remove('active'));
+            if (method === 'manual') {
+                document.querySelector('.address-toggle button:first-child').classList.add('active');
+                document.getElementById('manualAddressForm').classList.add('active');
+                document.getElementById('mapAddressForm').classList.remove('active');
+            } else {
+                document.querySelector('.address-toggle button:last-child').classList.add('active');
+                document.getElementById('mapAddressForm').classList.add('active');
+                document.getElementById('manualAddressForm').classList.remove('active');
+            }
+        }
+
+        function updateAddrCity() {
+            const region = document.getElementById('addrRegion').value;
+            const citySelect = document.getElementById('addrCity');
+            citySelect.innerHTML = '<option value="">Выберите город</option>';
+            if (region && regionsData[region]) {
+                regionsData[region].forEach(city => {
+                    const opt = document.createElement('option');
+                    opt.value = city;
+                    opt.textContent = city;
+                    citySelect.appendChild(opt);
+                });
+            }
+        }
+
+        function saveAddressManually() {
+            const region = document.getElementById('addrRegion').value;
+            const city = document.getElementById('addrCity').value;
+            const street = document.getElementById('addrStreet').value.trim();
+            const house = document.getElementById('addrHouse').value.trim();
+            if (!region || !city || !street || !house) {
+                alert('Заполните все поля');
+                return;
+            }
+            const fullAddress = `${region}, ${city}, ${street} ${house}`;
+            const saveBtn = document.querySelector('#manualAddressForm .btn-primary');
+            saveBtn.textContent = 'Поиск...';
+            saveBtn.disabled = true;
+
+            ymaps.geocode(fullAddress, { results: 1 })
+                .then(res => {
+                    const geoObject = res.geoObjects.get(0);
+                    if (!geoObject) {
+                        alert('Адрес не найден. Проверьте правильность ввода.');
+                        saveBtn.textContent = '🔍 Найти и сохранить';
+                        saveBtn.disabled = false;
+                        return;
+                    }
+                    const coords = geoObject.geometry.getCoordinates();
+                    const addressLine = geoObject.getAddressLine();
+                    pendingAddressData = { address: addressLine || fullAddress, lat: coords[0], lng: coords[1] };
+                    document.getElementById('labelPickerOverlay').classList.add('active');
+                    saveBtn.textContent = '🔍 Найти и сохранить';
+                    saveBtn.disabled = false;
+                })
+                .catch(err => {
+                    console.error('Ошибка геокодирования:', err);
+                    alert('Ошибка поиска адреса: ' + err.message);
+                    saveBtn.textContent = '🔍 Найти и сохранить';
+                    saveBtn.disabled = false;
+                });
         }
 
         function openAddressPicker() {
@@ -1508,9 +1645,6 @@
         function cancelLabelPicker() {
             document.getElementById('labelPickerOverlay').classList.remove('active');
             pendingAddressData = null;
-            if (addressPickerCoords) {
-                document.getElementById('addressPickerOverlay').style.display = 'block';
-            }
         }
 
         function removeHomeAddress(addressId) {
