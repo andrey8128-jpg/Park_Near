@@ -16,8 +16,8 @@
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
     
     <style>
+        /* Все стили без изменений (оставляем как было) */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        
         :root {
             --bg-primary: #F2F2F7;
             --bg-secondary: #FFFFFF;
@@ -33,7 +33,6 @@
             --orange: #FF9500;
             --gray: #8E8E93;
         }
-        
         body.dark-theme {
             --bg-primary: #000000;
             --bg-secondary: #1C1C1E;
@@ -44,7 +43,6 @@
             --input-border: #3A3A3C;
             --card-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
             overflow: hidden; height: 100vh; height: 100dvh;
@@ -52,7 +50,6 @@
             transition: background 0.3s, color 0.3s;
             -webkit-font-smoothing: antialiased;
         }
-        
         .app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 44px;
             background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -62,18 +59,15 @@
         body.dark-theme .app-header { background: rgba(28,28,30,0.7); }
         .app-title { font-size: 17px; font-weight: 600; letter-spacing: -0.5px; }
         .app-title span { color: var(--accent); }
-        
         #map {
             position: fixed; top: 44px; left: 0; right: 0; bottom: 83px;
             background: #E5E5EA; transition: filter 0.5s ease;
         }
-        
         body.dark-theme #map {
             filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
         }
         body.dark-theme #map .ymaps-2-1-79-map-pane img,
         body.dark-theme #map .ymaps-2-1-79-ground-pane img { filter: invert(1) hue-rotate(180deg); }
-        
         .layer-switcher {
             position: fixed; top: 54px; right: 12px; z-index: 900;
             background: var(--bg-secondary); backdrop-filter: blur(20px);
@@ -98,7 +92,6 @@
         .layer-option:last-child { border-bottom: none; }
         .layer-option:active { background: var(--bg-primary); }
         .layer-option.selected { color: var(--accent); font-weight: 600; }
-        
         #geoBtn {
             position: fixed; bottom: 170px; right: 20px; z-index: 900;
             width: 48px; height: 48px; border-radius: 50%;
@@ -109,7 +102,6 @@
         }
         #geoBtn:active { transform: scale(0.9); background: var(--bg-primary); }
         #geoBtn svg { width: 24px; height: 24px; fill: var(--accent); }
-
         #addBtn {
             position: fixed; bottom: 100px; right: 20px; z-index: 900;
             width: 56px; height: 56px; border-radius: 50%;
@@ -120,7 +112,6 @@
         }
         #addBtn:active { transform: scale(0.9); background: #0051D5; }
         #addBtn.drawing { background: var(--orange); }
-        
         .tabBar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
             background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
@@ -136,7 +127,6 @@
         .tab .icon { font-size: 24px; margin-bottom: 4px; }
         .tab .label { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
         .tab.active .label { color: var(--accent); font-weight: 600; }
-        
         .panel {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-primary); z-index: 2000;
@@ -152,7 +142,6 @@
         .panel-title { font-size: 17px; font-weight: 600; }
         .panel-close { color: var(--accent); background: none; border: none; font-size: 17px; cursor: pointer; padding: 8px; }
         .panel-content { flex: 1; overflow-y: auto; padding: 20px; }
-        
         .btn-primary {
             width: 100%; padding: 16px; border-radius: 14px; border: none;
             background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
@@ -173,7 +162,6 @@
             cursor: pointer; color: var(--accent); background: transparent; margin-top: 8px;
         }
         .btn-secondary:active { background: rgba(0,122,255,0.1); }
-        
         .telegram-btn, .guest-btn {
             width: 100%; padding: 16px; border-radius: 14px; border: none;
             font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px;
@@ -182,7 +170,6 @@
         .telegram-btn:active { background: #006699; }
         .guest-btn { background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent); }
         .guest-btn:active { background: var(--bg-primary); }
-        
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
         .input-field {
@@ -196,7 +183,6 @@
             appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 16px center;
         }
-        
         .list-container { display: flex; flex-direction: column; gap: 12px; }
         .list-item {
             background: var(--bg-secondary); padding: 16px; border-radius: 16px;
@@ -217,14 +203,12 @@
             animation: spin 0.8s linear infinite; margin: 0 auto 16px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
         .profile-header { text-align: center; padding: 20px 0 30px; }
         .profile-avatar { font-size: 64px; margin-bottom: 12px; }
         .profile-avatar img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
         .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
         .profile-username { font-size: 15px; color: var(--text-secondary); }
         .badge { display: inline-block; padding: 4px 10px; background: var(--accent); color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px; }
-        
         .map-hint {
             position: fixed; top: 54px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
@@ -232,7 +216,6 @@
             animation: fadeInOut 3s ease-in-out; white-space: nowrap;
         }
         @keyframes fadeInOut { 0%,100%{opacity:0;} 20%,80%{opacity:1;} }
-        
         .occupancy-header { text-align: center; padding: 10px 0 20px; }
         .occupancy-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
         .occupancy-stats { display: flex; gap: 12px; margin-bottom: 20px; }
@@ -245,7 +228,6 @@
         .stat-total .stat-value { color: var(--accent); }
         .stat-free .stat-value { color: var(--green); }
         .stat-occupied .stat-value { color: var(--red); }
-        
         .occupancy-control {
             background: var(--bg-secondary); border-radius: 16px; padding: 20px;
             box-shadow: var(--card-shadow); transition: background 0.3s;
@@ -263,10 +245,8 @@
         .counter-btn.minus { color: var(--red); border-color: var(--red); }
         .counter-btn.plus { color: var(--green); border-color: var(--green); }
         .counter-value { font-size: 32px; font-weight: 700; min-width: 60px; text-align: center; }
-        
         .progress-bar { height: 8px; background: var(--bg-primary); border-radius: 4px; margin: 16px 0; overflow: hidden; }
         .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s, background 0.3s; }
-        
         .drawing-controls {
             position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
             z-index: 900; display: flex; gap: 10px;
@@ -279,7 +259,6 @@
         .btn-finish { background: var(--green); color: #fff; }
         .btn-cancel { background: var(--red); color: #fff; }
         .drawing-controls button:active { transform: scale(0.95); }
-        
         .theme-toggle-row {
             display: flex; align-items: center; justify-content: space-between;
             padding: 16px; background: var(--bg-secondary); border-radius: 16px;
@@ -299,7 +278,6 @@
         }
         input:checked + .theme-slider { background-color: var(--green); }
         input:checked + .theme-slider:before { transform: translateX(20px); }
-        
         .car-section {
             background: var(--bg-secondary); border-radius: 16px; padding: 20px;
             margin-bottom: 16px; box-shadow: var(--card-shadow);
@@ -319,7 +297,6 @@
             width: 32px; height: 32px; border-radius: 50%;
             border: 2px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
         .status-indicator {
             display: inline-block; width: 12px; height: 12px; border-radius: 50%;
             margin-right: 8px; vertical-align: middle;
@@ -327,7 +304,6 @@
         .status-free { background: var(--green); }
         .status-occupied { background: var(--red); }
         .status-unknown { background: var(--gray); }
-        
         .stats-card {
             background: var(--bg-secondary); border-radius: 16px; padding: 20px;
             margin-bottom: 16px; box-shadow: var(--card-shadow);
@@ -370,7 +346,6 @@
             padding: 8px 0; border-bottom: 0.5px solid var(--border-color);
         }
         .home-address-item:last-child { border-bottom: none; }
-        
         .swipe-container {
             position: relative; overflow: hidden; border-radius: 16px;
             background: var(--bg-secondary); box-shadow: var(--card-shadow); margin-bottom: 12px;
@@ -385,8 +360,6 @@
             background: var(--red); color: white; display: flex; align-items: center; justify-content: center;
             font-weight: 600; font-size: 14px; z-index: 1; border-radius: 0 16px 16px 0; cursor: pointer;
         }
-
-        /* Bottom Sheet */
         .bottom-sheet {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: var(--bg-secondary); border-radius: 20px 20px 0 0;
@@ -419,8 +392,6 @@
             color: var(--text-secondary); cursor: pointer; line-height: 1;
         }
         .route-actions { display: flex; gap: 8px; margin-top: 12px; }
-
-        /* поиск */
         .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
         .search-bar input {
             flex: 1; padding: 10px 14px; border-radius: 12px;
@@ -432,8 +403,6 @@
             cursor: pointer; padding: 12px 0; border-bottom: 0.5px solid var(--border-color);
             font-size: 15px; font-weight: 500;
         }
-
-        /* Стили для карточки города */
         .city-pref-card {
             background: var(--bg-secondary); border-radius: 16px; padding: 20px;
             margin-bottom: 16px; box-shadow: var(--card-shadow);
@@ -447,8 +416,6 @@
         .city-pref-row .form-group {
             flex: 1;
         }
-
-        /* Стили для выбора метки */
         .label-picker-overlay {
             display: none;
             position: fixed;
@@ -526,7 +493,6 @@
         </div>
     </div>
 
-    <!-- Оверлей для выбора метки адреса -->
     <div class="label-picker-overlay" id="labelPickerOverlay">
         <div class="label-picker-box">
             <h3>🏷️ Выберите метку</h3>
@@ -588,8 +554,8 @@
         let addressPickerMap = null, addressPickerPlacemark = null, addressPickerCoords = null, isAddressPickerOpen = false;
         let currentRoute = null, routeStartCoords = null, routeEndCoords = null, routeParkingData = null;
         let userCityPrefs = { region: '', city: '' };
-        let nearbySearchFilter = null; // { lat, lng, radius }
-        let pendingAddressData = null; // для временного хранения перед выбором метки
+        let nearbySearchFilter = null;
+        let pendingAddressData = null;
 
         const carBrands = {
             'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7'],
@@ -719,13 +685,11 @@
             if (!fullAddress) return { region: '', city: '', street: '', houseNumber: '' };
             let addr = fullAddress.replace(/^Россия,\s*/i, '');
             let region = '', city = '', street = '', houseNumber = '';
-            
             const houseMatch = addr.match(/\b(?:д(?:ом)?\.?\s*)?(\d+[а-я]?(?:\s*\/\s*\d+)?(?:\s*[кк]\.?\s*\d+)?)\b/i);
             if (houseMatch) {
                 houseNumber = houseMatch[1].trim();
                 addr = addr.replace(houseMatch[0], '').trim();
             }
-
             for (const reg of Object.keys(regionsData)) {
                 if (addr.includes(reg)) { region = reg; break; }
             }
@@ -1103,42 +1067,139 @@
 
         function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
 
+        // ========== ИСПРАВЛЕННЫЙ МАРШРУТ ==========
         function buildRouteToParking(parkingId) {
             closeParkingSheet();
-            const data = parkingDataCache[parkingId]; if (!data) return;
-            getUserLocation().then(coords => {
-                routeStartCoords = [coords.lat, coords.lng]; routeEndCoords = [data.lat, data.lng]; routeParkingData = data;
-                if (currentRoute) map.geoObjects.remove(currentRoute);
-                ymaps.route([routeStartCoords, routeEndCoords], { mapStateAutoApply: false }).then(route => {
-                    map.geoObjects.add(route); currentRoute = route;
+            const data = parkingDataCache[parkingId];
+            if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
+                alert('Ошибка: данные парковки не содержат координат');
+                return;
+            }
+            getUserLocation()
+                .then(coords => {
+                    routeStartCoords = [coords.lat, coords.lng];
+                    routeEndCoords = [data.lat, data.lng];
+                    routeParkingData = data;
+                    buildAndShowRoute();
+                })
+                .catch(err => {
+                    console.warn('Не удалось получить геолокацию, используем центр карты:', err);
+                    const center = map.getCenter();
+                    routeStartCoords = center;
+                    routeEndCoords = [data.lat, data.lng];
+                    routeParkingData = data;
+                    buildAndShowRoute();
+                });
+        }
+
+        function buildAndShowRoute() {
+            if (currentRoute) {
+                map.geoObjects.remove(currentRoute);
+                currentRoute = null;
+            }
+            if (!routeStartCoords || !routeEndCoords) {
+                alert('Ошибка: координаты не определены');
+                return;
+            }
+            ymaps.route([routeStartCoords, routeEndCoords], { mapStateAutoApply: false })
+                .then(route => {
+                    map.geoObjects.add(route);
+                    currentRoute = route;
                     const paths = route.getPaths();
                     if (paths && paths.length > 0) {
                         const active = paths[0];
-                        const dist = active.getLength() / 1000, time = active.getTime() / 60;
-                        const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
-                        const free = data.totalSpots - data.occupiedSpots;
-                        document.getElementById('routeInfo').innerHTML = `<div>🚗 До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div><div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div><div>🔄 Обновлено: ${formatDateTime(data.timestamp)}</div>`;
+                        const dist = active.getLength() / 1000;
+                        const time = active.getTime() / 60;
+                        const arrival = new Date(Date.now() + active.getTime() * 1000)
+                            .toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                        const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+                        document.getElementById('routeInfo').innerHTML = `
+                            <div>🚗 До парковки</div>
+                            <div>📍 ${dist.toFixed(1)} км</div>
+                            <div>⏱ ${Math.round(time)} мин</div>
+                            <div>🚦 Прибытие: ${arrival}</div>
+                            <div>🚘 Свободных мест: ${free}</div>
+                            <div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+                        `;
                         document.getElementById('routeCard').classList.add('active');
+                        map.setBounds(route.getBounds(), { duration: 500 });
+                    } else {
+                        showDirectLine();
                     }
-                    map.setBounds(route.getBounds(), { duration: 500 });
-                }).catch(err => { console.error('Ошибка маршрута:', err); alert('Не удалось построить маршрут.'); });
-            }).catch(() => alert('Не удалось определить местоположение.'));
+                })
+                .catch(err => {
+                    console.error('Ошибка построения маршрута:', err);
+                    showDirectLine();
+                });
         }
 
-        function startNavigation() { if (routeEndCoords) window.open(`https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${routeEndCoords[1]}`, '_blank'); }
+        // Запасной вариант – прямая линия
+        function showDirectLine() {
+            if (!routeStartCoords || !routeEndCoords) return;
+            if (currentRoute) {
+                map.geoObjects.remove(currentRoute);
+                currentRoute = null;
+            }
+            const line = new ymaps.Polyline([routeStartCoords, routeEndCoords], {}, {
+                strokeColor: '#007AFF',
+                strokeWidth: 4,
+                strokeOpacity: 0.8
+            });
+            map.geoObjects.add(line);
+            currentRoute = line;
+
+            const dist = getDistanceInMeters(
+                routeStartCoords[0], routeStartCoords[1],
+                routeEndCoords[0], routeEndCoords[1]
+            ) / 1000;
+            const time = Math.round(dist * 2);
+            const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+            document.getElementById('routeInfo').innerHTML = `
+                <div>🚗 До парковки (по прямой)</div>
+                <div>📍 ${dist.toFixed(1)} км</div>
+                <div>⏱ ~${time} мин (приблизительно)</div>
+                <div>🚘 Свободных мест: ${free}</div>
+                <div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+            `;
+            document.getElementById('routeCard').classList.add('active');
+            map.setBounds([
+                [Math.min(routeStartCoords[0], routeEndCoords[0]), Math.min(routeStartCoords[1], routeEndCoords[1])],
+                [Math.max(routeStartCoords[0], routeEndCoords[0]), Math.max(routeStartCoords[1], routeEndCoords[1])]
+            ], { duration: 500 });
+        }
+
+        function startNavigation() {
+            if (routeEndCoords) {
+                window.open(`https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${routeEndCoords[1]}`, '_blank');
+            }
+        }
+
         function rebuildRoute() {
             if (routeStartCoords && routeEndCoords) {
                 if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
                 ymaps.route([routeStartCoords, routeEndCoords]).then(route => {
-                    map.geoObjects.add(route); currentRoute = route;
+                    map.geoObjects.add(route);
+                    currentRoute = route;
                     const active = route.getPaths()[0];
-                    const dist = active.getLength() / 1000, time = active.getTime() / 60;
-                    const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+                    const dist = active.getLength() / 1000;
+                    const time = active.getTime() / 60;
+                    const arrival = new Date(Date.now() + active.getTime() * 1000)
+                        .toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                     const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-                    document.getElementById('routeInfo').innerHTML = `<div>🚗 До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div><div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div>`;
-                }).catch(err => alert('Ошибка при перестроении маршрута'));
+                    document.getElementById('routeInfo').innerHTML = `
+                        <div>🚗 До парковки</div>
+                        <div>📍 ${dist.toFixed(1)} км</div>
+                        <div>⏱ ${Math.round(time)} мин</div>
+                        <div>🚦 Прибытие: ${arrival}</div>
+                        <div>🚘 Свободных мест: ${free}</div>
+                    `;
+                }).catch(err => {
+                    alert('Ошибка при перестроении маршрута');
+                    showDirectLine();
+                });
             }
         }
+
         function closeRoute() {
             if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
             document.getElementById('routeCard').classList.remove('active');
@@ -1354,7 +1415,6 @@
             highlightedParkings = {};
         }
 
-        // Функции для работы с домашними адресами с метками
         function addHomeAddress() {
             if (!currentUser) { alert('Необходимо войти'); return; }
             database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
@@ -1397,11 +1457,9 @@
             if (!addressPickerCoords) { alert('Установите метку'); return; }
             const saveBtn = document.querySelector('#addressPickerContainer .btn-primary'), origText = saveBtn.textContent;
             saveBtn.textContent = 'Обработка...'; saveBtn.disabled = true;
-
             ymaps.geocode(addressPickerCoords)
                 .then(res => {
                     const addrText = res.geoObjects.get(0) ? res.geoObjects.get(0).getAddressLine() : `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
-                    // Сохраняем временно и открываем выбор метки
                     pendingAddressData = { address: addrText, lat: addressPickerCoords[0], lng: addressPickerCoords[1] };
                     document.getElementById('addressPickerOverlay').style.display = 'none';
                     document.getElementById('labelPickerOverlay').classList.add('active');
@@ -1450,7 +1508,6 @@
         function cancelLabelPicker() {
             document.getElementById('labelPickerOverlay').classList.remove('active');
             pendingAddressData = null;
-            // Возвращаем карту выбора адреса, если она была открыта
             if (addressPickerCoords) {
                 document.getElementById('addressPickerOverlay').style.display = 'block';
             }
@@ -1505,7 +1562,6 @@
             closePanel();
         }
 
-        // Функции для работы с городскими предпочтениями
         function updateCitySelectInProfile(regionSelectId, citySelectId) {
             const region = document.getElementById(regionSelectId).value;
             const citySelect = document.getElementById(citySelectId);
@@ -1540,7 +1596,6 @@
             });
         }
 
-        // Поиск парковок рядом с адресом
         function findParkingsNearAddress(lat, lng) {
             nearbySearchFilter = { lat, lng, radius: 300 };
             showPanel('search', true);
@@ -1615,9 +1670,7 @@
                         const views = stats.views || 0;
                         const favorites = stats.favorites || 0;
                         const activeDates = stats.activeDates || [];
-                        
                         const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
-                        
                         let level = 1, levelName = "Пешеход", levelEmoji = "👣";
                         const levels = [
                             { xp: 0, name: "Пешеход", emoji: "👣" },
@@ -1633,7 +1686,6 @@
                             { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
                             { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
                         ];
-                        
                         for (let i = levels.length - 1; i >= 0; i--) {
                             if (score >= levels[i].xp) {
                                 level = i + 1;
@@ -1642,11 +1694,9 @@
                                 break;
                             }
                         }
-                        
                         const nextLevel = levels.find(l => l.xp > score);
                         let progressPercent = 100;
                         let xpForNext = 0;
-                        
                         if (nextLevel) {
                             const prevLevelXp = levels[level - 2] ? levels[level - 2].xp : 0;
                             const range = nextLevel.xp - prevLevelXp;
@@ -1759,7 +1809,6 @@
                 );
             }
 
-            // Фильтр по радиусу
             if (nearbySearchFilter) {
                 const { lat, lng, radius } = nearbySearchFilter;
                 parkings = parkings.filter(p => {
