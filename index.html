@@ -449,8 +449,6 @@
             flex-direction: column;
             gap: 8px;
         }
-
-        /* Стили для ручного добавления адреса */
         .address-toggle {
             display: flex;
             gap: 8px;
@@ -1447,7 +1445,6 @@
             if (!currentUser) { alert('Необходимо войти'); return; }
             database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
                 if (Object.keys(snap.val() || {}).length >= 3) { alert('Максимум 3 адреса'); return; }
-                // Показываем форму добавления адреса в панели
                 showAddressForm();
             }).catch(err => { console.error(err); alert('Ошибка'); });
         }
@@ -1536,28 +1533,44 @@
             saveBtn.textContent = 'Поиск...';
             saveBtn.disabled = true;
 
-            ymaps.geocode(fullAddress, { results: 1 })
-                .then(res => {
-                    const geoObject = res.geoObjects.get(0);
-                    if (!geoObject) {
-                        alert('Адрес не найден. Проверьте правильность ввода.');
+            // Проверяем, что ymaps загружен
+            if (typeof ymaps === 'undefined') {
+                alert('Карты не загружены, попробуйте позже');
+                saveBtn.textContent = '🔍 Найти и сохранить';
+                saveBtn.disabled = false;
+                return;
+            }
+
+            ymaps.ready(function() {
+                ymaps.geocode(fullAddress, { results: 1 })
+                    .then(res => {
+                        const geoObject = res.geoObjects.get(0);
+                        if (!geoObject) {
+                            alert('Адрес не найден. Проверьте правильность ввода.');
+                            saveBtn.textContent = '🔍 Найти и сохранить';
+                            saveBtn.disabled = false;
+                            return;
+                        }
+                        const coords = geoObject.geometry.getCoordinates();
+                        const addressLine = geoObject.getAddressLine();
+                        pendingAddressData = { address: addressLine || fullAddress, lat: coords[0], lng: coords[1] };
+                        document.getElementById('labelPickerOverlay').classList.add('active');
                         saveBtn.textContent = '🔍 Найти и сохранить';
                         saveBtn.disabled = false;
-                        return;
-                    }
-                    const coords = geoObject.geometry.getCoordinates();
-                    const addressLine = geoObject.getAddressLine();
-                    pendingAddressData = { address: addressLine || fullAddress, lat: coords[0], lng: coords[1] };
-                    document.getElementById('labelPickerOverlay').classList.add('active');
-                    saveBtn.textContent = '🔍 Найти и сохранить';
-                    saveBtn.disabled = false;
-                })
-                .catch(err => {
-                    console.error('Ошибка геокодирования:', err);
-                    alert('Ошибка поиска адреса: ' + err.message);
-                    saveBtn.textContent = '🔍 Найти и сохранить';
-                    saveBtn.disabled = false;
-                });
+                    })
+                    .catch(err => {
+                        console.error('Ошибка геокодирования:', err);
+                        // Пробуем сохранить без координат
+                        if (confirm('Не удалось определить координаты по адресу. Сохранить адрес без координат? (поиск рядом будет недоступен)')) {
+                            pendingAddressData = { address: fullAddress, lat: null, lng: null };
+                            document.getElementById('labelPickerOverlay').classList.add('active');
+                        } else {
+                            alert('Отменено');
+                        }
+                        saveBtn.textContent = '🔍 Найти и сохранить';
+                        saveBtn.disabled = false;
+                    });
+            });
         }
 
         function openAddressPicker() {
@@ -1624,8 +1637,8 @@
                     }
                     return database.ref(`users/${currentUser.id}/homeAddresses`).push({
                         address: data.address,
-                        lat: data.lat,
-                        lng: data.lng,
+                        lat: data.lat || null,
+                        lng: data.lng || null,
                         label: label,
                         timestamp: Date.now()
                     });
@@ -1730,7 +1743,29 @@
             });
         }
 
-        function findParkingsNearAddress(lat, lng) {
+        function findParkingsNearAddress(lat, lng, addressText) {
+            // Если координат нет, пытаемся геокодировать адрес
+            if (!lat || !lng) {
+                if (addressText) {
+                    ymaps.geocode(addressText, { results: 1 })
+                        .then(res => {
+                            const geo = res.geoObjects.get(0);
+                            if (geo) {
+                                const coords = geo.geometry.getCoordinates();
+                                nearbySearchFilter = { lat: coords[0], lng: coords[1], radius: 300 };
+                                showPanel('search', true);
+                            } else {
+                                alert('Не удалось определить координаты по адресу');
+                            }
+                        })
+                        .catch(() => {
+                            alert('Не удалось определить координаты по адресу');
+                        });
+                } else {
+                    alert('Не удалось определить координаты для поиска');
+                }
+                return;
+            }
             nearbySearchFilter = { lat, lng, radius: 300 };
             showPanel('search', true);
         }
@@ -2038,7 +2073,7 @@
                                 <div class="swipe-item" style="padding:10px 0;">
                                     <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
                                     <div>
-                                        <button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat},${addr.lng})">Найти парковку</button>
+                                        <button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat || 'null'}, ${addr.lng || 'null'}, '${addr.address.replace(/'/g, "\\'")}')">Найти парковку</button>
                                     </div>
                                 </div>
                                 <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
