@@ -174,19 +174,13 @@
         }
         .btn-secondary:active { background: rgba(0,122,255,0.1); }
         
-        /* Стили для кнопок входа */
         .telegram-btn, .guest-btn {
             width: 100%; padding: 16px; border-radius: 14px; border: none;
             font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px;
         }
-        .telegram-btn {
-            background: #0088cc; color: #fff;
-        }
+        .telegram-btn { background: #0088cc; color: #fff; }
         .telegram-btn:active { background: #006699; }
-        .guest-btn {
-            background: var(--bg-secondary); color: var(--accent);
-            border: 1px solid var(--accent);
-        }
+        .guest-btn { background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent); }
         .guest-btn:active { background: var(--bg-primary); }
         
         .form-group { margin-bottom: 16px; }
@@ -655,29 +649,51 @@
         };
 
         function parseAddress(fullAddress) {
-            if (!fullAddress) return { region: '', city: '', street: '' };
+            if (!fullAddress) return { region: '', city: '', street: '', houseNumber: '' };
             let addr = fullAddress.replace(/^Россия,\s*/i, '');
-            let region = '';
-            let city = '';
+            let region = '', city = '', street = '', houseNumber = '';
+            
+            // Извлекаем номер дома (число с возможным корпусом/строением)
+            const houseMatch = addr.match(/\b(?:д(?:ом)?\.?\s*)?(\d+[а-я]?(?:\s*\/\s*\d+)?(?:\s*[кк]\.?\s*\d+)?)\b/i);
+            if (houseMatch) {
+                houseNumber = houseMatch[1].trim();
+                // Удаляем номер дома из адреса для дальнейшего парсинга
+                addr = addr.replace(houseMatch[0], '').trim();
+            }
+
+            // Определяем регион
             for (const reg of Object.keys(regionsData)) {
                 if (addr.includes(reg)) { region = reg; break; }
             }
             if (region) {
                 const cities = regionsData[region];
-                for (const c of cities) { if (addr.includes(c)) { city = c; break; } }
+                for (const c of cities) {
+                    if (addr.includes(c)) { city = c; break; }
+                }
                 if (!city && cities.includes(region)) city = region;
             } else {
                 for (const reg of Object.keys(regionsData)) {
                     const cities = regionsData[reg];
-                    for (const c of cities) { if (addr.includes(c)) { region = reg; city = c; break; } }
+                    for (const c of cities) {
+                        if (addr.includes(c)) { region = reg; city = c; break; }
+                    }
                     if (region) break;
                 }
             }
-            let street = addr;
-            if (region) street = street.replace(new RegExp(region, 'i'), '').trim();
-            if (city && city !== region) street = street.replace(new RegExp(city, 'i'), '').trim();
-            street = street.replace(/^[, ]+/, '').trim();
-            return { region, city, street };
+            // Оставшаяся часть - улица (если не удалось выделить, берем все, что осталось)
+            let streetPart = addr;
+            if (region) streetPart = streetPart.replace(new RegExp(region, 'i'), '').trim();
+            if (city && city !== region) streetPart = streetPart.replace(new RegExp(city, 'i'), '').trim();
+            streetPart = streetPart.replace(/^[, ]+/, '').trim();
+            // Убираем лишние запятые и предлоги
+            streetPart = streetPart.replace(/^[, ]+/, '').replace(/[, ]+$/, '');
+            if (streetPart && !streetPart.match(/^\d/)) {
+                street = streetPart;
+            } else {
+                // Если ничего не осталось, возможно улица не распознана
+                street = streetPart;
+            }
+            return { region, city, street, houseNumber };
         }
 
         function initAuth() {
@@ -903,6 +919,7 @@
                         region: parsed.region,
                         city: parsed.city,
                         street: parsed.street,
+                        houseNumber: parsed.houseNumber,
                         authorId: currentUser.id,
                         authorName: currentUser.firstName,
                         authorUsername: currentUser.username,
@@ -1194,6 +1211,11 @@
                 if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]); delete mapMarkers[parkingId]; }
                 delete parkingDataCache[parkingId]; closePanel(); showMap();
                 if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                // Обновить поиск, если он открыт
+                const panelContent = document.getElementById('panelContent');
+                if (panelContent && document.getElementById('searchResults')) {
+                    filterParkings();
+                }
             }).catch(err => { console.error('Ошибка удаления:', err); alert('Ошибка удаления: ' + err.message); });
         }
 
@@ -1534,7 +1556,8 @@
                 parkings = parkings.filter(p => 
                     (p.name && p.name.toLowerCase().includes(query)) ||
                     (p.address && p.address.toLowerCase().includes(query)) ||
-                    (p.street && p.street.toLowerCase().includes(query))
+                    (p.street && p.street.toLowerCase().includes(query)) ||
+                    (p.houseNumber && p.houseNumber.toLowerCase().includes(query))
                 );
             }
             
@@ -1547,18 +1570,31 @@
                 html = '<div class="list-container">';
                 parkings.forEach(p => {
                     const free = p.totalSpots - (p.occupiedSpots || 0);
+                    const isAuthor = currentUser && currentUser.id === p.authorId;
+                    let addressDisplay = p.address || '';
+                    if (p.houseNumber) {
+                        // Если адрес уже содержит номер, не дублируем
+                        if (!addressDisplay.includes(p.houseNumber)) {
+                            addressDisplay = addressDisplay ? addressDisplay + ', д. ' + p.houseNumber : 'д. ' + p.houseNumber;
+                        }
+                    }
                     html += `
-                        <div class="list-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                            <div class="list-icon">🅿️</div>
-                            <div class="list-info">
-                                <div class="list-title">${p.name || 'Без названия'}</div>
-                                <div class="list-subtitle">${p.address || ''} · Свободно: ${free}/${p.totalSpots}</div>
+                        <div class="swipe-container">
+                            <div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                                <div class="list-icon">🅿️</div>
+                                <div class="list-info">
+                                    <div class="list-title">${p.name || 'Без названия'}</div>
+                                    <div class="list-subtitle">${addressDisplay} · Свободно: ${free}/${p.totalSpots}</div>
+                                </div>
                             </div>
-                        </div>`;
+                            ${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}
+                        </div>
+                    `;
                 });
                 html += '</div>';
             }
             resultsContainer.innerHTML = html;
+            attachSwipeToContainers(resultsContainer);
         }
 
         function toggleTheme() {
