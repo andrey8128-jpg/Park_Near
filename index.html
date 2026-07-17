@@ -1,6 +1,3 @@
-Вот полный код приложения **parknear_bot** в одном файле. Я интегрировал новую систему из 12 уровней репутации, обновил логику расчета XP и добавил визуализацию прогресса в профиль пользователя.
-
-```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -645,18 +642,15 @@
         // Функция разбора адреса на регион, город, улицу
         function parseAddress(fullAddress) {
             if (!fullAddress) return { region: '', city: '', street: '' };
-            // Убираем "Россия, " если есть
             let addr = fullAddress.replace(/^Россия,\s*/i, '');
             let region = '';
             let city = '';
-            // Ищем регион
             for (const reg of Object.keys(regionsData)) {
                 if (addr.includes(reg)) {
                     region = reg;
                     break;
                 }
             }
-            // Если регион найден, ищем город в его списке
             if (region) {
                 const cities = regionsData[region];
                 for (const c of cities) {
@@ -665,12 +659,10 @@
                         break;
                     }
                 }
-                // Если город не найден, может быть регион и город совпадают (Москва)
                 if (!city && cities.includes(region)) {
                     city = region;
                 }
             } else {
-                // Ищем любой город из всех списков
                 for (const reg of Object.keys(regionsData)) {
                     const cities = regionsData[reg];
                     for (const c of cities) {
@@ -683,7 +675,6 @@
                     if (region) break;
                 }
             }
-            // Получаем улицу: убираем регион и город из строки
             let street = addr;
             if (region) street = street.replace(new RegExp(region, 'i'), '').trim();
             if (city && city !== region) street = street.replace(new RegExp(city, 'i'), '').trim();
@@ -1320,7 +1311,6 @@
         function removeHomeAddress(addressId) { if (confirm('Удалить адрес?')) database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove().then(() => showPanel('favorites')); }
         function focusMap(lat, lng, parkingId) { closePanel(); map.setCenter([lat, lng], 16, { duration: 300 }); }
 
-        // Новая функция для избранного: подсветка, приближение и показ bottom sheet
         function highlightAndShowParking(parkingId) {
             const data = parkingDataCache[parkingId];
             if (!data) return;
@@ -1328,20 +1318,17 @@
             if (marker && marker.geometry) {
                 let bounds;
                 if (marker.geometry.getType() === 'Polygon' && data.coordinates && data.coordinates.length > 0) {
-                    // Вычисляем границы полигона
                     const coords = data.coordinates;
                     let minLat = coords[0][0], maxLat = coords[0][0], minLng = coords[0][1], maxLng = coords[0][1];
                     coords.forEach(c => { if (c[0] < minLat) minLat = c[0]; if (c[0] > maxLat) maxLat = c[0]; if (c[1] < minLng) minLng = c[1]; if (c[1] > maxLng) maxLng = c[1]; });
                     bounds = [[minLat, minLng], [maxLat, maxLng]];
                 } else {
-                    // Если нет полигона, просто приближаем к точке
                     bounds = [[data.lat - 0.001, data.lng - 0.001], [data.lat + 0.001, data.lng + 0.001]];
                 }
                 map.setBounds(bounds, { duration: 300 }).then(() => {
                     if (map.getZoom() > 17) map.setZoom(17);
                 });
             }
-            // Подсветка синим цветом и пульсация
             if (marker) {
                 const origFillColor = marker.options.get('fillColor');
                 const origStrokeColor = marker.options.get('strokeColor');
@@ -1359,9 +1346,8 @@
                     marker.options.set({ fillColor: origFillColor, strokeColor: origStrokeColor });
                 }, 3000);
             }
-            // Показываем bottom sheet
             openParkingSheet(parkingId, data);
-            closePanel(); // Закрываем панель избранного, возвращаемся на карту
+            closePanel();
         }
 
         function showPanel(type) {
@@ -1399,7 +1385,7 @@
                         html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
                     }
                     
-                    // Расчет репутации по новой системе (12 уровней)
+                    // Расчет репутации по новой системе (12 уровней, адаптированные под новые XP)
                     const created = stats.parkingsCreated || 0;
                     const updated = stats.parkingsUpdated || 0;
                     const confirmations = stats.confirmations || 0;
@@ -1407,24 +1393,24 @@
                     const favorites = stats.favorites || 0;
                     const activeDates = stats.activeDates || [];
                     
-                    // Формула XP: действия * множитель
-                    const score = (created * 50) + (updated * 20) + (confirmations * 10) + Math.floor(views / 5) + (favorites * 10) + (activeDates.length * 10);
+                    // Новая формула XP
+                    const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
                     
-                    // Определение уровня (12 ступеней)
+                    // Определение уровня (12 ступеней, пороги уменьшены пропорционально)
                     let level = 1, levelName = "Пешеход", levelEmoji = "👣";
                     const levels = [
                         { xp: 0, name: "Пешеход", emoji: "👣" },
-                        { xp: 200, name: "Водитель-любитель", emoji: "🚗" },
-                        { xp: 600, name: "Начинающий парковщик", emoji: "🅿️" },
-                        { xp: 1500, name: "Городской водитель", emoji: "🏙️" },
-                        { xp: 3000, name: "Наблюдатель", emoji: "👁️" },
-                        { xp: 5500, name: "Помощник района", emoji: "🤝" },
-                        { xp: 9000, name: "Картограф", emoji: "🗺️" },
-                        { xp: 14000, name: "Инспектор", emoji: "🕵️‍♂️" },
-                        { xp: 21000, name: "Ветеран дорог", emoji: "🛣️" },
-                        { xp: 30000, name: "Страж парковки", emoji: "⚖️" },
-                        { xp: 45000, name: "Архитектор города", emoji: "🏗️" },
-                        { xp: 65000, name: "Легенда ParkNear", emoji: "💎" }
+                        { xp: 20, name: "Водитель-любитель", emoji: "🚗" },
+                        { xp: 60, name: "Начинающий парковщик", emoji: "🅿️" },
+                        { xp: 150, name: "Городской водитель", emoji: "🏙️" },
+                        { xp: 300, name: "Наблюдатель", emoji: "👁️" },
+                        { xp: 550, name: "Помощник района", emoji: "🤝" },
+                        { xp: 900, name: "Картограф", emoji: "🗺️" },
+                        { xp: 1400, name: "Инспектор", emoji: "🕵️‍♂️" },
+                        { xp: 2100, name: "Ветеран дорог", emoji: "🛣️" },
+                        { xp: 3000, name: "Страж парковки", emoji: "⚖️" },
+                        { xp: 4500, name: "Архитектор города", emoji: "🏗️" },
+                        { xp: 6500, name: "Легенда ParkNear", emoji: "💎" }
                     ];
                     
                     for (let i = levels.length - 1; i >= 0; i--) {
