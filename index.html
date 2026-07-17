@@ -639,39 +639,22 @@
             "Томская область": ["Томск", "Северск"]
         };
 
-        // Функция разбора адреса на регион, город, улицу
         function parseAddress(fullAddress) {
             if (!fullAddress) return { region: '', city: '', street: '' };
             let addr = fullAddress.replace(/^Россия,\s*/i, '');
             let region = '';
             let city = '';
             for (const reg of Object.keys(regionsData)) {
-                if (addr.includes(reg)) {
-                    region = reg;
-                    break;
-                }
+                if (addr.includes(reg)) { region = reg; break; }
             }
             if (region) {
                 const cities = regionsData[region];
-                for (const c of cities) {
-                    if (addr.includes(c)) {
-                        city = c;
-                        break;
-                    }
-                }
-                if (!city && cities.includes(region)) {
-                    city = region;
-                }
+                for (const c of cities) { if (addr.includes(c)) { city = c; break; } }
+                if (!city && cities.includes(region)) city = region;
             } else {
                 for (const reg of Object.keys(regionsData)) {
                     const cities = regionsData[reg];
-                    for (const c of cities) {
-                        if (addr.includes(c)) {
-                            region = reg;
-                            city = c;
-                            break;
-                        }
-                    }
+                    for (const c of cities) { if (addr.includes(c)) { region = reg; city = c; break; } }
                     if (region) break;
                 }
             }
@@ -1385,7 +1368,7 @@
                         html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
                     }
                     
-                    // Расчет репутации по новой системе (12 уровней, адаптированные под новые XP)
+                    // Расчет репутации по новой системе (12 уровней, большие пороги)
                     const created = stats.parkingsCreated || 0;
                     const updated = stats.parkingsUpdated || 0;
                     const confirmations = stats.confirmations || 0;
@@ -1393,24 +1376,24 @@
                     const favorites = stats.favorites || 0;
                     const activeDates = stats.activeDates || [];
                     
-                    // Новая формула XP
+                    // Формула XP (соответствует предыдущему запросу)
                     const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
                     
-                    // Определение уровня (12 ступеней, пороги уменьшены пропорционально)
+                    // Определение уровня (12 ступеней, новые пороги)
                     let level = 1, levelName = "Пешеход", levelEmoji = "👣";
                     const levels = [
                         { xp: 0, name: "Пешеход", emoji: "👣" },
-                        { xp: 20, name: "Водитель-любитель", emoji: "🚗" },
-                        { xp: 60, name: "Начинающий парковщик", emoji: "🅿️" },
-                        { xp: 150, name: "Городской водитель", emoji: "🏙️" },
-                        { xp: 300, name: "Наблюдатель", emoji: "👁️" },
-                        { xp: 550, name: "Помощник района", emoji: "🤝" },
-                        { xp: 900, name: "Картограф", emoji: "🗺️" },
-                        { xp: 1400, name: "Инспектор", emoji: "🕵️‍♂️" },
-                        { xp: 2100, name: "Ветеран дорог", emoji: "🛣️" },
-                        { xp: 3000, name: "Страж парковки", emoji: "⚖️" },
-                        { xp: 4500, name: "Архитектор города", emoji: "🏗️" },
-                        { xp: 6500, name: "Легенда ParkNear", emoji: "💎" }
+                        { xp: 1000, name: "Водитель-любитель", emoji: "🚗" },
+                        { xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
+                        { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
+                        { xp: 10000, name: "Наблюдатель", emoji: "👁️" },
+                        { xp: 20000, name: "Помощник района", emoji: "🤝" },
+                        { xp: 40000, name: "Картограф", emoji: "🗺️" },
+                        { xp: 70000, name: "Инспектор", emoji: "🕵️‍♂️" },
+                        { xp: 110000, name: "Ветеран дорог", emoji: "🛣️" },
+                        { xp: 150000, name: "Страж парковки", emoji: "⚖️" },
+                        { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
+                        { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
                     ];
                     
                     for (let i = levels.length - 1; i >= 0; i--) {
@@ -1442,8 +1425,8 @@
                         <div class="reputation-body" id="repBody">
                             <div class="reputation-full">
                                 <div class="stats-row"><span class="stats-label">🎖 Уровень</span><span class="stats-value">${levelEmoji} ${levelName} (${level}/12)</span></div>
-                                <div class="stats-row"><span class="stats-label">✨ Опыт (XP)</span><span class="stats-value">${score}</span></div>
-                                ${nextLevel ? `<div class="stats-row"><span class="stats-label">🚀 До след. уровня</span><span class="stats-value">${xpForNext} XP</span></div>` : ''}
+                                <div class="stats-row"><span class="stats-label">✨ Опыт (XP)</span><span class="stats-value">${score.toLocaleString()}</span></div>
+                                ${nextLevel ? `<div class="stats-row"><span class="stats-label">🚀 До след. уровня</span><span class="stats-value">${xpForNext.toLocaleString()} XP</span></div>` : ''}
                                 <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:${progressPercent}%;background:var(--accent);"></div></div>
                             </div>
                             <div class="reputation-mini">
