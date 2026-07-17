@@ -1341,15 +1341,42 @@
             if (!addressPickerCoords) { alert('Установите метку'); return; }
             const saveBtn = document.querySelector('#addressPickerContainer .btn-primary'), origText = saveBtn.textContent;
             saveBtn.textContent = 'Сохранение...'; saveBtn.disabled = true;
-            ymaps.geocode(addressPickerCoords).then(res => {
-                const addrText = res.geoObjects.get(0) ? res.geoObjects.get(0).getAddressLine() : `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
-                database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
-                    if (Object.keys(snap.val() || {}).length >= 3) { alert('Максимум 3 адреса'); saveBtn.textContent = origText; saveBtn.disabled = false; return; }
-                    database.ref(`users/${currentUser.id}/homeAddresses`).push({ address: addrText, lat: addressPickerCoords[0], lng: addressPickerCoords[1], timestamp: Date.now() }).then(() => {
-                        cancelAddressPicker(); alert('Адрес сохранён!'); showPanel('favorites');
-                    });
+            ymaps.geocode(addressPickerCoords)
+                .then(res => {
+                    const addrText = res.geoObjects.get(0) ? res.geoObjects.get(0).getAddressLine() : `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
+                    return database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
+                        .then(snap => {
+                            const count = Object.keys(snap.val() || {}).length;
+                            if (count >= 3) {
+                                alert('Максимум 3 адреса');
+                                cancelAddressPicker();
+                                saveBtn.textContent = origText;
+                                saveBtn.disabled = false;
+                                return null;
+                            }
+                            return database.ref(`users/${currentUser.id}/homeAddresses`).push({
+                                address: addrText,
+                                lat: addressPickerCoords[0],
+                                lng: addressPickerCoords[1],
+                                timestamp: Date.now()
+                            });
+                        });
+                })
+                .then(() => {
+                    if (saveBtn.disabled) {
+                        // уже обработано ошибкой или лимитом
+                        return;
+                    }
+                    cancelAddressPicker();
+                    alert('Адрес сохранён!');
+                    showPanel('favorites');
+                })
+                .catch(err => {
+                    console.error('Ошибка сохранения адреса:', err);
+                    alert('Ошибка сохранения: ' + err.message);
+                    saveBtn.textContent = origText;
+                    saveBtn.disabled = false;
                 });
-            }).catch(err => { alert('Ошибка: ' + err.message); saveBtn.textContent = origText; saveBtn.disabled = false; });
         }
         function removeHomeAddress(addressId) { if (confirm('Удалить адрес?')) database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove().then(() => showPanel('favorites')); }
         function focusMap(lat, lng, parkingId) { closePanel(); map.setCenter([lat, lng], 16, { duration: 300 }); }
