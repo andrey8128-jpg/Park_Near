@@ -1,1 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ParkNear</title>
+    
+    <meta name="theme-color" content="#007AFF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ParkNear">
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-header">
+        <div class="app-title">Park<span>Near</span></div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div class="layer-switcher" id="layerSwitcher" onclick="toggleLayerMenu()">🗺️</div>
+    <div class="layer-menu" id="layerMenu">
+        <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
+        <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
+        <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
+    </div>
+    
+    <button id="geoBtn" title="Моё местоположение">
+        <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+    </button>
+    
+    <button id="addBtn" title="Добавить парковку">+</button>
 
+    <div class="panel" id="panel">
+        <div class="panel-header">
+            <div class="panel-title" id="panelTitle">Профиль</div>
+            <button class="panel-close" onclick="closePanel()">Готово</button>
+        </div>
+        <div class="panel-content" id="panelContent"></div>
+    </div>
+
+    <div id="addressPickerOverlay" style="display:none; position:fixed; top:0;left:0;right:0;bottom:0; z-index:3000; background:rgba(0,0,0,0.3);">
+        <div id="addressPickerContainer" style="position:absolute; top:5%; left:5%; right:5%; bottom:5%; background:var(--bg-secondary); border-radius:16px; overflow:hidden; display:flex; flex-direction:column;">
+            <div style="padding:12px; background:var(--bg-secondary); border-bottom:0.5px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:600;">Укажите дом на карте</span>
+                <button onclick="cancelAddressPicker()" style="background:none; border:none; color:var(--accent); font-size:16px; cursor:pointer;">Отмена</button>
+            </div>
+            <div id="addressPickerMap" style="flex:1;"></div>
+            <div style="padding:12px; background:var(--bg-secondary); border-top:0.5px solid var(--border-color);">
+                <button class="btn-primary" onclick="saveAddressFromPicker()">💾 Сохранить адрес</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="label-picker-overlay" id="labelPickerOverlay">
+        <div class="label-picker-box">
+            <h3>🏷️ Выберите метку</h3>
+            <div class="label-options">
+                <button class="btn-secondary" onclick="selectLabel('Дом')">🏠 Дом</button>
+                <button class="btn-secondary" onclick="selectLabel('Работа')">💼 Работа</button>
+                <button class="btn-secondary" onclick="selectLabel('Родственники')">👨‍👩‍👧‍👦 Родственники</button>
+                <button class="btn-secondary" onclick="selectLabel('Другое')">✏️ Другое</button>
+            </div>
+            <button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
+        </div>
+    </div>
+
+    <div class="bottom-sheet" id="parkingSheet">
+        <div class="sheet-header">
+            <div class="sheet-handle" onclick="closeParkingSheet()"></div>
+            <button class="sheet-close" onclick="closeParkingSheet()">✕</button>
+        </div>
+        <div class="sheet-content" id="sheetContent"></div>
+    </div>
+
+    <div class="route-card" id="routeCard">
+        <button class="route-close" onclick="closeRoute()">✕</button>
+        <div id="routeInfo"></div>
+        <div class="route-actions">
+            <button class="btn-primary" onclick="startNavigation()">▶ Начать</button>
+            <button class="btn-secondary" onclick="rebuildRoute()">🔄 Перестроить</button>
+        </div>
+    </div>
+
+    <div class="tabBar">
+        <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
+        <div class="tab" onclick="showPanel('search')"><div class="icon">🔍</div><div class="label">Поиск</div></div>
+        <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
+        <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "./js/": "./js/"
+            }
+        }
+    </script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
