@@ -51,8 +51,7 @@ body.dark-theme #map .ymaps-2-1-79-ground-pane img { filter: invert(1) hue-rotat
 position: fixed; top: 54px; right: 12px; z-index: 900;
 background: var(--bg-secondary); backdrop-filter: blur(20px);
 border-radius: 14px; box-shadow: var(--card-shadow);
-width: 44px; height: 44px;
-display: flex; align-items: center; justify-content: center; cursor: pointer;
+width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .layer-menu {
 position: absolute; top: 48px; right: 0;
@@ -277,20 +276,20 @@ margin-right: 8px; vertical-align: middle;
 .status-free { background: var(--green); }
 .status-occupied { background: var(--red); }
 .status-unknown { background: var(--gray); }
-.reputation-card {
+.reputation-card, .city-pref-card {
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
 }
-.reputation-title {
+.reputation-title, .city-pref-title {
 font-size: 17px; font-weight: 600; margin-bottom: 16px;
 cursor: pointer; display: flex; justify-content: space-between; align-items: center;
 }
-.reputation-body { transition: max-height 0.3s ease; overflow: hidden; }
-.reputation-body.collapsed { max-height: 0; }
-.reputation-mini { display: none; }
-.reputation-body.collapsed .reputation-mini { display: block; }
-.reputation-full { display: block; }
-.reputation-body.collapsed .reputation-full { display: none; }
+.reputation-body, .city-pref-body { transition: max-height 0.3s ease; overflow: hidden; }
+.reputation-body.collapsed, .city-pref-body.collapsed { max-height: 0; }
+.reputation-mini, .city-pref-mini { display: none; }
+.reputation-body.collapsed .reputation-mini, .city-pref-body.collapsed .city-pref-mini { display: block; }
+.reputation-full, .city-pref-full { display: block; }
+.reputation-body.collapsed .reputation-full, .city-pref-body.collapsed .city-pref-full { display: none; }
 .reputation-circle { display: flex; justify-content: center; align-items: center; flex-direction: column; }
 .home-card {
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
@@ -349,11 +348,6 @@ border: 1px solid var(--input-border); background: var(--input-bg);
 color: var(--text-primary); font-size: 15px;
 }
 .city-selector { margin-bottom: 12px; }
-.city-pref-card {
-background: var(--bg-secondary); border-radius: 16px; padding: 20px;
-margin-bottom: 16px; box-shadow: var(--card-shadow);
-}
-.city-pref-title { font-size: 17px; font-weight: 600; margin-bottom: 12px; }
 .city-pref-row { display: flex; gap: 12px; }
 .city-pref-row .form-group { flex: 1; }
 .label-picker-overlay {
@@ -387,6 +381,16 @@ padding: 8px 0; border-bottom: 0.5px solid var(--border-color);
 .stats-row:last-child { border-bottom: none; }
 .stats-label { font-size: 14px; color: var(--text-secondary); }
 .stats-value { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.sheet-buttons { display: flex; gap: 8px; margin-top: 12px; }
+.sheet-buttons .btn-primary, .sheet-buttons .btn-secondary { margin-top: 0; flex: 1; }
+.nav-address-btn {
+width: 100%; padding: 12px; border-radius: 12px;
+border: 1px solid var(--input-border); background: var(--bg-primary);
+color: var(--text-primary); font-size: 14px; font-weight: 500;
+cursor: pointer; margin-top: 8px; text-align: left;
+display: flex; align-items: center; gap: 8px;
+}
+.nav-address-btn:active { background: var(--bg-secondary); }
 </style>
 </head>
 <body>
@@ -479,6 +483,8 @@ let currentRoute = null, routeStartCoords = null, routeEndCoords = null, routePa
 let userCityPrefs = { region: '', city: '' };
 let nearbySearchFilter = null;
 let pendingAddressData = null;
+let currentSheetParkingId = null;
+let userFavorites = {};
 
 const carBrands = {
 'Audi': ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8'],
@@ -614,79 +620,6 @@ street = streetPart;
 return { region, city, street, houseNumber };
 }
 
-function getDistanceInMeters(lat1, lng1, lat2, lng2) {
-const R = 6371000;
-const dLat = (lat2 - lat1) * Math.PI / 180;
-const dLng = (lng2 - lng1) * Math.PI / 180;
-const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
-const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-return R * c;
-}
-
-function formatDateTime(timestamp) {
-if (!timestamp) return 'Неизвестно';
-const d = new Date(timestamp);
-return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-}
-
-function getOccupancyColor(occupied, total) {
-const ratio = Math.min(1, total > 0 ? occupied / total : 0);
-return '#' + [Math.round(255 * ratio), Math.round(255 * (1 - ratio)), 0].map(c => c.toString(16).padStart(2, '0')).join('');
-}
-
-function checkPolygonSize(coordinates) {
-if (!coordinates || coordinates.length < 3) return { valid: false, error: 'Минимум 3 точки' };
-const lats = coordinates.map(c => c[0]), lngs = coordinates.map(c => c[1]);
-const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng), lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
-if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) return { valid: false, error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` };
-return { valid: true, width: widthM, length: lengthM };
-}
-
-// ===================== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ СОХРАНЕНИЯ АДРЕСА В FIREBASE =====================
-function saveAddressToFirebase(addressData, label) {
-return new Promise((resolve, reject) => {
-if (!currentUser) {
-reject(new Error('Пользователь не авторизован'));
-return;
-}
-
-if (!addressData || !addressData.address) {
-reject(new Error('Адрес не указан'));
-return;
-}
-
-const addressRef = database.ref(`users/${currentUser.id}/homeAddresses`);
-
-addressRef.once('value').then(snap => {
-const existingAddresses = snap.val() || {};
-const addressCount = Object.keys(existingAddresses).length;
-
-if (addressCount >= 3) {
-reject(new Error('Максимум 3 адреса'));
-return;
-}
-
-const newAddress = {
-address: addressData.address,
-lat: addressData.lat || null,
-lng: addressData.lng || null,
-label: label || 'Другое',
-timestamp: Date.now(),
-createdAt: Date.now()
-};
-
-return addressRef.push(newAddress);
-}).then(() => {
-console.log('✅ Адрес успешно сохранён в Firebase:', addressData.address);
-resolve();
-}).catch(err => {
-console.error('❌ Ошибка сохранения адреса:', err);
-reject(err);
-});
-});
-}
-
 function initAuth() {
 if (window.Telegram?.WebApp) {
 const tg = window.Telegram.WebApp;
@@ -715,9 +648,30 @@ database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap 
 if (snap.exists()) userCityPrefs = snap.val();
 else userCityPrefs = { region: '', city: '' };
 });
+database.ref(`users/${currentUser.id}/favorites`).once('value').then(snap => {
+userFavorites = snap.val() || {};
+});
 }
 const savedTheme = localStorage.getItem('darkTheme');
 if (savedTheme === 'true') document.body.classList.add('dark-theme');
+}
+
+function getDistanceInMeters(lat1, lng1, lat2, lng2) {
+const R = 6371000;
+const dLat = (lat2 - lat1) * Math.PI / 180;
+const dLng = (lng2 - lng1) * Math.PI / 180;
+const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+return R * c;
+}
+
+function checkPolygonSize(coordinates) {
+if (!coordinates || coordinates.length < 3) return { valid: false, error: 'Минимум 3 точки' };
+const lats = coordinates.map(c => c[0]), lngs = coordinates.map(c => c[1]);
+const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng), lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
+if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) return { valid: false, error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` };
+return { valid: true, width: widthM, length: lengthM };
 }
 
 function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
@@ -804,25 +758,6 @@ else reject(new Error('Геолокация не поддерживается'))
 
 function initMap() {
 map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'], type: 'yandex#map' });
-document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
-document.getElementById('geoBtn').onclick = () => {
-if (!map) return;
-const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
-btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-getUserLocation().then(coords => {
-btn.innerHTML = originalContent;
-if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-myLocationPlacemark.properties.set('caption', 'Вы здесь');
-map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-}).catch(err => {
-btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
-let message = 'Не удалось определить местоположение.';
-if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
-});
-};
 loadAllParkings();
 setTimeout(() => {
 getUserLocation().then(coords => {
@@ -900,6 +835,17 @@ if (data) Object.keys(data).forEach(key => { const p = data[key]; if (p && p.lat
 }).catch(error => console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error));
 }
 
+function getOccupancyColor(occupied, total) {
+const ratio = Math.min(1, total > 0 ? occupied / total : 0);
+return '#' + [Math.round(255 * ratio), Math.round(255 * (1 - ratio)), 0].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+function formatDateTime(timestamp) {
+if (!timestamp) return 'Неизвестно';
+const d = new Date(timestamp);
+return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
 function addMarkerToMap(id, data) {
 if (mapMarkers[id]) return;
 const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
@@ -926,130 +872,79 @@ clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; 
 map.geoObjects.add(placemark); mapMarkers[id] = placemark;
 }
 
+function refreshParkingMarker() {
+if (!currentParkingId) return;
+database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
+const data = snapshot.val();
+if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
+parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
+});
+}
+
 function openParkingSheet(parkingId, data) {
+currentSheetParkingId = parkingId;
 const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
 const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
 const free = data.totalSpots - data.occupiedSpots;
+const isFav = currentUser && userFavorites[parkingId];
+const favBtnText = isFav ? '⭐ В избранном' : '☆ Добавить ⭐';
+const favBtnClass = isFav ? 'btn-secondary' : 'btn-primary';
+
 getUserLocation().then(coords => {
 const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
 const distKm = (dist / 1000).toFixed(1);
 const driveTime = Math.round(dist / 500);
 content.innerHTML = `
-<h3>${data.name}</h3>
-<p>📍 ${addr}</p>
-<p>📏 ${distKm} км от вас</p>
-<p>🚗 На авто: ${driveTime} мин</p>
-<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+<h3 style="text-align:center;margin-bottom:12px;">${data.name}</h3>
+<p style="text-align:center;color:var(--text-secondary);margin-bottom:8px;">📍 ${addr}</p>
+<p style="text-align:center;margin-bottom:4px;">📏 ${distKm} км от вас</p>
+<p style="text-align:center;margin-bottom:4px;">🚗 На авто: ~${driveTime} мин</p>
+<p style="text-align:center;margin-bottom:12px;">️ Свободно: <strong>${free}</strong> / ${data.totalSpots}</p>
+<div class="sheet-buttons">
+<button class="${favBtnClass}" id="sheetFavBtn" onclick="toggleFavoriteFromSheet('${parkingId}')">${favBtnText}</button>
 <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
+</div>
 `;
 sheet.classList.add('active');
 }).catch(() => {
 content.innerHTML = `
-<h3>${data.name}</h3>
-<p>📍 ${addr}</p>
-<p>📏 Расстояние неизвестно</p>
-<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+<h3 style="text-align:center;margin-bottom:12px;">${data.name}</h3>
+<p style="text-align:center;color:var(--text-secondary);margin-bottom:8px;">📍 ${addr}</p>
+<p style="text-align:center;margin-bottom:12px;">🅿️ Свободно: <strong>${free}</strong> / ${data.totalSpots}</p>
+<div class="sheet-buttons">
+<button class="${favBtnClass}" id="sheetFavBtn" onclick="toggleFavoriteFromSheet('${parkingId}')">${favBtnText}</button>
 <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
+</div>
 `;
 sheet.classList.add('active');
 });
 }
 
-function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
-
-function buildRouteToParking(parkingId) {
-closeParkingSheet();
+function toggleFavoriteFromSheet(parkingId) {
+if (!currentUser) { alert('Войдите в аккаунт'); return; }
+const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
+favRef.once('value').then(snap => {
+if (snap.exists()) {
+favRef.remove();
+delete userFavorites[parkingId];
+const btn = document.getElementById('sheetFavBtn');
+if (btn) { btn.textContent = '☆ Добавить ⭐'; btn.className = 'btn-primary'; }
+} else {
 const data = parkingDataCache[parkingId];
-if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') { alert('Ошибка: данные парковки не содержат координат'); return; }
-getUserLocation().then(coords => {
-routeStartCoords = [coords.lat, coords.lng];
-routeEndCoords = [data.lat, data.lng];
-routeParkingData = data;
-buildAndShowRoute();
-}).catch(err => {
-console.warn('Не удалось получить геолокацию:', err);
-const center = map.getCenter();
-routeStartCoords = center;
-routeEndCoords = [data.lat, data.lng];
-routeParkingData = data;
-buildAndShowRoute();
+const favData = { parkingId, name: data ? data.name : '', lat: data ? data.lat : 0, lng: data ? data.lng : 0, timestamp: Date.now() };
+favRef.set(favData);
+userFavorites[parkingId] = favData;
+const btn = document.getElementById('sheetFavBtn');
+if (btn) { btn.textContent = '⭐ В избранном'; btn.className = 'btn-secondary'; }
+}
+if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
 });
 }
 
-function buildAndShowRoute() {
-if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
-if (!routeStartCoords || !routeEndCoords) { alert('Ошибка: координаты не определены'); return; }
-ymaps.route([routeStartCoords, routeEndCoords], { mapStateAutoApply: false })
-.then(route => {
-map.geoObjects.add(route); currentRoute = route;
-const paths = route.getPaths();
-if (paths && paths.length > 0) {
-const active = paths[0];
-const dist = active.getLength() / 1000;
-const time = active.getTime() / 60;
-const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-document.getElementById('routeInfo').innerHTML = `
-<div>🚗 До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div>
-<div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div>
-<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>`;
-document.getElementById('routeCard').classList.add('active');
-map.setBounds(route.getBounds(), { duration: 500 });
-} else showDirectLine();
-}).catch(err => { console.error('Ошибка построения маршрута:', err); showDirectLine(); });
-}
-
-function showDirectLine() {
-if (!routeStartCoords || !routeEndCoords) return;
-if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
-const line = new ymaps.Polyline([routeStartCoords, routeEndCoords], {}, { strokeColor: '#007AFF', strokeWidth: 4, strokeOpacity: 0.8 });
-map.geoObjects.add(line); currentRoute = line;
-const dist = getDistanceInMeters(routeStartCoords[0], routeStartCoords[1], routeEndCoords[0], routeEndCoords[1]) / 1000;
-const time = Math.round(dist * 2);
-const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-document.getElementById('routeInfo').innerHTML = `
-<div>🚗 До парковки (по прямой)</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ~${time} мин</div>
-<div> Свободных мест: ${free}</div><div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>`;
-document.getElementById('routeCard').classList.add('active');
-map.setBounds([[Math.min(routeStartCoords[0], routeEndCoords[0]), Math.min(routeStartCoords[1], routeEndCoords[1])], [Math.max(routeStartCoords[0], routeEndCoords[0]), Math.max(routeStartCoords[1], routeEndCoords[1])]], { duration: 500 });
-}
-
-function startNavigation() {
-if (routeEndCoords) {
-const lat = routeEndCoords[0], lon = routeEndCoords[1];
-if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-window.location.href = `yandexnavi://build_route_on_map?lat_to=${lat}&lon_to=${lon}`;
-setTimeout(() => { window.open(`https://yandex.com/navi/?build=full&lat_to=${lat}&lon_to=${lon}`, '_blank'); }, 500);
-} else {
-window.open(`https://yandex.com/navi/?build=full&lat_to=${lat}&lon_to=${lon}`, '_blank');
-}
-}
-}
-
-function rebuildRoute() {
-if (routeStartCoords && routeEndCoords) {
-if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
-ymaps.route([routeStartCoords, routeEndCoords]).then(route => {
-map.geoObjects.add(route); currentRoute = route;
-const active = route.getPaths()[0];
-const dist = active.getLength() / 1000;
-const time = active.getTime() / 60;
-const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-document.getElementById('routeInfo').innerHTML = `
-<div> До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div>
-<div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div>`;
-}).catch(err => { alert('Ошибка при перестроении маршрута'); showDirectLine(); });
-}
-}
-
-function closeRoute() {
-if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
-document.getElementById('routeCard').classList.remove('active');
-routeStartCoords = null; routeEndCoords = null; routeParkingData = null;
-}
+function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); currentSheetParkingId = null; }
 
 function openOccupancyPanel(parkingId) {
+closeParkingSheet();
 database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
 const data = snapshot.val(); if (!data) return;
 if (currentUser && currentUser.id !== data.authorId) {
@@ -1104,7 +999,6 @@ html += `
 html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
 html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
 }
-html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>`;
 document.getElementById('panelContent').innerHTML = html;
 }
 
@@ -1145,15 +1039,6 @@ alert('Границы обновлены');
 }).catch(err => { console.error('Ошибка обновления полигона:', err); alert('Ошибка: ' + err.message); cancelDrawing(); });
 }
 
-function refreshParkingMarker() {
-if (!currentParkingId) return;
-database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
-const data = snapshot.val();
-if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
-parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
-});
-}
-
 function updateOccupancyDisplay(newOccupied) {
 if (!currentParkingData) return;
 const total = currentParkingData.totalSpots || 0, free = total - newOccupied, color = getOccupancyColor(newOccupied, total), percent = total > 0 ? Math.round((newOccupied / total) * 100) : 0;
@@ -1170,6 +1055,7 @@ database.ref(`parkings/${parkingId}`).remove().then(() => {
 if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]); delete mapMarkers[parkingId]; }
 delete parkingDataCache[parkingId];
 database.ref(`users/${currentUser.id}/favorites/${parkingId}`).remove();
+delete userFavorites[parkingId];
 closePanel(); showMap();
 if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
 const panelContent = document.getElementById('panelContent');
@@ -1215,17 +1101,110 @@ if (!currentUser || !parkingId) return;
 const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
 favRef.once('value').then(snap => {
 if (snap.exists()) {
-favRef.remove();
+favRef.remove(); delete userFavorites[parkingId];
 const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '⭐ Добавить в избранное';
 } else {
 const favData = { parkingId, name: currentParkingData ? currentParkingData.name : '', lat: currentParkingData ? currentParkingData.lat : 0, lng: currentParkingData ? currentParkingData.lng : 0, timestamp: Date.now() };
-favRef.set(favData);
+favRef.set(favData); userFavorites[parkingId] = favData;
 const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '✅ В избранном';
 }
 });
 }
 
-// ===================== АДРЕСА - УЛУЧШЕННАЯ ЛОГИКА =====================
+function buildRouteToParking(parkingId) {
+closeParkingSheet();
+const data = parkingDataCache[parkingId];
+if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') { alert('Ошибка: данные парковки не содержат координат'); return; }
+getUserLocation().then(coords => {
+routeStartCoords = [coords.lat, coords.lng];
+routeEndCoords = [data.lat, data.lng];
+routeParkingData = data;
+buildAndShowRoute();
+}).catch(err => {
+console.warn('Не удалось получить геолокацию:', err);
+const center = map.getCenter();
+routeStartCoords = center;
+routeEndCoords = [data.lat, data.lng];
+routeParkingData = data;
+buildAndShowRoute();
+});
+}
+
+function buildAndShowRoute() {
+if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+if (!routeStartCoords || !routeEndCoords) { alert('Ошибка: координаты не определены'); return; }
+ymaps.route([routeStartCoords, routeEndCoords], { mapStateAutoApply: false })
+.then(route => {
+map.geoObjects.add(route); currentRoute = route;
+const paths = route.getPaths();
+if (paths && paths.length > 0) {
+const active = paths[0];
+const dist = active.getLength() / 1000;
+const time = active.getTime() / 60;
+const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+document.getElementById('routeInfo').innerHTML = `
+<div>🚗 До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div>
+<div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div>
+<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>`;
+document.getElementById('routeCard').classList.add('active');
+map.setBounds(route.getBounds(), { duration: 500 });
+} else showDirectLine();
+}).catch(err => { console.error('Ошибка построения маршрута:', err); showDirectLine(); });
+}
+
+function showDirectLine() {
+if (!routeStartCoords || !routeEndCoords) return;
+if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+const line = new ymaps.Polyline([routeStartCoords, routeEndCoords], {}, { strokeColor: '#007AFF', strokeWidth: 4, strokeOpacity: 0.8 });
+map.geoObjects.add(line); currentRoute = line;
+const dist = getDistanceInMeters(routeStartCoords[0], routeStartCoords[1], routeEndCoords[0], routeEndCoords[1]) / 1000;
+const time = Math.round(dist * 2);
+const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+document.getElementById('routeInfo').innerHTML = `
+<div>🚗 До парковки (по прямой)</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ~${time} мин</div>
+<div>🚘 Свободных мест: ${free}</div><div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>`;
+document.getElementById('routeCard').classList.add('active');
+map.setBounds([[Math.min(routeStartCoords[0], routeEndCoords[0]), Math.min(routeStartCoords[1], routeEndCoords[1])], [Math.max(routeStartCoords[0], routeEndCoords[0]), Math.max(routeStartCoords[1], routeEndCoords[1])]], { duration: 500 });
+}
+
+function startNavigation() {
+if (routeEndCoords) {
+const lat = routeEndCoords[0], lon = routeEndCoords[1];
+if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+window.location.href = `yandexnavi://build_route_on_map?lat_to=${lat}&lon_to=${lon}`;
+setTimeout(() => {
+window.open(`https://yandex.com/navi/?build=full&lat_to=${lat}&lon_to=${lon}`, '_blank');
+}, 500);
+} else {
+window.open(`https://yandex.com/navi/?build=full&lat_to=${lat}&lon_to=${lon}`, '_blank');
+}
+}
+}
+
+function rebuildRoute() {
+if (routeStartCoords && routeEndCoords) {
+if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+ymaps.route([routeStartCoords, routeEndCoords]).then(route => {
+map.geoObjects.add(route); currentRoute = route;
+const active = route.getPaths()[0];
+const dist = active.getLength() / 1000;
+const time = active.getTime() / 60;
+const arrival = new Date(Date.now() + active.getTime() * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+document.getElementById('routeInfo').innerHTML = `
+<div> До парковки</div><div>📍 ${dist.toFixed(1)} км</div><div>⏱ ${Math.round(time)} мин</div>
+<div>🚦 Прибытие: ${arrival}</div><div>🚘 Свободных мест: ${free}</div>`;
+}).catch(err => { alert('Ошибка при перестроении маршрута'); showDirectLine(); });
+}
+}
+
+function closeRoute() {
+if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+document.getElementById('routeCard').classList.remove('active');
+routeStartCoords = null; routeEndCoords = null; routeParkingData = null;
+}
+
 function addHomeAddress() {
 if (!currentUser) { alert('Необходимо войти'); return; }
 database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
@@ -1292,10 +1271,7 @@ if (typeof ymaps === 'undefined') { alert('Карты не загружены');
 ymaps.geocode(fullAddress, { results: 1 }).then(res => {
 const geoObject = res.geoObjects.get(0);
 if (!geoObject) {
-if (confirm('Адрес не найден. Сохранить без координат?')) {
-pendingAddressData = { address: fullAddress, lat: null, lng: null };
-document.getElementById('labelPickerOverlay').classList.add('active');
-}
+if (confirm('Адрес не найден. Сохранить без координат?')) { pendingAddressData = { address: fullAddress, lat: null, lng: null }; document.getElementById('labelPickerOverlay').classList.add('active'); }
 saveBtn.textContent = '🔍 Найти и сохранить'; saveBtn.disabled = false; return;
 }
 const coords = geoObject.geometry.getCoordinates();
@@ -1348,47 +1324,32 @@ pendingAddressData = { address: addrText, lat: addressPickerCoords[0], lng: addr
 document.getElementById('addressPickerOverlay').style.display = 'none';
 document.getElementById('labelPickerOverlay').classList.add('active');
 saveBtn.textContent = origText; saveBtn.disabled = false;
-}).catch(err => {
-console.error('Ошибка геокодирования:', err);
-alert('Ошибка: ' + err.message);
-saveBtn.textContent = origText; saveBtn.disabled = false;
-});
+}).catch(err => { console.error('Ошибка геокодирования:', err); alert('Ошибка: ' + err.message); saveBtn.textContent = origText; saveBtn.disabled = false; });
 }
 
 function selectLabel(label) {
-if (!pendingAddressData) { alert('Адрес не указан'); return; }
-if (!currentUser) { alert('Необходимо авторизоваться'); cancelLabelPicker(); return; }
-
-saveAddressToFirebase(pendingAddressData, label)
-.then(() => {
-cancelLabelPicker();
-alert('✅ Адрес сохранён!');
-showPanel('favorites');
-})
-.catch(err => {
-console.error('Ошибка сохранения адреса:', err);
-alert('❌ Ошибка: ' + err.message);
-cancelLabelPicker();
-});
+if (!pendingAddressData) return;
+const data = pendingAddressData;
+database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
+const count = Object.keys(snap.val() || {}).length;
+if (count >= 3) { alert('Максимум 3 адреса'); cancelLabelPicker(); return; }
+return database.ref(`users/${currentUser.id}/homeAddresses`).push({ address: data.address, lat: data.lat || null, lng: data.lng || null, label: label, timestamp: Date.now() });
+}).then(() => { cancelLabelPicker(); alert('Адрес сохранён!'); showPanel('favorites'); }).catch(err => { console.error('Ошибка сохранения адреса:', err); alert('Ошибка: ' + err.message); cancelLabelPicker(); });
 }
 
-function cancelLabelPicker() {
-document.getElementById('labelPickerOverlay').classList.remove('active');
-pendingAddressData = null;
-}
+function cancelLabelPicker() { document.getElementById('labelPickerOverlay').classList.remove('active'); pendingAddressData = null; }
 
 function removeHomeAddress(addressId) {
-if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-if (confirm('Удалить адрес?')) {
-database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove()
-.then(() => {
-console.log('✅ Адрес удалён из Firebase');
-showPanel('favorites');
-})
-.catch(err => {
-console.error(' Ошибка удаления адреса:', err);
-alert('Ошибка: ' + err.message);
-});
+if (confirm('Удалить адрес?')) { database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove().then(() => showPanel('favorites')).catch(err => alert('Ошибка: ' + err.message)); }
+}
+
+function navigateToAddress(lat, lng, label) {
+if (!lat || !lng) { alert('Координаты не указаны для этого адреса'); return; }
+if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+window.location.href = `yandexnavi://build_route_on_map?lat_to=${lat}&lon_to=${lng}`;
+setTimeout(() => { window.open(`https://yandex.com/navi/?build=full&lat_to=${lat}&lon_to=${lng}`, '_blank'); }, 500);
+} else {
+window.open(`https://yandex.com/navi/?build=full&lat_to=${lat}&lon_to=${lng}`, '_blank');
 }
 }
 
@@ -1445,7 +1406,7 @@ const free = p.totalSpots - (p.occupiedSpots || 0);
 const isAuthor = currentUser && currentUser.id === p.authorId;
 let addressDisplay = p.address || '';
 if (p.houseNumber && !addressDisplay.includes(p.houseNumber)) addressDisplay = addressDisplay ? addressDisplay + ', д. ' + p.houseNumber : 'д. ' + p.houseNumber;
-html += `<div class="swipe-container"><div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')"><div class="list-icon">️</div><div class="list-info"><div class="list-title">${p.name || 'Без названия'}</div><div class="list-subtitle">${addressDisplay} · Свободно: ${free}/${p.totalSpots}</div></div></div>${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}</div>`;
+html += `<div class="swipe-container"><div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')"><div class="list-icon">🅿️</div><div class="list-info"><div class="list-title">${p.name || 'Без названия'}</div><div class="list-subtitle">${addressDisplay} · Свободно: ${free}/${p.totalSpots}</div></div></div>${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}</div>`;
 });
 html += '</div>';
 }
@@ -1499,29 +1460,43 @@ database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(prefS
 const prefs = prefSnap.val() || { region: '', city: '' };
 userCityPrefs = prefs;
 let html = `<div class="profile-header"><div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : ''}</div><div class="profile-name">${currentUser.firstName}</div><div class="profile-username">@${currentUser.username}</div>${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}</div><div class="theme-toggle-row"><div class="theme-toggle-label">🌙 Тёмная тема</div><label class="theme-switch"><input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()"><span class="theme-slider"></span></label></div>`;
-html += `<div class="city-pref-card"><div class="city-pref-title">🏙️ Мой город</div><div class="city-pref-row"><div class="form-group"><label>Регион</label><select id="profileRegionSelect" class="input-field" onchange="updateCitySelectInProfile('profileRegionSelect','profileCitySelect')"><option value="">Выберите регион</option>${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===prefs.region?'selected':''}>${r}</option>`).join('')}</select></div><div class="form-group"><label>Город</label><select id="profileCitySelect" class="input-field"><option value="">Выберите город</option>${prefs.region && regionsData[prefs.region] ? regionsData[prefs.region].map(c => `<option value="${c}" ${c===prefs.city?'selected':''}>${c}</option>`).join('') : ''}</select></div></div><button class="btn-secondary" style="margin-top:8px;" onclick="saveCityPreferences()">Сохранить город</button></div>`;
+html += `<div class="city-pref-card">
+<div class="city-pref-title" onclick="var b=document.getElementById('cityPrefBody');b.classList.toggle('collapsed');this.querySelector('span:last-child').textContent=b.classList.contains('collapsed')?'▶':'▼';">
+<span>🏙️ Мой город</span><span>▼</span>
+</div>
+<div class="city-pref-body" id="cityPrefBody">
+<div class="city-pref-full">
+<div class="city-pref-row">
+<div class="form-group"><label>Регион</label><select id="profileRegionSelect" class="input-field" onchange="updateCitySelectInProfile('profileRegionSelect','profileCitySelect')"><option value="">Выберите регион</option>${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===prefs.region?'selected':''}>${r}</option>`).join('')}</select></div>
+<div class="form-group"><label>Город</label><select id="profileCitySelect" class="input-field"><option value="">Выберите город</option>${prefs.region && regionsData[prefs.region] ? regionsData[prefs.region].map(c => `<option value="${c}" ${c===prefs.city?'selected':''}>${c}</option>`).join('') : ''}</select></div>
+</div>
+<button class="btn-secondary" style="margin-top:8px;" onclick="saveCityPreferences()">Сохранить город</button>
+</div>
+<div class="city-pref-mini" style="font-size:14px;color:var(--text-secondary);">${prefs.city ? prefs.city : 'Не выбран'}</div>
+</div>
+</div>`;
 if (brand && model && plate) {
-html += `<div class="car-section"><div class="car-section-title">🚗 Мой автомобиль</div><div class="car-summary"><div class="car-summary-info"><div class="car-summary-title">${brand} ${model}</div><div class="car-summary-subtitle">${plate}</div></div><div class="car-summary-color" style="background:${carColors[color] || '#808080'};"></div></div><button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button></div>`;
+html += `<div class="car-section"><div class="car-section-title"> Мой автомобиль</div><div class="car-summary"><div class="car-summary-info"><div class="car-summary-title">${brand} ${model}</div><div class="car-summary-subtitle">${plate}</div></div><div class="car-summary-color" style="background:${carColors[color] || '#808080'};"></div></div><button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button></div>`;
 } else {
 html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
 }
 const created = stats.parkingsCreated || 0, updated = stats.parkingsUpdated || 0, confirmations = stats.confirmations || 0, views = stats.views || 0, favorites = stats.favorites || 0, activeDates = stats.activeDates || [];
 const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
-let level = 1, levelName = "Пешеход", levelEmoji = "👣";
+let level = 1, levelName = "Пешеход", levelEmoji = "";
 const levels = [
 { xp: 0, name: "Пешеход", emoji: "👣" }, { xp: 1000, name: "Водитель-любитель", emoji: "🚗" },
-{ xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" }, { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
+{ xp: 3000, name: "Начинающий парковщик", emoji: "️" }, { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
 { xp: 10000, name: "Наблюдатель", emoji: "👁️" }, { xp: 20000, name: "Помощник района", emoji: "🤝" },
-{ xp: 40000, name: "Картограф", emoji: "🗺️" }, { xp: 70000, name: "Инспектор", emoji: "🕵️" },
-{ xp: 110000, name: "Ветеран дорог", emoji: "️" }, { xp: 150000, name: "Страж парковки", emoji: "⚖️" },
-{ xp: 250000, name: "Архитектор города", emoji: "️" }, { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
+{ xp: 40000, name: "Картограф", emoji: "️" }, { xp: 70000, name: "Инспектор", emoji: "🕵️" },
+{ xp: 110000, name: "Ветеран дорог", emoji: "🛣️" }, { xp: 150000, name: "Страж парковки", emoji: "️" },
+{ xp: 250000, name: "Архитектор города", emoji: "🏗️" }, { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
 ];
 for (let i = levels.length - 1; i >= 0; i--) { if (score >= levels[i].xp) { level = i + 1; levelName = levels[i].name; levelEmoji = levels[i].emoji; break; } }
 const nextLevel = levels.find(l => l.xp > score);
 let progressPercent = 100, xpForNext = 0;
 if (nextLevel) { const prevLevelXp = levels[level - 2] ? levels[level - 2].xp : 0; const range = nextLevel.xp - prevLevelXp; progressPercent = Math.min(100, Math.round(((score - prevLevelXp) / range) * 100)); xpForNext = nextLevel.xp - score; }
 html += `<div class="reputation-card"><div class="reputation-title" onclick="var b=document.getElementById('repBody');b.classList.toggle('collapsed');this.querySelector('span:last-child').textContent=b.classList.contains('collapsed')?'▶':'▼';"><span>🏆 Репутация</span><span>▼</span></div><div class="reputation-body" id="repBody"><div class="reputation-full"><div class="stats-row"><span class="stats-label">🎖 Уровень</span><span class="stats-value">${levelEmoji} ${levelName} (${level}/12)</span></div><div class="stats-row"><span class="stats-label">✨ Опыт (XP)</span><span class="stats-value">${score.toLocaleString()}</span></div>${nextLevel ? `<div class="stats-row"><span class="stats-label"> До след. уровня</span><span class="stats-value">${xpForNext.toLocaleString()} XP</span></div>` : ''}<div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:${progressPercent}%;background:var(--accent);"></div></div></div><div class="reputation-mini"><div class="reputation-circle"><svg width="80" height="80" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9" fill="none" stroke="#E5E5EA" stroke-width="3"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="#34C759" stroke-width="3" stroke-dasharray="${progressPercent} 100" stroke-linecap="round" transform="rotate(-90 18 18)"/><text x="18" y="21" text-anchor="middle" fill="currentColor" font-size="10">${levelEmoji}</text></svg><div style="margin-top:8px;font-weight:600;">Ур. ${level}</div></div></div></div></div>`;
-html += `<div style="padding:0 20px;"><p style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:20px;">${isGuest ? 'Данные сохраняются локально' : 'Данные синхронизированы'}</p><button class="btn-danger" onclick="logout()"> Выйти</button></div>`;
+html += `<div style="padding:0 20px;"><p style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:20px;">${isGuest ? 'Данные сохраняются локально' : 'Данные синхронизированы'}</p><button class="btn-danger" onclick="logout()">🚪 Выйти</button></div>`;
 content.innerHTML = html;
 });
 });
@@ -1548,7 +1523,7 @@ const sec = document.getElementById('carEditSection'); if (sec) sec.remove();
 database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
 const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
 const form = document.createElement('div'); form.className = 'car-section'; form.id = 'carEditSection';
-form.innerHTML = `<div class="car-section-title">🚗 Редактирование</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}" ${b===brand?'selected':''}>${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option>${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m===model?'selected':''}>${m}</option>`).join('') : ''}</select></div><div class="form-group"><label>Цвет</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button><button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>`;
+form.innerHTML = `<div class="car-section-title"> Редактирование</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}" ${b===brand?'selected':''}>${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option>${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m===model?'selected':''}>${m}</option>`).join('') : ''}</select></div><div class="form-group"><label>Цвет</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button><button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>`;
 document.querySelector('.car-section').parentNode.insertBefore(form, document.querySelector('.car-section').nextSibling);
 document.querySelector('.car-section').remove();
 });
@@ -1578,17 +1553,14 @@ if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedba
 function loadUserData(type, content) {
 if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon"></div><p>Войдите</p></div>'; return; }
 if (type === 'favorites') {
-Promise.all([
-database.ref(`users/${currentUser.id}/favorites`).once('value'),
-database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
-]).then(([favSnap, homeSnap]) => {
+Promise.all([database.ref(`users/${currentUser.id}/favorites`).once('value'), database.ref(`users/${currentUser.id}/homeAddresses`).once('value')]).then(([favSnap, homeSnap]) => {
 let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мой дом</div>';
 const addrs = homeSnap.val() || {};
 if (Object.keys(addrs).length > 0) {
 Object.entries(addrs).forEach(([id, addr]) => {
 const label = addr.label || 'Адрес';
-const icon = label === 'Дом' ? '🏠' : label === 'Работа' ? '💼' : label === 'Родственники' ? '👨‍‍👧‍👦' : '📍';
-html += `<div class="swipe-container" style="margin-bottom:8px;"><div class="swipe-item" style="padding:10px 0;"><span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span><div><button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat || 'null'}, ${addr.lng || 'null'}, '${addr.address.replace(/'/g, "\\'")}')">Найти парковку</button></div></div><div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div></div>`;
+const icon = label === 'Дом' ? '🏠' : label === 'Работа' ? '💼' : label === 'Родственники' ? '‍👩‍👧👦' : '📍';
+html += `<div class="swipe-container" style="margin-bottom:8px;"><div class="swipe-item" style="padding:10px 0;"><span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span><div><button class="nav-address-btn" onclick="navigateToAddress(${addr.lat || 'null'}, ${addr.lng || 'null'}, '${label}')">️ Навигация</button><button class="btn-secondary" style="padding:4px 10px;font-size:13px;margin-top:4px;" onclick="findParkingsNearAddress(${addr.lat || 'null'}, ${addr.lng || 'null'}, '${addr.address.replace(/'/g, "\\'")}')">Найти парковку</button></div></div><div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div></div>`;
 });
 } else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
 html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
@@ -1689,6 +1661,38 @@ showPanel('profile');
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
 }
+
+document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
+document.getElementById('geoBtn').onclick = () => {
+if (!map) return;
+const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
+btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
+getUserLocation().then(coords => {
+btn.innerHTML = originalContent;
+if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
+myLocationPlacemark.properties.set('caption', 'Вы здесь');
+map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+}).catch(err => {
+btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
+let message = 'Не удалось определить местоположение.';
+if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
+if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
+});
+};
+
+const routeCard = document.getElementById('routeCard');
+let startY = 0, swipeDown = false;
+routeCard.addEventListener('touchstart', e => { startY = e.touches[0].clientY; swipeDown = false; });
+routeCard.addEventListener('touchmove', e => { if (e.touches[0].clientY - startY > 50) swipeDown = true; });
+routeCard.addEventListener('touchend', () => { if (swipeDown) closeRoute(); });
+
+const parkingSheet = document.getElementById('parkingSheet');
+let sheetStartY = 0, sheetSwipeDown = false;
+parkingSheet.addEventListener('touchstart', e => { if (!parkingSheet.classList.contains('active')) return; sheetStartY = e.touches[0].clientY; sheetSwipeDown = false; });
+parkingSheet.addEventListener('touchmove', e => { if (!parkingSheet.classList.contains('active')) return; if (e.touches[0].clientY - sheetStartY > 60) sheetSwipeDown = true; });
+parkingSheet.addEventListener('touchend', () => { if (sheetSwipeDown) closeParkingSheet(); });
 </script>
 </body>
 </html>
