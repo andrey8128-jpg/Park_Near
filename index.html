@@ -1018,26 +1018,36 @@ alert('Границы обновлены');
 
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
 function openParkingSheet(parkingId, data) {
-    const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
+    const sheet = document.getElementById('parkingSheet'),
+          content = document.getElementById('sheetContent');
     routeParkingData = data;
     const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
     const free = data.totalSpots - data.occupiedSpots;
 
     function renderSheet(distanceText) {
+        // Вставляем контент с кнопками «Маршрут» и «Готово»
         content.innerHTML = `
             <h3>${data.name}</h3>
             <p>📍 ${addr}</p>
             <p>📏 ${distanceText}</p>
             <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
             <button class="btn-primary" id="routeBtn">🗺️ Маршрут</button>
+            <button class="btn-secondary" id="doneBtn" style="margin-top:8px;">Готово</button>
         `;
-        // Явно вешаем обработчик на кнопку после вставки HTML
+
+        // Навешиваем обработчики отдельно, чтобы они точно работали
         document.getElementById('routeBtn').addEventListener('click', function() {
             buildRouteToParking(parkingId);
         });
+
+        document.getElementById('doneBtn').addEventListener('click', function() {
+            closeParkingSheet();
+        });
+
         sheet.classList.add('active');
     }
 
+    // Пытаемся получить геолокацию для показа расстояния
     getUserLocation().then(coords => {
         const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
         const distKm = (dist / 1000).toFixed(1);
