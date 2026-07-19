@@ -418,6 +418,10 @@ color: #fff;
 <div class="app-title">Park<span>Near</span></div>
 </div>
 <div id="map"></div>
+<div id="mapLoader" style="position:fixed; top:44px; left:0; right:0; bottom:83px; display:flex; align-items:center; justify-content:center; background:var(--bg-primary); z-index:50; flex-direction:column;">
+<div class="spinner"></div>
+<p style="color:var(--text-secondary); margin-top:16px;">Загрузка карты...</p>
+</div>
 <div class="layer-switcher" id="layerSwitcher" onclick="toggleLayerMenu()">🗺️</div>
 <div class="layer-menu" id="layerMenu">
 <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
@@ -793,27 +797,51 @@ parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data
 });
 }
 
-function loadAllParkings() {
-console.log('Загрузка парковок из Firebase...');
-database.ref('parkings').once('value').then(snapshot => {
-const data = snapshot.val();
-console.log('Получено парковок:', data ? Object.keys(data).length : 0);
-if (data) {
-Object.keys(data).forEach(key => {
-const p = data[key];
-console.log('Парковка:', key, p);
-if (p && p.lat && p.lng) {
-parkingDataCache[key] = p;
-addMarkerToMap(key, p);
+function listenParkings() {
+    console.log('Подключение к Firebase для получения парковок в реальном времени...');
+    database.ref('parkings').on('value', (snapshot) => {
+        const data = snapshot.val();
+        console.log('Обновление парковок:', data ? Object.keys(data).length : 0);
+        
+        const currentKeys = Object.keys(mapMarkers);
+        if (data) {
+            const newKeys = Object.keys(data);
+            currentKeys.forEach(key => {
+                if (!newKeys.includes(key) && mapMarkers[key]) {
+                    map.geoObjects.remove(mapMarkers[key]);
+                    delete mapMarkers[key];
+                }
+            });
+            
+            newKeys.forEach(key => {
+                const p = data[key];
+                if (p && p.lat && p.lng) {
+                    const cached = parkingDataCache[key];
+                    if (!cached || JSON.stringify(cached) !== JSON.stringify(p)) {
+                        if (mapMarkers[key]) {
+                            map.geoObjects.remove(mapMarkers[key]);
+                            delete mapMarkers[key];
+                        }
+                        parkingDataCache[key] = p;
+                        addMarkerToMap(key, p);
+                    }
+                }
+            });
+        } else {
+            currentKeys.forEach(key => {
+                if (mapMarkers[key]) {
+                    map.geoObjects.remove(mapMarkers[key]);
+                    delete mapMarkers[key];
+                }
+            });
+        }
+    });
 }
-});
-}
-}).catch(error => console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error));
-}
-
 // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
 function initMap() {
 console.log('Инициализация карты...');
+const loader = document.getElementById('mapLoader');
+if (loader) loader.style.display = 'none';
 map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'], type: 'yandex#map' });
 console.log('Карта инициализирована');
 
@@ -838,7 +866,7 @@ if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message
 };
 
 // Загружаем парковки после инициализации карты
-loadAllParkings();
+listenParkings(); 
 
 setTimeout(() => {
 getUserLocation().then(coords => {
@@ -932,16 +960,19 @@ const coordinates = drawingPolygon.geometry.getCoordinates()[0];
 const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
 const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
 const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
-ymaps.geocode([centerLat, centerLng])
-.then(res => {
-const firstGeoObject = res.geoObjects.get(0);
-const address = firstGeoObject ? firstGeoObject.getAddressLine() : '';
-return address;
-})
-.catch(err => {
-console.warn('Ошибка геокодирования, сохраняем без адреса:', err);
-return '';
-})
+ymaps.geocode([centerLat, centerLng], { results: 1 })
+    .then(res => {
+        const firstGeoObject = res.geoObjects.get(0);
+        let address = firstGeoObject ? firstGeoObject.getAddressLine() : '';
+        if (address && address.length > 100) {
+            address = address.substring(0, 97) + '...';
+        }
+        return address;
+    })
+    .catch(err => {
+        console.warn('Ошибка геокодирования:', err);
+        return `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`;
+    })
 .then(address => {
 const parsed = parseAddress(address);
 if (userCityPrefs && userCityPrefs.region && userCityPrefs.city) {
@@ -1282,9 +1313,19 @@ map.setBounds([
 ], { duration: 500 });
 }
 function startNavigation() {
-if (routeEndCoords) {
-window.open(`https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${routeEndCoords[1]}`, '_blank');
-}
+    if (routeEndCoords) {
+        const lat = routeEndCoords[0];
+        const lng = routeEndCoords[1];
+        
+        const yandexNav = `yandexnavi://build_route_on_map?lat_to=${lat}&lon_to=${lng}`;
+        const yandexMaps = `https://yandex.ru/maps/?rtext=~${lat}%2C${lng}&rtt=auto`;
+        const googleMaps = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+        
+        window.open(yandexNav, '_blank');
+        setTimeout(() => {
+            window.open(yandexMaps, '_blank');
+        }, 500);
+    }
 }
 function rebuildRoute() {
 if (routeStartCoords && routeEndCoords) {
