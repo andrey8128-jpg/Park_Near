@@ -2170,16 +2170,66 @@ if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUse
 
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
+    console.log('🚀 Запуск ParkNear...');
     initAuth();
     
-    document.getElementById('addBtn').onclick = () => { 
-        if (!currentUser) showPanel('profile'); 
-        else if (isDrawingMode) cancelDrawing(); 
-        else startDrawingMode(); 
+    // Обработчик кнопки "Добавить"
+    document.getElementById('addBtn').onclick = function() { 
+        if (!currentUser) {
+            showPanel('profile');
+            return;
+        }
+        if (isDrawingMode) {
+            cancelDrawing();
+        } else {
+            startDrawingMode();
+        }
     };
     
-    ymaps.ready(() => { initMap(); });
-}
+    // Проверка разрешений геолокации
+    if (navigator.permissions) {
+        checkGeolocationPermission();
+    }
+    
+    // Инициализация карты
+    ymaps.ready(function() { 
+        console.log('🗺️ Яндекс.Карты готовы');
+        initMap(); 
+    });
+}  // <-- ЗАКРЫВАЕМ initApp
+
+// ===================== СТАРТ ПРИЛОЖЕНИЯ =====================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM загружен');
+    
+    // Ждём загрузку Яндекс.Карт
+    if (typeof ymaps !== 'undefined') {
+        console.log('🗺️ Яндекс.Карты уже загружены');
+        initApp();
+    } else {
+        console.log('⏳ Ожидаем загрузку Яндекс.Карт...');
+        window.addEventListener('load', function() {
+            if (typeof ymaps !== 'undefined') {
+                ymaps.ready(function() {
+                    console.log('🗺️ Яндекс.Карты загружены');
+                    initApp();
+                });
+            } else {
+                console.error('❌ Яндекс.Карты не загрузились!');
+                const loader = document.getElementById('mapLoader');
+                if (loader) {
+                    loader.innerHTML = `
+                        <div style="color: var(--red); font-size: 24px; margin-bottom: 16px;">❌</div>
+                        <p style="color: var(--text-secondary);">Не удалось загрузить карту</p>
+                        <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">Проверьте интернет-соединение</p>
+                        <button onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; border-radius: 12px; border: none; background: var(--accent); color: #fff; font-size: 16px; cursor: pointer;">Обновить</button>
+                    `;
+                }
+            }
+        });
+    }
+});  // <-- ЗАКРЫВАЕМ addEventListener
+
 </script>
 </body>
 </html>
