@@ -1033,16 +1033,14 @@ function openParkingSheet(parkingId, data) {
             <button class="btn-primary" id="routeBtn">🗺️ Маршрут</button>
             <button class="btn-secondary" id="sheetDoneBtn" style="margin-top:8px;">Готово</button>
         `;
-        // Явные обработчики – работают всегда
+        // Явные обработчики
         document.getElementById('routeBtn').addEventListener('click', () => {
             buildRouteToParking(parkingId);
         });
         document.getElementById('sheetDoneBtn').addEventListener('click', closeParkingSheet);
-        // Дополнительно вешаем обработчик на крестик и ручку (на случай потери onclick)
-        const closeBtn = document.querySelector('.sheet-close');
-        if (closeBtn) closeBtn.onclick = closeParkingSheet;
-        const handle = document.querySelector('.sheet-handle');
-        if (handle) handle.onclick = closeParkingSheet;
+        // Дополнительно на крестик и ручку
+        document.querySelector('.sheet-close').onclick = closeParkingSheet;
+        document.querySelector('.sheet-handle').onclick = closeParkingSheet;
 
         sheet.classList.add('active');
     }
@@ -1057,31 +1055,30 @@ function openParkingSheet(parkingId, data) {
     });
 }
 
-    // Пытаемся получить геолокацию для показа расстояния
-    getUserLocation().then(coords => {
-        const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-        const distKm = (dist / 1000).toFixed(1);
-        const driveTime = Math.round(dist / 500);
-        renderSheet(`${distKm} км от вас, 🚗 На авто: ${driveTime} мин`);
-    }).catch(() => {
-        renderSheet('Расстояние неизвестно');
-    });
+function closeParkingSheet() {
+    document.getElementById('parkingSheet').classList.remove('active');
 }
     
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
-database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
-const data = snapshot.val(); if (!data) return;
-if (currentUser && currentUser.id !== data.authorId) {
-database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
-database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
+    database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+        if (currentUser && currentUser.id !== data.authorId) {
+            database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
+            database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
+        }
+        currentParkingId = parkingId;
+        currentParkingData = data;
+        parkingDataCache[parkingId] = data;
+        if (currentUser) {
+            database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => renderEditPanel(data, favSnap.exists()));
+        } else {
+            renderEditPanel(data, false);
+        }
+    });
 }
-currentParkingId = parkingId; currentParkingData = data; parkingDataCache[parkingId] = data;
-if (currentUser) {
-database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => renderEditPanel(data, favSnap.exists()));
-} else renderEditPanel(data, false);
-});
-}
+
 function renderEditPanel(data, isFavorite) {
     const totalSpots = data.totalSpots || 0,
           occupiedSpots = data.occupiedSpots || 0,
@@ -1151,11 +1148,11 @@ function renderEditPanel(data, isFavorite) {
         `;
     }
 
-    // Крупная кнопка «Закрыть» внизу
     html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">🔽 Закрыть редактор</button>`;
-
     document.getElementById('panelContent').innerHTML = html;
 }
+
+// ... остальные функции (saveParkingDetails, changeOccupancy, deleteParking и т.д.) без изменений, кроме buildRouteToParking и showDirectLineFallback ...
     
 // ===================== МАРШРУТ (ИНТЕРФЕЙС НАВИГАТОРА) =====================
 function buildRouteToParking(parkingId) {
@@ -1165,15 +1162,12 @@ function buildRouteToParking(parkingId) {
         alert('Ошибка: данные парковки не содержат координат');
         return;
     }
-    routeParkingData = data; // для использования в fallback
+    routeParkingData = data;
 
-    // Показываем заглушку загрузки
     document.getElementById('routeCard').innerHTML = `
         <div class="route-close" onclick="closeRoute()">✕</div>
         <div id="routeInfo">
-            <div style="text-align:center; padding: 40px 20px; color:var(--text-secondary);">
-                🛣️ Строим маршрут...
-            </div>
+            <div style="text-align:center; padding: 40px 20px; color:var(--text-secondary);">🛣️ Строим маршрут...</div>
         </div>`;
     document.getElementById('routeCard').classList.add('active');
 
@@ -1184,25 +1178,58 @@ function buildRouteToParking(parkingId) {
             buildNavigatorView(center[0], center[1], data.lat, data.lng);
         });
 }
-    
-// Оставьте эту функцию как резервную, она полезна
+
+function buildNavigatorView(startLat, startLng, endLat, endLng) {
+    ymaps.route([[startLat, startLng], [endLat, endLng]], { multiRoute: false, routingMode: 'auto' })
+        .then(route => {
+            if (currentRoute) map.geoObjects.remove(currentRoute);
+            currentRoute = route;
+            map.geoObjects.add(route);
+            map.setBounds(route.getBounds(), { checkZoomRange: true, duration: 500 });
+
+            const activePath = route.getPaths().get(0);
+            const firstSegment = activePath.getSegments().get(0);
+            const distanceKm = (route.getLength() / 1000).toFixed(1);
+            const timeMin = Math.round(activePath.getTime() / 60);
+
+            document.getElementById('routeCard').innerHTML = `
+                <div class="route-close" onclick="closeRoute()">✕</div>
+                <div id="routeInfo">
+                    <div style="padding: 15px 20px 10px; border-bottom: 0.5px solid var(--border-color);">
+                        <div style="font-size: 17px; font-weight: 600;">До парковки</div>
+                        <div style="display: flex; align-items: center; margin-top: 8px; gap: 15px;">
+                            <span style="font-size: 24px; font-weight: 600;">${distanceKm} км</span>
+                            <span style="color: var(--text-secondary);">•</span>
+                            <span style="font-size: 17px; font-weight: 600;">${timeMin} мин</span>
+                        </div>
+                    </div>
+                    <div style="padding: 15px 20px; display:flex; align-items:center; justify-content:space-between;">
+                        <div>
+                            <div style="font-size: 17px; font-weight: 600;">${firstSegment.getAction()}</div>
+                            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 2px;">${firstSegment.getStreet() || ''}</div>
+                        </div>
+                        <button class="btn-primary" style="width:90px; height:36px; font-size:14px; padding:0;" onclick="startExternalNavigation(${startLat}, ${startLng}, ${endLat}, ${endLng})">▶ В Навигатор</button>
+                    </div>
+                </div>`;
+        })
+        .catch(error => {
+            console.error('Ошибка маршрута:', error);
+            showDirectLineFallback(startLat, startLng, endLat, endLng);
+        });
+}
+
 function showDirectLineFallback(sLat, sLng, eLat, eLng) {
-    if (currentRoute) { 
-        map.geoObjects.remove(currentRoute); 
-        currentRoute = null; 
-    }
+    if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
     const line = new ymaps.Polyline([[sLat, sLng], [eLat, eLng]], {}, {
-        strokeColor: '#007AFF',
-        strokeWidth: 4,
-        strokeOpacity: 0.8
+        strokeColor: '#007AFF', strokeWidth: 4, strokeOpacity: 0.8
     });
     map.geoObjects.add(line);
     currentRoute = line;
-    
+
     const dist = getDistanceInMeters(sLat, sLng, eLat, eLng) / 1000;
     const time = Math.round(dist * 2);
     const free = routeParkingData ? routeParkingData.totalSpots - routeParkingData.occupiedSpots : '?';
-    
+
     document.getElementById('routeCard').innerHTML = `
         <div class="route-close" onclick="closeRoute()">✕</div>
         <div id="routeInfo">
@@ -1212,13 +1239,19 @@ function showDirectLineFallback(sLat, sLng, eLat, eLng) {
             <div>🚘 Свободных мест: ${free}</div>
             ${routeParkingData ? `<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>` : ''}
         </div>`;
-    
     document.getElementById('routeCard').classList.add('active');
-    map.setBounds([
-        [Math.min(sLat, eLat), Math.min(sLng, eLng)],
-        [Math.max(sLat, eLat), Math.max(sLng, eLng)]
-    ], { duration: 500 });
+    map.setBounds([[Math.min(sLat, eLat), Math.min(sLng, eLng)], [Math.max(sLat, eLat), Math.max(sLng, eLng)]], { duration: 500 });
 }
+
+function closeRoute() {
+    if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+    document.getElementById('routeCard').classList.remove('active');
+}
+function startExternalNavigation(startLat, startLng, endLat, endLng) {
+    // пример: открыть Яндекс.Навигатор
+    window.open(`https://yandex.ru/navi/?whatshere%5Bpoint%5D=${endLng},${endLat}&whatshere%5Bname%5D=%D0%9F%D0%B0%D1%80%D0%BA%D0%BE%D0%B2%D0%BA%D0%B0&rtext=${startLat},${startLng}~${endLat},${endLng}&rtt=auto`, '_blank');
+}
+function rebuildRoute() { /* ... */ }
     
 // ===================== АДРЕСА =====================
 function addHomeAddress() {
@@ -1909,40 +1942,22 @@ if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUse
 
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
-initAuth();
-document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
-document.getElementById('geoBtn').onclick = () => {
-if (!map) return;
-const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
-btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-getUserLocation().then(coords => {
-btn.innerHTML = originalContent;
-if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-myLocationPlacemark.properties.set('caption', 'Вы здесь');
-map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-}).catch(err => {
-btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
-let message = 'Не удалось определить местоположение.';
-if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
-});
-};
-ymaps.ready(() => { initMap(); });
-}
-document.addEventListener('DOMContentLoaded', () => {
-if (typeof ymaps !== 'undefined') {
-initApp();
-} else {
-window.addEventListener('load', () => {
-ymaps.ready(() => { initApp(); });
+    initAuth();
+    ymaps.ready(() => { initMap(); });
     // Дополнительные обработчики закрытия (подстраховка)
-document.querySelector('.panel-close').addEventListener('click', closePanel);
-document.querySelector('.sheet-close').addEventListener('click', closeParkingSheet);
-document.querySelector('.sheet-handle').addEventListener('click', closeParkingSheet);
-});
+    document.querySelector('.panel-close').addEventListener('click', closePanel);
+    document.querySelector('.sheet-close').addEventListener('click', closeParkingSheet);
+    document.querySelector('.sheet-handle').addEventListener('click', closeParkingSheet);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof ymaps !== 'undefined') {
+        initApp();
+    } else {
+        window.addEventListener('load', () => {
+            ymaps.ready(() => { initApp(); });
+        });
+    }
 });
 </script>
 </body>
