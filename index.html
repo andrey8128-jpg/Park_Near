@@ -1330,9 +1330,10 @@ function closeRoute() {
 
 // Оставьте эту функцию как резервную, она полезна
 function showDirectLineFallback(sLat, sLng, eLat, eLng) {
-    // ... ваш существующий код fallback ...
-    // Если API не смогло построить маршрут, хотя бы покажем прямую линию
-    if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+    if (currentRoute) { 
+        map.geoObjects.remove(currentRoute); 
+        currentRoute = null; 
+    }
     const line = new ymaps.Polyline([[sLat, sLng], [eLat, eLng]], {}, {
         strokeColor: '#007AFF',
         strokeWidth: 4,
@@ -1340,8 +1341,28 @@ function showDirectLineFallback(sLat, sLng, eLat, eLng) {
     });
     map.geoObjects.add(line);
     currentRoute = line;
-    // ... остальной код вывода текста о прямой линии ...
+    
+    const dist = getDistanceInMeters(sLat, sLng, eLat, eLng) / 1000;
+    const time = Math.round(dist * 2);
+    const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+    
+    document.getElementById('routeInfo').innerHTML = `
+        <div class="route-close" onclick="closeRoute()">✕</div>
+        <div id="routeInfo">
+            <div>🚗 До парковки (по прямой)</div>
+            <div>📍 ${dist.toFixed(1)} км</div>
+            <div>⏱ ~${time} мин (приблизительно)</div>
+            <div>🚘 Свободных мест: ${free}</div>
+            <div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+        </div>`;
+    
+    document.getElementById('routeCard').classList.add('active');
+    map.setBounds([
+        [Math.min(sLat, eLat), Math.min(sLng, eLng)],
+        [Math.max(sLat, eLat), Math.max(sLng, eLng)]
+    ], { duration: 500 });
 }
+    
 // ===================== АДРЕСА =====================
 function addHomeAddress() {
 if (!currentUser) { alert('Необходимо войти'); return; }
