@@ -2048,8 +2048,7 @@ function toggleTheme() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
-}
-
+}  // <-- ДОЛЖНА БЫТЬ ЭТА СКОБКА
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
 if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
