@@ -356,19 +356,13 @@ color: var(--text-primary); font-size: 15px;
 }
 .city-selector { margin-bottom: 12px; }
 .city-pref-card {
-background: var(--bg-secondary); border-radius: 16px;
+background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
-overflow: hidden;
 }
 .city-pref-title {
-font-size: 17px; font-weight: 600;
-cursor: pointer;
-display: flex; justify-content: space-between; align-items: center;
-padding: 20px;
+font-size: 17px; font-weight: 600; margin-bottom: 12px;
 }
-.city-pref-body { transition: max-height 0.3s ease; overflow: hidden; }
-.city-pref-body.collapsed { max-height: 0; }
-.city-pref-row { display: flex; gap: 12px; padding: 0 20px 20px; }
+.city-pref-row { display: flex; gap: 12px; }
 .city-pref-row .form-group { flex: 1; }
 .label-picker-overlay {
 display: none;
