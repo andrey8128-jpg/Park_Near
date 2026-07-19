@@ -411,6 +411,21 @@ color: #fff;
 .manual-address-form.active { display: block; }
 .map-address-form { display: none; }
 .map-address-form.active { display: block; }
+    /* ===== СТИЛИ ДЛЯ КНОПКИ ГЕОЛОКАЦИИ ===== */
+#geoBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#geoBtn .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--bg-primary);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0;
+}
 </style>
 </head>
 <body>
@@ -748,7 +763,51 @@ else reject(new Error('Геолокация не поддерживается'))
 } else if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }), reject, { enableHighAccuracy: true, timeout: 10000 });
 else reject(new Error('Геолокация не поддерживается'));
 }
-
+// ===================== ГЕОЛОКАЦИЯ =====================
+function getUserLocation() {
+    return new Promise((resolve, reject) => {
+        console.log('🔍 Запрос геолокации...');
+        
+        // 1. Пытаемся через Telegram WebApp
+        if (window.Telegram?.WebApp?.Geolocation?.getLocation) {
+            console.log('📱 Используем Telegram Geolocation');
+            window.Telegram.WebApp.Geolocation.getLocation()
+                .then(loc => {
+                    console.log('✅ Telegram геолокация получена:', loc);
+                    resolve({ lat: loc.latitude, lng: loc.longitude });
+                })
+                .catch(err => {
+                    console.warn('⚠️ Telegram геолокация не удалась:', err);
+                    tryBrowserGeolocation(resolve, reject);
+                });
+            return;
+        }
+        
+        // 2. Пытаемся через Яндекс.Карты
+        if (typeof ymaps !== 'undefined' && ymaps.geolocation) {
+            console.log('🗺️ Используем Яндекс геолокацию');
+            ymaps.geolocation.get({ 
+                provider: 'browser', 
+                timeout: 10000,
+                auto: true 
+            })
+            .then(result => {
+                const coords = result.geoObjects.get(0).geometry.getCoordinates();
+                console.log('✅ Яндекс геолокация получена:', coords);
+                resolve({ lat: coords[0], lng: coords[1] });
+            })
+            .catch(err => {
+                console.warn('⚠️ Яндекс геолокация не удалась:', err);
+                tryBrowserGeolocation(resolve, reject);
+            });
+            return;
+        }
+        
+        // 3. Fallback - браузерная геолокация
+        console.log('🌐 Используем браузерную геолокацию');
+        tryBrowserGeolocation(resolve, reject);
+    });
+}
 // ===================== МАРКЕРЫ НА КАРТЕ =====================
 function addMarkerToMap(id, data) {
 console.log('Добавляю маркер:', id, data);
@@ -846,38 +905,90 @@ map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['z
 console.log('Карта инициализирована');
 
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
-document.getElementById('geoBtn').onclick = () => {
-if (!map) return;
-const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
-btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-getUserLocation().then(coords => {
-btn.innerHTML = originalContent;
-if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-myLocationPlacemark.properties.set('caption', 'Вы здесь');
-map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-}).catch(err => {
-btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
-let message = 'Не удалось определить местоположение.';
-if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
-});
+document.getElementById('geoBtn').onclick = function() {
+    console.log('📍 Кнопка геолокации нажата');
+    if (!map) {
+        console.error('❌ Карта не инициализирована');
+        return;
+    }
+    
+    const btn = this;
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
+    btn.disabled = true;
+    
+    getUserLocation()
+        .then(coords => {
+            console.log('✅ Геолокация получена, центрируем карту');
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            
+            if (myLocationPlacemark) {
+                map.geoObjects.remove(myLocationPlacemark);
+                myLocationPlacemark = null;
+            }
+            
+            myLocationPlacemark = new ymaps.Placemark(
+                [coords.lat, coords.lng],
+                { 
+                    hintContent: 'Вы здесь',
+                    balloonContent: '<strong>Ваше местоположение</strong>'
+                },
+                { 
+                    preset: 'islands#blueCircleDotIconWithCaption',
+                    iconCaption: 'Вы здесь'
+                }
+            );
+            
+            map.geoObjects.add(myLocationPlacemark);
+            map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+            
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        })
+        .catch(err => {
+            console.error('❌ Ошибка получения геолокации:', err);
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            
+            let message = err.message || 'Не удалось определить местоположение.';
+            if (window.Telegram?.WebApp?.showAlert) {
+                window.Telegram.WebApp.showAlert(message);
+            } else {
+                alert(message);
+            }
+        });
 };
 
 // Загружаем парковки после инициализации карты
 listenParkings(); 
 
 setTimeout(() => {
-getUserLocation().then(coords => {
-if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-myLocationPlacemark.properties.set('caption', 'Вы здесь');
-map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
-}).catch(() => console.log('Автогеолокация не удалась'));
+    console.log('🔄 Автоматическая геолокация...');
+    getUserLocation()
+        .then(coords => {
+            console.log('✅ Автогеолокация успешна:', coords);
+            if (myLocationPlacemark) {
+                map.geoObjects.remove(myLocationPlacemark);
+                myLocationPlacemark = null;
+            }
+            
+            myLocationPlacemark = new ymaps.Placemark(
+                [coords.lat, coords.lng],
+                { hintContent: 'Вы здесь' },
+                { 
+                    preset: 'islands#blueCircleDotIconWithCaption',
+                    iconCaption: 'Вы здесь'
+                }
+            );
+            map.geoObjects.add(myLocationPlacemark);
+            map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
+        })
+        .catch(err => {
+            console.warn('⚠️ Автогеолокация не удалась:', err.message);
+        });
 }, 1000);
-}
-
 // ===================== СЛОИ КАРТЫ =====================
 function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
 function setMapType(option) {
@@ -2059,37 +2170,16 @@ if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUse
 
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
-initAuth();
-document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
-document.getElementById('geoBtn').onclick = () => {
-if (!map) return;
-const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
-btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-getUserLocation().then(coords => {
-btn.innerHTML = originalContent;
-if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-myLocationPlacemark.properties.set('caption', 'Вы здесь');
-map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-}).catch(err => {
-btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
-let message = 'Не удалось определить местоположение.';
-if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
-});
-};
-ymaps.ready(() => { initMap(); });
+    initAuth();
+    
+    document.getElementById('addBtn').onclick = () => { 
+        if (!currentUser) showPanel('profile'); 
+        else if (isDrawingMode) cancelDrawing(); 
+        else startDrawingMode(); 
+    };
+    
+    ymaps.ready(() => { initMap(); });
 }
-document.addEventListener('DOMContentLoaded', () => {
-if (typeof ymaps !== 'undefined') {
-initApp();
-} else {
-window.addEventListener('load', () => {
-ymaps.ready(() => { initApp(); });
-});
-}
-});
 </script>
 </body>
 </html>
