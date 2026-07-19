@@ -520,9 +520,9 @@ color: #fff;
 </div>
 <div class="tabBar">
 <div class="tab active" onclick="showMap()"><div class="icon">🗺️</div><div class="label">Карта</div></div>
-<div class="tab" onclick="showPanel('search')"><div class="icon">🔍</div><div class="label">Поиск</div></div>
+<div class="tab" onclick="showPanel('search')"><div class="icon"></div><div class="label">Поиск</div></div>
 <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
-<div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
+<div class="tab" onclick="showPanel('profile')"><div class="icon"></div><div class="label">Профиль</div></div>
 </div>
 <script>
 // ===================== FIREBASE =====================
@@ -654,7 +654,7 @@ const regionsData = {
 "Мурманская область": ["Мурманск", "Апатиты"],
 "Республика Карелия": ["Петрозаводск", "Кондопога"],
 "Кировская область": ["Киров", "Кирово-Чепецк"],
-"Ульяновская область": ["Ульяновск"],
+"Ульяновская область": ["Ульяновск","димитровгр"],
 "Пензенская область": ["Пенза", "Кузнецк"],
 "Тамбовская область": ["Тамбов", "Мичуринск"],
 "Астраханская область": ["Астрахань"],
@@ -1041,8 +1041,8 @@ function openParkingSheet(parkingId, data) {
             <h3>${data.name}</h3>
             <p>📍 ${addr}</p>
             <p>📏 ${distanceText}</p>
-            <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-            <button class="btn-primary" id="routeBtn">🗺️ Маршрут</button>
+            <p>️ Свободно: ${free} / ${data.totalSpots}</p>
+            <button class="btn-primary" id="routeBtn">️ Маршрут</button>
             <button class="btn-secondary" id="sheetDoneBtn" style="margin-top:8px;">Готово</button>
         `;
 
@@ -1069,6 +1069,7 @@ function openParkingSheet(parkingId, data) {
     
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
+    closeParkingSheet(); // Закрываем нижний лист перед открытием редактора
     database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
         const data = snapshot.val();
         if (!data) return;
@@ -1087,7 +1088,7 @@ function openOccupancyPanel(parkingId) {
     });
 }
 
-ffunction renderEditPanel(data, isFavorite) {
+function renderEditPanel(data, isFavorite) {
     const totalSpots = data.totalSpots || 0;
     const occupiedSpots = data.occupiedSpots || 0;
     const freeSpots = totalSpots - occupiedSpots;
@@ -1152,7 +1153,7 @@ ffunction renderEditPanel(data, isFavorite) {
         `;
     }
 
-    html += `<button class="btn-secondary" id="closeEditBtnBottom" style="margin-top:20px;">🔽 Закрыть редактор</button>`;
+    html += `<button class="btn-secondary" id="closeEditBtnBottom" style="margin-top:20px;"> Закрыть редактор</button>`;
     document.getElementById('panelContent').innerHTML = html;
 
     // Вешаем обработчики на кнопки
@@ -1787,7 +1788,7 @@ const activeDates = stats.activeDates || [];
 const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
 let level = 1, levelName = "Пешеход", levelEmoji = "👣";
 const levels = [
-{ xp: 0, name: "Пешеход", emoji: "👣" },
+{ xp: 0, name: "Пешеход", emoji: "" },
 { xp: 1000, name: "Водитель-любитель", emoji: "" },
 { xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
 { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
@@ -1885,7 +1886,7 @@ const sec = document.getElementById('carEditSection'); if (sec) sec.remove();
 database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
 const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
 const form = document.createElement('div'); form.className = 'car-section'; form.id = 'carEditSection';
-form.innerHTML = `<div class="car-section-title">🚗 Редактирование</div>
+form.innerHTML = `<div class="car-section-title"> Редактирование</div>
 <div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}" ${b===brand?'selected':''}>${b}</option>`).join('')}</select></div>
 <div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option>${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m===model?'selected':''}>${m}</option>`).join('') : ''}</select></div>
 <div class="form-group"><label>Цвет</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select></div>
@@ -1919,7 +1920,7 @@ if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedba
 
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
-if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
+if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon"></div><p>Войдите</p></div>'; return; }
 if (type === 'favorites') {
 Promise.all([
 database.ref(`users/${currentUser.id}/favorites`).once('value'),
@@ -1930,7 +1931,7 @@ const addrs = homeSnap.val() || {};
 if (Object.keys(addrs).length > 0) {
 Object.entries(addrs).forEach(([id, addr]) => {
 const label = addr.label || 'Адрес';
-const icon = label === 'Дом' ? '' : label === 'Работа' ? '' : label === 'Родственники' ? '👨‍👩‍‍👦' : '';
+const icon = label === 'Дом' ? '' : label === 'Работа' ? '' : label === 'Родственники' ? '👨👩‍‍👦' : '';
 html += `<div class="swipe-container" style="margin-bottom:8px;">
 <div class="swipe-item" style="padding:10px 0;">
 <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
@@ -1950,12 +1951,16 @@ else {
 html += '<div class="list-container">';
 Object.values(favs).forEach(item => {
 if (item && item.parkingId) {
-html += `<div class="list-item" onclick="highlightAndShowParking('${item.parkingId}')">
+// ИСПРАВЛЕНИЕ: Используем swipe-container для свайпа в избранном
+html += `<div class="swipe-container" data-favid="${item.parkingId}">
+<div class="swipe-item" onclick="highlightAndShowParking('${item.parkingId}')">
 <div class="list-icon">⭐</div>
 <div class="list-info">
 <div class="list-title">${item.name||'Без названия'}</div>
 <div class="list-subtitle">Добавлено ${item.timestamp?formatDateTime(item.timestamp):''}</div>
 </div>
+</div>
+<div class="swipe-delete" onclick="removeFavorite('${item.parkingId}')">Удалить</div>
 </div>`;
 }
 });
@@ -1978,6 +1983,49 @@ item.addEventListener('touchend', () => { dragging = false; item.style.transitio
 cnt.querySelector('.swipe-delete').addEventListener('click', () => item.style.transform = 'translateX(0)');
 });
 }
+
+// Добавлена недостающая функция удаления парковки
+function deleteParking(parkingId) {
+    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
+    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
+    
+    database.ref(`parkings/${parkingId}`).remove().then(() => {
+        if (mapMarkers[parkingId]) { 
+            map.geoObjects.remove(mapMarkers[parkingId]); 
+            delete mapMarkers[parkingId]; 
+        }
+        delete parkingDataCache[parkingId];
+        
+        // Удаляем из избранного всех пользователей (если нужно) или просто закрываем панель
+        closePanel();
+        showMap();
+        
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    }).catch(err => {
+        console.error('Ошибка удаления:', err);
+        alert('Ошибка удаления: ' + err.message);
+    });
+}
+
+// Добавлена функция удаления из избранного
+function removeFavorite(parkingId) {
+    if (!currentUser) return;
+    if (!confirm('Удалить из избранного?')) return;
+    
+    database.ref(`users/${currentUser.id}/favorites/${parkingId}`).remove().then(() => {
+        // Обновляем список избранного
+        loadUserData('favorites', document.getElementById('panelContent'));
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    }).catch(err => {
+        console.error('Ошибка удаления из избранного:', err);
+        alert('Ошибка: ' + err.message);
+    });
+}
+
 function showPanel(type, keepFilter = false) {
 if (type === 'search' && !keepFilter) {
 nearbySearchFilter = null;
@@ -1998,19 +2046,33 @@ document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 const tabIndex = type === 'profile' ? 3 : (type === 'search' ? 1 : 2);
 document.querySelectorAll('.tab')[tabIndex].classList.add('active');
 }
+
+// Восстановлена функция closePanel
 function closePanel() {
-nearbySearchFilter = null;
-if (isAddressPickerOpen) cancelAddressPicker();
-closeParkingSheet(); closeRoute();
-document.getElementById('panel').classList.remove('active');
-document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-document.querySelector('.tab:first-child').classList.add('active');
-currentParkingId = null; currentParkingData = null;
-if (editingPolygon) { map.geoObjects.remove(editingPolygon); editingPolygon = null; document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+'; isDrawingMode = false; const c = document.getElementById('drawingControls'); if (c) c.remove(); }
-if (clickTimeout) { clearTimeout(clickTimeout); clickTimeout = null; }
-lastClickParkingId = null; lastClickTime = 0;
-resetHighlightedParkings();
+    nearbySearchFilter = null;
+    if (isAddressPickerOpen) cancelAddressPicker();
+    closeParkingSheet(); 
+    closeRoute();
+    document.getElementById('panel').classList.remove('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.tab:first-child').classList.add('active');
+    currentParkingId = null; 
+    currentParkingData = null;
+    if (editingPolygon) { 
+        map.geoObjects.remove(editingPolygon); 
+        editingPolygon = null; 
+        document.getElementById('addBtn').classList.remove('drawing'); 
+        document.getElementById('addBtn').textContent = '+'; 
+        isDrawingMode = false; 
+        const c = document.getElementById('drawingControls'); 
+        if (c) c.remove(); 
+    }
+    if (clickTimeout) { clearTimeout(clickTimeout); clickTimeout = null; }
+    lastClickParkingId = null; 
+    lastClickTime = 0;
+    resetHighlightedParkings();
 }
+
 function showMap() { closePanel(); }
 function resetHighlightedParkings() {
 Object.keys(highlightedParkings).forEach(id => {
@@ -2040,9 +2102,9 @@ function initApp() {
     initAuth();
     ymaps.ready(() => { initMap(); });
     // Дополнительные обработчики закрытия (подстраховка)
-document.querySelector('.panel-close').addEventListener('click', closePanel);
-document.querySelector('.sheet-close').addEventListener('click', closeParkingSheet);
-document.querySelector('.sheet-handle').addEventListener('click', closeParkingSheet);
+    document.querySelector('.panel-close').addEventListener('click', closePanel);
+    document.querySelector('.sheet-close').addEventListener('click', closeParkingSheet);
+    document.querySelector('.sheet-handle').addEventListener('click', closeParkingSheet);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
