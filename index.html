@@ -512,6 +512,41 @@ appId: "1:1066552333578:web:e60e333cf877852eba16f3"
 };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+// ===================== ДИАГНОСТИКА =====================
+console.log('🔍 Диагностика загрузки:');
+
+// Проверяем загрузку скриптов
+console.log('1. Telegram WebApp:', typeof window.Telegram !== 'undefined' ? '✅' : '❌');
+console.log('2. Firebase:', typeof firebase !== 'undefined' ? '✅' : '❌');
+console.log('3. Яндекс.Карты (ymaps):', typeof ymaps !== 'undefined' ? '✅' : '❌');
+
+// Если Яндекс.Карты не загружены, пробуем принудительно загрузить
+if (typeof ymaps === 'undefined') {
+    console.warn('⚠️ Яндекс.Карты не загружены, пробуем принудительную загрузку...');
+    
+    // Проверяем, есть ли скрипт на странице
+    const scripts = document.querySelectorAll('script');
+    let hasYandexScript = false;
+    scripts.forEach(s => {
+        if (s.src && s.src.includes('api-maps.yandex.ru')) {
+            hasYandexScript = true;
+            console.log('✅ Скрипт Яндекс.Карт найден:', s.src);
+        }
+    });
+    
+    if (!hasYandexScript) {
+        console.warn('⚠️ Скрипт Яндекс.Карт не найден, добавляем...');
+        const script = document.createElement('script');
+        script.src = 'https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU';
+        script.onload = function() {
+            console.log('✅ Яндекс.Карты загружены принудительно');
+        };
+        script.onerror = function() {
+            console.error('❌ Не удалось загрузить Яндекс.Карты');
+        };
+        document.head.appendChild(script);
+    }
+}    
 
 // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
 let map = null;
@@ -2172,7 +2207,6 @@ function initApp() {
     console.log('🚀 Запуск ParkNear...');
     initAuth();
     
-    // Обработчик кнопки "Добавить"
     document.getElementById('addBtn').onclick = function() { 
         if (!currentUser) {
             showPanel('profile');
@@ -2185,18 +2219,85 @@ function initApp() {
         }
     };
     
-    // Проверка разрешений геолокации
     if (navigator.permissions) {
         checkGeolocationPermission();
     }
     
-    // Инициализация карты
-    ymaps.ready(function() { 
-        console.log('🗺️ Яндекс.Карты готовы');
-        initMap(); 
-    });
-}  // <-- ЗАКРЫВАЕМ initApp
-
+    // Попытка инициализации карты с таймаутом
+    let mapLoaded = false;
+    
+    function tryInitMap() {
+        if (mapLoaded) return;
+        if (typeof ymaps !== 'undefined' && ymaps.Map) {
+            console.log('🗺️ Яндекс.Карты готовы');
+            mapLoaded = true;
+            initMap();
+        } else {
+            console.log('⏳ Ожидаем загрузку Яндекс.Карт...');
+            ymaps.ready(function() {
+                if (!mapLoaded) {
+                    console.log('🗺️ Яндекс.Карты загружены через ymaps.ready');
+                    mapLoaded = true;
+                    initMap();
+                }
+            });
+        }
+    }
+    
+    // Пробуем сразу
+    tryInitMap();
+    
+    // Fallback через 5 секунд
+    setTimeout(function() {
+        if (!mapLoaded) {
+            console.warn('⚠️ Карта не загрузилась за 5 секунд, пробуем перезагрузить...');
+            tryInitMap();
+        }
+    }, 5000);
+    
+    // Fallback через 10 секунд - показываем ошибку
+    setTimeout(function() {
+        if (!mapLoaded) {
+            console.error('❌ Карта не загрузилась за 10 секунд');
+            const loader = document.getElementById('mapLoader');
+            if (loader) {
+                loader.innerHTML = `
+                    <div style="color: var(--red); font-size: 48px; margin-bottom: 16px;">❌</div>
+                    <p style="color: var(--text-secondary); font-size: 18px; font-weight: 600;">Не удалось загрузить карту</p>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">Проверьте интернет-соединение и перезагрузите страницу</p>
+                    <button onclick="location.reload()" style="margin-top: 20px; padding: 12px 32px; border-radius: 12px; border: none; background: var(--accent); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;">🔄 Обновить</button>
+                    <button onclick="loadMapWithoutKey()" style="margin-top: 10px; padding: 12px 32px; border-radius: 12px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-size: 14px; cursor: pointer;">🔑 Попробовать без ключа</button>
+                `;
+            }
+        }
+    }, 10000);
+}
+    // ===================== ЗАГРУЗКА КАРТЫ БЕЗ КЛЮЧА =====================
+function loadMapWithoutKey() {
+    console.log('🔄 Попытка загрузить карту без API-ключа...');
+    
+    // Удаляем старый скрипт с ключом
+    const oldScript = document.querySelector('script[src*="api-maps.yandex.ru"]');
+    if (oldScript) {
+        oldScript.remove();
+        console.log('✅ Старый скрипт удалён');
+    }
+    
+    // Загружаем новый скрипт без ключа
+    const script = document.createElement('script');
+    script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU';
+    script.onload = function() {
+        console.log('✅ Карта загружена без ключа');
+        ymaps.ready(function() {
+            initMap();
+        });
+    };
+    script.onerror = function() {
+        console.error('❌ Не удалось загрузить карту без ключа');
+        alert('Не удалось загрузить карту. Проверьте интернет-соединение.');
+    };
+    document.head.appendChild(script);
+}
 // ===================== СТАРТ ПРИЛОЖЕНИЯ =====================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM загружен');
