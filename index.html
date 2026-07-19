@@ -1930,10 +1930,6 @@ if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message
 });
 };
 ymaps.ready(() => { initMap(); });
-    // Дополнительные обработчики закрытия (подстраховка)
-document.querySelector('.panel-close').addEventListener('click', closePanel);
-document.querySelector('.sheet-close').addEventListener('click', closeParkingSheet);
-document.querySelector('.sheet-handle').addEventListener('click', closeParkingSheet);
 }
 document.addEventListener('DOMContentLoaded', () => {
 if (typeof ymaps !== 'undefined') {
@@ -1941,6 +1937,10 @@ initApp();
 } else {
 window.addEventListener('load', () => {
 ymaps.ready(() => { initApp(); });
+    // Дополнительные обработчики закрытия (подстраховка)
+document.querySelector('.panel-close').addEventListener('click', closePanel);
+document.querySelector('.sheet-close').addEventListener('click', closeParkingSheet);
+document.querySelector('.sheet-handle').addEventListener('click', closeParkingSheet);
 });
 }
 });
