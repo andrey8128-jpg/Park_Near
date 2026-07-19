@@ -1019,35 +1019,35 @@ alert('Границы обновлены');
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
 function openParkingSheet(parkingId, data) {
     const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
-    // Сохраняем данные для маршрута
     routeParkingData = data;
     const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
     const free = data.totalSpots - data.occupiedSpots;
+
+    function renderSheet(distanceText) {
+        content.innerHTML = `
+            <h3>${data.name}</h3>
+            <p>📍 ${addr}</p>
+            <p>📏 ${distanceText}</p>
+            <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+            <button class="btn-primary" id="routeBtn">🗺️ Маршрут</button>
+        `;
+        // Явно вешаем обработчик на кнопку после вставки HTML
+        document.getElementById('routeBtn').addEventListener('click', function() {
+            buildRouteToParking(parkingId);
+        });
+        sheet.classList.add('active');
+    }
+
     getUserLocation().then(coords => {
         const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
         const distKm = (dist / 1000).toFixed(1);
         const driveTime = Math.round(dist / 500);
-        content.innerHTML = `
-            <h3>${data.name}</h3>
-            <p>📍 ${addr}</p>
-            <p>📏 ${distKm} км от вас</p>
-            <p>🚗 На авто: ${driveTime} мин</p>
-            <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-            <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-        `;
-        sheet.classList.add('active');
+        renderSheet(`${distKm} км от вас, 🚗 На авто: ${driveTime} мин`);
     }).catch(() => {
-        content.innerHTML = `
-            <h3>${data.name}</h3>
-            <p>📍 ${addr}</p>
-            <p>📏 Расстояние неизвестно</p>
-            <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-            <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-        `;
-        sheet.classList.add('active');
+        renderSheet('Расстояние неизвестно');
     });
 }
-
+    
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
 database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
