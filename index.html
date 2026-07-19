@@ -91,21 +91,65 @@ transition: transform 0.2s;
 }
 #addBtn:active { transform: scale(0.9); background: #0051D5; }
 #addBtn.drawing { background: var(--orange); }
+/* LIQUID GLASS TAB BAR */
 .tabBar {
-position: fixed; bottom: 0; left: 0; right: 0; height: 83px;
-background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
-z-index: 1000; display: flex;
-border-top: 0.5px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom);
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: saturate(180%) blur(30px);
+    -webkit-backdrop-filter: saturate(180%) blur(30px);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    border: none;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom);
+    transition: background 0.3s, box-shadow 0.3s;
 }
-body.dark-theme .tabBar { background: rgba(28,28,30,0.85); }
+body.dark-theme .tabBar {
+    background: rgba(28, 28, 30, 0.45);
+    backdrop-filter: saturate(180%) blur(30px);
+    -webkit-backdrop-filter: saturate(180%) blur(30px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
 .tab {
-flex: 1; display: flex; flex-direction: column;
-align-items: center; justify-content: center; cursor: pointer;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 8px 0;
+    border-radius: 16px;
+    transition: background 0.2s, transform 0.1s;
+    position: relative;
 }
-.tab:active { opacity: 0.6; transform: scale(0.95); }
-.tab .icon { font-size: 24px; margin-bottom: 4px; }
-.tab .label { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
+.tab .icon { font-size: 24px; margin-bottom: 2px; transition: transform 0.2s; }
+.tab .label { font-size: 10px; color: var(--text-secondary); font-weight: 500; transition: color 0.2s; }
 .tab.active .label { color: var(--accent); font-weight: 600; }
+.tab:active {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.tab.active::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+}
+body.dark-theme .tab:active { background: rgba(255, 255, 255, 0.1); }
 .panel {
 position: fixed; top: 0; left: 0; right: 0; bottom: 0;
 background: var(--bg-primary); z-index: 2000;
@@ -758,70 +802,35 @@ else reject(new Error('Геолокация не поддерживается'))
 
 // ===================== МАРКЕРЫ НА КАРТЕ =====================
 function addMarkerToMap(id, data) {
-console.log('Добавляю маркер:', id, data);
-if (mapMarkers[id]) {
-console.log('Маркер уже существует:', id);
-return;
-}
-if (!map) {
-console.error('Карта не инициализирована!');
-return;
-}
-const totalSpots = data.totalSpots || 0;
-const occupiedSpots = data.occupiedSpots || 0;
-const freeSpots = totalSpots - occupiedSpots;
-const color = getOccupancyColor(occupiedSpots, totalSpots);
-let placemark;
-if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-placemark = new ymaps.Polygon([data.coordinates], { hintContent: `${data.name} (${freeSpots} св.)` }, { fillColor: color + '55', strokeColor: color, strokeWidth: 2 });
-} else {
-placemark = new ymaps.Placemark([data.lat, data.lng], { hintContent: `${data.name} (${freeSpots} св.)` }, { preset: 'islands#blueParkingIcon' });
-}
-placemark.events.add('click', function(e) {
-const now = Date.now();
-if (lastClickParkingId === id && (now - lastClickTime) < 300) {
-clearTimeout(clickTimeout);
-openOccupancyPanel(id);
-lastClickParkingId = null; lastClickTime = 0;
-return;
-}
-lastClickParkingId = id; lastClickTime = now;
-if (clickTimeout) clearTimeout(clickTimeout);
-openParkingSheet(id, data);
-clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; }, 300);
-});
-map.geoObjects.add(placemark);
-mapMarkers[id] = placemark;
-console.log('Маркер добавлен:', id);
-}
+    if (mapMarkers[id]) return;
+    if (!map) return;
+    const totalSpots = data.totalSpots || 0;
+    const occupiedSpots = data.occupiedSpots || 0;
+    const freeSpots = totalSpots - occupiedSpots;
+    const color = getOccupancyColor(occupiedSpots, totalSpots);
+    let placemark;
+    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+        placemark = new ymaps.Polygon(
+            [data.coordinates],
+            { hintContent: `${data.name} (${freeSpots} св.)` },
+            { fillColor: color + '55', strokeColor: color, strokeWidth: 2 }
+        );
+    } else {
+        placemark = new ymaps.Placemark(
+            [data.lat, data.lng],
+            { hintContent: `${data.name} (${freeSpots} св.)` },
+            { preset: 'islands#blueParkingIcon' }
+        );
+    }
 
-function refreshParkingMarker() {
-if (!currentParkingId) return;
-database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
-const data = snapshot.val();
-if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
-parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
-});
-}
+    // Простой одиночный клик — открываем нижний лист с информацией
+    placemark.events.add('click', function () {
+        openParkingSheet(id, data);
+    });
 
-function loadAllParkings() {
-console.log('Загрузка парковок из Firebase...');
-database.ref('parkings').once('value').then(snapshot => {
-const data = snapshot.val();
-console.log('Получено парковок:', data ? Object.keys(data).length : 0);
-if (data) {
-Object.keys(data).forEach(key => {
-const p = data[key];
-console.log('Парковка:', key, p);
-if (p && p.lat && p.lng) {
-parkingDataCache[key] = p;
-addMarkerToMap(key, p);
+    map.geoObjects.add(placemark);
+    mapMarkers[id] = placemark;
 }
-});
-}
-}).catch(error => console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error));
-}
-
 // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
 function initMap() {
 console.log('Инициализация карты...');
@@ -1021,8 +1030,8 @@ alert('Границы обновлены');
 
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
 function openParkingSheet(parkingId, data) {
-    const sheet = document.getElementById('parkingSheet'),
-          content = document.getElementById('sheetContent');
+    const sheet = document.getElementById('parkingSheet');
+    const content = document.getElementById('sheetContent');
     routeParkingData = data;
     const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
     const free = data.totalSpots - data.occupiedSpots;
@@ -1036,12 +1045,15 @@ function openParkingSheet(parkingId, data) {
             <button class="btn-primary" id="routeBtn">🗺️ Маршрут</button>
             <button class="btn-secondary" id="sheetDoneBtn" style="margin-top:8px;">Готово</button>
         `;
-        document.getElementById('routeBtn').addEventListener('click', () => {
+
+        // Явно вешаем обработчики на только что созданные кнопки
+        document.getElementById('routeBtn').addEventListener('click', function () {
             buildRouteToParking(parkingId);
         });
-        document.getElementById('sheetDoneBtn').addEventListener('click', closeParkingSheet);
-        document.querySelector('.sheet-close').onclick = closeParkingSheet;
-        document.querySelector('.sheet-handle').onclick = closeParkingSheet;
+        document.getElementById('sheetDoneBtn').addEventListener('click', function () {
+            closeParkingSheet();
+        });
+
         sheet.classList.add('active');
     }
 
@@ -1075,35 +1087,33 @@ function openOccupancyPanel(parkingId) {
     });
 }
 
-function renderEditPanel(data, isFavorite) {
-    const totalSpots = data.totalSpots || 0,
-          occupiedSpots = data.occupiedSpots || 0,
-          freeSpots = totalSpots - occupiedSpots;
-    const color = getOccupancyColor(occupiedSpots, totalSpots),
-          occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+ffunction renderEditPanel(data, isFavorite) {
+    const totalSpots = data.totalSpots || 0;
+    const occupiedSpots = data.occupiedSpots || 0;
+    const freeSpots = totalSpots - occupiedSpots;
+    const color = getOccupancyColor(occupiedSpots, totalSpots);
+    const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
     const isAuthor = currentUser && currentUser.id === data.authorId;
-    const status = data.status || 'unknown',
-          statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно',
-          statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
+    const status = data.status || 'unknown';
+    const statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
+    const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
     const isPaid = data.isPaid || false;
 
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Редактирование';
 
     let html = `
-        <button class="btn-secondary" onclick="closePanel()" style="margin-bottom:12px;">← Закрыть</button>
+        <button class="btn-secondary" id="closeEditBtnTop" style="margin-bottom:12px;">← Закрыть</button>
         <div class="occupancy-header">
-            <div class="occupancy-title">
-                <span class="status-indicator ${statusClass}"></span>${data.name}
-            </div>
+            <div class="occupancy-title"><span class="status-indicator ${statusClass}"></span>${data.name}</div>
         </div>
         <div class="occupancy-stats">
-            <div class="stat-card stat-total"><div class="stat-value" id="statTotal">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
-            <div class="stat-card stat-free"><div class="stat-value" id="statFree">${freeSpots}</div><div class="stat-label">Свободно</div></div>
-            <div class="stat-card stat-occupied"><div class="stat-value" id="statOccupied">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
+            <div class="stat-card stat-total"><div class="stat-value">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
+            <div class="stat-card stat-free"><div class="stat-value">${freeSpots}</div><div class="stat-label">Свободно</div></div>
+            <div class="stat-card stat-occupied"><div class="stat-value">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div></div>
-        <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">Загруженность: ${occupancyPercent}%</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${occupancyPercent}%;background:${color};"></div></div>
+        <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Загруженность: ${occupancyPercent}%</div>
         <div class="occupancy-control" style="margin-bottom:15px;">
             <label>Изменить количество занятых мест:</label>
             <div class="counter-row">
@@ -1115,7 +1125,7 @@ function renderEditPanel(data, isFavorite) {
     `;
 
     if (currentUser) {
-        html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
+        html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
     }
 
     if (isAuthor) {
@@ -1124,31 +1134,52 @@ function renderEditPanel(data, isFavorite) {
             <div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
             <div class="form-group"><label>Тип парковки</label>
                 <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);">
-                    <span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span>
+                    <span>Бесплатная</span>
                     <label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;">
                         <input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''}>
-                        <span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span>
+                        <span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;"></span>
                     </label>
-                    <span style="color:var(--text-primary);white-space:nowrap;">Платная</span>
+                    <span>Платная</span>
                 </div>
             </div>
-            <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-            <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
+            <button class="btn-primary" id="saveChangesBtn">💾 Сохранить изменения</button>
+            <button class="btn-danger" id="deleteParkingBtn">🗑️ Удалить парковку</button>
         `;
     } else {
         html += `
-            <div style="text-align:center;margin:10px 0;font-size:15px;">
-                Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}
-            </div>
-            <button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">✅ Подтвердить актуальность</button>
+            <div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>
+            <button class="btn-secondary" id="confirmBtn">✅ Подтвердить актуальность</button>
         `;
     }
 
-    html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">🔽 Закрыть редактор</button>`;
+    html += `<button class="btn-secondary" id="closeEditBtnBottom" style="margin-top:20px;">🔽 Закрыть редактор</button>`;
     document.getElementById('panelContent').innerHTML = html;
+
+    // Вешаем обработчики на кнопки
+    document.getElementById('closeEditBtnTop').addEventListener('click', closePanel);
+    document.getElementById('closeEditBtnBottom').addEventListener('click', closePanel);
+
+    if (currentUser) {
+        document.getElementById('favBtn').addEventListener('click', function () {
+            toggleFavorite(currentParkingId);
+        });
+    }
+
+    if (isAuthor) {
+        document.getElementById('saveChangesBtn').addEventListener('click', saveParkingDetails);
+        document.getElementById('deleteParkingBtn').addEventListener('click', function () {
+            deleteParking(currentParkingId);
+        });
+    } else {
+        if (document.getElementById('confirmBtn')) {
+            document.getElementById('confirmBtn').addEventListener('click', function () {
+                confirmParking(currentParkingId);
+            });
+        }
+    }
 }
     
-// ===================== МАРШРУТ (ИНТЕРФЕЙС НАВИГАТОРА) =====================
+// ===================== МАРШРУТ (НАВИГАТОР) =====================
 function buildRouteToParking(parkingId) {
     closeParkingSheet();
     const data = parkingDataCache[parkingId];
@@ -1157,14 +1188,12 @@ function buildRouteToParking(parkingId) {
         return;
     }
     routeParkingData = data;
-
     document.getElementById('routeCard').innerHTML = `
         <div class="route-close" onclick="closeRoute()">✕</div>
         <div id="routeInfo">
             <div style="text-align:center; padding: 40px 20px; color:var(--text-secondary);">🛣️ Строим маршрут...</div>
         </div>`;
     document.getElementById('routeCard').classList.add('active');
-
     getUserLocation()
         .then(coords => buildNavigatorView(coords.lat, coords.lng, data.lat, data.lng))
         .catch(() => {
@@ -1220,11 +1249,9 @@ function showDirectLineFallback(sLat, sLng, eLat, eLng) {
     });
     map.geoObjects.add(line);
     currentRoute = line;
-
     const dist = getDistanceInMeters(sLat, sLng, eLat, eLng) / 1000;
     const time = Math.round(dist * 2);
     const free = routeParkingData ? routeParkingData.totalSpots - routeParkingData.occupiedSpots : '?';
-
     document.getElementById('routeCard').innerHTML = `
         <div class="route-close" onclick="closeRoute()">✕</div>
         <div id="routeInfo">
@@ -1242,7 +1269,6 @@ function startNavigation(startLat, startLng, endLat, endLng) {
     if (navigationWatcher) navigator.geolocation.clearWatch(navigationWatcher);
     if (navigationInterval) clearInterval(navigationInterval);
     currentNavigationData = { startLat, startLng, endLat, endLng };
-
     navigationWatcher = navigator.geolocation.watchPosition(
         (pos) => {
             const newLat = pos.coords.latitude;
@@ -1255,7 +1281,6 @@ function startNavigation(startLat, startLng, endLat, endLng) {
         (err) => console.warn('Ошибка геолокации:', err),
         { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
-
     navigationInterval = setInterval(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(pos => {
