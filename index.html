@@ -881,17 +881,92 @@ document.getElementById('panelContent').innerHTML = `
 <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>`;
 }
 function submitParkingWithPolygon() {
-const name = document.getElementById('parkName').value.trim(), totalSpots = parseInt(document.getElementById('parkSpots').value), isPaid = document.getElementById('parkIsPaid').checked;
-if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
-if (!name) { alert('Пожалуйста, введите название парковки'); return; }
-if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
-if (!drawingPolygon) { alert('Парковочная зона не нарисована'); return; }
-const btn = document.getElementById('saveParkBtn'); btn.textContent = 'Сохранение...'; btn.disabled = true;
-const coordinates = drawingPolygon.geometry.getCoordinates()[0];
-const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
-const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
-const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
+    const name = document.getElementById('parkName').value.trim();
+    const totalSpots = parseInt(document.getElementById('parkSpots').value);
+    const isPaid = document.getElementById('parkIsPaid').checked;
 
+    if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
+    if (!name) { alert('Пожалуйста, введите название парковки'); return; }
+    if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
+    if (!drawingPolygon) { alert('Парковочная зона не нарисована'); return; }
+
+    // Объявляем btn ДО начала цепочки промисов, чтобы она была доступна в .finally()
+    const btn = document.getElementById('saveParkBtn'); 
+    btn.textContent = 'Сохранение...'; 
+    btn.disabled = true;
+
+    const coordinates = drawingPolygon.geometry.getCoordinates()[0];
+    const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+    const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
+    const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
+
+    ymaps.geocode([centerLat, centerLng])
+    .then(res => {
+        const firstGeoObject = res.geoObjects.get(0);
+        const address = firstGeoObject ? firstGeoObject.getAddressLine() : '';
+        return address;
+    })
+    .catch(err => {
+        console.warn('Ошибка геокодирования, сохраняем без адреса:', err);
+        return '';
+    })
+    .then(address => {
+        const parsed = parseAddress(address);
+        if (userCityPrefs && userCityPrefs.region && userCityPrefs.city) {
+            parsed.region = userCityPrefs.region;
+            parsed.city = userCityPrefs.city;
+        }
+        
+        const parkingData = {
+            lat: centerLat,
+            lng: centerLng,
+            coordinates: cleanCoordinates,
+            totalSpots,
+            occupiedSpots: 0,
+            name,
+            isPaid,
+            address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+            region: parsed.region,
+            city: parsed.city,
+            street: parsed.street,
+            houseNumber: parsed.houseNumber,
+            authorId: currentUser.id,
+            authorName: currentUser.firstName,
+            authorUsername: currentUser.username,
+            timestamp: Date.now(),
+            status: 'unknown'
+        };
+        
+        const newRef = database.ref('parkings').push();
+        
+        // Возвращаем промис для цепочки
+        return newRef.set(parkingData).then(() => {
+            return database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
+            .transaction(count => (count || 0) + 1);
+        }).then(() => {
+            return database.ref(`parkings/${newRef.key}/history`).push({
+                action: 'created', timestamp: Date.now(), userId: currentUser.id,
+                username: currentUser.username, carBrand: '', carModel: '', carPlate: ''
+            });
+        }).then(() => {
+            addMarkerToMap(newRef.key, parkingData);
+            if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+            closePanel(); showMap();
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        });
+    })
+    .catch(err => {
+        console.error('Ошибка сохранения:', err);
+        alert('Ошибка сохранения парковки. Попробуйте ещё раз.');
+    })
+    .finally(() => {
+        // Теперь btn доступен здесь, так как объявлен в начале функции
+        btn.textContent = 'Сохранить парковку';
+        btn.disabled = false;
+    });
+}
 // ИЗМЕНЕНИЕ: Получаем адрес через геокодер Яндекс перед сохранением
 ymaps.geocode([centerLat, centerLng])
 .then(res => {
