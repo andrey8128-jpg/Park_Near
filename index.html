@@ -1016,34 +1016,52 @@ function saveEditedPolygon(newCoords) {
 }
 // ===================== ПАНЕЛЬ ПАРКОВКИ (нижний лист) =====================
 function openParkingSheet(parkingId, data) {
-    const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
-    const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
-    const free = data.totalSpots - data.occupiedSpots;
-    getUserLocation().then(coords => {
-        const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-        const distKm = (dist / 1000).toFixed(1);
-        const driveTime = Math.round(dist / 500);
-        content.innerHTML = `
+    const sheet = document.getElementById('parkingSheet');
+    const content = document.getElementById('sheetContent');
+    
+    // Показываем загрузку или координаты по умолчанию
+    content.innerHTML = `
         <h3>${data.name}</h3>
-        <p>📍 ${addr}</p>
-        <p>📏 ${distKm} км от вас</p>
-        <p> На авто: ${driveTime} мин</p>
-        <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+        <p style="color:var(--text-secondary)">📍 Загрузка адреса...</p>
+        <p>🅿️ Свободно: ${data.totalSpots - data.occupiedSpots} / ${data.totalSpots}</p>
         <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-        `;
-        sheet.classList.add('active');
-    }).catch(() => {
-        content.innerHTML = `
-        <h3>${data.name}</h3>
-        <p>📍 ${addr}</p>
-        <p>📏 Расстояние неизвестно</p>
-        <p>️ Свободно: ${free} / ${data.totalSpots}</p>
-        <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-        `;
-        sheet.classList.add('active');
-    });
+    `;
+    sheet.classList.add('active');
+
+    // Если адрес уже есть в данных (сохранен ранее), показываем сразу
+    if (data.address && !data.address.match(/^\d+\.\d+/)) {
+        content.querySelector('p').innerHTML = ` ${data.address}`;
+    } else {
+        // Иначе делаем запрос к Яндекс.Картам для получения адреса по координатам
+        ymaps.geocode([data.lat, data.lng], { kind: 'house' })
+        .then(res => {
+            const firstGeoObject = res.geoObjects.get(0);
+            let addressText = 'Адрес не определен';
+            
+            if (firstGeoObject) {
+                // Формируем красивую строку адреса: Город, Улица, Дом
+                const city = firstGeoObject.getLocalities().length ? firstGeoObject.getLocalities()[0] : firstGeoObject.getAdministrativeAreas()[0];
+                const street = firstGeoObject.getThoroughfare() || '';
+                const number = firstGeoObject.getPremiseNumber() || '';
+                
+                addressText = `${city}, ${street}, ${number}`.replace(/,\s*,/g, ',').trim();
+                
+                // Сохраняем полученный адрес в базу данных, чтобы не запрашивать каждый раз
+                database.ref(`parkings/${parkingId}/address`).set(addressText);
+            }
+            
+            // Обновляем текст в открытом окне
+            const addrEl = content.querySelector('p');
+            if (addrEl) addrEl.innerHTML = `📍 ${addressText}`;
+        })
+        .catch(err => {
+            console.error('Ошибка геокодирования:', err);
+            const addrEl = content.querySelector('p');
+            if (addrEl) addrEl.innerHTML = `📍 ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`;
+        });
+    }
 }
-function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
+    
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
     database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
