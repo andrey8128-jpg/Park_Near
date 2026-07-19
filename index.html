@@ -1018,34 +1018,35 @@ alert('Границы обновлены');
 
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
 function openParkingSheet(parkingId, data) {
-const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
-const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
-const free = data.totalSpots - data.occupiedSpots;
-getUserLocation().then(coords => {
-const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-const distKm = (dist / 1000).toFixed(1);
-const driveTime = Math.round(dist / 500);
-content.innerHTML = `
-<h3>${data.name}</h3>
-<p>📍 ${addr}</p>
-<p>📏 ${distKm} км от вас</p>
-<p> На авто: ${driveTime} мин</p>
-<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-<button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-`;
-sheet.classList.add('active');
-}).catch(() => {
-content.innerHTML = `
-<h3>${data.name}</h3>
-<p>📍 ${addr}</p>
-<p>📏 Расстояние неизвестно</p>
-<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-<button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
-`;
-sheet.classList.add('active');
-});
+    const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
+    // Сохраняем данные для маршрута
+    routeParkingData = data;
+    const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
+    const free = data.totalSpots - data.occupiedSpots;
+    getUserLocation().then(coords => {
+        const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
+        const distKm = (dist / 1000).toFixed(1);
+        const driveTime = Math.round(dist / 500);
+        content.innerHTML = `
+            <h3>${data.name}</h3>
+            <p>📍 ${addr}</p>
+            <p>📏 ${distKm} км от вас</p>
+            <p>🚗 На авто: ${driveTime} мин</p>
+            <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+            <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
+        `;
+        sheet.classList.add('active');
+    }).catch(() => {
+        content.innerHTML = `
+            <h3>${data.name}</h3>
+            <p>📍 ${addr}</p>
+            <p>📏 Расстояние неизвестно</p>
+            <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+            <button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
+        `;
+        sheet.classList.add('active');
+    });
 }
-function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
 
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
@@ -1201,133 +1202,26 @@ function buildRouteToParking(parkingId) {
         alert('Ошибка: данные парковки не содержат координат');
         return;
     }
+    routeParkingData = data; // для использования в fallback
+
+    // Показываем заглушку загрузки
+    document.getElementById('routeCard').innerHTML = `
+        <div class="route-close" onclick="closeRoute()">✕</div>
+        <div id="routeInfo">
+            <div style="text-align:center; padding: 40px 20px; color:var(--text-secondary);">
+                🛣️ Строим маршрут...
+            </div>
+        </div>`;
+    document.getElementById('routeCard').classList.add('active');
 
     getUserLocation()
-    .then(coords => {
-        // Прячем старую карточку и показываем заглушку загрузки
-        document.getElementById('routeCard').innerHTML = `
-            <div class="route-close" onclick="closeRoute()">✕</div>
-            <div id="routeInfo">
-                <div style="text-align:center; padding: 40px 20px; color:var(--text-secondary);">
-                    🛣️ Строим маршрут...
-                </div>
-            </div>`;
-        document.getElementById('routeCard').classList.add('active');
-        
-        buildNavigatorView(coords.lat, coords.lng, data.lat, data.lng);
-    })
-    .catch(err => {
-        console.warn('Геолокация недоступна:', err);
-        const center = map.getCenter();
-        buildNavigatorView(center[0], center[1], data.lat, data.lng);
-    });
+        .then(coords => buildNavigatorView(coords.lat, coords.lng, data.lat, data.lng))
+        .catch(() => {
+            const center = map.getCenter();
+            buildNavigatorView(center[0], center[1], data.lat, data.lng);
+        });
 }
-
-function buildNavigatorView(startLat, startLng, endLat, endLng) {
-    ymaps.route(
-        [[startLat, startLng], [endLat, endLng]], 
-        { multiRoute: false, routingMode: 'auto' } // Режим "auto" = машина
-    )
-    .then(route => {
-        // Удаляем старый маршрут, если был
-        if (currentRoute) {
-            map.geoObjects.remove(currentRoute);
-        }
-        
-        currentRoute = route;
-        map.geoObjects.add(route);
-        
-        // Масштабируем карту так, чтобы видеть весь путь + контекст
-        map.setBounds(route.getBounds(), { checkZoomRange: true, duration: 500 });
-
-        // Получаем активный путь (первый вариант)
-        var activePath = route.getPaths().get(0);
-        
-        // Получаем первый сегмент для отображения ближайшего маневра
-        var firstSegment = activePath.getSegments().get(0);
-        var actionText = firstSegment.getAction(); // Текст действия ("Направо", "Держитесь левее")
-        var streetText = firstSegment.getStreet(); // Название улицы
-        
-        var distanceKm = (route.getLength() / 1000).toFixed(1);
-        var timeMin = Math.round(activePath.getTime() / 60);
-        
-        // Формируем UI прямо как в Навигаторе
-        var html = `
-            <div class="route-close" onclick="closeRoute()">✕</div>
-            <div id="routeInfo">
-                <!-- Верхний блок: Общая информация -->
-                <div style="padding: 15px 20px 10px; border-bottom: 0.5px solid var(--border-color);">
-                    <div style="font-size: 17px; font-weight: 600;">До парковки</div>
-                    <div style="display: flex; align-items: center; margin-top: 8px; gap: 15px;">
-                        <span style="font-size: 24px; font-weight: 600;">${distanceKm} км</span>
-                        <span style="color: var(--text-secondary);">•</span>
-                        <span style="font-size: 17px; font-weight: 600;">${timeMin} мин</span>
-                    </div>
-                </div>
-                
-                <!-- Нижний блок: Ближайший маневр -->
-                <div style="padding: 15px 20px; display:flex; align-items:center; justify-content:space-between;">
-                    <div>
-                        <div style="font-size: 17px; font-weight: 600;">${actionText}</div>
-                        <div style="font-size: 14px; color: var(--text-secondary); margin-top: 2px;">${streetText || ''}</div>
-                    </div>
-                    <button class="btn-primary" style="width:90px; height:36px; font-size:14px; padding:0;" onclick="startExternalNavigation(${startLat}, ${startLng}, ${endLat}, ${endLng})">
-                        ▶ В Навигатор
-                    </button>
-                </div>
-            </div>`;
-            
-        document.getElementById('routeCard').innerHTML = html;
-        
-        // Подписываемся на событие обновления позиции (если используется геолокация для ведения)
-        updateManeuverListener(firstSegment);
-        
-    })
-    .catch(error => {
-        console.error('Ошибка построения маршрута:', error);
-        showDirectLineFallback(startLat, startLng, endLat, endLng);
-    });
-}
-
-// Функция для отслеживания прохождения сегментов (упрощенная версия)
-let maneuverInterval = null;
-function updateManeuverListener(firstSegment) {
-    // Очищаем предыдущий интервал, если он был
-    if (maneuverInterval) clearInterval(maneuverInterval);
     
-    // Каждые 5 секунд проверяем, не изменился ли ближайший маневр
-    maneuverInterval = setInterval(() => {
-        if (!currentRoute) return;
-        
-        var paths = currentRoute.getPaths();
-        if (paths.getLength() > 0) {
-            var segments = paths.get(0).getSegments();
-            if (segments.getLength() > 0) {
-                var currentSeg = segments.get(0);
-                var action = currentSeg.getAction();
-                var street = currentSeg.getStreet();
-                
-                // Обновляем текст маневра в DOM
-                var actionEl = document.querySelector('#routeInfo div:nth-child(2) div:nth-child(1) div:nth-child(1)');
-                var streetEl = document.querySelector('#routeInfo div:nth-child(2) div:nth-child(1) div:nth-child(2)');
-                if (actionEl && streetEl) {
-                    actionEl.textContent = action;
-                    streetEl.textContent = street || '';
-                }
-            }
-        }
-    }, 5000);
-}
-
-function closeRoute() {
-    if (currentRoute) {
-        map.geoObjects.remove(currentRoute);
-        currentRoute = null;
-    }
-    if (maneuverInterval) clearInterval(maneuverInterval);
-    document.getElementById('routeCard').classList.remove('active');
-}
-
 // Оставьте эту функцию как резервную, она полезна
 function showDirectLineFallback(sLat, sLng, eLat, eLng) {
     if (currentRoute) { 
@@ -1344,16 +1238,16 @@ function showDirectLineFallback(sLat, sLng, eLat, eLng) {
     
     const dist = getDistanceInMeters(sLat, sLng, eLat, eLng) / 1000;
     const time = Math.round(dist * 2);
-    const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+    const free = routeParkingData ? routeParkingData.totalSpots - routeParkingData.occupiedSpots : '?';
     
-    document.getElementById('routeInfo').innerHTML = `
+    document.getElementById('routeCard').innerHTML = `
         <div class="route-close" onclick="closeRoute()">✕</div>
         <div id="routeInfo">
             <div>🚗 До парковки (по прямой)</div>
             <div>📍 ${dist.toFixed(1)} км</div>
             <div>⏱ ~${time} мин (приблизительно)</div>
             <div>🚘 Свободных мест: ${free}</div>
-            <div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+            ${routeParkingData ? `<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>` : ''}
         </div>`;
     
     document.getElementById('routeCard').classList.add('active');
