@@ -918,101 +918,131 @@ function showMapHint(text) {
     document.body.appendChild(hint); setTimeout(() => hint.remove(), 3000);
 }
 function openAddPanelWithPolygon(coordinates, sizeCheck) {
-    document.getElementById('panel').classList.add('active'); document.getElementById('panelTitle').textContent = 'Новая парковка';
+    document.getElementById('panel').classList.add('active');
+    document.getElementById('panelTitle').textContent = 'Новая парковка';
     const area = Math.round(sizeCheck.width * sizeCheck.length);
     document.getElementById('panelContent').innerHTML = `
-    <div class="form-group"><label>Размер зоны</label><input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);"></div>
-    <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
-    <div class="form-group"><label>Название *</label><input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ"></div>
-    <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="parkIsPaid"><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
-    <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
-    <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>`;
+        <div class="form-group"><label>Размер зоны</label><input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);"></div>
+        <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
+        <div class="form-group"><label>Название *</label><input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ"></div>
+        <div class="form-group"><label>Тип парковки</label>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);">
+                <span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span>
+                <label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;">
+                    <input type="checkbox" id="parkIsPaid">
+                    <span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span>
+                </label>
+                <span style="color:var(--text-primary);white-space:nowrap;">Платная</span>
+            </div>
+        </div>
+        <button class="btn-primary" id="saveParkBtn">Сохранить парковку</button>
+        <button class="btn-secondary" id="cancelParkBtn">Отмена</button>
+    `;
+
+    // Вешаем обработчики через addEventListener (гарантированно работает)
+    document.getElementById('saveParkBtn').addEventListener('click', submitParkingWithPolygon);
+    document.getElementById('cancelParkBtn').addEventListener('click', function() {
+        cancelDrawing();
+        closePanel();
+    });
 }
 function submitParkingWithPolygon() {
-    const name = document.getElementById('parkName').value.trim(), totalSpots = parseInt(document.getElementById('parkSpots').value), isPaid = document.getElementById('parkIsPaid').checked;
+    // Проверяем, что полигон всё ещё существует
+    if (!drawingPolygon) {
+        alert('Парковочная зона не найдена. Нарисуйте заново.');
+        closePanel();
+        return;
+    }
+
+    const name = document.getElementById('parkName').value.trim();
+    const totalSpots = parseInt(document.getElementById('parkSpots').value);
+    const isPaid = document.getElementById('parkIsPaid').checked;
+
     if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
     if (!name) { alert('Пожалуйста, введите название парковки'); return; }
     if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
-    if (!drawingPolygon) { alert('Парковочная зона не нарисована'); return; }
-    const btn = document.getElementById('saveParkBtn'); btn.textContent = 'Сохранение...'; btn.disabled = true;
+
+    const btn = document.getElementById('saveParkBtn');
+    btn.textContent = 'Сохранение...';
+    btn.disabled = true;
+
+    // Получаем координаты и сразу удаляем временный полигон
     const coordinates = drawingPolygon.geometry.getCoordinates()[0];
     const cleanCoordinates = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+    map.geoObjects.remove(drawingPolygon);
+    drawingPolygon = null;
+    isDrawingMode = false;
+    document.getElementById('addBtn').classList.remove('drawing');
+    document.getElementById('addBtn').textContent = '+';
+
     const centerLat = cleanCoordinates.reduce((s, c) => s + c[0], 0) / cleanCoordinates.length;
     const centerLng = cleanCoordinates.reduce((s, c) => s + c[1], 0) / cleanCoordinates.length;
-    ymaps.geocode([centerLat, centerLng])
-    .then(res => {
-        const firstGeoObject = res.geoObjects.get(0);
-        const address = firstGeoObject ? firstGeoObject.getAddressLine() : '';
-        return address;
-    })
-    .catch(err => {
-        console.warn('Ошибка геокодирования, сохраняем без адреса:', err);
-        return '';
-    })
-    .then(address => {
-        const parsed = parseAddress(address);
-        if (userCityPrefs && userCityPrefs.region && userCityPrefs.city) {
-            parsed.region = userCityPrefs.region;
-            parsed.city = userCityPrefs.city;
-        }
-        const parkingData = {
-            lat: centerLat,
-            lng: centerLng,
-            coordinates: cleanCoordinates,
-            totalSpots,
-            occupiedSpots: 0,
-            name,
-            isPaid,
-            address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-            region: parsed.region,
-            city: parsed.city,
-            street: parsed.street,
-            houseNumber: parsed.houseNumber,
-            authorId: currentUser.id,
-            authorName: currentUser.firstName,
-            authorUsername: currentUser.username,
-            timestamp: Date.now(),
-            status: 'unknown'
-        };
-        const newRef = database.ref('parkings').push();
-        return newRef.set(parkingData).then(() => {
-            database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-            .transaction(count => (count || 0) + 1);
-            return database.ref(`parkings/${newRef.key}/history`).push({
-                action: 'created', timestamp: Date.now(), userId: currentUser.id,
-                username: currentUser.username, carBrand: '', carModel: '', carPlate: ''
-            });
-        }).then(() => {
-            addMarkerToMap(newRef.key, parkingData);
-            if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
-            closePanel(); showMap();
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+
+    // Пытаемся получить адрес, но если не получится – сохраняем без него
+    ymaps.geocode([centerLat, centerLng], { kind: 'house' })
+        .then(res => {
+            const geo = res.geoObjects.get(0);
+            return geo ? geo.getAddressLine() : '';
+        })
+        .catch(() => '')
+        .then(address => {
+            // Подставляем город из настроек, если есть
+            const parsed = parseAddress(address);
+            if (userCityPrefs.region && userCityPrefs.city) {
+                parsed.region = userCityPrefs.region;
+                parsed.city = userCityPrefs.city;
             }
+
+            const parkingData = {
+                lat: centerLat,
+                lng: centerLng,
+                coordinates: cleanCoordinates,
+                totalSpots,
+                occupiedSpots: 0,
+                name,
+                isPaid,
+                address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+                region: parsed.region,
+                city: parsed.city,
+                street: parsed.street,
+                houseNumber: parsed.houseNumber,
+                authorId: currentUser.id,
+                authorName: currentUser.firstName,
+                authorUsername: currentUser.username,
+                timestamp: Date.now(),
+                status: 'unknown'
+            };
+
+            const newRef = database.ref('parkings').push();
+            return newRef.set(parkingData).then(() => {
+                // Статистика и история
+                database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
+                    .transaction(count => (count || 0) + 1);
+                database.ref(`parkings/${newRef.key}/history`).push({
+                    action: 'created',
+                    timestamp: Date.now(),
+                    userId: currentUser.id,
+                    username: currentUser.username
+                });
+                // Добавляем маркер на карту
+                addMarkerToMap(newRef.key, parkingData);
+                parkingDataCache[newRef.key] = parkingData;
+                // Закрываем панель и показываем карту
+                closePanel();
+                showMap();
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            });
+        })
+        .catch(err => {
+            console.error('Ошибка сохранения:', err);
+            alert('Не удалось сохранить парковку. Попробуйте ещё раз.');
+        })
+        .finally(() => {
+            btn.textContent = 'Сохранить парковку';
+            btn.disabled = false;
         });
-    })
-    .catch(err => {
-        console.error('Ошибка сохранения:', err);
-        alert('Ошибка сохранения парковки. Попробуйте ещё раз.');
-    })
-    .finally(() => {
-        btn.textContent = 'Сохранить парковку';
-        btn.disabled = false;
-    });
-}
-function saveEditedPolygon(newCoords) {
-    if (!currentParkingId) return;
-    const sizeCheck = checkPolygonSize(newCoords);
-    if (!sizeCheck.valid) { alert(sizeCheck.error); cancelDrawing(); return; }
-    database.ref(`parkings/${currentParkingId}/coordinates`).set(newCoords).then(() => {
-        map.geoObjects.remove(editingPolygon); editingPolygon = null;
-        document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+';
-        isDrawingMode = false; const controls = document.getElementById('drawingControls'); if (controls) controls.remove();
-        currentParkingData.coordinates = newCoords; parkingDataCache[currentParkingId] = currentParkingData;
-        refreshParkingMarker();
-        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        alert('Границы обновлены');
-    }).catch(err => { console.error('Ошибка обновления полигона:', err); alert('Ошибка: ' + err.message); cancelDrawing(); });
 }
 // ===================== ПАНЕЛЬ ПАРКОВКИ (нижний лист) =====================
 function openParkingSheet(parkingId, data) {
