@@ -733,14 +733,6 @@ if (savedTheme === 'true') document.body.classList.add('dark-theme');
 }
 
 // ===================== ГЕОЛОКАЦИЯ =====================
-function getUserLocation() {
-return new Promise(function(resolve, reject) {
-if (window.Telegram?.WebApp?.Geolocation?.getLocation && typeof window.Telegram.WebApp.Geolocation.getLocation === 'function') {
-window.Telegram.WebApp.Geolocation.getLocation().then(loc => resolve({ lat: loc.latitude, lng: loc.longitude })).catch(() => tryBrowserGeolocation(resolve, reject));
-} else tryBrowserGeolocation(resolve, reject);
-});
-}
-
 function tryBrowserGeolocation(resolve, reject) {
 if (typeof ymaps !== 'undefined') {
 ymaps.geolocation.get({ provider: 'browser', timeout: 10000 }).then(result => {
@@ -1887,11 +1879,23 @@ modelSelect.innerHTML = '<option value="">Выберите модель</option>
 if (brand && carBrands[brand]) carBrands[brand].forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSelect.appendChild(opt); });
 }
 function toggleTheme() {
-const isDark = document.body.classList.toggle('dark-theme'); localStorage.setItem('darkTheme', isDark);
-const mapEl = document.getElementById('map');
-if (isDark && map.getType() === 'yandex#map') mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-else mapEl.style.filter = 'none';
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('darkTheme', isDark);
+    const mapEl = document.getElementById('map');
+    
+    if (isDark) {
+        if (map && map.getType() === 'yandex#map') {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        } else {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        }
+    } else {
+        mapEl.style.filter = 'none';
+    }
+    
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
 }
 
 // ===================== ИЗБРАННОЕ =====================
