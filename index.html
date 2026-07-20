@@ -679,7 +679,7 @@ body.dark-theme .ymaps-copyright {
 <div id="routeInfo"></div>
 <div class="route-actions">
 <button class="btn-primary" onclick="startNavigation()">▶ Начать</button>
-<button class="btn-secondary" onclick="closeRoute()">✕ Закрыть</button>
+<button class="btn-secondary" onclick="rebuildRoute()">🔄 Перестроить</button>
 </div>
 </div>
 <div class="tabBar">
@@ -1422,190 +1422,138 @@ if (currentParkingData && currentParkingData.authorId) database.ref(`users/${cur
 });
 }
 
-// ===================== МАРШРУТ (ПОЛНОЦЕННЫЙ НАВИГАТОР) =====================
+// ===================== МАРШРУТ =====================
 function buildRouteToParking(parkingId) {
-    closeParkingSheet();
-    const data = parkingDataCache[parkingId];
-    if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
-        alert('Ошибка: данные парковки не содержат координат');
-        return;
-    }
-
-    // Сохраняем цель
-    currentNavigationData = {
-        endLat: data.lat,
-        endLng: data.lng,
-        parkingId: parkingId
-    };
-    routeParkingData = data;
-
-    // Показываем карточку с индикатором загрузки
-    const routeCard = document.getElementById('routeCard');
-    document.getElementById('routeInfo').innerHTML = '<div style="text-align:center;padding:20px;">🛣️ Строим маршрут...</div>';
-    routeCard.classList.add('active');
-
-    // Получаем текущее местоположение и строим маршрут
-    getUserLocation()
-        .then(coords => buildNavigatorView(coords.lat, coords.lng, data.lat, data.lng))
-        .catch(() => {
-            const center = map.getCenter();
-            buildNavigatorView(center[0], center[1], data.lat, data.lng);
-        });
+closeParkingSheet();
+const data = parkingDataCache[parkingId];
+if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
+alert('Ошибка: данные парковки не содержат координат');
+return;
 }
-
-function buildNavigatorView(startLat, startLng, endLat, endLng) {
-    ymaps.route([[startLat, startLng], [endLat, endLng]], { multiRoute: false, routingMode: 'auto' })
-    .then(route => {
-        // Удаляем предыдущий маршрут
-        if (currentRoute) map.geoObjects.remove(currentRoute);
-        currentRoute = route;
-        map.geoObjects.add(route);
-        map.setBounds(route.getBounds(), { checkZoomRange: true, duration: 500 });
-
-        // Обновляем карточку
-        updateRouteCard(route, startLat, startLng);
-        
-        // Запускаем отслеживание геолокации
-        startNavigationTracking(startLat, startLng, endLat, endLng);
-    })
-    .catch(error => {
-        console.error('Ошибка маршрута:', error);
-        // Fallback: показываем прямую линию
-        showDirectLine(startLat, startLng, endLat, endLng);
-    });
+getUserLocation()
+.then(coords => {
+routeStartCoords = [coords.lat, coords.lng];
+routeEndCoords = [data.lat, data.lng];
+routeParkingData = data;
+buildAndShowRoute();
+})
+.catch(err => {
+console.warn('Не удалось получить геолокацию, используем центр карты:', err);
+const center = map.getCenter();
+routeStartCoords = center;
+routeEndCoords = [data.lat, data.lng];
+routeParkingData = data;
+buildAndShowRoute();
+});
 }
-
-function updateRouteCard(route, startLat, startLng) {
-    const activePath = route.getPaths().get(0);
-    const distanceKm = (route.getLength() / 1000).toFixed(1);
-    const timeMin = Math.round(activePath.getTime() / 60);
-    const firstSegment = activePath.getSegments().get(0);
-
-    let maneuverHTML = '';
-    if (firstSegment) {
-        maneuverHTML = `
-            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
-                <span style="font-size:20px;">↗️</span>
-                <span>${firstSegment.getAction()} ${firstSegment.getStreet() ? 'на ' + firstSegment.getStreet() : ''}</span>
-            </div>`;
-    }
-
-    document.getElementById('routeInfo').innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div>
-                <div style="font-size:14px;color:var(--text-secondary);">До парковки</div>
-                <div style="font-size:24px;font-weight:700;">${distanceKm} км</div>
-                <div style="font-size:14px;color:var(--text-secondary);">≈ ${timeMin} мин</div>
-            </div>
-            <button class="btn-primary" style="width:100px;height:40px;font-size:14px;" onclick="openExternalNavigator(${startLat},${startLng},${currentNavigationData.endLat},${currentNavigationData.endLng})">▶ В Навигатор</button>
-        </div>
-        ${maneuverHTML}
-    `;
-
-    const arrival = new Date(Date.now() + activePath.getTime() * 1000);
-    document.getElementById('routeInfo').innerHTML += `
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-            🚦 Прибытие: ${arrival.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-            ${routeParkingData ? ` · 🅿️ Свободно: ${routeParkingData.totalSpots - routeParkingData.occupiedSpots}` : ''}
-        </div>`;
+function buildAndShowRoute() {
+if (currentRoute) {
+map.geoObjects.remove(currentRoute);
+currentRoute = null;
 }
-
-function startNavigationTracking(startLat, startLng, endLat, endLng) {
-    // Очищаем предыдущие отслеживания
-    if (navigationWatcher) navigator.geolocation.clearWatch(navigationWatcher);
-    if (navigationInterval) clearInterval(navigationInterval);
-
-    navigationWatcher = navigator.geolocation.watchPosition(
-        (pos) => {
-            const newLat = pos.coords.latitude;
-            const newLng = pos.coords.longitude;
-            const distFromStart = getDistanceInMeters(newLat, newLng, startLat, startLng);
-            
-            // Перестраиваем маршрут, если отошли больше чем на 50 метров
-            if (distFromStart > 50) {
-                rebuildRouteFromCurrentLocation(newLat, newLng);
-            }
-        },
-        (err) => console.warn('Ошибка геолокации:', err),
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
-    );
-
-    // Периодическое обновление маршрута (каждые 15 секунд)
-    navigationInterval = setInterval(() => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                pos => rebuildRouteFromCurrentLocation(pos.coords.latitude, pos.coords.longitude),
-                null,
-                { enableHighAccuracy: true, timeout: 5000 }
-            );
-        }
-    }, 15000);
+if (!routeStartCoords || !routeEndCoords) {
+alert('Ошибка: координаты не определены');
+return;
 }
-
-function rebuildRouteFromCurrentLocation(lat, lng) {
-    if (!currentNavigationData) return;
-    
-    ymaps.route([[lat, lng], [currentNavigationData.endLat, currentNavigationData.endLng]], { multiRoute: false, routingMode: 'auto' })
-    .then(route => {
-        if (currentRoute) map.geoObjects.remove(currentRoute);
-        currentRoute = route;
-        map.geoObjects.add(route);
-        map.setBounds(route.getBounds(), { checkZoomRange: true, duration: 300 });
-        updateRouteCard(route, lat, lng);
-    })
-    .catch(err => console.warn('Ошибка перестроения:', err));
+ymaps.route([routeStartCoords, routeEndCoords], { mapStateAutoApply: false })
+.then(route => {
+map.geoObjects.add(route);
+currentRoute = route;
+const paths = route.getPaths();
+if (paths && paths.length > 0) {
+const active = paths[0];
+const dist = active.getLength() / 1000;
+const time = active.getTime() / 60;
+const arrival = new Date(Date.now() + active.getTime() * 1000)
+.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+document.getElementById('routeInfo').innerHTML = `
+<div> До парковки</div>
+<div> ${dist.toFixed(1)} км</div>
+<div>⏱ ${Math.round(time)} мин</div>
+<div>🚦 Прибытие: ${arrival}</div>
+<div>🚘 Свободных мест: ${free}</div>
+<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+`;
+document.getElementById('routeCard').classList.add('active');
+map.setBounds(route.getBounds(), { duration: 500 });
+} else {
+showDirectLine();
 }
-
-function showDirectLine(sLat, sLng, eLat, eLng) {
-    if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
-    
-    const line = new ymaps.Polyline([[sLat, sLng], [eLat, eLng]], {}, {
-        strokeColor: '#007AFF',
-        strokeWidth: 4,
-        strokeOpacity: 0.8
-    });
-    map.geoObjects.add(line);
-    currentRoute = line;
-    
-    const dist = getDistanceInMeters(sLat, sLng, eLat, eLng) / 1000;
-    const time = Math.round(dist * 2);
-    const free = routeParkingData ? routeParkingData.totalSpots - routeParkingData.occupiedSpots : '?';
-    
-    document.getElementById('routeInfo').innerHTML = `
-        <div>🚗 До парковки (по прямой)</div>
-        <div>📍 ${dist.toFixed(1)} км</div>
-        <div>⏱ ~${time} мин (приблизительно)</div>
-        <div>🚘 Свободных мест: ${free}</div>
-        ${routeParkingData ? `<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>` : ''}
-    `;
-    document.getElementById('routeCard').classList.add('active');
-    map.setBounds([
-        [Math.min(sLat, eLat), Math.min(sLng, eLng)],
-        [Math.max(sLat, eLat), Math.max(sLng, eLng)]
-    ], { duration: 500 });
+})
+.catch(err => {
+console.error('Ошибка построения маршрута:', err);
+showDirectLine();
+});
 }
-
-function openExternalNavigator(startLat, startLng, endLat, endLng) {
-    // Открываем Яндекс.Навигатор с маршрутом
-    window.open(`https://yandex.ru/navi/?rtext=${startLat},${startLng}~${endLat},${endLng}&rtt=auto`, '_blank');
+function showDirectLine() {
+if (!routeStartCoords || !routeEndCoords) return;
+if (currentRoute) {
+map.geoObjects.remove(currentRoute);
+currentRoute = null;
 }
-
+const line = new ymaps.Polyline([routeStartCoords, routeEndCoords], {}, {
+strokeColor: '#007AFF',
+strokeWidth: 4,
+strokeOpacity: 0.8
+});
+map.geoObjects.add(line);
+currentRoute = line;
+const dist = getDistanceInMeters(
+routeStartCoords[0], routeStartCoords[1],
+routeEndCoords[0], routeEndCoords[1]
+) / 1000;
+const time = Math.round(dist * 2);
+const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+document.getElementById('routeInfo').innerHTML = `
+<div>🚗 До парковки (по прямой)</div>
+<div> ${dist.toFixed(1)} км</div>
+<div>⏱ ~${time} мин (приблизительно)</div>
+<div> Свободных мест: ${free}</div>
+<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+`;
+document.getElementById('routeCard').classList.add('active');
+map.setBounds([
+[Math.min(routeStartCoords[0], routeEndCoords[0]), Math.min(routeStartCoords[1], routeEndCoords[1])],
+[Math.max(routeStartCoords[0], routeEndCoords[0]), Math.max(routeStartCoords[1], routeEndCoords[1])]
+], { duration: 500 });
+}
+function startNavigation() {
+if (routeEndCoords) {
+window.open(`https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${routeEndCoords[1]}`, '_blank');
+}
+}
+function rebuildRoute() {
+if (routeStartCoords && routeEndCoords) {
+if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+ymaps.route([routeStartCoords, routeEndCoords]).then(route => {
+map.geoObjects.add(route);
+currentRoute = route;
+const active = route.getPaths()[0];
+const dist = active.getLength() / 1000;
+const time = active.getTime() / 60;
+const arrival = new Date(Date.now() + active.getTime() * 1000)
+.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+document.getElementById('routeInfo').innerHTML = `
+<div>🚗 До парковки</div>
+<div>📍 ${dist.toFixed(1)} км</div>
+<div>⏱ ${Math.round(time)} мин</div>
+<div> Прибытие: ${arrival}</div>
+<div>🚘 Свободных мест: ${free}</div>
+`;
+}).catch(err => {
+alert('Ошибка при перестроении маршрута');
+showDirectLine();
+});
+}
+}
 function closeRoute() {
-    if (navigationWatcher) {
-        navigator.geolocation.clearWatch(navigationWatcher);
-        navigationWatcher = null;
-    }
-    if (navigationInterval) {
-        clearInterval(navigationInterval);
-        navigationInterval = null;
-    }
-    if (currentRoute) {
-        map.geoObjects.remove(currentRoute);
-        currentRoute = null;
-    }
-    currentNavigationData = null;
-    document.getElementById('routeCard').classList.remove('active');
+if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+document.getElementById('routeCard').classList.remove('active');
+routeStartCoords = null; routeEndCoords = null; routeParkingData = null;
 }
+
 // ===================== АДРЕСА =====================
 function addHomeAddress() {
 if (!currentUser) { alert('Необходимо войти'); return; }
