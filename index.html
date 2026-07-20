@@ -2110,6 +2110,111 @@ const brand = document.getElementById('carBrand').value, modelSelect = document.
 modelSelect.innerHTML = '<option value="">Выберите модель</option>';
 if (brand && carBrands[brand]) carBrands[brand].forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSelect.appendChild(opt); });
 }
+    // ===================== НАСТРОЙКИ =====================
+function showSettings() {
+    document.getElementById('settingsOverlay').style.display = 'flex';
+    renderSettings();
+}
+
+function closeSettings() {
+    document.getElementById('settingsOverlay').style.display = 'none';
+}
+
+function renderSettings() {
+    const content = document.getElementById('settingsContent');
+    const isDark = document.body.classList.contains('dark-theme');
+    const isGuest = currentUser && currentUser.id.startsWith('guest_');
+
+    let html = `
+        <div class="theme-toggle-row">
+            <div class="theme-toggle-label">🌙 Тёмная тема</div>
+            <label class="theme-switch">
+                <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+                <span class="theme-slider"></span>
+            </label>
+        </div>
+    `;
+
+    if (!isGuest) {
+        html += `
+            <div class="city-pref-card">
+                <div class="city-pref-title">🏙️ Мой город</div>
+                <div class="city-pref-row">
+                    <div class="form-group">
+                        <label>Регион</label>
+                        <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()">
+                            <option value="">Выберите регион</option>
+                            ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Город</label>
+                        <select id="settingsCity" class="input-field">
+                            <option value="">Выберите город</option>
+                            ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-secondary" style="margin-top:8px;" onclick="saveCityFromSettings()">💾 Сохранить город</button>
+            </div>
+
+            <div class="car-section">
+                <div class="car-section-title">🚗 Мой автомобиль</div>
+                <button class="btn-secondary" onclick="editCarDataFromSettings()">✏️ Редактировать данные авто</button>
+            </div>
+
+            <button class="btn-secondary" onclick="resetOnboarding()">📖 Показать обучение ещё раз</button>
+            <button class="btn-danger" onclick="deleteAccount()">🗑️ Удалить аккаунт</button>
+        `;
+    } else {
+        html += `<p style="color:var(--text-secondary); text-align:center;">Гостевой режим — настройки ограничены</p>`;
+    }
+
+    content.innerHTML = html;
+}
+
+function updateCitySelectInSettings() {
+    const region = document.getElementById('settingsRegion').value;
+    const citySelect = document.getElementById('settingsCity');
+    citySelect.innerHTML = '<option value="">Выберите город</option>';
+    if (region && regionsData[region]) {
+        regionsData[region].forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            citySelect.appendChild(opt);
+        });
+    }
+}
+
+function saveCityFromSettings() {
+    if (!currentUser) return;
+    const region = document.getElementById('settingsRegion').value;
+    const city = document.getElementById('settingsCity').value;
+    if (!region || !city) {
+        alert('Выберите регион и город');
+        return;
+    }
+    database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
+    .then(() => {
+        userCityPrefs = { region, city };
+        alert('Город сохранён!');
+        closeSettings();
+        renderProfile(document.getElementById('panelContent'));
+    })
+    .catch(err => alert('Ошибка сохранения'));
+}
+
+function editCarDataFromSettings() {
+    closeSettings();
+    editCarData();
+}
+
+function resetOnboarding() {
+    localStorage.removeItem('onboardingSeen');
+    closeSettings();
+    showOnboarding();
+}
 function toggleTheme() {
 const isDark = document.body.classList.toggle('dark-theme'); localStorage.setItem('darkTheme', isDark);
 const mapEl = document.getElementById('map');
