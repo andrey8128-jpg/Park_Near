@@ -916,6 +916,7 @@ if (!localStorage.getItem('onboardingSeen')) {
     setTimeout(() => showOnboarding(), 500);
   }
 }
+}
 if (!currentUser) { const saved = localStorage.getItem('tgUser'); if (saved) currentUser = JSON.parse(saved); }
 if (currentUser) {
 const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
