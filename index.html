@@ -1246,6 +1246,9 @@ alert('Границы обновлены');
 }
 
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
+    function closeParkingSheet() {
+    document.getElementById('parkingSheet').classList.remove('active');
+}
 function openParkingSheet(parkingId, data) {
     const sheet = document.getElementById('parkingSheet'),
           content = document.getElementById('sheetContent');
