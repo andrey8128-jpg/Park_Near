@@ -1950,8 +1950,11 @@ const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', 
 database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(prefSnap => {
 const prefs = prefSnap.val() || { region: '', city: '' };
 userCityPrefs = prefs;
-let html = `<div class="profile-header"><div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div><div class="profile-name">${currentUser.firstName}</div><div class="profile-username">@${currentUser.username}</div>${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}</div><div class="theme-toggle-row"><div class="theme-toggle-label">🌙 Тёмная тема</div><label class="theme-switch"><input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()"><span class="theme-slider"></span></label></div>`;
-html += `<div class="city-pref-card">
+let html = `<div style="position:relative;">
+    <button onclick="showSettings()" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:28px; cursor:pointer; z-index:10; color:var(--text-secondary);">⚙️</button>
+    <div class="profile-header"><div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div><div class="profile-name">${currentUser.firstName}</div><div class="profile-username">@${currentUser.username}</div>${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}</div>
+</div>`;
+    html += `<div class="city-pref-card">
 <div class="city-pref-title">️ Мой город</div>
 <div class="city-pref-row">
 <div class="form-group">
@@ -2114,7 +2117,112 @@ if (isDark && map.getType() === 'yandex#map') mapEl.style.filter = 'invert(0.82)
 else mapEl.style.filter = 'none';
 if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
 }
+// ===================== НАСТРОЙКИ =====================
+function showSettings() {
+    const overlay = document.getElementById('settingsOverlay');
+    overlay.style.display = 'flex';
+    renderSettings();
+}
 
+function closeSettings() {
+    document.getElementById('settingsOverlay').style.display = 'none';
+}
+
+function renderSettings() {
+    const content = document.getElementById('settingsContent');
+    const isDark = document.body.classList.contains('dark-theme');
+    const isGuest = currentUser && currentUser.id.startsWith('guest_');
+
+    let html = `
+        <div class="theme-toggle-row">
+            <div class="theme-toggle-label">🌙 Тёмная тема</div>
+            <label class="theme-switch">
+                <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+                <span class="theme-slider"></span>
+            </label>
+        </div>
+    `;
+
+    if (!isGuest) {
+        html += `
+            <div class="city-pref-card">
+                <div class="city-pref-title">🏙️ Мой город</div>
+                <div class="city-pref-row">
+                    <div class="form-group">
+                        <label>Регион</label>
+                        <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()">
+                            <option value="">Выберите регион</option>
+                            ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Город</label>
+                        <select id="settingsCity" class="input-field">
+                            <option value="">Выберите город</option>
+                            ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-secondary" style="margin-top:8px;" onclick="saveCityFromSettings()">💾 Сохранить город</button>
+            </div>
+
+            <div class="car-section">
+                <div class="car-section-title">🚗 Мой автомобиль</div>
+                <button class="btn-secondary" onclick="editCarDataFromSettings()">✏️ Редактировать данные авто</button>
+            </div>
+
+            <button class="btn-secondary" onclick="resetOnboarding()">📖 Показать обучение ещё раз</button>
+            <button class="btn-danger" onclick="deleteAccount()">🗑️ Удалить аккаунт</button>
+        `;
+    } else {
+        html += `<p style="color:var(--text-secondary); text-align:center;">Гостевой режим — настройки ограничены</p>`;
+    }
+
+    content.innerHTML = html;
+}
+
+function updateCitySelectInSettings() {
+    const region = document.getElementById('settingsRegion').value;
+    const citySelect = document.getElementById('settingsCity');
+    citySelect.innerHTML = '<option value="">Выберите город</option>';
+    if (region && regionsData[region]) {
+        regionsData[region].forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            citySelect.appendChild(opt);
+        });
+    }
+}
+
+function saveCityFromSettings() {
+    if (!currentUser) return;
+    const region = document.getElementById('settingsRegion').value;
+    const city = document.getElementById('settingsCity').value;
+    if (!region || !city) {
+        alert('Выберите регион и город');
+        return;
+    }
+    database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
+    .then(() => {
+        userCityPrefs = { region, city };
+        alert('Город сохранён!');
+        closeSettings();
+        renderProfile(document.getElementById('panelContent'));
+    })
+    .catch(err => alert('Ошибка сохранения'));
+}
+
+function editCarDataFromSettings() {
+    closeSettings();
+    editCarData(); // использует существующую функцию
+}
+
+function resetOnboarding() {
+    localStorage.removeItem('onboardingSeen');
+    closeSettings();
+    showOnboarding();
+}
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
 if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
