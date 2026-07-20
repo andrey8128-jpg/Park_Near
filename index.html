@@ -689,6 +689,14 @@ body.dark-theme .ymaps-copyright {
 <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
 </div>
     <!-- Онбординг -->
+    <!-- Панель настроек -->
+<div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
+    <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
+        <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
+        <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
+</div>
 <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:5000; align-items:center; justify-content:center;">
   <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative;">
     <div id="onboardingSlide" style="min-height:180px; display:flex; flex-direction:column; justify-content:center; align-items:center;"></div>
@@ -2559,6 +2567,111 @@ function showOnboarding() {
     };
 
     renderSlide();
+}
+    // ===================== НАСТРОЙКИ =====================
+function showSettings() {
+    document.getElementById('settingsOverlay').style.display = 'flex';
+    renderSettings();
+}
+
+function closeSettings() {
+    document.getElementById('settingsOverlay').style.display = 'none';
+}
+
+function renderSettings() {
+    const content = document.getElementById('settingsContent');
+    const isDark = document.body.classList.contains('dark-theme');
+    const isGuest = currentUser && currentUser.id.startsWith('guest_');
+
+    let html = `
+        <div class="theme-toggle-row">
+            <div class="theme-toggle-label">🌙 Тёмная тема</div>
+            <label class="theme-switch">
+                <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+                <span class="theme-slider"></span>
+            </label>
+        </div>
+    `;
+
+    if (!isGuest) {
+        html += `
+            <div class="city-pref-card">
+                <div class="city-pref-title">🏙️ Мой город</div>
+                <div class="city-pref-row">
+                    <div class="form-group">
+                        <label>Регион</label>
+                        <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()">
+                            <option value="">Выберите регион</option>
+                            ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Город</label>
+                        <select id="settingsCity" class="input-field">
+                            <option value="">Выберите город</option>
+                            ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-secondary" style="margin-top:8px;" onclick="saveCityFromSettings()">💾 Сохранить город</button>
+            </div>
+
+            <div class="car-section">
+                <div class="car-section-title">🚗 Мой автомобиль</div>
+                <button class="btn-secondary" onclick="editCarDataFromSettings()">✏️ Редактировать данные авто</button>
+            </div>
+
+            <button class="btn-secondary" onclick="resetOnboarding()">📖 Показать обучение ещё раз</button>
+            <button class="btn-danger" onclick="deleteAccount()">🗑️ Удалить аккаунт</button>
+        `;
+    } else {
+        html += `<p style="color:var(--text-secondary); text-align:center;">Гостевой режим — настройки ограничены</p>`;
+    }
+
+    content.innerHTML = html;
+}
+
+function updateCitySelectInSettings() {
+    const region = document.getElementById('settingsRegion').value;
+    const citySelect = document.getElementById('settingsCity');
+    citySelect.innerHTML = '<option value="">Выберите город</option>';
+    if (region && regionsData[region]) {
+        regionsData[region].forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            citySelect.appendChild(opt);
+        });
+    }
+}
+
+function saveCityFromSettings() {
+    if (!currentUser) return;
+    const region = document.getElementById('settingsRegion').value;
+    const city = document.getElementById('settingsCity').value;
+    if (!region || !city) {
+        alert('Выберите регион и город');
+        return;
+    }
+    database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
+    .then(() => {
+        userCityPrefs = { region, city };
+        alert('Город сохранён!');
+        closeSettings();
+        renderProfile(document.getElementById('panelContent'));
+    })
+    .catch(err => alert('Ошибка сохранения'));
+}
+
+function editCarDataFromSettings() {
+    closeSettings();
+    editCarData();
+}
+
+function resetOnboarding() {
+    localStorage.removeItem('onboardingSeen');
+    closeSettings();
+    showOnboarding();
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
