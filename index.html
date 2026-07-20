@@ -34,11 +34,11 @@ transition: background 0.3s, color 0.3s;
 }
 .app-header {
 position: fixed; top: 0; left: 0; right: 0; height: 44px;
-background: rgba(255,255,255,0.7); backdrop-filter: blur(20px);
+background: rgba(255,255,255,0.2); backdrop-filter: blur(30px);
 z-index: 1000; display: flex; align-items: center; justify-content: center;
 border-bottom: 0.5px solid var(--border-color); padding-top: env(safe-area-inset-top);
 }
-body.dark-theme .app-header { background: rgba(28,28,30,0.7); }
+body.dark-theme .app-header { background: rgba(28,28,30,0.25); }
 .app-title { font-size: 17px; font-weight: 600; letter-spacing: -0.5px; }
 .app-title span { color: var(--accent); }
 #map {
