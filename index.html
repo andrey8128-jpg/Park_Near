@@ -911,7 +911,10 @@ if (tg.initDataUnsafe?.user) {
 const user = tg.initDataUnsafe.user;
 currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
 localStorage.setItem('tgUser', JSON.stringify(currentUser));
-}
+    // Показать обучение, если ещё не видели
+if (!localStorage.getItem('onboardingSeen')) {
+    setTimeout(() => showOnboarding(), 500);
+  }
 }
 if (!currentUser) { const saved = localStorage.getItem('tgUser'); if (saved) currentUser = JSON.parse(saved); }
 if (currentUser) {
@@ -2211,6 +2214,7 @@ currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гост
 localStorage.setItem('tgUser', JSON.stringify(currentUser));
 database.ref(`users/${currentUser.id}/stats`).set({ registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] });
 showPanel('profile');
+    showOnboarding();
 }
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
