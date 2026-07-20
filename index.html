@@ -718,10 +718,6 @@ appId: "1:1066552333578:web:e60e333cf877852eba16f3"
 };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-    // Закрытие нижнего листа информации о парковке
-function closeParkingSheet() {
-    document.getElementById('parkingSheet').classList.remove('active');
-}
 
 // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
 let map = null;
@@ -1250,49 +1246,36 @@ alert('Границы обновлены');
 }
 
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
-    function closeParkingSheet() {
-    document.getElementById('parkingSheet').classList.remove('active');
-}
 function openParkingSheet(parkingId, data) {
-    const sheet = document.getElementById('parkingSheet'),
-          content = document.getElementById('sheetContent');
-    const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
-    const free = data.totalSpots - data.occupiedSpots;
-
-    function renderSheet(distanceText) {
-        content.innerHTML = `
-            <h3>${data.name}</h3>
-            <p>📍 ${addr}</p>
-            <p>📏 ${distanceText}</p>
-            <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-            <button class="btn-primary" id="routeBtn">🗺️ Маршрут</button>
-            <button class="btn-secondary" id="sheetDoneBtn" style="margin-top:8px;">Готово</button>
-        `;
-
-        // Явно навешиваем обработчики на кнопки
-        document.getElementById('routeBtn').addEventListener('click', function() {
-            buildRouteToParking(parkingId);
-        });
-        document.getElementById('sheetDoneBtn').addEventListener('click', closeParkingSheet);
-
-        // Дополнительно переопределяем крестик и ручку на случай потери onclick
-        const closeBtn = document.querySelector('.sheet-close');
-        if (closeBtn) closeBtn.onclick = closeParkingSheet;
-        const handle = document.querySelector('.sheet-handle');
-        if (handle) handle.onclick = closeParkingSheet;
-
-        sheet.classList.add('active');
-    }
-
-    getUserLocation().then(coords => {
-        const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-        const distKm = (dist / 1000).toFixed(1);
-        const driveTime = Math.round(dist / 500);
-        renderSheet(`${distKm} км от вас, 🚗 На авто: ${driveTime} мин`);
-    }).catch(() => {
-        renderSheet('Расстояние неизвестно');
-    });
+const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
+const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
+const free = data.totalSpots - data.occupiedSpots;
+getUserLocation().then(coords => {
+const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
+const distKm = (dist / 1000).toFixed(1);
+const driveTime = Math.round(dist / 500);
+content.innerHTML = `
+<h3>${data.name}</h3>
+<p>📍 ${addr}</p>
+<p>📏 ${distKm} км от вас</p>
+<p> На авто: ${driveTime} мин</p>
+<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+<button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
+`;
+sheet.classList.add('active');
+}).catch(() => {
+content.innerHTML = `
+<h3>${data.name}</h3>
+<p>📍 ${addr}</p>
+<p>📏 Расстояние неизвестно</p>
+<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+<button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
+`;
+sheet.classList.add('active');
+});
 }
+function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
+
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
 database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
@@ -1348,9 +1331,8 @@ html += `
 html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
 html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')"> Подтвердить актуальность</button>`;
 }
-html += `<button class="btn-primary" id="doneEditBtn" style="margin-top:20px;">Готово</button>`;
+html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>`;
 document.getElementById('panelContent').innerHTML = html;
-document.getElementById('doneEditBtn').addEventListener('click', closePanel);
 }
 function saveParkingDetails() {
 if (!currentUser) { alert('Необходимо авторизоваться'); return; }
