@@ -718,6 +718,10 @@ appId: "1:1066552333578:web:e60e333cf877852eba16f3"
 };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+    // Закрытие нижнего листа информации о парковке
+function closeParkingSheet() {
+    document.getElementById('parkingSheet').classList.remove('active');
+}
 
 // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
 let map = null;
