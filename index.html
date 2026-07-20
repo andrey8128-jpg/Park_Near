@@ -602,6 +602,19 @@ body.dark-theme .ymaps-copyright {
     width: 24px;
     border-radius: 4px;
 }
+    /* Подсветка элементов при обучении */
+.onboarding-highlight {
+    position: relative;
+    z-index: 5001 !important;
+    box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5) !important;
+    border-radius: 16px !important;
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
+    50% { box-shadow: 0 0 0 8px var(--accent), 0 0 30px rgba(0,122,255,0.8); }
+    100% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
+}
 </style>
 </head>
 <body>
@@ -2220,31 +2233,53 @@ showPanel('profile');
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
 }
-// ===================== ОНБОРДИНГ =====================
+// ===================== ОНБОРДИНГ С ПОДСВЕТКОЙ =====================
 const onboardingSlides = [
     {
         icon: '🗺️',
         title: 'Добро пожаловать в ParkNear',
-        text: 'Здесь вы можете отмечать парковки и видеть, где есть свободные места.'
+        text: 'Здесь вы можете отмечать парковки и видеть, где есть свободные места.',
+        highlightSelector: null
     },
     {
         icon: '➕',
         title: 'Добавление парковки',
-        text: 'Нажмите на синий «+», затем обведите зону парковки на карте и заполните данные.'
+        text: 'Нажмите на синюю кнопку «+» в правом нижнем углу, затем обведите зону на карте.',
+        highlightSelector: '#addBtn'                   // подсветка кнопки +
     },
     {
         icon: '🔍',
         title: 'Поиск',
-        text: 'Вкладка «Поиск» позволяет искать парковки по адресу или смотреть рядом с домом.'
+        text: 'Вкладка «Поиск» (🔍) внизу позволяет найти парковки по адресу.',
+        highlightSelector: '.tab:nth-child(2)'         // вторая вкладка
     },
     {
         icon: '⭐',
-        title: 'Избранное и история',
-        text: 'Сохраняйте парковки в избранном, чтобы быстро их находить, и просматривайте историю.'
+        title: 'Избранное',
+        text: 'Вкладка «Избранное» (⭐) хранит ваши сохранённые места.',
+        highlightSelector: '.tab:nth-child(3)'         // третья вкладка
     }
 ];
 
 let currentSlide = 0;
+let highlightedElement = null;
+
+function removeHighlight() {
+    if (highlightedElement) {
+        highlightedElement.classList.remove('onboarding-highlight');
+        highlightedElement = null;
+    }
+}
+
+function applyHighlight(selector) {
+    removeHighlight();
+    if (!selector) return;
+    const el = document.querySelector(selector);
+    if (el) {
+        el.classList.add('onboarding-highlight');
+        highlightedElement = el;
+    }
+}
 
 function showOnboarding() {
     if (localStorage.getItem('onboardingSeen') === 'true') return;
@@ -2259,14 +2294,13 @@ function showOnboarding() {
             <div class="onboarding-title">${slide.title}</div>
             <div class="onboarding-text">${slide.text}</div>
         `;
+        applyHighlight(slide.highlightSelector);
 
-        // Точки
         const dotsContainer = document.getElementById('onboardingDots');
         dotsContainer.innerHTML = onboardingSlides.map((_, i) =>
             `<div class="onboarding-dot ${i === currentSlide ? 'active' : ''}"></div>`
         ).join('');
 
-        // Кнопка
         const nextBtn = document.getElementById('onboardingNext');
         nextBtn.textContent = currentSlide === onboardingSlides.length - 1 ? 'Понятно' : 'Далее';
     }
@@ -2275,6 +2309,7 @@ function showOnboarding() {
         if (currentSlide === onboardingSlides.length - 1) {
             localStorage.setItem('onboardingSeen', 'true');
             overlay.style.display = 'none';
+            removeHighlight();
             return;
         }
         currentSlide++;
@@ -2284,6 +2319,7 @@ function showOnboarding() {
     document.getElementById('onboardingSkip').onclick = function() {
         localStorage.setItem('onboardingSeen', 'true');
         overlay.style.display = 'none';
+        removeHighlight();
     };
 
     renderSlide();
