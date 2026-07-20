@@ -2251,7 +2251,7 @@ currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гост
 localStorage.setItem('tgUser', JSON.stringify(currentUser));
 database.ref(`users/${currentUser.id}/stats`).set({ registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] });
 showPanel('profile');
-    showOnboarding();
+   showOnboarding();   // ← обязательно
 }
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
