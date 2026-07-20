@@ -574,6 +574,34 @@ body.dark-theme .ymaps-copyright {
 .ymaps-2-1-79-conditions {
     display: none !important;
 }
+    /* Стили для онбординга */
+.onboarding-icon {
+    font-size: 60px;
+    margin-bottom: 16px;
+}
+.onboarding-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+.onboarding-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+.onboarding-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray);
+    transition: background 0.2s;
+}
+.onboarding-dot.active {
+    background: var(--accent);
+    width: 24px;
+    border-radius: 4px;
+}
 </style>
 </head>
 <body>
@@ -646,6 +674,15 @@ body.dark-theme .ymaps-copyright {
 <div class="tab" onclick="showPanel('search')"><div class="icon">🔍</div><div class="label">Поиск</div></div>
 <div class="tab" onclick="showPanel('favorites')"><div class="icon">⭐</div><div class="label">Избранное</div></div>
 <div class="tab" onclick="showPanel('profile')"><div class="icon">👤</div><div class="label">Профиль</div></div>
+</div>
+    <!-- Онбординг -->
+<div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:5000; align-items:center; justify-content:center;">
+  <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative;">
+    <div id="onboardingSlide" style="min-height:180px; display:flex; flex-direction:column; justify-content:center; align-items:center;"></div>
+    <div style="display:flex; justify-content:center; gap:8px; margin-top:20px;" id="onboardingDots"></div>
+    <button class="btn-primary" id="onboardingNext" style="margin-top:20px;">Далее</button>
+    <button id="onboardingSkip" style="background:none; border:none; color:var(--text-secondary); margin-top:10px; cursor:pointer;">Пропустить</button>
+  </div>
 </div>
 <script>
 // ===================== FIREBASE =====================
@@ -2178,7 +2215,74 @@ showPanel('profile');
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
 }
+// ===================== ОНБОРДИНГ =====================
+const onboardingSlides = [
+    {
+        icon: '🗺️',
+        title: 'Добро пожаловать в ParkNear',
+        text: 'Здесь вы можете отмечать парковки и видеть, где есть свободные места.'
+    },
+    {
+        icon: '➕',
+        title: 'Добавление парковки',
+        text: 'Нажмите на синий «+», затем обведите зону парковки на карте и заполните данные.'
+    },
+    {
+        icon: '🔍',
+        title: 'Поиск',
+        text: 'Вкладка «Поиск» позволяет искать парковки по адресу или смотреть рядом с домом.'
+    },
+    {
+        icon: '⭐',
+        title: 'Избранное и история',
+        text: 'Сохраняйте парковки в избранном, чтобы быстро их находить, и просматривайте историю.'
+    }
+];
 
+let currentSlide = 0;
+
+function showOnboarding() {
+    if (localStorage.getItem('onboardingSeen') === 'true') return;
+
+    const overlay = document.getElementById('onboardingOverlay');
+    overlay.style.display = 'flex';
+
+    function renderSlide() {
+        const slide = onboardingSlides[currentSlide];
+        document.getElementById('onboardingSlide').innerHTML = `
+            <div class="onboarding-icon">${slide.icon}</div>
+            <div class="onboarding-title">${slide.title}</div>
+            <div class="onboarding-text">${slide.text}</div>
+        `;
+
+        // Точки
+        const dotsContainer = document.getElementById('onboardingDots');
+        dotsContainer.innerHTML = onboardingSlides.map((_, i) =>
+            `<div class="onboarding-dot ${i === currentSlide ? 'active' : ''}"></div>`
+        ).join('');
+
+        // Кнопка
+        const nextBtn = document.getElementById('onboardingNext');
+        nextBtn.textContent = currentSlide === onboardingSlides.length - 1 ? 'Понятно' : 'Далее';
+    }
+
+    document.getElementById('onboardingNext').onclick = function() {
+        if (currentSlide === onboardingSlides.length - 1) {
+            localStorage.setItem('onboardingSeen', 'true');
+            overlay.style.display = 'none';
+            return;
+        }
+        currentSlide++;
+        renderSlide();
+    };
+
+    document.getElementById('onboardingSkip').onclick = function() {
+        localStorage.setItem('onboardingSeen', 'true');
+        overlay.style.display = 'none';
+    };
+
+    renderSlide();
+}
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
 initAuth();
