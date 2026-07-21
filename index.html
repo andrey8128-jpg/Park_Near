@@ -1195,7 +1195,7 @@ function submitParkingWithPolygon() {
     if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
     if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
     
-    // Проверяем сохраненные координаты, а не drawingPolygon
+    // Проверяем сохраненные координаты
     if (!newParkingCoords || newParkingCoords.length < 3) { 
         alert('Ошибка: данные зоны потеряны. Попробуйте нарисовать заново.'); 
         return; 
@@ -1205,28 +1205,46 @@ function submitParkingWithPolygon() {
     btn.textContent = 'Сохранение...';
     btn.disabled = true;
 
-    // Вычисляем центр из СОХРАНЕННЫХ координат
+    // Вычисляем центр зоны для поиска адреса
     const centerLat = newParkingCoords.reduce((s, c) => s + c[0], 0) / newParkingCoords.length;
     const centerLng = newParkingCoords.reduce((s, c) => s + c[1], 0) / newParkingCoords.length;
 
-    // Геокодируем ЦЕНТР зоны (так надежнее, чем первую точку)
-    ymaps.geocode([centerLat, centerLng], { kind: 'house', results: 1 })
+    // Геокодируем центр зоны с приоритетом на дома/улицы
+    ymaps.geocode([centerLat, centerLng], { kind: 'street', results: 1 })
     .then(res => {
         const geo = res.geoObjects.get(0);
         let address = geo ? geo.getAddressLine() : '';
         
-        // Формируем название
-        let name = 'Парковка';
+        // === АВТОМАТИЧЕСКОЕ НАЗВАНИЕ ПО УЛИЦЕ ===
+        let name = 'Без названия';
         if (address) {
+            // Разбиваем адрес: "Россия, Москва, ул. Ленина, д. 5"
             const parts = address.split(', ');
-            // Берем улицу и дом (обычно это части после города)
-            if (parts.length >= 3) {
-                name = 'Парковка на ' + parts.slice(2).join(', ');
+            
+            // Ищем часть, содержащую "ул." или "просп." или "бул."
+            let streetPart = '';
+            for (let part of parts) {
+                if (part.toLowerCase().includes('ул.') || 
+                    part.toLowerCase().includes('просп.') || 
+                    part.toLowerCase().includes('бул.') ||
+                    part.toLowerCase().includes('пер.')) {
+                    streetPart = part;
+                    break;
+                }
+            }
+            
+            // Если нашли улицу - используем её как название
+            if (streetPart) {
+                name = streetPart;
+            } else if (parts.length >= 2) {
+                // Если улица не найдена явно, берем вторую часть адреса (обычно город или район)
+                name = parts[parts.length - 2]; 
             } else {
-                name = 'Парковка (' + address + ')';
+                name = address.substring(0, 30);
             }
         } else {
-            name = `Парковка (${centerLat.toFixed(4)}, ${centerLng.toFixed(4)})`;
+            // Если адрес не определился - используем координаты
+            name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
         }
 
         const parsed = parseAddress(address);
@@ -1238,10 +1256,10 @@ function submitParkingWithPolygon() {
         const parkingData = {
             lat: centerLat,
             lng: centerLng,
-            coordinates: newParkingCoords, // Используем сохраненные координаты
+            coordinates: newParkingCoords,
             totalSpots,
             occupiedSpots: 0,
-            name,
+            name: name, // <-- Автоматическое название улицы
             isPaid,
             address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
             region: parsed.region,
@@ -1265,9 +1283,8 @@ function submitParkingWithPolygon() {
             });
             addMarkerToMap(newRef.key, parkingData);
             
-            // Очистка после успеха
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
-            newParkingCoords = null; // Сбрасываем временные координаты
+            newParkingCoords = null;
             
             closePanel(); showMap();
             if (window.Telegram?.WebApp?.HapticFeedback) {
