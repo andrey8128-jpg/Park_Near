@@ -194,19 +194,6 @@ body.dark-theme .tab:active {
     transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
     display: flex; flex-direction: column;
 }
-.panel {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--bg-primary);
-    z-index: 2000;
-    transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-    display: flex;
-    flex-direction: column;
-}
 .panel.active {
     transform: translateY(0);
 }
@@ -925,19 +912,19 @@ return { region, city, street, houseNumber };
 
 // ===================== АВТОРИЗАЦИЯ =====================
 function initAuth() {
-if (window.Telegram?.WebApp) {
-const tg = window.Telegram.WebApp;
-tg.ready(); tg.expand();
-if (tg.initDataUnsafe?.user) {
-const user = tg.initDataUnsafe.user;
-currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
-localStorage.setItem('tgUser', JSON.stringify(currentUser));
-    // Показать обучение, если ещё не видели
-if (!localStorage.getItem('onboardingSeen')) {
-    setTimeout(() => showOnboarding(), 500);
-  }
-}
-}
+    if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+        if (tg.initDataUnsafe?.user) {
+            const user = tg.initDataUnsafe.user;
+            currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            // Показать обучение, если ещё не видели
+            if (!localStorage.getItem('onboardingSeen')) {
+                setTimeout(() => showOnboarding(), 500);
+            }
+        }
+    }
 if (!currentUser) { const saved = localStorage.getItem('tgUser'); if (saved) currentUser = JSON.parse(saved); }
 if (currentUser) {
 const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
