@@ -1201,133 +1201,137 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Новая парковка';
     const area = Math.round(sizeCheck.width * sizeCheck.length);
+    
+    // Добавили поле для ввода названия
     document.getElementById('panelContent').innerHTML = `
+        <div class="form-group">
+            <label>Название парковки *</label>
+            <input type="text" id="parkName" class="input-field" placeholder="Например: Парковка у ТЦ" value="">
+        </div>
         <div class="form-group"><label>Размер зоны</label><input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);"></div>
         <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
         <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="parkIsPaid"><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
-        <p style="font-size:13px;color:var(--text-secondary);margin-top:12px;">Название будет определено автоматически</p>
+        
         <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
         <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
     `;
 }
 function submitParkingWithPolygon() {
-    const totalSpots = parseInt(document.getElementById('parkSpots').value);
-    const isPaid = document.getElementById('parkIsPaid').checked;
-
-    if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
-    if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
+    // 1. Получаем данные из полей
+    const nameInput = document.getElementById('parkName');
+    const spotsInput = document.getElementById('parkSpots');
+    const paidInput = document.getElementById('parkIsPaid');
     
-    // Проверяем сохраненные координаты
-    if (!newParkingCoords || newParkingCoords.length < 3) { 
-        alert('Ошибка: данные зоны потеряны. Попробуйте нарисовать заново.'); 
-        return; 
+    // Считываем название (убираем пробелы по краям)
+    let customName = nameInput ? nameInput.value.trim() : '';
+    
+    const totalSpots = spotsInput ? parseInt(spotsInput.value) : 0;
+    const isPaid = paidInput ? paidInput.checked : false;
+
+    // 2. Проверки
+    if (!currentUser) { alert('Ошибка авторизации'); return; }
+    if (!totalSpots || totalSpots < 1) { alert('Укажите количество мест'); return; }
+
+    // 3. ПОЛУЧЕНИЕ КООРДИНАТ
+    let coordsToSave = null;
+    if (window.newParkingCoords && window.newParkingCoords.length >= 3) {
+        coordsToSave = window.newParkingCoords;
+    } else if (drawingPolygon && drawingPolygon.geometry) {
+        const rawCoords = drawingPolygon.geometry.getCoordinates()[0];
+        coordsToSave = rawCoords.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+    }
+
+    if (!coordsToSave || coordsToSave.length < 3) {
+        alert('Ошибка: Координаты зоны не найдены.');
+        return;
     }
 
     const btn = document.getElementById('saveParkBtn');
-    btn.textContent = 'Сохранение...';
-    btn.disabled = true;
+    if(btn) { btn.textContent = 'Сохранение...'; btn.disabled = true; }
 
-    // Вычисляем центр зоны для поиска адреса
-    const centerLat = newParkingCoords.reduce((s, c) => s + c[0], 0) / newParkingCoords.length;
-    const centerLng = newParkingCoords.reduce((s, c) => s + c[1], 0) / newParkingCoords.length;
+    // Вычисляем центр
+    let sumLat = 0, sumLng = 0;
+    coordsToSave.forEach(c => { sumLat += c[0]; sumLng += c[1]; });
+    const centerLat = sumLat / coordsToSave.length;
+    const centerLng = sumLng / coordsToSave.length;
 
-    // Геокодируем центр зоны с приоритетом на дома/улицы
+    // 4. Геокодинг (нужен для адреса, даже если имя ввели вручную)
     ymaps.geocode([centerLat, centerLng], { kind: 'street', results: 1 })
     .then(res => {
-        const geo = res.geoObjects.get(0);
-        let address = geo ? geo.getAddressLine() : '';
-        
-        // === АВТОМАТИЧЕСКОЕ НАЗВАНИЕ ПО УЛИЦЕ ===
-        let name = 'Без названия';
-        if (address) {
-            // Разбиваем адрес: "Россия, Москва, ул. Ленина, д. 5"
-            const parts = address.split(', ');
+        let address = '';
+        let finalName = customName; // По умолчанию берем то, что ввел пользователь
+
+        // Безопасная обработка ответа Яндекса
+        if (res && res.geoObjects && res.geoObjects.getLength() > 0) {
+            const geo = res.geoObjects.get(0);
+            address = geo.getAddressLine() || '';
             
-            // Ищем часть, содержащую "ул." или "просп." или "бул."
-            let streetPart = '';
-            for (let part of parts) {
-                if (part.toLowerCase().includes('ул.') || 
-                    part.toLowerCase().includes('просп.') || 
-                    part.toLowerCase().includes('бул.') ||
-                    part.toLowerCase().includes('пер.')) {
-                    streetPart = part;
-                    break;
-                }
-            }
-            
-            // Если нашли улицу - используем её как название
-            if (streetPart) {
-                name = streetPart;
-            } else if (parts.length >= 2) {
-                // Если улица не найдена явно, берем вторую часть адреса (обычно город или район)
-                name = parts[parts.length - 2]; 
-            } else {
-                name = address.substring(0, 30);
+            // ЕСЛИ ПОЛЬЗОВАТЕЛЬ НЕ ВВЕЛ НАЗВАНИЕ - определяем его автоматически
+            if (!finalName) {
+                const parts = address.split(', ');
+                const streetPart = parts.find(p => 
+                    p.toLowerCase().includes('ул.') || 
+                    p.toLowerCase().includes('пр.') || 
+                    p.toLowerCase().includes('б-р')
+                );
+                finalName = streetPart ? streetPart : (parts[parts.length - 2] || 'Парковка');
             }
         } else {
-            // Если адрес не определился - используем координаты
-            name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
+            // Если Яндекс ничего не нашел, а пользователь тоже не ввел имя
+            if (!finalName) finalName = `Парковка (${centerLat.toFixed(4)}, ${centerLng.toFixed(4)})`;
         }
 
+        // Парсинг адреса для региона/города
         const parsed = parseAddress(address);
-        if (userCityPrefs.region && userCityPrefs.city) {
+        if (userCityPrefs && userCityPrefs.region) {
             parsed.region = userCityPrefs.region;
             parsed.city = userCityPrefs.city;
         }
 
+        // Объект данных
         const parkingData = {
             lat: centerLat,
             lng: centerLng,
-            coordinates: newParkingCoords,
-            totalSpots,
+            coordinates: coordsToSave,
+            totalSpots: totalSpots,
             occupiedSpots: 0,
-            name: name, // <-- Автоматическое название улицы
-            isPaid,
-            address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-            region: parsed.region,
-            city: parsed.city,
-            street: parsed.street,
-            houseNumber: parsed.houseNumber,
+            name: finalName, // <-- Используем итоговое имя
+            isPaid: isPaid,
+            address: address || `${centerLat.toFixed(5)}, ${centerLng.toFixed(5)}`,
+            region: parsed.region || '',
+            city: parsed.city || '',
             authorId: currentUser.id,
-            authorName: currentUser.firstName,
-            authorUsername: currentUser.username,
+            authorName: currentUser.firstName || 'User',
             timestamp: Date.now(),
             status: 'unknown'
         };
 
-        const newRef = database.ref('parkings').push();
-        return newRef.set(parkingData).then(() => {
-            database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-                .transaction(count => (count || 0) + 1);
-            database.ref(`parkings/${newRef.key}/history`).push({
-                action: 'created', timestamp: Date.now(), userId: currentUser.id,
-                username: currentUser.username
-            });
-            addMarkerToMap(newRef.key, parkingData);
-            
-            if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
-            newParkingCoords = null;
-            
-            closePanel(); showMap();
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
-        });
+        // 5. Запись в Firebase
+        return database.ref('parkings').push(parkingData);
     })
- .catch(err => {
-    console.error('ПОЛНАЯ ОШИБКА:', err); // Смотреть в консоли браузера
-    
-    let msg = 'Ошибка сохранения: ';
-    if (err.code === 'PERMISSION_DENIED') {
-        msg += 'Нет прав на запись в базу (проверьте Rules в Firebase).';
-    } else if (err.message && err.message.includes('geocode')) {
-        msg += 'Не удалось определить адрес (проблема с Яндекс.Картами).';
-    } else {
-        msg += err.message || 'Неизвестная ошибка.';
-    }
-    
-    alert(msg); 
-})
+    .then((snapshot) => {
+        // Успех
+        if (currentUser && currentUser.id) {
+            database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(val => (val || 0) + 1);
+        }
+
+        if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+        window.newParkingCoords = null;
+        
+        closePanel(); 
+        showMap();
+        
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    })
+    .catch(err => {
+        console.error('FATAL ERROR:', err);
+        alert('Ошибка сохранения: ' + (err.message || 'Неизвестная ошибка'));
+    })
+    .finally(() => {
+        if(btn) { btn.textContent = 'Сохранить парковку'; btn.disabled = false; }
+    });
 }
 function saveEditedPolygon(newCoords) {
 if (!currentParkingId) return;
