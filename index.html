@@ -764,6 +764,7 @@ let routeEndCoords = null;
 let routeParkingData = null;
 let userCityPrefs = { region: '', city: '' };
 let nearbySearchFilter = null;
+let userLocationForSearch = null;
 let pendingAddressData = null;
 let newParkingCoords = null; // <-- ДОБАВИТЬ ЭТУ СТРОКУ
 
@@ -1851,30 +1852,91 @@ showPanel('search', true);
 }
 
 // ===================== ПОИСК =====================
+function searchNearMe() {
+    getUserLocation().then(coords => {
+        userLocationForSearch = coords;
+        nearbySearchFilter = { lat: coords.lat, lng: coords.lng, radius: 1000 };
+        document.getElementById('radiusSlider').value = 1;
+        document.getElementById('radiusLabel').textContent = '1 км';
+        filterParkings();
+    }).catch(() => alert('Геолокация недоступна'));
+}
+
+function clearFilters() {
+    nearbySearchFilter = null;
+    userLocationForSearch = null;
+    document.getElementById('regionSelect').value = '';
+    document.getElementById('citySelect').value = '';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('radiusSlider').value = 1;
+    document.getElementById('radiusLabel').textContent = '1 км';
+    if (document.getElementById('showWithFreeOnly')) document.getElementById('showWithFreeOnly').checked = false;
+    if (document.getElementById('sortSelect')) document.getElementById('sortSelect').value = 'name';
+    filterParkings();
+}
 function renderSearchPanel(content) {
-let html = `
-<div class="city-selector">
-<label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Регион</label>
-<select id="regionSelect" class="input-field" onchange="updateCitySelect()">
-<option value="">Все регионы</option>
-${Object.keys(regionsData).sort().map(r => `<option value="${r}">${r}</option>`).join('')}
-</select>
-</div>
-<div class="city-selector">
-<label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Город</label>
-<select id="citySelect" class="input-field" onchange="filterParkings()">
-<option value="">Все города</option>
-</select>
-</div>
-<div class="search-bar">
-<input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()">
-</div>
-<div id="searchResults" class="list-container">
-<p style="color:var(--text-secondary); text-align:center;">Введите улицу для поиска</p>
-</div>
-`;
-content.innerHTML = html;
-filterParkings();
+    let html = `
+    <div class="city-selector">
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Регион</label>
+        <select id="regionSelect" class="input-field" onchange="updateCitySelect()">
+            <option value="">Все регионы</option>
+            ${Object.keys(regionsData).sort().map(r => `<option value="${r}">${r}</option>`).join('')}
+        </select>
+    </div>
+    <div class="city-selector">
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Город</label>
+        <select id="citySelect" class="input-field" onchange="filterParkings()">
+            <option value="">Все города</option>
+        </select>
+    </div>
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()">
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <button class="btn-secondary" style="flex:1;" onclick="searchNearMe()">📍 Рядом со мной</button>
+        <button class="btn-secondary" style="flex:1;" onclick="clearFilters()">🔄 Сбросить</button>
+    </div>
+    <div style="margin: 12px 0; display: flex; align-items: center; gap: 10px;">
+        <input type="range" id="radiusSlider" min="0.1" max="5" step="0.1" value="1" style="flex:1;" oninput="updateRadiusLabel(); filterParkings();">
+        <span id="radiusLabel" style="min-width: 40px;">1 км</span>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; font-size:14px; margin-top:8px;">
+        <input type="checkbox" id="showWithFreeOnly" onchange="filterParkings()"> Только с наличием свободных мест
+    </label>
+    <div style="margin-top: 8px;">
+        <label style="font-size:13px; color:var(--text-secondary);">Сортировка:</label>
+        <select id="sortSelect" class="input-field" onchange="filterParkings()" style="margin-top:4px;">
+            <option value="name">По названию</option>
+            <option value="free">По возрастанию свободных мест</option>
+            <option value="distance">По расстоянию (если известна геопозиция)</option>
+        </select>
+    </div>
+    <div id="searchResults" class="list-container">
+        <p style="color:var(--text-secondary); text-align:center;">Введите улицу для поиска</p>
+    </div>
+    `;
+    content.innerHTML = html;
+    // Пытаемся получить геолокацию для радиуса
+    getUserLocation().then(coords => { userLocationForSearch = coords; }).catch(() => { userLocationForSearch = null; });
+    filterParkings();
+}
+
+function updateRadiusLabel() {
+    const val = document.getElementById('radiusSlider').value;
+    document.getElementById('radiusLabel').textContent = val + ' км';
+    // При изменении слайдера обновляем радиус в nearbySearchFilter, если уже есть координаты
+    if (userLocationForSearch) {
+        nearbySearchFilter = { lat: userLocationForSearch.lat, lng: userLocationForSearch.lng, radius: val * 1000 };
+    }
+}
+
+function updateRadiusLabel() {
+    const val = document.getElementById('radiusSlider').value;
+    document.getElementById('radiusLabel').textContent = val + ' км';
+    // При изменении слайдера обновляем радиус в nearbySearchFilter, если уже есть координаты
+    if (userLocationForSearch) {
+        nearbySearchFilter = { lat: userLocationForSearch.lat, lng: userLocationForSearch.lng, radius: val * 1000 };
+    }
 }
 function updateCitySelect() {
 const region = document.getElementById('regionSelect').value;
@@ -1926,6 +1988,30 @@ const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
 return dist <= radius;
 });
 }
+// Фильтр "только свободные"
+    const showFreeOnly = document.getElementById('showWithFreeOnly')?.checked;
+    if (showFreeOnly) {
+        parkings = parkings.filter(p => (p.totalSpots - (p.occupiedSpots || 0)) > 0);
+    }
+
+    // Сортировка
+    const sortBy = document.getElementById('sortSelect')?.value || 'name';
+    switch(sortBy) {
+        case 'free':
+            parkings.sort((a,b) => (b.totalSpots - (b.occupiedSpots||0)) - (a.totalSpots - (a.occupiedSpots||0)));
+            break;
+        case 'distance':
+            if (userLocationForSearch) {
+                parkings.sort((a,b) => {
+                    const distA = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch.lng, a.lat, a.lng);
+                    const distB = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch.lng, b.lat, b.lng);
+                    return distA - distB;
+                });
+            }
+            break;
+        default:
+            parkings.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    }
 parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 let html = '';
 if (parkings.length === 0) {
