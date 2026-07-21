@@ -586,6 +586,47 @@ body.dark-theme .ymaps-copyright {
     50% { box-shadow: 0 0 0 8px var(--accent), 0 0 30px rgba(0,122,255,0.8); }
     100% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
 }
+/* === НОВЫЙ ДИЗАЙН ЗАГОЛОВКА ПАНЕЛИ === */
+.panel-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Центрируем название */
+    height: 56px;
+    padding-top: env(safe-area-inset-top); /* Отступ под "челку" iPhone */
+    background: var(--bg-primary); /* Фон подстраивается под тему */
+}
+
+.panel-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary); /* Цвет текста (белый/черный) */
+    text-align: center;
+}
+
+.panel-close {
+    position: absolute; /* Вырываем из потока */
+    right: 12px; /* Прижимаем к правому краю */
+    top: 50%;
+    transform: translateY(-50%); /* Центрируем по вертикали */
+    
+    background: transparent !important; /* Убираем белый фон кнопки */
+    border: none;
+    padding: 8px;
+    margin: 0;
+    cursor: pointer;
+    color: var(--accent); /* Синий цвет крестика */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.panel-close svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+}
 </style>
 </head>
 <body>
@@ -904,6 +945,9 @@ function initAuth() {
     if (window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
+        // Скрываем стандартную шапку Telegram и красим фон в черный
+tg.setHeaderColor('#000000'); 
+tg.setBackgroundColor('#000000');
         if (tg.initDataUnsafe?.user) {
             const user = tg.initDataUnsafe.user;
             currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
