@@ -591,6 +591,87 @@ color: #fff;
     height: 24px;
     stroke: currentColor;
 }
+    /* ===== НОВЫЙ ДИЗАЙН РЕПУТАЦИИ ===== */
+.reputation-card {
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--card-shadow);
+}
+
+.reputation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.rep-level-badge {
+    background: linear-gradient(135deg, var(--accent), #5856D6);
+    color: #fff;
+    border-radius: 12px;
+    padding: 6px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.reputation-circle-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring__circle-bg {
+    fill: none;
+    stroke: var(--bg-primary);
+    stroke-width: 6;
+}
+
+.progress-ring__circle-fill {
+    fill: none;
+    stroke: url(#gradient);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s ease;
+}
+
+.rep-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 12px;
+    width: 100%;
+}
+
+.rep-stat {
+    text-align: center;
+}
+
+.rep-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.rep-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.rep-xp-info {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
 </style>
 </head>
 <body>
@@ -981,6 +1062,23 @@ else reject(new Error('Геолокация не поддерживается'))
 }
 
 // ===================== МАРКЕРЫ НА КАРТЕ =====================
+    function loadAllParkings() {
+    console.log('Загрузка парковок из Firebase...');
+    database.ref('parkings').once('value').then(snapshot => {
+        const data = snapshot.val();
+        console.log('Получено парковок:', data ? Object.keys(data).length : 0);
+        if (data) {
+            Object.keys(data).forEach(key => {
+                const p = data[key];
+                console.log('Парковка:', key, p);
+                if (p && p.lat && p.lng) {
+                    parkingDataCache[key] = p;
+                    addMarkerToMap(key, p);
+                }
+            });
+        }
+    }).catch(error => console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error));
+}
 function addMarkerToMap(id, data) {
     console.log('Добавляю маркер:', id, data);
     
@@ -2313,29 +2411,52 @@ function renderProfile(content) {
                     progressPercent = Math.min(100, Math.round((currentInRange / range) * 100));
                     xpForNext = nextLevel.xp - score;
                 }
-                html += `<div class="reputation-card">
-                    <div class="reputation-title" onclick="var b=document.getElementById('repBody');b.classList.toggle('collapsed');this.querySelector('span:last-child').textContent=b.classList.contains('collapsed')?'▶':'▼';">
-                        <span>🏆 Репутация</span><span>▼</span>
-                    </div>
-                    <div class="reputation-body" id="repBody">
-                        <div class="reputation-full">
-                            <div class="stats-row"><span class="stats-label"> Уровень</span><span class="stats-value">${levelEmoji} ${levelName} (${level}/12)</span></div>
-                            <div class="stats-row"><span class="stats-label">✨ Опыт (XP)</span><span class="stats-value">${score.toLocaleString()}</span></div>
-                            ${nextLevel ? `<div class="stats-row"><span class="stats-label">🚀 До след. уровня</span><span class="stats-value">${xpForNext.toLocaleString()} XP</span></div>` : ''}
-                            <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:${progressPercent}%;background:var(--accent);"></div></div>
-                        </div>
-                        <div class="reputation-mini">
-                            <div class="reputation-circle">
-                                <svg width="80" height="80" viewBox="0 0 36 36">
-                                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E5E5EA" stroke-width="3"/>
-                                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#34C759" stroke-width="3" stroke-dasharray="${progressPercent} 100" stroke-linecap="round" transform="rotate(-90 18 18)"/>
-                                    <text x="18" y="21" text-anchor="middle" fill="currentColor" font-size="10">${levelEmoji}</text>
-                                </svg>
-                                <div style="margin-top:8px;font-weight:600;">Ур. ${level}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
+               // --- РЕПУТАЦИЯ (НОВЫЙ ДИЗАЙН) ---
+const radius = 45;
+const circumference = 2 * Math.PI * radius;
+const offset = circumference - (progressPercent / 100) * circumference;
+
+html += `<div class="reputation-card">
+    <div class="reputation-header">
+        <span style="font-weight:700; font-size:17px;">🏆 Репутация</span>
+        <span class="rep-level-badge">${levelEmoji} Ур. ${level}</span>
+    </div>
+    <div class="reputation-circle-container">
+        <svg width="120" height="120" viewBox="0 0 120 120" class="progress-ring">
+            <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#007AFF"/>
+                    <stop offset="100%" stop-color="#5856D6"/>
+                </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="${radius}" class="progress-ring__circle-bg"/>
+            <circle cx="60" cy="60" r="${radius}" class="progress-ring__circle-fill"
+                stroke-dasharray="${circumference}"
+                stroke-dashoffset="${offset}"/>
+            <text x="60" y="60" text-anchor="middle" dominant-baseline="central"
+                fill="currentColor" font-size="20" font-weight="700">
+                ${levelEmoji}
+            </text>
+        </svg>
+    </div>
+    <div class="rep-stats">
+        <div class="rep-stat">
+            <div class="rep-stat-value">${created}</div>
+            <div class="rep-stat-label">Создано</div>
+        </div>
+        <div class="rep-stat">
+            <div class="rep-stat-value">${confirmations}</div>
+            <div class="rep-stat-label">Подтвержд.</div>
+        </div>
+        <div class="rep-stat">
+            <div class="rep-stat-value">${favorites}</div>
+            <div class="rep-stat-label">В избран.</div>
+        </div>
+    </div>
+    <div class="rep-xp-info">
+        ${nextLevel ? `До ${nextLevel.name}: ${xpForNext.toLocaleString()} XP` : 'Максимальный уровень!'}
+    </div>
+</div>`;
 
                 // Кнопки выхода и удаления аккаунта
                 html += `<div style="padding:0 20px;">
