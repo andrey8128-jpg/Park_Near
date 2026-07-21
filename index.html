@@ -1122,50 +1122,6 @@ function initMap() {
     console.log('Инициализация карты...');
     map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'], type: 'yandex#map' });
     console.log('Карта инициализирована');
-
-// Функция для поиска и отображения АЗС через поиск организаций
-function showFuelStations() {
-    // Удаляем старые метки заправок
-    map.geoObjects.each(function (obj) {
-        if (obj.options && obj.options.getName() === 'fuelStation') {
-            map.geoObjects.remove(obj);
-        }
-    });
-
-    // Делаем запрос к API организаций
-    ymaps.search('АЗС', {
-        boundedBy: map.getBounds(),
-        strictBounds: true,
-        results: 50
-    }).then(function (res) {
-        // Для каждого найденного объекта создаём метку
-        res.geoObjects.each(function (obj) {
-            const coords = obj.geometry.getCoordinates();
-            const name = obj.properties.get('name', 'АЗС');
-            const address = obj.properties.get('description') || obj.properties.get('address') || '';
-
-            const placemark = new ymaps.Placemark(coords, {
-                hintContent: name,
-                balloonContent: `<strong>${name}</strong><br>${address}`
-            }, {
-                preset: 'islands#fuelStationIcon',
-                name: 'fuelStation'   // чтобы потом можно было найти и удалить
-            });
-
-            map.geoObjects.add(placemark);
-        });
-    }).catch(function (err) {
-        console.warn('Не удалось загрузить АЗС:', err);
-    });
-}
-
-// Показываем АЗС при загрузке
-showFuelStations();
-
-// Обновляем при перемещении карты
-map.events.add('boundschange', function () {
-    showFuelStations();
-});
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
     // Долгое нажатие для слоёв
 const layerBtn = document.getElementById('layerSwitcher');
