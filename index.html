@@ -1234,64 +1234,55 @@ function submitParkingWithPolygon() {
     btn.textContent = 'Сохранение...';
     btn.disabled = true;
 
+    // Вычисляем центр (только для полей lat/lng)
     const centerLat = coordsToSave.reduce((s, c) => s + c[0], 0) / coordsToSave.length;
     const centerLng = coordsToSave.reduce((s, c) => s + c[1], 0) / coordsToSave.length;
 
-    ymaps.geocode([centerLat, centerLng], { kind: 'house', results: 1 })
-    .then(res => {
-        const geo = res.geoObjects.get(0);
-        let address = geo ? geo.getAddressLine() : '';
-        if (address.length > 80) address = address.substring(0, 77) + '...';
-        const parsed = parseAddress(address);
-        if (userCityPrefs.region && userCityPrefs.city) {
-            parsed.region = userCityPrefs.region;
-            parsed.city = userCityPrefs.city;
+    // Геокодер временно не используется (из-за проблем с ключом)
+    // Адрес будет просто координатами
+    const address = `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`;
+
+    const parkingData = {
+        lat: centerLat,
+        lng: centerLng,
+        coordinates: coordsToSave,
+        totalSpots,
+        occupiedSpots: 0,
+        name,
+        isPaid,
+        address: address,
+        region: '',
+        city: '',
+        street: '',
+        houseNumber: '',
+        authorId: currentUser.id,
+        authorName: currentUser.firstName,
+        authorUsername: currentUser.username,
+        timestamp: Date.now(),
+        status: 'unknown'
+    };
+
+    database.ref('parkings').push(parkingData)
+    .then((snap) => {
+        database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
+            .transaction(count => (count || 0) + 1);
+        // Добавляем маркер на карту
+        addMarkerToMap(snap.key, parkingData);
+        // Убираем полигон рисования
+        if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+        window.newParkingCoords = null;
+        closePanel(); showMap();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
-
-        const parkingData = {
-            lat: centerLat,
-            lng: centerLng,
-            coordinates: coordsToSave,
-            totalSpots,
-            occupiedSpots: 0,
-            name,                        // <-- используется ручное название
-            isPaid,
-            address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-            region: parsed.region,
-            city: parsed.city,
-            street: parsed.street,
-            houseNumber: parsed.houseNumber,
-            authorId: currentUser.id,
-            authorName: currentUser.firstName,
-            authorUsername: currentUser.username,
-            timestamp: Date.now(),
-            status: 'unknown'
-        };
-
-        const newRef = database.ref('parkings').push();
-        return newRef.set(parkingData).then(() => {
-            database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-                .transaction(count => (count || 0) + 1);
-            database.ref(`parkings/${newRef.key}/history`).push({
-                action: 'created', timestamp: Date.now(), userId: currentUser.id,
-                username: currentUser.username
-            });
-            addMarkerToMap(newRef.key, parkingData);
-            if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
-            window.newParkingCoords = null;
-            closePanel(); showMap();
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
-        });
     })
     .catch(err => {
         console.error('SAVE_ERROR:', err);
-        alert('Не удалось сохранить парковку. Попробуйте ещё раз. (Ошибка: ' + err.message + ')');
+        alert('Ошибка сохранения: ' + err.message);
     })
     .finally(() => {
-        const currentBtn = document.getElementById('saveParkBtn');
-        if (currentBtn) { currentBtn.textContent = 'Сохранить парковку'; currentBtn.disabled = false; }
+        btn.textContent = 'Сохранить парковку';
+        btn.disabled = false;
     });
 }
 function saveEditedPolygon(newCoords) {
