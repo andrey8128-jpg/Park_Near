@@ -1224,11 +1224,16 @@ document.body.appendChild(hint); setTimeout(() => hint.remove(), 3000);
 function openAddPanelWithPolygon(coordinates, sizeCheck) {
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Новая парковка';
-    const area = Math.round(sizeCheck.width * sizeCheck.length);
-    document.getElementById('panelContent').innerHTML = `
-        <div class="form-group"><label>Размер зоны</label><input type="text" class="input-field" value="${Math.round(sizeCheck.width)}м × ${Math.round(sizeCheck.length)}м (${area} м²)" readonly style="background:var(--bg-primary); color:var(--text-secondary);"></div>
 
-        <!-- === НОВЫЕ ПОЛЯ ДЛЯ АДРЕСА === -->
+    document.getElementById('panelContent').innerHTML = `
+        <!-- Мини-карта вместо размера зоны -->
+        <div class="form-group">
+            <label>Область парковки</label>
+            <div id="miniMapContainer" style="width:100%; height:200px; border-radius:12px; overflow:hidden; margin-top:8px; box-shadow: var(--card-shadow);"></div>
+            <p style="font-size:12px; color:var(--text-secondary); margin-top:6px;">Выделенная зона отображается на карте</p>
+        </div>
+
+        <!-- Тип улицы -->
         <div class="form-group">
             <label>Тип улицы</label>
             <select id="parkStreetType" class="input-field">
@@ -1244,21 +1249,51 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 <option value="тракт">тракт</option>
             </select>
         </div>
+        <!-- Название улицы -->
         <div class="form-group">
             <label>Название улицы</label>
             <input type="text" id="parkStreetName" class="input-field" placeholder="Ленина">
         </div>
+        <!-- Номер дома -->
         <div class="form-group">
             <label>Номер дома</label>
             <input type="text" id="parkHouseNumber" class="input-field" placeholder="15">
         </div>
-        <!-- === КОНЕЦ НОВЫХ ПОЛЕЙ === -->
 
         <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
         <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="parkIsPaid"><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
         <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
         <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
     `;
+
+    // Инициализируем мини-карту с небольшой задержкой
+    setTimeout(() => {
+        initMiniMap(coordinates);
+    }, 50);
+}
+    function initMiniMap(coords) {
+    if (!coords || coords.length < 3) return;
+    
+    const container = document.getElementById('miniMapContainer');
+    if (!container) return;
+
+    // Создаём карту без элементов управления
+    const miniMap = new ymaps.Map(container, {
+        center: coords[0],
+        zoom: 17,
+        controls: []
+    });
+
+    // Рисуем тот же полигон
+    const polygon = new ymaps.Polygon([coords], {}, {
+        fillColor: '#007AFF33',
+        strokeColor: '#007AFF',
+        strokeWidth: 2
+    });
+    miniMap.geoObjects.add(polygon);
+
+    // Подгоняем масштаб под полигон
+    miniMap.setBounds(polygon.geometry.getBounds(), { checkZoomRange: true });
 }
 function submitParkingWithPolygon() {
     const streetType = document.getElementById('parkStreetType').value;
