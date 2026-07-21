@@ -1004,7 +1004,10 @@ function addMarkerToMap(id, data) {
             <strong style="font-size: 16px;">${data.name}</strong>
             <div style="font-size: 13px; color: #666; margin-top: 4px;">📍 ${data.address || (data.lat && data.lng ? data.lat.toFixed(5)+', '+data.lng.toFixed(5) : '')}</div>
             <div style="font-size: 13px; color: #333; margin-top: 6px;">🅿️ Свободно: <b>${freeSpots}</b> / ${totalSpots}</div>
-            <button onclick="buildRouteToParking('${id}')" style="margin-top: 8px; padding: 6px 12px; background: #007AFF; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; width: 100%;">🗺️ Маршрут</button>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button onclick="buildRouteToParking('${id}')" style="flex: 1; padding: 6px 0; background: #007AFF; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">🗺️ Маршрут</button>
+                <button onclick="openOccupancyPanel('${id}')" style="flex: 1; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer;">✏️ Изменить</button>
+            </div>
         </div>
     `;
 
@@ -1038,7 +1041,6 @@ function addMarkerToMap(id, data) {
         }
         lastClickParkingId = id; lastClickTime = now;
         if (clickTimeout) clearTimeout(clickTimeout);
-        // Закрываем предыдущий балун, чтобы не накладывались
         map.balloon.close();
         clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; }, 300);
     });
@@ -1046,33 +1048,6 @@ function addMarkerToMap(id, data) {
     map.geoObjects.add(placemark);
     mapMarkers[id] = placemark;
 }
-function refreshParkingMarker() {
-if (!currentParkingId) return;
-database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
-const data = snapshot.val();
-if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
-parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
-});
-}
-
-function loadAllParkings() {
-console.log('Загрузка парковок из Firebase...');
-database.ref('parkings').once('value').then(snapshot => {
-const data = snapshot.val();
-console.log('Получено парковок:', data ? Object.keys(data).length : 0);
-if (data) {
-Object.keys(data).forEach(key => {
-const p = data[key];
-console.log('Парковка:', key, p);
-if (p && p.lat && p.lng) {
-parkingDataCache[key] = p;
-addMarkerToMap(key, p);
-}
-});
-}
-}).catch(error => console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error));
-}
-
 // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
 function initMap() {
     console.log('Инициализация карты...');
@@ -1183,7 +1158,6 @@ setTimeout(() => {
     }
 }, 3000); // Показывать 1.5 секунды
 }
-
 // ===================== СЛОИ КАРТЫ =====================
 function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
 function setMapType(option) {
