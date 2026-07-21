@@ -1122,7 +1122,19 @@ function initMap() {
 console.log('Инициализация карты...');
 map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 10, controls: ['zoomControl'], type: 'yandex#map' });
 console.log('Карта инициализирована');
+    // Поиск АЗС поблизости и отображение на карте
+var zapravki.setOptions({ maxResults: 20 }); // до 20 АЗС
+    category: 'fuel',
+    boundedBy: map.getBounds()
+});
 
+zapravki.addToMap(map);
+map.geoObjects.add(zapravki);
+
+// Обновлять заправки при перемещении/изменении зума (опционально)
+map.events.add('boundschange', function() {
+    zapravki.setBounds(map.getBounds());
+});
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
     // Долгое нажатие для слоёв
 const layerBtn = document.getElementById('layerSwitcher');
