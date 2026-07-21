@@ -2268,177 +2268,144 @@ closePanel();
 
 // ===================== ПРОФИЛЬ =====================
 function renderProfile(content) {
-if (!currentUser) {
-content.innerHTML = `<div class="profile-header"><div class="profile-avatar">👤</div><div class="profile-name">Добро пожаловать</div><div class="profile-username">Войдите, чтобы сохранять данные</div></div><button class="telegram-btn" onclick="openTelegramBot()">Войти через Telegram</button><button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>`;
-return;
-}
-const isGuest = currentUser.id.startsWith('guest_'), isDark = document.body.classList.contains('dark-theme');
-database.ref(`users/${currentUser.id}/stats`).once('value').then(statsSnap => {
-const stats = statsSnap.val() || {};
-database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
-const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
-database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(prefSnap => {
-const prefs = prefSnap.val() || { region: '', city: '' };
-userCityPrefs = prefs;
-let html = `<div style="position:relative;">
-    <button onclick="showSettings()" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:28px; cursor:pointer; z-index:10; color:var(--text-secondary);">⚙️</button>
-    <div class="profile-header"><div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div><div class="profile-name">${currentUser.firstName}</div><div class="profile-username">@${currentUser.username}</div>${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}</div>
-</div>`;
-    html += `<div class="city-pref-card">
-<div class="city-pref-title">️ Мой город</div>
-<div class="city-pref-row">
-<div class="form-group">
-<label>Регион</label>
-<select id="profileRegionSelect" class="input-field" onchange="updateCitySelectInProfile('profileRegionSelect','profileCitySelect')">
-<option value="">Выберите регион</option>
-${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===prefs.region?'selected':''}>${r}</option>`).join('')}
-</select>
-</div>
-<div class="form-group">
-<label>Город</label>
-<select id="profileCitySelect" class="input-field">
-<option value="">Выберите город</option>
-${prefs.region && regionsData[prefs.region] ? regionsData[prefs.region].map(c => `<option value="${c}" ${c===prefs.city?'selected':''}>${c}</option>`).join('') : ''}
-</select>
-</div>
-</div>
-<button class="btn-secondary" style="margin-top:8px;" onclick="saveCityPreferences()">Сохранить город</button>
-</div>`;
-if (brand && model && plate) {
-html += `<div class="car-section"><div class="car-section-title">🚗 Мой автомобиль</div><div class="car-summary"><div class="car-summary-info"><div class="car-summary-title">${brand} ${model}</div><div class="car-summary-subtitle">${plate}</div></div><div class="car-summary-color" style="background:${carColors[color] || '#808080'};"></div></div><button class="btn-secondary" onclick="editCarData()">✏️ Редактировать</button></div>`;
-} else {
-html += `<div class="car-section" id="carEditSection"><div class="car-section-title">🚗 Мой автомобиль</div><div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}">${b}</option>`).join('')}</select></div><div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option></select></div><div class="form-group"><label>Цвет кузова</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" maxlength="10"></div><button class="btn-primary" onclick="saveCarData()">💾 Сохранить данные авто</button></div>`;
-}
-const created = stats.parkingsCreated || 0;
-const updated = stats.parkingsUpdated || 0;
-const confirmations = stats.confirmations || 0;
-const views = stats.views || 0;
-const favorites = stats.favorites || 0;
-const activeDates = stats.activeDates || [];
-const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
-let level = 1, levelName = "Пешеход", levelEmoji = "👣";
-const levels = [
-{ xp: 0, name: "Пешеход", emoji: "👣" },
-{ xp: 1000, name: "Водитель-любитель", emoji: "" },
-{ xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
-{ xp: 5000, name: "Городской водитель", emoji: "🏙️" },
-{ xp: 10000, name: "Наблюдатель", emoji: "️" },
-{ xp: 20000, name: "Помощник района", emoji: "🤝" },
-{ xp: 40000, name: "Картограф", emoji: "🗺️" },
-{ xp: 70000, name: "Инспектор", emoji: "️‍♂️" },
-{ xp: 110000, name: "Ветеран дорог", emoji: "️" },
-{ xp: 150000, name: "Страж парковки", emoji: "⚖️" },
-{ xp: 250000, name: "Архитектор города", emoji: "🏗️" },
-{ xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
-];
-for (let i = levels.length - 1; i >= 0; i--) {
-if (score >= levels[i].xp) {
-level = i + 1;
-levelName = levels[i].name;
-levelEmoji = levels[i].emoji;
-break;
-}
-}
-const nextLevel = levels.find(l => l.xp > score);
-let progressPercent = 100;
-let xpForNext = 0;
-if (nextLevel) {
-const prevLevelXp = levels[level - 2] ? levels[level - 2].xp : 0;
-const range = nextLevel.xp - prevLevelXp;
-const currentInRange = score - prevLevelXp;
-progressPercent = Math.min(100, Math.round((currentInRange / range) * 100));
-xpForNext = nextLevel.xp - score;
-}
-html += `<div class="reputation-card">
-<div class="reputation-title" onclick="var b=document.getElementById('repBody');b.classList.toggle('collapsed');this.querySelector('span:last-child').textContent=b.classList.contains('collapsed')?'▶':'▼';">
-<span>🏆 Репутация</span><span>▼</span>
-</div>
-<div class="reputation-body" id="repBody">
-<div class="reputation-full">
-<div class="stats-row"><span class="stats-label"> Уровень</span><span class="stats-value">${levelEmoji} ${levelName} (${level}/12)</span></div>
-<div class="stats-row"><span class="stats-label">✨ Опыт (XP)</span><span class="stats-value">${score.toLocaleString()}</span></div>
-${nextLevel ? `<div class="stats-row"><span class="stats-label">🚀 До след. уровня</span><span class="stats-value">${xpForNext.toLocaleString()} XP</span></div>` : ''}
-<div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:${progressPercent}%;background:var(--accent);"></div></div>
-</div>
-<div class="reputation-mini">
-<div class="reputation-circle">
-<svg width="80" height="80" viewBox="0 0 36 36">
-<circle cx="18" cy="18" r="15.9" fill="none" stroke="#E5E5EA" stroke-width="3"/>
-<circle cx="18" cy="18" r="15.9" fill="none" stroke="#34C759" stroke-width="3" stroke-dasharray="${progressPercent} 100" stroke-linecap="round" transform="rotate(-90 18 18)"/>
-<text x="18" y="21" text-anchor="middle" fill="currentColor" font-size="10">${levelEmoji}</text>
-</svg>
-<div style="margin-top:8px;font-weight:600;">Ур. ${level}</div>
-</div>
-</div>
-</div>
-</div>`;
-html += `<div style="padding:0 20px;"><p style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:20px;">${isGuest ? 'Данные сохраняются локально' : 'Данные синхронизированы'}</p><button class="btn-danger" onclick="logout()">🚪 Выйти</button></div>`;
-content.innerHTML = html;
-});
-});
-});
-}
-function updateCitySelectInProfile(regionSelectId, citySelectId) {
-const region = document.getElementById(regionSelectId).value;
-const citySelect = document.getElementById(citySelectId);
-citySelect.innerHTML = '<option value="">Выберите город</option>';
-if (region && regionsData[region]) {
-regionsData[region].forEach(city => {
-const opt = document.createElement('option');
-opt.value = city;
-opt.textContent = city;
-citySelect.appendChild(opt);
-});
-}
-}
-function saveCityPreferences() {
-if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-const region = document.getElementById('profileRegionSelect').value;
-const city = document.getElementById('profileCitySelect').value;
-if (!region || !city) {
-alert('Выберите регион и город');
-return;
-}
-database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
-.then(() => {
-userCityPrefs = { region, city };
-alert('Город сохранён!');
-renderProfile(document.getElementById('panelContent'));
-})
-.catch(err => {
-console.error('Ошибка сохранения города:', err);
-alert('Ошибка сохранения');
-});
-}
-function editCarData() {
-if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-const sec = document.getElementById('carEditSection'); if (sec) sec.remove();
-database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
-const car = snap.val() || {}, brand = car.brand || '', model = car.model || '', plate = car.plate || '', color = car.color || '';
-const form = document.createElement('div'); form.className = 'car-section'; form.id = 'carEditSection';
-form.innerHTML = `<div class="car-section-title">🚗 Редактирование</div>
-<div class="form-group"><label>Марка</label><select id="carBrand" class="input-field" onchange="updateCarModels()">${Object.keys(carBrands).map(b => `<option value="${b}" ${b===brand?'selected':''}>${b}</option>`).join('')}</select></div>
-<div class="form-group"><label>Модель</label><select id="carModel" class="input-field"><option value="">Выберите модель</option>${brand && carBrands[brand] ? carBrands[brand].map(m => `<option value="${m}" ${m===model?'selected':''}>${m}</option>`).join('') : ''}</select></div>
-<div class="form-group"><label>Цвет</label><select id="carColor" class="input-field">${Object.keys(carColors).map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select></div>
-<div class="form-group"><label>Гос номер</label><input type="text" id="carPlate" class="input-field" placeholder="А123БВ777" value="${plate}" maxlength="10"></div>
-<button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button><button class="btn-secondary" onclick="renderProfile(document.getElementById('panelContent'))">Отмена</button>`;
-document.querySelector('.car-section').parentNode.insertBefore(form, document.querySelector('.car-section').nextSibling);
-document.querySelector('.car-section').remove();
-});
-}
-function saveCarData() {
-if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-const brand = document.getElementById('carBrand').value, model = document.getElementById('carModel').value, color = document.getElementById('carColor').value, plate = document.getElementById('carPlate').value.trim().toUpperCase();
-if (!brand || !model || !color || !plate) { alert('Заполните все поля'); return; }
-database.ref(`users/${currentUser.id}/car`).set({ brand, model, color, plate, timestamp: Date.now() }).then(() => {
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-renderProfile(document.getElementById('panelContent'));
-}).catch(err => { alert('Ошибка: ' + err.message); });
-}
-function updateCarModels() {
-const brand = document.getElementById('carBrand').value, modelSelect = document.getElementById('carModel');
-modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-if (brand && carBrands[brand]) carBrands[brand].forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSelect.appendChild(opt); });
+    if (!currentUser) {
+        content.innerHTML = `<div class="profile-header"><div class="profile-avatar">👤</div><div class="profile-name">Добро пожаловать</div><div class="profile-username">Войдите, чтобы сохранять данные</div></div><button class="telegram-btn" onclick="openTelegramBot()">Войти через Telegram</button><button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>`;
+        return;
+    }
+    const isGuest = currentUser.id.startsWith('guest_'),
+          isDark = document.body.classList.contains('dark-theme');
+    database.ref(`users/${currentUser.id}/stats`).once('value').then(statsSnap => {
+        const stats = statsSnap.val() || {};
+        database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
+            const car = snap.val() || {},
+                  brand = car.brand || '',
+                  model = car.model || '',
+                  plate = car.plate || '',
+                  color = car.color || '';
+            database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(prefSnap => {
+                const prefs = prefSnap.val() || { region: '', city: '' };
+                userCityPrefs = prefs;
+
+                // Шапка профиля с кнопкой настроек
+                let html = `<div style="position:relative;">
+                    <button onclick="showSettings()" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:28px; cursor:pointer; z-index:10; color:var(--text-secondary);">⚙️</button>
+                    <div class="profile-header">
+                        <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div>
+                        <div class="profile-name">${currentUser.firstName}</div>
+                        <div class="profile-username">@${currentUser.username}</div>
+                        ${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}
+                    </div>
+                </div>`;
+
+                // Плашка "Мой город" (ведёт в настройки)
+                html += `<div class="city-pref-card" onclick="showSettings()" style="cursor:pointer;">
+                    <div class="city-pref-title">🏙️ Мой город</div>
+                    <div class="list-info" style="text-align:left; padding:0 4px;">
+                        <div class="list-title">${prefs.city || 'Не указан'}</div>
+                        <div class="list-subtitle">${prefs.region || ''}</div>
+                    </div>
+                </div>`;
+
+                // Плашка "Мой автомобиль" (ведёт в настройки)
+                if (brand && model && plate) {
+                    html += `<div class="car-section" onclick="showSettings()" style="cursor:pointer;">
+                        <div class="car-section-title">🚗 Мой автомобиль</div>
+                        <div class="car-summary">
+                            <div class="car-summary-info">
+                                <div class="car-summary-title">${brand} ${model}</div>
+                                <div class="car-summary-subtitle">${plate}</div>
+                            </div>
+                            <div class="car-summary-color" style="background:${carColors[color] || '#808080'};"></div>
+                        </div>
+                    </div>`;
+                } else {
+                    html += `<div class="car-section" onclick="showSettings()" style="cursor:pointer;">
+                        <div class="car-section-title">🚗 Мой автомобиль</div>
+                        <div class="car-summary">
+                            <div class="car-summary-info">
+                                <div class="car-summary-title" style="color:var(--text-secondary);">Не указан</div>
+                                <div class="car-summary-subtitle">Нажмите, чтобы добавить</div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
+                // Репутация
+                const created = stats.parkingsCreated || 0,
+                      updated = stats.parkingsUpdated || 0,
+                      confirmations = stats.confirmations || 0,
+                      views = stats.views || 0,
+                      favorites = stats.favorites || 0,
+                      activeDates = stats.activeDates || [];
+                const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
+                let level = 1, levelName = "Пешеход", levelEmoji = "👣";
+                const levels = [
+                    { xp: 0, name: "Пешеход", emoji: "👣" },
+                    { xp: 1000, name: "Водитель-любитель", emoji: "" },
+                    { xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
+                    { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
+                    { xp: 10000, name: "Наблюдатель", emoji: "️" },
+                    { xp: 20000, name: "Помощник района", emoji: "🤝" },
+                    { xp: 40000, name: "Картограф", emoji: "🗺️" },
+                    { xp: 70000, name: "Инспектор", emoji: "️‍♂️" },
+                    { xp: 110000, name: "Ветеран дорог", emoji: "️" },
+                    { xp: 150000, name: "Страж парковки", emoji: "⚖️" },
+                    { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
+                    { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
+                ];
+                for (let i = levels.length - 1; i >= 0; i--) {
+                    if (score >= levels[i].xp) {
+                        level = i + 1;
+                        levelName = levels[i].name;
+                        levelEmoji = levels[i].emoji;
+                        break;
+                    }
+                }
+                const nextLevel = levels.find(l => l.xp > score);
+                let progressPercent = 100;
+                let xpForNext = 0;
+                if (nextLevel) {
+                    const prevLevelXp = levels[level - 2] ? levels[level - 2].xp : 0;
+                    const range = nextLevel.xp - prevLevelXp;
+                    const currentInRange = score - prevLevelXp;
+                    progressPercent = Math.min(100, Math.round((currentInRange / range) * 100));
+                    xpForNext = nextLevel.xp - score;
+                }
+                html += `<div class="reputation-card">
+                    <div class="reputation-title" onclick="var b=document.getElementById('repBody');b.classList.toggle('collapsed');this.querySelector('span:last-child').textContent=b.classList.contains('collapsed')?'▶':'▼';">
+                        <span>🏆 Репутация</span><span>▼</span>
+                    </div>
+                    <div class="reputation-body" id="repBody">
+                        <div class="reputation-full">
+                            <div class="stats-row"><span class="stats-label"> Уровень</span><span class="stats-value">${levelEmoji} ${levelName} (${level}/12)</span></div>
+                            <div class="stats-row"><span class="stats-label">✨ Опыт (XP)</span><span class="stats-value">${score.toLocaleString()}</span></div>
+                            ${nextLevel ? `<div class="stats-row"><span class="stats-label">🚀 До след. уровня</span><span class="stats-value">${xpForNext.toLocaleString()} XP</span></div>` : ''}
+                            <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:${progressPercent}%;background:var(--accent);"></div></div>
+                        </div>
+                        <div class="reputation-mini">
+                            <div class="reputation-circle">
+                                <svg width="80" height="80" viewBox="0 0 36 36">
+                                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E5E5EA" stroke-width="3"/>
+                                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#34C759" stroke-width="3" stroke-dasharray="${progressPercent} 100" stroke-linecap="round" transform="rotate(-90 18 18)"/>
+                                    <text x="18" y="21" text-anchor="middle" fill="currentColor" font-size="10">${levelEmoji}</text>
+                                </svg>
+                                <div style="margin-top:8px;font-weight:600;">Ур. ${level}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+                // Кнопки выхода и удаления аккаунта
+                html += `<div style="padding:0 20px;">
+                    <p style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:20px;">${isGuest ? 'Данные сохраняются локально' : 'Данные синхронизированы'}</p>
+                    <button class="btn-danger" onclick="logout()">🚪 Выйти</button>
+                    <button class="btn-secondary" style="margin-top:8px; color: var(--red); border-color: var(--red);" onclick="deleteAccount()">🗑️ Удалить аккаунт</button>
+                </div>`;
+
+                content.innerHTML = html;
+            });
+        });
+    });
 }
  
 // ===================== НАСТРОЙКИ =====================
