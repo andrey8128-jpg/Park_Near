@@ -1941,28 +1941,37 @@ function saveAddressFromPicker() {
         if (geoObject) {
             addressText = geoObject.getAddressLine();
         } else {
+            // Если адрес не определён, сохраняем координаты как текст
             addressText = `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
         }
 
+        // Данные, которые будут сохранены в Firebase
         pendingAddressData = {
             address: addressText,
-            lat: addressPickerCoords[0],
-            lng: addressPickerCoords[1]
+            lat: addressPickerCoords[0],   // ← сохраняем координаты
+            lng: addressPickerCoords[1]    // ← сохраняем координаты
         };
 
+        // Закрываем карту, открываем выбор метки (Дом/Работа/...)
         document.getElementById('addressPickerOverlay').style.display = 'none';
         document.getElementById('labelPickerOverlay').classList.add('active');
     })
     .catch(err => {
         console.error('Ошибка геокодирования:', err);
-        alert('Не удалось определить адрес. Попробуйте ещё раз.');
+        // Даже при ошибке геокодера сохраняем координаты
+        pendingAddressData = {
+            address: `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`,
+            lat: addressPickerCoords[0],
+            lng: addressPickerCoords[1]
+        };
+        document.getElementById('addressPickerOverlay').style.display = 'none';
+        document.getElementById('labelPickerOverlay').classList.add('active');
     })
     .finally(() => {
         saveBtn.textContent = origText;
         saveBtn.disabled = false;
     });
 }
-
 function selectLabel(label) {
     if (!pendingAddressData) return;
     const data = pendingAddressData;
@@ -1974,6 +1983,7 @@ function selectLabel(label) {
             cancelLabelPicker();
             return;
         }
+        // В Firebase записываются все поля: address, lat, lng, label, timestamp
         return database.ref(`users/${currentUser.id}/homeAddresses`).push({
             address: data.address,
             lat: data.lat || null,
@@ -2008,12 +2018,14 @@ function removeHomeAddress(addressId) {
 }
 
 function findParkingsNearAddress(lat, lng, addressText) {
+    // Если координаты уже есть, сразу ищем вокруг них
     if (lat && lng) {
         nearbySearchFilter = { lat: lat, lng: lng, radius: 300 };
         map.setCenter([lat, lng], 16, { duration: 500 });
         showPanel('search', true);
         return;
     }
+    // Иначе пытаемся получить координаты по текстовому адресу
     if (addressText) {
         ymaps.geocode(addressText, { results: 1 })
         .then(res => {
