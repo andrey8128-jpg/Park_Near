@@ -2133,7 +2133,12 @@ function renderSettings() {
     const isDark = document.body.classList.contains('dark-theme');
     const isGuest = currentUser && currentUser.id.startsWith('guest_');
 
-    let html = `
+    let html = 
+    <div class="theme-toggle-row">
+    <div class="theme-toggle-label">🌙 Тёмная тема</div>
+    <label class="theme-switch"><input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()"><span class="theme-slider"></span></label>
+</div>
+    `
     if (!isGuest) {
         html += `
             <div class="city-pref-card">
