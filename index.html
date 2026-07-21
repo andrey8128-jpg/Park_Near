@@ -207,6 +207,7 @@ body.dark-theme .tab:active {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
+    padding-bottom: calc(20px + 72px + 16px);  /* 20px базовый + высота таббара + его отступ */
 }
 .btn-primary {
 width: 100%; padding: 16px; border-radius: 14px; border: none;
@@ -1024,7 +1025,6 @@ else reject(new Error('Геолокация не поддерживается'))
 function addMarkerToMap(id, data) {
     console.log('Добавляю маркер:', id, data);
     
-    // Если маркер уже есть, удаляем старый перед созданием нового
     if (mapMarkers[id]) {
         map.geoObjects.remove(mapMarkers[id]);
         delete mapMarkers[id];
@@ -1039,34 +1039,39 @@ function addMarkerToMap(id, data) {
     
     let placemark;
 
-    // Формируем подсказку: НАЗВАНИЕ + Свободно
-    // Используем data.name (это и есть улица/адрес из submitParkingWithPolygon)
-    const hintText = `${data.name} (${freeSpots} св.)`;
+    // Содержимое всплывающего окна (балуна)
+    const balloonContent = `
+        <div style="padding: 10px; font-family: -apple-system, sans-serif; max-width: 220px;">
+            <strong style="font-size: 16px;">${data.name}</strong>
+            <div style="font-size: 13px; color: #666; margin-top: 4px;">📍 ${data.address || (data.lat && data.lng ? data.lat.toFixed(5)+', '+data.lng.toFixed(5) : '')}</div>
+            <div style="font-size: 13px; color: #333; margin-top: 6px;">🅿️ Свободно: <b>${freeSpots}</b> / ${totalSpots}</div>
+            <button onclick="buildRouteToParking('${id}')" style="margin-top: 8px; padding: 6px 12px; background: #007AFF; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; width: 100%;">🗺️ Маршрут</button>
+        </div>
+    `;
 
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-        // Для полигонов (зон)
         placemark = new ymaps.Polygon([data.coordinates], { 
-            hintContent: hintText,
-            balloonContent: `<strong>${data.name}</strong><br>Свободно: ${freeSpots} из ${totalSpots}` 
+            hintContent: data.name,
+            balloonContent: balloonContent
         }, { 
             fillColor: color + '55', 
             strokeColor: color, 
             strokeWidth: 2 
         });
     } else {
-        // Для точечных маркеров
         placemark = new ymaps.Placemark([data.lat, data.lng], { 
-            hintContent: hintText,
-            balloonContent: `<strong>${data.name}</strong><br>Свободно: ${freeSpots} из ${totalSpots}`
+            hintContent: data.name,
+            balloonContent: balloonContent
         }, { 
             preset: 'islands#blueParkingIcon' 
         });
     }
 
-    // Обработчик кликов оставляем без изменений
+    // Обработчик клика: одиночный открывает балун, двойной – редактор
     placemark.events.add('click', function(e) {
         const now = Date.now();
         if (lastClickParkingId === id && (now - lastClickTime) < 300) {
+            // Двойной клик
             clearTimeout(clickTimeout);
             openOccupancyPanel(id);
             lastClickParkingId = null; lastClickTime = 0;
@@ -1074,7 +1079,8 @@ function addMarkerToMap(id, data) {
         }
         lastClickParkingId = id; lastClickTime = now;
         if (clickTimeout) clearTimeout(clickTimeout);
-        openParkingSheet(id, data);
+        // Закрываем предыдущий балун, чтобы не накладывались
+        map.balloon.close();
         clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; }, 300);
     });
 
