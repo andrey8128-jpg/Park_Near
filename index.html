@@ -2624,54 +2624,69 @@ function resetOnboarding() {
 
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
-if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
-if (type === 'favorites') {
-Promise.all([
-database.ref(`users/${currentUser.id}/favorites`).once('value'),
-database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
-]).then(([favSnap, homeSnap]) => {
-let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мой дом</div>';
-const addrs = homeSnap.val() || {};
-if (Object.keys(addrs).length > 0) {
-Object.entries(addrs).forEach(([id, addr]) => {
-const label = addr.label || 'Адрес';
-const icon = label === 'Дом' ? '' : label === 'Работа' ? '' : label === 'Родственники' ? '👨‍👩‍‍👦' : '';
-html += `<div class="swipe-container" style="margin-bottom:8px;">
-<div class="swipe-item" style="padding:10px 0;">
-<span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
-<div>
-<button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat || 'null'}, ${addr.lng || 'null'}, '${addr.address.replace(/'/g, "\\'")}')">Найти парковку</button>
-</div>
-</div>
-<div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
-</div>`;
-});
-} else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
-html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
-html += '</div>';
-const favs = favSnap.val();
-if (!favs) html += '<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных</p></div>';
-else {
-html += '<div class="list-container">';
-Object.values(favs).forEach(item => {
-if (item && item.parkingId) {
-html += `<div class="list-item" onclick="highlightAndShowParking('${item.parkingId}')">
-<div class="list-icon">⭐</div>
-<div class="list-info">
-<div class="list-title">${item.name||'Без названия'}</div>
-<div class="list-subtitle">Добавлено ${item.timestamp?formatDateTime(item.timestamp):''}</div>
-</div>
-</div>`;
-}
-});
-html += '</div>';
-}
-content.innerHTML = html;
-attachSwipeToContainers(content);
-});
-}
-}
+    if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
+    if (type === 'favorites') {
+        Promise.all([
+            database.ref(`users/${currentUser.id}/favorites`).once('value'),
+            database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
+        ]).then(([favSnap, homeSnap]) => {
+            let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мой дом</div>';
+            const addrs = homeSnap.val() || {};
+            if (Object.keys(addrs).length > 0) {
+                Object.entries(addrs).forEach(([id, addr]) => {
+                    const label = addr.label || 'Адрес';
+                    const icon = label === 'Дом' ? '' : label === 'Работа' ? '' : label === 'Родственники' ? '👨‍👩‍‍👦' : '';
+                    html += `<div class="swipe-container" style="margin-bottom:8px;">
+                        <div class="swipe-item" style="padding:10px 0;">
+                            <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
+                            <div>
+                                <button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat || 'null'}, ${addr.lng || 'null'}, '${addr.address.replace(/'/g, "\\'")}')">Найти парковку</button>
+                            </div>
+                        </div>
+                        <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
+                    </div>`;
+                });
+            } else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
+            html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
+            html += '</div>';
 
+            const favs = favSnap.val();
+            if (!favs) {
+                html += '<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных</p></div>';
+            } else {
+                html += '<div class="list-container">';
+                Object.values(favs).forEach(item => {
+                    if (item && item.parkingId) {
+                        html += `<div class="swipe-container">
+                            <div class="swipe-item" onclick="highlightAndShowParking('${item.parkingId}')">
+                                <div class="list-icon">⭐</div>
+                                <div class="list-info">
+                                    <div class="list-title">${item.name||'Без названия'}</div>
+                                    <div class="list-subtitle">Добавлено ${item.timestamp?formatDateTime(item.timestamp):''}</div>
+                                </div>
+                            </div>
+                            <div class="swipe-delete" onclick="removeFromFavorites('${item.parkingId}')">Удалить</div>
+                        </div>`;
+                    }
+                });
+                html += '</div>';
+            }
+            content.innerHTML = html;
+            attachSwipeToContainers(content);
+        });
+    }
+}
+function removeFromFavorites(parkingId) {
+    if (!currentUser || !parkingId) return;
+    const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
+    favRef.remove().then(() => {
+        // Обновляем список на экране
+        const content = document.getElementById('panelContent');
+        if (content && document.getElementById('panel').classList.contains('active')) {
+            loadUserData('favorites', content);
+        }
+    }).catch(err => console.error('Ошибка удаления из избранного:', err));
+}
 // ===================== UI КОНТРОЛЛЕРЫ =====================
 function attachSwipeToContainers(container) {
     container.querySelectorAll('.swipe-container').forEach(cnt => {
