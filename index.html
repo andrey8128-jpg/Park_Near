@@ -949,7 +949,16 @@ streetPart = streetPart.replace(/^[, ]+/, '').replace(/[, ]+$/, '');
 street = streetPart;
 return { region, city, street, houseNumber };
 }
-
+function extractStreetName(fullStreet) {
+    if (!fullStreet) return '';
+    const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
+    for (const t of types) {
+        if (fullStreet.startsWith(t + ' ')) {
+            return fullStreet.substring(t.length + 1);
+        }
+    }
+    return fullStreet; // если тип не распознан, возвращаем всё как есть
+}
 // ===================== АВТОРИЗАЦИЯ =====================
 function initAuth() {
     if (window.Telegram?.WebApp) {
@@ -1361,69 +1370,105 @@ database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').the
 });
 }
 function renderEditPanel(data, isFavorite) {
-const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
-const color = getOccupancyColor(occupiedSpots, totalSpots), occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
-const isAuthor = currentUser && currentUser.id === data.authorId;
-const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
-const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
-const isPaid = data.isPaid || false;
-document.getElementById('panel').classList.add('active'); document.getElementById('panelTitle').textContent = 'Редактирование';
-let html = `
-<div class="occupancy-header"><div class="occupancy-title"><span class="status-indicator ${statusClass}"></span>${data.name}</div></div>
-<div class="occupancy-stats">
-<div class="stat-card stat-total"><div class="stat-value" id="statTotal">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
-<div class="stat-card stat-free"><div class="stat-value" id="statFree">${freeSpots}</div><div class="stat-label">Свободно</div></div>
-<div class="stat-card stat-occupied"><div class="stat-value" id="statOccupied">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
-</div>
-<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div></div>
-<div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">Загруженность: ${occupancyPercent}%</div>
-<div class="occupancy-control" style="margin-bottom:15px;">
-<label>Изменить количество занятых мест:</label>
-<div class="counter-row">
-<button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
-<div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-<button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
-</div>
-</div>
-`;
-if (currentUser) {
-html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
-}
-if (isAuthor) {
-html += `
-<div class="form-group"><label>Название</label><input type="text" id="editName" class="input-field" value="${data.name}"></div>
-<div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
-<div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''}><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
-<button class="btn-primary" onclick="saveParkingDetails()"> Сохранить изменения</button>
-<button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
-`;
-} else {
-html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
-html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')"> Подтвердить актуальность</button>`;
-}
-html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>`;
-document.getElementById('panelContent').innerHTML = html;
+    const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
+    const color = getOccupancyColor(occupiedSpots, totalSpots), occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+    const isAuthor = currentUser && currentUser.id === data.authorId;
+    const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
+    const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
+    const isPaid = data.isPaid || false;
+    
+    document.getElementById('panel').classList.add('active');
+    document.getElementById('panelTitle').textContent = 'Редактирование';
+    
+    let html = `
+    <div class="occupancy-header"><div class="occupancy-title"><span class="status-indicator ${statusClass}"></span>${data.name}</div></div>
+    <div class="occupancy-stats">
+    <div class="stat-card stat-total"><div class="stat-value" id="statTotal">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
+    <div class="stat-card stat-free"><div class="stat-value" id="statFree">${freeSpots}</div><div class="stat-label">Свободно</div></div>
+    <div class="stat-card stat-occupied"><div class="stat-value" id="statOccupied">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div></div>
+    <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">Загруженность: ${occupancyPercent}%</div>
+    <div class="occupancy-control" style="margin-bottom:15px;">
+    <label>Изменить количество занятых мест:</label>
+    <div class="counter-row">
+    <button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
+    <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
+    <button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
+    </div>
+    </div>
+    `;
+    
+    if (currentUser) {
+        html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
+    }
+    
+    if (isAuthor) {
+        // === НОВЫЕ ПОЛЯ УЛИЦЫ И ДОМА ===
+        const currentStreet = data.street || '';
+        html += `
+        <div class="form-group">
+            <label>Тип улицы</label>
+            <select id="editStreetType" class="input-field">
+                <option value="">-- выберите --</option>
+                <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
+                <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
+                <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
+                <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
+                <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
+                <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
+                <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
+                <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
+                <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Название улицы</label><input type="text" id="editStreetName" class="input-field" value="${extractStreetName(currentStreet)}" placeholder="Ленина"></div>
+        <div class="form-group"><label>Номер дома</label><input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15"></div>
+        <!-- конец новых полей -->
+        <div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
+        <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''}><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
+        <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
+        <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
+        `;
+    } else {
+        html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
+        html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
+    }
+    html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>`;
+    document.getElementById('panelContent').innerHTML = html;
 }
 function saveParkingDetails() {
-if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-if (!currentParkingId || !currentParkingData) return;
-const name = document.getElementById('editName').value.trim();
-const totalSpots = parseInt(document.getElementById('editTotalSpots').value);
-const isPaid = document.getElementById('editIsPaid').checked;
-if (!name) { alert('Введите название'); return; }
-if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
-if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
-const updates = { name, totalSpots, isPaid };
-database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
-if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
-currentParkingData = {...currentParkingData, ...updates};
-parkingDataCache[currentParkingId] = currentParkingData;
-updateOccupancyDisplay(currentParkingData.occupiedSpots);
-refreshParkingMarker();
-database.ref(`users/${currentUser.id}/favorites/${currentParkingId}`).once('value').then(favSnap => renderEditPanel(currentParkingData, favSnap.exists()));
-showMapHint('Изменения сохранены');
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-}).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
+    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
+    if (!currentParkingId || !currentParkingData) return;
+    
+    const streetType = document.getElementById('editStreetType').value;
+    const streetName = document.getElementById('editStreetName').value.trim();
+    const houseNumber = document.getElementById('editHouseNumber').value.trim();
+    const totalSpots = parseInt(document.getElementById('editTotalSpots').value);
+    const isPaid = document.getElementById('editIsPaid').checked;
+    
+    // Формируем полное название улицы
+    const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street);
+    if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
+    
+    // Формируем новое имя парковки
+    const newName = 'Парковка на ' + (street ? street + (houseNumber ? ', ' + houseNumber : '') : (houseNumber ? 'дом ' + houseNumber : 'неизвестном адресе'));
+    
+    if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
+    if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
+    
+    const updates = { name: newName, street, houseNumber, totalSpots, isPaid };
+    
+    database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
+        if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
+        currentParkingData = {...currentParkingData, ...updates};
+        parkingDataCache[currentParkingId] = currentParkingData;
+        updateOccupancyDisplay(currentParkingData.occupiedSpots);
+        refreshParkingMarker();
+        database.ref(`users/${currentUser.id}/favorites/${currentParkingId}`).once('value').then(favSnap => renderEditPanel(currentParkingData, favSnap.exists()));
+        showMapHint('Изменения сохранены');
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
 }
 function updateOccupancyDisplay(newOccupied) {
 if (!currentParkingData) return;
