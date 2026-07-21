@@ -2229,8 +2229,7 @@ if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedba
 }
 // ===================== НАСТРОЙКИ =====================
 function showSettings() {
-    const overlay = document.getElementById('settingsOverlay');
-    overlay.style.display = 'flex';
+    document.getElementById('settingsOverlay').style.display = 'flex';
     renderSettings();
 }
 
@@ -2325,7 +2324,7 @@ function saveCityFromSettings() {
 
 function editCarDataFromSettings() {
     closeSettings();
-    editCarData(); // использует существующую функцию
+    editCarData();
 }
 
 function resetOnboarding() {
@@ -2473,6 +2472,26 @@ showPanel('profile');
 }
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
+}
+function deleteAccount() {
+    if (!currentUser || currentUser.id.startsWith('guest_')) {
+        alert('Гостевой аккаунт нельзя удалить');
+        return;
+    }
+    if (!confirm('Безвозвратно удалить аккаунт и все данные?')) return;
+    const uid = currentUser.id;
+    database.ref('parkings').once('value').then(snap => {
+        const updates = {};
+        snap.forEach(child => {
+            if (child.val().authorId === uid) updates[child.key] = null;
+        });
+        return database.ref('parkings').update(updates);
+    }).then(() => database.ref(`users/${uid}`).remove())
+    .then(() => {
+        localStorage.removeItem('tgUser');
+        currentUser = null;
+        showPanel('profile');
+    }).catch(err => alert('Ошибка: ' + err.message));
 }
 // ===================== ОНБОРДИНГ С ПОДСВЕТКОЙ =====================
 const onboardingSlides = [
