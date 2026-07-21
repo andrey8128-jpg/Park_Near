@@ -649,7 +649,7 @@ body.dark-theme .ymaps-copyright {
     <div class="ymaps-logo">Яндекс</div>
     <div class="ymaps-copyright">© Яндекс Карты</div>
 </div>
-<div class="layer-switcher" id="layerSwitcher" onclick="toggleLayerMenu()">🗺️</div>
+<div class="layer-switcher" id="layerSwitcher">🗺️</div>
 <div class="layer-menu" id="layerMenu">
 <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
 <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
@@ -1124,6 +1124,72 @@ map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['z
 console.log('Карта инициализирована');
 
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
+    // Долгое нажатие для слоёв
+const layerBtn = document.getElementById('layerSwitcher');
+let pressTimer = null;
+
+function showLayerMenu() {
+    document.getElementById('layerMenu').classList.add('active');
+}
+
+layerBtn.addEventListener('mousedown', function(e) {
+    pressTimer = setTimeout(() => {
+        showLayerMenu();
+        pressTimer = null;
+    }, 500);
+});
+
+layerBtn.addEventListener('mouseup', function(e) {
+    if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+        // короткое нажатие – переключаем слои (циклично)
+        const currentType = map.getType();
+        const types = ['yandex#map', 'yandex#satellite', 'yandex#hybrid'];
+        let idx = types.indexOf(currentType);
+        if (idx === -1) idx = 0;
+        const nextType = types[(idx + 1) % types.length];
+        map.setType(nextType);
+        document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
+        document.querySelector(`.layer-option[data-type="${nextType}"]`).classList.add('selected');
+        const mapEl = document.getElementById('map');
+        if (nextType === 'yandex#map' && document.body.classList.contains('dark-theme')) {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        } else {
+            mapEl.style.filter = 'none';
+        }
+    }
+});
+
+// Аналогично для touch-устройств
+layerBtn.addEventListener('touchstart', function(e) {
+    pressTimer = setTimeout(() => {
+        showLayerMenu();
+        pressTimer = null;
+    }, 500);
+});
+
+layerBtn.addEventListener('touchend', function(e) {
+    if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+        // короткое нажатие – переключаем слои
+        const currentType = map.getType();
+        const types = ['yandex#map', 'yandex#satellite', 'yandex#hybrid'];
+        let idx = types.indexOf(currentType);
+        if (idx === -1) idx = 0;
+        const nextType = types[(idx + 1) % types.length];
+        map.setType(nextType);
+        document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
+        document.querySelector(`.layer-option[data-type="${nextType}"]`).classList.add('selected');
+        const mapEl = document.getElementById('map');
+        if (nextType === 'yandex#map' && document.body.classList.contains('dark-theme')) {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        } else {
+            mapEl.style.filter = 'none';
+        }
+    }
+});
 document.getElementById('geoBtn').onclick = () => {
 if (!map) return;
 const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
