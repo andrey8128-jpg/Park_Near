@@ -1123,16 +1123,31 @@ function initMap() {
     map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'], type: 'yandex#map' });
     console.log('Карта инициализирована');
 
-    // === ВСТАВИТЬ БЛОК С ЗАПРАВКАМИ ЗДЕСЬ ===
-    var zapravki = ymaps.geoQuery({
+ // Функция для отображения АЗС
+function showFuelStations() {
+    // Удаляем старые заправки (если были)
+    map.geoObjects.each(function(obj) {
+        if (obj.options && obj.options.get('preset') === 'islands#fuelStationIcon') {
+            map.geoObjects.remove(obj);
+        }
+    });
+
+    // Создаём новый запрос
+    ymaps.geoQuery({
         category: 'fuel',
         boundedBy: map.getBounds()
+    }).addToMap(map).applyOptionsToAll({
+        preset: 'islands#fuelStationIcon'
     });
-    zapravki.addToMap(map);
+}
 
-    map.events.add('boundschange', function() {
-        zapravki.setBounds(map.getBounds());
-    });
+// Показываем АЗС сразу после загрузки карты
+showFuelStations();
+
+// Обновляем АЗС при перемещении карты или изменении зума
+map.events.add('boundschange', function() {
+    showFuelStations();
+});
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
     // Долгое нажатие для слоёв
 const layerBtn = document.getElementById('layerSwitcher');
