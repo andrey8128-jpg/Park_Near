@@ -2138,7 +2138,8 @@ function renderSettings() {
     <div class="theme-toggle-label">🌙 Тёмная тема</div>
     <label class="theme-switch"><input type="checkbox" id="themeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()"><span class="theme-slider"></span></label>
 </div>
-    `
+    `;
+    
     if (!isGuest) {
         html += `
             <div class="city-pref-card">
