@@ -1005,43 +1005,65 @@ else reject(new Error('Геолокация не поддерживается'))
 
 // ===================== МАРКЕРЫ НА КАРТЕ =====================
 function addMarkerToMap(id, data) {
-console.log('Добавляю маркер:', id, data);
-if (mapMarkers[id]) {
-console.log('Маркер уже существует:', id);
-return;
-}
-if (!map) {
-console.error('Карта не инициализирована!');
-return;
-}
-const totalSpots = data.totalSpots || 0;
-const occupiedSpots = data.occupiedSpots || 0;
-const freeSpots = totalSpots - occupiedSpots;
-const color = getOccupancyColor(occupiedSpots, totalSpots);
-let placemark;
-if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-placemark = new ymaps.Polygon([data.coordinates], { hintContent: `${data.name} (${freeSpots} св.)` }, { fillColor: color + '55', strokeColor: color, strokeWidth: 2 });
-} else {
-placemark = new ymaps.Placemark([data.lat, data.lng], { hintContent: `${data.name} (${freeSpots} св.)` }, { preset: 'islands#blueParkingIcon' });
-}
-placemark.events.add('click', function(e) {
-const now = Date.now();
-if (lastClickParkingId === id && (now - lastClickTime) < 300) {
-clearTimeout(clickTimeout);
-openOccupancyPanel(id);
-lastClickParkingId = null; lastClickTime = 0;
-return;
-}
-lastClickParkingId = id; lastClickTime = now;
-if (clickTimeout) clearTimeout(clickTimeout);
-openParkingSheet(id, data);
-clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; }, 300);
-});
-map.geoObjects.add(placemark);
-mapMarkers[id] = placemark;
-console.log('Маркер добавлен:', id);
-}
+    console.log('Добавляю маркер:', id, data);
+    
+    // Если маркер уже есть, удаляем старый перед созданием нового
+    if (mapMarkers[id]) {
+        map.geoObjects.remove(mapMarkers[id]);
+        delete mapMarkers[id];
+    }
+    
+    if (!map) return;
 
+    const totalSpots = data.totalSpots || 0;
+    const occupiedSpots = data.occupiedSpots || 0;
+    const freeSpots = totalSpots - occupiedSpots;
+    const color = getOccupancyColor(occupiedSpots, totalSpots);
+    
+    let placemark;
+
+    // Формируем подсказку: НАЗВАНИЕ + Свободно
+    // Используем data.name (это и есть улица/адрес из submitParkingWithPolygon)
+    const hintText = `${data.name} (${freeSpots} св.)`;
+
+    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+        // Для полигонов (зон)
+        placemark = new ymaps.Polygon([data.coordinates], { 
+            hintContent: hintText,
+            balloonContent: `<strong>${data.name}</strong><br>Свободно: ${freeSpots} из ${totalSpots}` 
+        }, { 
+            fillColor: color + '55', 
+            strokeColor: color, 
+            strokeWidth: 2 
+        });
+    } else {
+        // Для точечных маркеров
+        placemark = new ymaps.Placemark([data.lat, data.lng], { 
+            hintContent: hintText,
+            balloonContent: `<strong>${data.name}</strong><br>Свободно: ${freeSpots} из ${totalSpots}`
+        }, { 
+            preset: 'islands#blueParkingIcon' 
+        });
+    }
+
+    // Обработчик кликов оставляем без изменений
+    placemark.events.add('click', function(e) {
+        const now = Date.now();
+        if (lastClickParkingId === id && (now - lastClickTime) < 300) {
+            clearTimeout(clickTimeout);
+            openOccupancyPanel(id);
+            lastClickParkingId = null; lastClickTime = 0;
+            return;
+        }
+        lastClickParkingId = id; lastClickTime = now;
+        if (clickTimeout) clearTimeout(clickTimeout);
+        openParkingSheet(id, data);
+        clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; }, 300);
+    });
+
+    map.geoObjects.add(placemark);
+    mapMarkers[id] = placemark;
+}
 function refreshParkingMarker() {
 if (!currentParkingId) return;
 database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
