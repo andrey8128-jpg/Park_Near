@@ -142,22 +142,25 @@ body.dark-theme .tabBar {
     border-radius: 16px;
     transition: background 0.2s, transform 0.1s;
     position: relative;
+    text-align: center;
 }
 .tab .icon {
-    font-size: 24px;
+    font-size: 20px;
     line-height: 1;            /* убирает лишние отступы у шрифта */
-    height: 26px;              /* задаёт конкретную высоту */
+    height: 22px;              /* задаёт конкретную высоту */
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 2px;
     transition: transform 0.2s;
+    text-align: center;
 }
 .tab .label {
     font-size: 10px;
     color: var(--text-secondary);
     font-weight: 500;
     transition: color 0.2s;
+    text-align: center;
 }
 .tab.active .label {
     color: var(--accent);
@@ -182,8 +185,8 @@ body.dark-theme .tab:active {
     top: 6px;
     left: 50%;
     transform: translateX(-50%);
-    width: 20px;
-    height: 3px;
+    width: 16px;
+    height: 2px;
     background: var(--accent);
     border-radius: 2px;
 }
