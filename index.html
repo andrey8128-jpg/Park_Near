@@ -192,7 +192,7 @@ body.dark-theme .tab:active {
     top: 0;
     left: 0;
     right: 0;
-    bottom: calc(16px + 72px + 12px);   /* пространство под таб-бар */
+    bottom: calc(16px + 72px + 12px);   /* отступ снизу, чтобы не перекрывать таб-бар */
     background: var(--bg-primary);
     z-index: 2000;
     transform: translateY(100%);
@@ -207,7 +207,6 @@ body.dark-theme .tab:active {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    /* padding-bottom не нужен – панель сама заканчивается над таб-баром */
 }
 .btn-primary {
 width: 100%; padding: 16px; border-radius: 14px; border: none;
@@ -909,7 +908,7 @@ function initAuth() {
                 setTimeout(() => showOnboarding(), 500);
             }
         }
-    } // ← ЭТА СКОБКА БЫЛА ПРОПУЩЕНА
+    } // ← ОБЯЗАТЕЛЬНАЯ ЗАКРЫВАЮЩАЯ СКОБКА
     if (!currentUser) { const saved = localStorage.getItem('tgUser'); if (saved) currentUser = JSON.parse(saved); }
     if (currentUser) {
         const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
