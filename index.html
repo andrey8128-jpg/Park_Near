@@ -1314,14 +1314,20 @@ function submitParkingWithPolygon() {
             }
         });
     })
-    .catch(err => {
-        console.error('Ошибка сохранения:', err);
-        alert('Не удалось сохранить парковку. Проверьте интернет или попробуйте позже.');
-    })
-    .finally(() => {
-        btn.textContent = 'Сохранить парковку';
-        btn.disabled = false;
-    });
+ .catch(err => {
+    console.error('ПОЛНАЯ ОШИБКА:', err); // Смотреть в консоли браузера
+    
+    let msg = 'Ошибка сохранения: ';
+    if (err.code === 'PERMISSION_DENIED') {
+        msg += 'Нет прав на запись в базу (проверьте Rules в Firebase).';
+    } else if (err.message && err.message.includes('geocode')) {
+        msg += 'Не удалось определить адрес (проблема с Яндекс.Картами).';
+    } else {
+        msg += err.message || 'Неизвестная ошибка.';
+    }
+    
+    alert(msg); 
+})
 }
 function saveEditedPolygon(newCoords) {
 if (!currentParkingId) return;
