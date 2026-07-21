@@ -630,6 +630,13 @@ body.dark-theme .ymaps-copyright {
 </style>
 </head>
 <body>
+    <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-primary); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.3s;">
+    <div style="font-size: 64px; margin-bottom: 16px;">🅿️</div>
+    <div style="font-size: 22px; font-weight: 700; color: var(--accent);">Park<span style="color: var(--text-primary);">Near</span></div>
+    <div style="margin-top: 20px;">
+        <div class="spinner"></div>
+    </div>
+</div>
 <div class="app-header">
 <div class="app-title">Park<span>Near</span></div>
 </div>
@@ -1129,6 +1136,13 @@ myLocationPlacemark.properties.set('caption', 'Вы здесь');
 map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
 }).catch(() => console.log('Автогеолокация не удалась'));
 }, 1000);
+setTimeout(() => {
+    const splash = document.getElementById('splashScreen');
+    if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 300);
+    }
+}, 1500); // Показывать 1.5 секунды
 }
 
 // ===================== СЛОИ КАРТЫ =====================
