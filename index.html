@@ -739,6 +739,32 @@ color: #fff;
         filter: brightness(1);
     }
 }
+    /* Группировка улиц в поиске */
+.group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    margin: 4px 0;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: var(--card-shadow);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+.group-header .group-icon {
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+.group-header.collapsed .group-icon {
+    transform: rotate(-90deg);
+}
+.group-items {
+    margin-left: 16px;
+    margin-bottom: 8px;
+}
 </style>
 </head>
 <body>
@@ -2393,37 +2419,54 @@ return dist <= radius;
             parkings.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
     }
 parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-let html = '';
-if (parkings.length === 0) {
-html = '<div class="empty-state"><p>Ничего не найдено</p></div>';
-} else {
-html = '<div class="list-container">';
-parkings.forEach(p => {
-const free = p.totalSpots - (p.occupiedSpots || 0);
-const isAuthor = currentUser && currentUser.id === p.authorId;
-let addressDisplay = p.address || '';
-if (p.houseNumber) {
-if (!addressDisplay.includes(p.houseNumber)) {
-addressDisplay = addressDisplay ? addressDisplay + ', д. ' + p.houseNumber : 'д. ' + p.houseNumber;
-}
-}
-html += `
-<div class="swipe-container">
-<div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-<div class="list-icon">🅿️</div>
-<div class="list-info">
-<div class="list-title">${p.name || 'Без названия'}</div>
-<div class="list-subtitle">${addressDisplay} · Свободно: ${free}/${p.totalSpots}</div>
-</div>
-</div>
-${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}
-</div>
-`;
-});
-html += '</div>';
-}
-resultsContainer.innerHTML = html;
-attachSwipeToContainers(resultsContainer);
+    let html = '';
+    if (parkings.length === 0) {
+        html = '<div class="empty-state"><p>Ничего не найдено</p></div>';
+    } else {
+        // Группируем по улице (если нет улицы – по названию)
+        const grouped = {};
+        parkings.forEach(p => {
+            const key = (p.street || p.name || 'Без названия').trim();
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(p);
+        });
+
+        html = '<div class="list-container">';
+        for (const [street, items] of Object.entries(grouped)) {
+            // Заголовок группы
+            html += `<div class="group-header" onclick="toggleGroup(this)">
+                <span class="group-icon">▼</span>
+                <span>${street} (${items.length})</span>
+            </div>`;
+            // Элементы группы
+            html += '<div class="group-items">';
+            items.forEach(p => {
+                const free = p.totalSpots - (p.occupiedSpots || 0);
+                const isAuthor = currentUser && currentUser.id === p.authorId;
+                let addressDisplay = p.address || '';
+                if (p.houseNumber) {
+                    if (!addressDisplay.includes(p.houseNumber)) {
+                        addressDisplay = addressDisplay ? addressDisplay + ', д. ' + p.houseNumber : 'д. ' + p.houseNumber;
+                    }
+                }
+                html += `
+                <div class="swipe-container">
+                    <div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                        <div class="list-icon">🅿️</div>
+                        <div class="list-info">
+                            <div class="list-title">${p.name || 'Без названия'}</div>
+                            <div class="list-subtitle">${addressDisplay} · Свободно: ${free}/${p.totalSpots}</div>
+                        </div>
+                    </div>
+                    ${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}
+                </div>`;
+            });
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+    resultsContainer.innerHTML = html;
+    attachSwipeToContainers(resultsContainer);
 }
 function focusMap(lat, lng, parkingId) {
     // Закрываем панель и центрируем карту
@@ -2893,6 +2936,13 @@ function attachSwipeToContainers(container) {
             });
         }
     });
+}
+    function toggleGroup(header) {
+    const items = header.nextElementSibling;
+    if (items) {
+        items.style.display = items.style.display === 'none' ? 'block' : 'none';
+        header.classList.toggle('collapsed');
+    }
 }
 function showPanel(type, keepFilter = false) {
 if (type === 'search' && !keepFilter) {
