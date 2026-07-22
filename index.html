@@ -2177,19 +2177,6 @@ function clearFilters() {
 }
 function renderSearchPanel(content) {
     let html = `
-    <div class="city-selector">
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Регион</label>
-        <select id="regionSelect" class="input-field" onchange="updateCitySelect()">
-            <option value="">Все регионы</option>
-            ${Object.keys(regionsData).sort().map(r => `<option value="${r}">${r}</option>`).join('')}
-        </select>
-    </div>
-    <div class="city-selector">
-        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">Город</label>
-        <select id="citySelect" class="input-field" onchange="filterParkings()">
-            <option value="">Все города</option>
-        </select>
-    </div>
     <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()">
     </div>
