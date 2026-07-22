@@ -1451,16 +1451,14 @@ function submitParkingWithPolygon() {
     const centerLat = coordsToSave.reduce((s, c) => s + c[0], 0) / coordsToSave.length;
     const centerLng = coordsToSave.reduce((s, c) => s + c[1], 0) / coordsToSave.length;
 
-    // Формируем название парковки
+ // Формируем название парковки (без "Парковка на...")
     const fullStreet = streetType && streetName ? `${streetType} ${streetName}` : (streetName || '');
-    let name = 'Парковка';
-    if (fullStreet) {
-        name += ' на ' + fullStreet;
-        if (houseNumber) name += ', ' + houseNumber;
-    } else if (houseNumber) {
-        name += ' у дома ' + houseNumber;
-    } else {
-        name += ` (${centerLat.toFixed(4)}, ${centerLng.toFixed(4)})`;
+    let name = fullStreet;
+    if (houseNumber) {
+        name = name ? `${name}, ${houseNumber}` : houseNumber;
+    }
+    if (!name) {
+        name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
     }
 
     // Геокодируем (если доступно) для получения адреса и региона
@@ -1714,8 +1712,14 @@ function saveParkingDetails() {
     const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street || '');
     if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
 
-    // Формируем новое имя парковки
-    const newName = 'Парковка на ' + (street ? street + (houseNumber ? ', ' + houseNumber : '') : (houseNumber ? 'дом ' + houseNumber : 'неизвестном адресе'));
+// Формируем новое имя парковки (без "Парковка на...")
+    let newName = street;
+    if (houseNumber) {
+        newName = newName ? `${newName}, ${houseNumber}` : houseNumber;
+    }
+    if (!newName) {
+        newName = 'Адрес не указан';
+    }
 
     if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
     if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
