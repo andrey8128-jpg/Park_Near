@@ -1549,6 +1549,9 @@ function submitParkingWithPolygon() {
             addMarkerToMap(newRef.key, parkingData);
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
             window.newParkingCoords = null;
+            // Автоматически обновляем поиск, если панель поиска активна
+if (document.getElementById('searchResults')) {
+    filterParkings();
             closePanel(); showMap();
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
