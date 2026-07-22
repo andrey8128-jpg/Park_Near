@@ -1672,7 +1672,6 @@ function renderEditPanel(data, isFavorite) {
         html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
         html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
     }
-    html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>`;
     document.getElementById('panelContent').innerHTML = html;
 }
 
