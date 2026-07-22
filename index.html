@@ -760,14 +760,22 @@ color: #fff;
     margin-left: 16px;
     margin-bottom: 8px;
 }
+    @keyframes gradientMove {
+    0% { background-position:0% 50%; }
+    50% { background-position:100% 50%; }
+    100% { background-position:0% 50%; }
+}
 </style>
 </head>
 <body>
-    <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-primary); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.3s;">
-   <img src="Лого.png" alt="Логотип" style="width: 120px; height: auto; margin-bottom: 16px;">
-    <div style="font-size: 22px; font-weight: 700; color: var(--accent);">Park<span style="color: var(--text-primary);">Near</span></div>
-    <div style="margin-top: 20px;">
-        <div class="spinner"></div>
+<div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; overflow:hidden;">
+    <div id="animatedBg" style="position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #02060E, #0356C5, #02060E); background-size:400% 400%; animation:gradientMove 6s ease infinite; filter:blur(30px); transform:scale(1.2);"></div>
+    <div style="position:relative; z-index:1; display:flex; align-items:center; justify-content:center; flex-direction:column; width:100%; height:100%; backdrop-filter:blur(5px);">
+        <img src="logo.png" alt="Логотип" style="width:120px; height:auto; margin-bottom:24px; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3));">
+        <div style="font-size:22px; font-weight:700; color:#fff; letter-spacing:1px;">Park<span style="color:#007AFF;">Near</span></div>
+        <div style="margin-top:24px;">
+            <div class="spinner" style="border-top-color:#fff; width:36px; height:36px; border-width:3px;"></div>
+        </div>
     </div>
 </div>
 <div class="app-header">
