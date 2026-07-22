@@ -1111,7 +1111,6 @@ function addMarkerToMap(id, data) {
     
     let placemark;
 
-    // Содержимое всплывающего окна (балуна)
     const balloonContent = `
     <div style="padding: 10px; font-family: -apple-system, sans-serif; max-width: 220px;">
         <strong style="font-size: 16px;">${data.name}</strong>
@@ -1125,11 +1124,28 @@ function addMarkerToMap(id, data) {
         </div>
     </div>
 `;
-    // Обработчик клика: одиночный открывает балун, двойной – редактор
+
+    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+        placemark = new ymaps.Polygon([data.coordinates], { 
+            hintContent: data.name,
+            balloonContent: balloonContent
+        }, { 
+            fillColor: color + '55', 
+            strokeColor: color, 
+            strokeWidth: 2 
+        });
+    } else {
+        placemark = new ymaps.Placemark([data.lat, data.lng], { 
+            hintContent: data.name,
+            balloonContent: balloonContent
+        }, { 
+            preset: 'islands#blueParkingIcon' 
+        });
+    }
+
     placemark.events.add('click', function(e) {
         const now = Date.now();
         if (lastClickParkingId === id && (now - lastClickTime) < 300) {
-            // Двойной клик
             clearTimeout(clickTimeout);
             openOccupancyPanel(id);
             lastClickParkingId = null; lastClickTime = 0;
