@@ -2033,7 +2033,7 @@ function addHomeAddress() {
 }
 function centerMapOnAddress(lat, lng) {
     if (lat && lng) {
-        map.setCenter([lat, lng], 16, { duration: 500 });
+        map.setCenter([lat, lng], 18, { duration: 500 });
     }
 }
 function openAddressPicker() {
@@ -2181,7 +2181,7 @@ function removeHomeAddress(addressId) {
 function findParkingsNearAddress(lat, lng, addressText) {
     if (lat && lng) {
         nearbySearchFilter = { lat: lat, lng: lng, radius: 300 };
-        map.setCenter([lat, lng], 16, { duration: 500 });
+        map.setCenter([lat, lng], 18, { duration: 500 });
         showPanel('search', true);
         return;
     }
@@ -2377,7 +2377,7 @@ attachSwipeToContainers(resultsContainer);
 function focusMap(lat, lng, parkingId) {
     // Закрываем панель и центрируем карту
     closePanel();
-    map.setCenter([lat, lng], 16, { duration: 500 });
+    map.setCenter([lat, lng], 18, { duration: 500 });
 
     // Находим маркер и добавляем анимацию
     const marker = mapMarkers[parkingId];
