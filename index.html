@@ -1079,6 +1079,18 @@ else reject(new Error('Геолокация не поддерживается'))
         }
     }).catch(error => console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error));
 }
+function refreshParkingMarker() {
+    if (!currentParkingId) return;
+    database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (mapMarkers[currentParkingId]) {
+            map.geoObjects.remove(mapMarkers[currentParkingId]);
+            delete mapMarkers[currentParkingId];
+        }
+        parkingDataCache[currentParkingId] = data;
+        addMarkerToMap(currentParkingId, data);
+    });
+}
 function addMarkerToMap(id, data) {
     console.log('Добавляю маркер:', id, data);
     
