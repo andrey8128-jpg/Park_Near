@@ -1113,35 +1113,18 @@ function addMarkerToMap(id, data) {
 
     // Содержимое всплывающего окна (балуна)
     const balloonContent = `
-        <div style="padding: 10px; font-family: -apple-system, sans-serif; max-width: 220px;">
-            <strong style="font-size: 16px;">${data.name}</strong>
-            <div style="font-size: 13px; color: #666; margin-top: 4px;">📍 ${data.address || (data.lat && data.lng ? data.lat.toFixed(5)+', '+data.lng.toFixed(5) : '')}</div>
-            <div style="font-size: 13px; color: #333; margin-top: 6px;">🅿️ Свободно: <b>${freeSpots}</b> / ${totalSpots}</div>
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-                <button onclick="buildRouteToParking('${id}')" style="flex: 1; padding: 6px 0; background: #007AFF; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">🗺️ Маршрут</button>
-                <button onclick="openOccupancyPanel('${id}')" style="flex: 1; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer;">✏️ Изменить</button>
-            </div>
+    <div style="padding: 10px; font-family: -apple-system, sans-serif; max-width: 220px;">
+        <strong style="font-size: 16px;">${data.name}</strong>
+        <div style="font-size: 13px; color: #666; margin-top: 4px;">📍 ${data.address || (data.lat && data.lng ? data.lat.toFixed(5)+', '+data.lng.toFixed(5) : '')}</div>
+        <div style="font-size: 13px; color: #333; margin-top: 6px;">🅿️ Свободно: <b>${freeSpots}</b> / ${totalSpots}</div>
+        <div style="font-size: 12px; color: #999; margin-top: 4px;">🕒 Обновлено: ${formatDateTime(data.lastUpdatedAt || data.timestamp)}</div>
+        <div style="font-size: 12px; color: #999;">👤 ${data.lastUpdatedBy || data.authorName || 'Неизвестно'}</div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button onclick="buildRouteToParking('${id}')" style="flex: 1; padding: 6px 0; background: #007AFF; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">🗺️ Маршрут</button>
+            <button onclick="openOccupancyPanel('${id}')" style="flex: 1; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer;">✏️ Изменить</button>
         </div>
-    `;
-
-    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-        placemark = new ymaps.Polygon([data.coordinates], { 
-            hintContent: data.name,
-            balloonContent: balloonContent
-        }, { 
-            fillColor: color + '55', 
-            strokeColor: color, 
-            strokeWidth: 2 
-        });
-    } else {
-        placemark = new ymaps.Placemark([data.lat, data.lng], { 
-            hintContent: data.name,
-            balloonContent: balloonContent
-        }, { 
-            preset: 'islands#blueParkingIcon' 
-        });
-    }
-
+    </div>
+`;
     // Обработчик клика: одиночный открывает балун, двойной – редактор
     placemark.events.add('click', function(e) {
         const now = Date.now();
@@ -1486,6 +1469,8 @@ function submitParkingWithPolygon() {
             authorId: currentUser.id,
             authorName: currentUser.firstName,
             authorUsername: currentUser.username,
+            lastUpdatedAt: Date.now(),
+            lastUpdatedBy: currentUser.firstName,
             timestamp: Date.now(),
             status: 'unknown'
         };
@@ -1732,29 +1717,39 @@ function updateOccupancyDisplay(newOccupied) {
     const percentText = document.getElementById('occupancyPercentText'); if (percentText) percentText.textContent = `Загруженность: ${percent}%`;
     currentParkingData.occupiedSpots = newOccupied;
 }
-
 function changeOccupancy(delta) {
     if (!currentUser) { alert('Необходимо авторизоваться'); return; }
     if (!currentParkingId || !currentParkingData) return;
     const total = currentParkingData.totalSpots || 0, cur = currentParkingData.occupiedSpots || 0, newOcc = cur + delta;
     if (newOcc < 0 || newOcc > total) { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); return; }
     const now = Date.now();
-    database.ref(`users/${currentUser.id}/car`).once('value').then(carSnap => {
-        const carData = carSnap.val() || {};
-        database.ref(`parkings/${currentParkingId}/occupiedSpots`).set(newOcc).then(() => {
-            return database.ref(`parkings/${currentParkingId}/history`).push({ action: delta < 0 ? 'freed' : 'occupied', timestamp: now, userId: currentUser.id, username: currentUser.username, carBrand: carData.brand || '', carModel: carData.model || '', carPlate: carData.plate || '', previousOccupied: cur, newOccupied: newOcc });
-        }).then(() => {
-            updateOccupancyDisplay(newOcc);
-            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
-                const data = snapshot.val();
-                if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
-                parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
-            });
-        }).catch(err => { console.error("Ошибка обновления:", err); alert('Ошибка обновления: ' + err.message); });
-    });
+    // Обновляем занятость, дату и автора изменений
+    database.ref(`parkings/${currentParkingId}`).update({
+        occupiedSpots: newOcc,
+        lastUpdatedAt: now,
+        lastUpdatedBy: currentUser.firstName
+    }).then(() => {
+        return database.ref(`parkings/${currentParkingId}/history`).push({
+            action: delta < 0 ? 'freed' : 'occupied',
+            timestamp: now,
+            userId: currentUser.id,
+            username: currentUser.username,
+            carBrand: '', carModel: '', carPlate: '',
+            previousOccupied: cur,
+            newOccupied: newOcc
+        });
+    }).then(() => {
+        updateOccupancyDisplay(newOcc);
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        // Обновляем маркер
+        database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
+            const data = snapshot.val();
+            if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
+            parkingDataCache[currentParkingId] = data;
+            addMarkerToMap(currentParkingId, data);
+        });
+    }).catch(err => { console.error("Ошибка обновления:", err); alert('Ошибка обновления: ' + err.message); });
 }
-
 function deleteParking(parkingId) {
     if (!currentUser) { alert('Необходимо авторизоваться'); return; }
     if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
