@@ -380,11 +380,6 @@ position: absolute; content: ""; height: 27px; width: 27px;
 left: 2px; bottom: 2px; background-color: white;
 transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
-/* Переключатель платной/бесплатной парковки – зелёный при включении */
-#parkIsPaid:checked + .theme-slider,
-#editIsPaid:checked + .theme-slider {
-    background-color: #34C759;
-}
 #settingsThemeToggle:checked + .theme-slider {
     background-color: #34C759;
 }
@@ -1438,14 +1433,12 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
     document.getElementById('panelTitle').textContent = 'Новая парковка';
 
     document.getElementById('panelContent').innerHTML = `
-        <!-- Мини-карта вместо размера зоны -->
         <div class="form-group">
             <label>Область парковки</label>
             <div id="miniMapContainer" style="width:100%; height:200px; border-radius:12px; overflow:hidden; margin-top:8px; box-shadow: var(--card-shadow);"></div>
             <p style="font-size:12px; color:var(--text-secondary); margin-top:6px;">Выделенная зона отображается на карте</p>
         </div>
 
-        <!-- Тип улицы -->
         <div class="form-group">
             <label>Тип улицы</label>
             <select id="parkStreetType" class="input-field">
@@ -1461,24 +1454,20 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 <option value="тракт">тракт</option>
             </select>
         </div>
-        <!-- Название улицы -->
         <div class="form-group">
             <label>Название улицы</label>
             <input type="text" id="parkStreetName" class="input-field" placeholder="Ленина">
         </div>
-        <!-- Номер дома -->
         <div class="form-group">
             <label>Номер дома</label>
             <input type="text" id="parkHouseNumber" class="input-field" placeholder="15">
         </div>
 
         <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
-        <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="parkIsPaid"><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
         <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
         <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
     `;
 
-    // Инициализируем мини-карту с небольшой задержкой
     setTimeout(() => {
         initMiniMap(coordinates);
     }, 50);
@@ -1570,7 +1559,7 @@ function submitParkingWithPolygon() {
             totalSpots,
             occupiedSpots: 0,
             name,
-            isPaid,
+            isPaid: false
             address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
             region: parsed.region,
             city: parsed.city,
@@ -1724,7 +1713,6 @@ function renderEditPanel(data, isFavorite) {
     const isAuthor = currentUser && currentUser.id === data.authorId;
     const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
     const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
-    const isPaid = data.isPaid || false;
 
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Редактирование';
@@ -1753,7 +1741,6 @@ function renderEditPanel(data, isFavorite) {
     }
 
     if (isAuthor) {
-        // Поля улицы и дома
         const currentStreet = data.street || '';
         html += `
         <div class="form-group">
@@ -1775,18 +1762,15 @@ function renderEditPanel(data, isFavorite) {
         <div class="form-group"><label>Номер дома</label><input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15"></div>
 
         <div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
-        <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''}><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
         <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
         <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
         `;
     } else {
-        html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong> | ${isPaid ? 'Платная' : 'Бесплатная'}</div>`;
+        html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong></div>`;
         html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
     }
     document.getElementById('panelContent').innerHTML = html;
 }
-
-// Вспомогательная функция (должна быть определена в утилитах)
 function extractStreetName(fullStreet) {
     if (!fullStreet) return '';
     const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
@@ -1824,7 +1808,7 @@ function saveParkingDetails() {
     if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
     if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
 
-    const updates = { name: newName, street, houseNumber, totalSpots, isPaid };
+    const updates = { name: newName, street, houseNumber, totalSpots };
 
     database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
         if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
