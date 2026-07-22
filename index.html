@@ -1934,7 +1934,11 @@ function addHomeAddress() {
         openAddressPicker(); // сразу открываем карту
     }).catch(err => { console.error(err); alert('Ошибка'); });
 }
-
+function centerMapOnAddress(lat, lng) {
+    if (lat && lng) {
+        map.setCenter([lat, lng], 16, { duration: 500 });
+    }
+}
 function openAddressPicker() {
     if (!currentUser) { alert('Необходимо войти'); return; }
     isAddressPickerOpen = true;
@@ -2617,16 +2621,16 @@ function loadUserData(type, content) {
             let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мои адреса</div>';
             const addrs = homeSnap.val() || {};
             if (Object.keys(addrs).length > 0) {
-                Object.entries(addrs).forEach(([id, addr]) => {
-                    const label = addr.label || 'Адрес';
-                    const icon = label === 'Дом' ? '' : label === 'Работа' ? '' : label === 'Родственники' ? '👨‍👩‍‍👦' : '';
-                    html += `<div class="swipe-container" style="margin-bottom:8px;">
-                        <div class="swipe-item" style="padding:10px 0;">
-                            <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
-                        </div>
-                        <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
-                    </div>`;
-                });
+             Object.entries(addrs).forEach(([id, addr]) => {
+                const label = addr.label || 'Адрес';
+                const icon = label === 'Дом' ? '' : label === 'Работа' ? '' : label === 'Родственники' ? '👨‍👩‍‍👦' : '';
+                html += `<div class="swipe-container" style="margin-bottom:8px;">
+                    <div class="swipe-item" style="padding:10px 0;" onclick="centerMapOnAddress(${addr.lat || 'null'}, ${addr.lng || 'null'})">
+                        <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
+                    </div>
+                    <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
+                </div>`;
+            });
             } else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
             html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
             html += '</div>';
