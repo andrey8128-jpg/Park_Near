@@ -2623,9 +2623,6 @@ function loadUserData(type, content) {
                     html += `<div class="swipe-container" style="margin-bottom:8px;">
                         <div class="swipe-item" style="padding:10px 0;">
                             <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
-                            <div>
-                                <button class="btn-secondary" style="padding:4px 10px;font-size:13px;" onclick="findParkingsNearAddress(${addr.lat || 'null'}, ${addr.lng || 'null'}, '${addr.address.replace(/'/g, "\\'")}')">Найти парковку</button>
-                            </div>
                         </div>
                         <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
                     </div>`;
