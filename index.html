@@ -2943,6 +2943,19 @@ function showOnboarding() {
     renderSlide();
 }
     // ===================== НАСТРОЙКИ =====================
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('darkTheme', isDark);
+    const mapEl = document.getElementById('map');
+    if (isDark && map && map.getType() === 'yandex#map') {
+        mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+    } else if (mapEl) {
+        mapEl.style.filter = 'none';
+    }
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+}
 function showSettings() {
     document.getElementById('settingsOverlay').style.display = 'flex';
     renderSettings();
