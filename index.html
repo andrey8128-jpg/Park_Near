@@ -2078,14 +2078,12 @@ function removeHomeAddress(addressId) {
 }
 
 function findParkingsNearAddress(lat, lng, addressText) {
-    // Если координаты уже есть, сразу ищем вокруг них
     if (lat && lng) {
         nearbySearchFilter = { lat: lat, lng: lng, radius: 300 };
         map.setCenter([lat, lng], 16, { duration: 500 });
         showPanel('search', true);
         return;
     }
-    // Иначе пытаемся получить координаты по текстовому адресу
     if (addressText) {
         ymaps.geocode(addressText, { results: 1 })
         .then(res => {
