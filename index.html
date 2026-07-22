@@ -1594,18 +1594,19 @@ function closeParkingSheet() { document.getElementById('parkingSheet').classList
 
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
-database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
-const data = snapshot.val(); if (!data) return;
-if (currentUser && currentUser.id !== data.authorId) {
-database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
-database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
+    database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+        const data = snapshot.val(); if (!data) return;
+        if (currentUser && currentUser.id !== data.authorId) {
+            database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
+            database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
+        }
+        currentParkingId = parkingId; currentParkingData = data; parkingDataCache[parkingId] = data;
+        if (currentUser) {
+            database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => renderEditPanel(data, favSnap.exists()));
+        } else renderEditPanel(data, false);
+    });
 }
-currentParkingId = parkingId; currentParkingData = data; parkingDataCache[parkingId] = data;
-if (currentUser) {
-database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value').then(favSnap => renderEditPanel(data, favSnap.exists()));
-} else renderEditPanel(data, false);
-});
-}
+
 function renderEditPanel(data, isFavorite) {
     const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
     const color = getOccupancyColor(occupiedSpots, totalSpots), occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
@@ -1613,10 +1614,10 @@ function renderEditPanel(data, isFavorite) {
     const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
     const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
     const isPaid = data.isPaid || false;
-    
+
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Редактирование';
-    
+
     let html = `
     <div class="occupancy-header"><div class="occupancy-title"><span class="status-indicator ${statusClass}"></span>${data.name}</div></div>
     <div class="occupancy-stats">
@@ -1635,13 +1636,13 @@ function renderEditPanel(data, isFavorite) {
     </div>
     </div>
     `;
-    
+
     if (currentUser) {
         html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
     }
-    
+
     if (isAuthor) {
-        // === НОВЫЕ ПОЛЯ УЛИЦЫ И ДОМА ===
+        // Поля улицы и дома
         const currentStreet = data.street || '';
         html += `
         <div class="form-group">
@@ -1661,7 +1662,7 @@ function renderEditPanel(data, isFavorite) {
         </div>
         <div class="form-group"><label>Название улицы</label><input type="text" id="editStreetName" class="input-field" value="${extractStreetName(currentStreet)}" placeholder="Ленина"></div>
         <div class="form-group"><label>Номер дома</label><input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15"></div>
-        <!-- конец новых полей -->
+
         <div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
         <div class="form-group"><label>Тип парковки</label><div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;border:1px solid var(--input-border);background:var(--input-bg);"><span style="color:var(--text-primary);white-space:nowrap;">Бесплатная</span><label class="theme-switch" style="width:51px;height:31px;display:inline-block;position:relative;"><input type="checkbox" id="editIsPaid" ${isPaid ? 'checked' : ''}><span class="theme-slider" style="position:absolute;top:0;left:0;right:0;bottom:0;background-color:#E5E5EA;border-radius:31px;transition:.3s;"></span></label><span style="color:var(--text-primary);white-space:nowrap;">Платная</span></div></div>
         <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
@@ -1674,106 +1675,123 @@ function renderEditPanel(data, isFavorite) {
     html += `<button class="btn-secondary" style="margin-top:20px;" onclick="closePanel()">Закрыть</button>`;
     document.getElementById('panelContent').innerHTML = html;
 }
+
+// Вспомогательная функция (должна быть определена в утилитах)
+function extractStreetName(fullStreet) {
+    if (!fullStreet) return '';
+    const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
+    for (const t of types) {
+        if (fullStreet.startsWith(t + ' ')) {
+            return fullStreet.substring(t.length + 1);
+        }
+    }
+    return fullStreet;
+}
+
 function saveParkingDetails() {
     if (!currentUser) { alert('Необходимо авторизоваться'); return; }
     if (!currentParkingId || !currentParkingData) return;
-    
-    const streetType = document.getElementById('editStreetType').value;
-    const streetName = document.getElementById('editStreetName').value.trim();
-    const houseNumber = document.getElementById('editHouseNumber').value.trim();
-    const totalSpots = parseInt(document.getElementById('editTotalSpots').value);
-    const isPaid = document.getElementById('editIsPaid').checked;
-    
+
+    const streetType = document.getElementById('editStreetType')?.value || '';
+    const streetName = document.getElementById('editStreetName')?.value.trim() || '';
+    const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
+    const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value) || 0;
+    const isPaid = document.getElementById('editIsPaid')?.checked || false;
+
     // Формируем полное название улицы
-    const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street);
+    const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street || '');
     if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
-    
+
     // Формируем новое имя парковки
     const newName = 'Парковка на ' + (street ? street + (houseNumber ? ', ' + houseNumber : '') : (houseNumber ? 'дом ' + houseNumber : 'неизвестном адресе'));
-    
+
     if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
     if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
-    
+
     const updates = { name: newName, street, houseNumber, totalSpots, isPaid };
-    
+
     database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
         if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
         currentParkingData = {...currentParkingData, ...updates};
         parkingDataCache[currentParkingId] = currentParkingData;
         updateOccupancyDisplay(currentParkingData.occupiedSpots);
         refreshParkingMarker();
-        database.ref(`users/${currentUser.id}/favorites/${currentParkingId}`).once('value').then(favSnap => renderEditPanel(currentParkingData, favSnap.exists()));
-        showMapHint('Изменения сохранены');
+        closePanel();   // ← закрываем редактор
+        showMap();      // ← возвращаемся на карту
         if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
 }
+
 function updateOccupancyDisplay(newOccupied) {
-if (!currentParkingData) return;
-const total = currentParkingData.totalSpots || 0, free = total - newOccupied, color = getOccupancyColor(newOccupied, total), percent = total > 0 ? Math.round((newOccupied / total) * 100) : 0;
-['statTotal','statFree','statOccupied','currentOccupied'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = id === 'statTotal' ? total : (id === 'statFree' ? free : (id === 'statOccupied' ? newOccupied : newOccupied)); });
-const progress = document.getElementById('progressFill'); if (progress) { progress.style.width = percent + '%'; progress.style.background = color; }
-const percentText = document.getElementById('occupancyPercentText'); if (percentText) percentText.textContent = `Загруженность: ${percent}%`;
-currentParkingData.occupiedSpots = newOccupied;
-}
-function changeOccupancy(delta) {
-if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-if (!currentParkingId || !currentParkingData) return;
-const total = currentParkingData.totalSpots || 0, cur = currentParkingData.occupiedSpots || 0, newOcc = cur + delta;
-if (newOcc < 0 || newOcc > total) { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); return; }
-const now = Date.now();
-database.ref(`users/${currentUser.id}/car`).once('value').then(carSnap => {
-const carData = carSnap.val() || {};
-database.ref(`parkings/${currentParkingId}/occupiedSpots`).set(newOcc).then(() => {
-return database.ref(`parkings/${currentParkingId}/history`).push({ action: delta < 0 ? 'freed' : 'occupied', timestamp: now, userId: currentUser.id, username: currentUser.username, carBrand: carData.brand || '', carModel: carData.model || '', carPlate: carData.plate || '', previousOccupied: cur, newOccupied: newOcc });
-}).then(() => {
-updateOccupancyDisplay(newOcc);
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
-database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
-const data = snapshot.val();
-if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
-parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
-});
-}).catch(err => { console.error("Ошибка обновления:", err); alert('Ошибка обновления: ' + err.message); });
-});
-}
-function deleteParking(parkingId) {
-if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
-database.ref(`parkings/${parkingId}`).remove().then(() => {
-if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]); delete mapMarkers[parkingId]; }
-delete parkingDataCache[parkingId]; closePanel(); showMap();
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-const panelContent = document.getElementById('panelContent');
-if (panelContent && document.getElementById('searchResults')) {
-filterParkings();
-}
-}).catch(err => { console.error('Ошибка удаления:', err); alert('Ошибка удаления: ' + err.message); });
-}
-function confirmParking(parkingId) {
-if (!currentUser) return;
-database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
-const data = snapshot.val();
-if (data && data.authorId !== currentUser.id) {
-database.ref(`users/${data.authorId}/stats/confirmations`).transaction(c => (c || 0) + 1);
-alert('Спасибо за подтверждение!');
-}
-});
-}
-function toggleFavorite(parkingId) {
-if (!currentUser || !parkingId) return;
-const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
-favRef.once('value').then(snap => {
-if (snap.exists()) {
-favRef.remove(); const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '⭐ Добавить в избранное';
-if (currentParkingData && currentParkingData.authorId) database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(c => Math.max(0, (c || 1) - 1));
-} else {
-const favData = { parkingId, name: currentParkingData ? currentParkingData.name : '', lat: currentParkingData ? currentParkingData.lat : 0, lng: currentParkingData ? currentParkingData.lng : 0, timestamp: Date.now() };
-favRef.set(favData); const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '✅ В избранном';
-if (currentParkingData && currentParkingData.authorId) database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(c => (c || 0) + 1);
-}
-});
+    if (!currentParkingData) return;
+    const total = currentParkingData.totalSpots || 0, free = total - newOccupied, color = getOccupancyColor(newOccupied, total), percent = total > 0 ? Math.round((newOccupied / total) * 100) : 0;
+    ['statTotal','statFree','statOccupied','currentOccupied'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = id === 'statTotal' ? total : (id === 'statFree' ? free : (id === 'statOccupied' ? newOccupied : newOccupied)); });
+    const progress = document.getElementById('progressFill'); if (progress) { progress.style.width = percent + '%'; progress.style.background = color; }
+    const percentText = document.getElementById('occupancyPercentText'); if (percentText) percentText.textContent = `Загруженность: ${percent}%`;
+    currentParkingData.occupiedSpots = newOccupied;
 }
 
+function changeOccupancy(delta) {
+    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
+    if (!currentParkingId || !currentParkingData) return;
+    const total = currentParkingData.totalSpots || 0, cur = currentParkingData.occupiedSpots || 0, newOcc = cur + delta;
+    if (newOcc < 0 || newOcc > total) { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); return; }
+    const now = Date.now();
+    database.ref(`users/${currentUser.id}/car`).once('value').then(carSnap => {
+        const carData = carSnap.val() || {};
+        database.ref(`parkings/${currentParkingId}/occupiedSpots`).set(newOcc).then(() => {
+            return database.ref(`parkings/${currentParkingId}/history`).push({ action: delta < 0 ? 'freed' : 'occupied', timestamp: now, userId: currentUser.id, username: currentUser.username, carBrand: carData.brand || '', carModel: carData.model || '', carPlate: carData.plate || '', previousOccupied: cur, newOccupied: newOcc });
+        }).then(() => {
+            updateOccupancyDisplay(newOcc);
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (mapMarkers[currentParkingId]) { map.geoObjects.remove(mapMarkers[currentParkingId]); delete mapMarkers[currentParkingId]; }
+                parkingDataCache[currentParkingId] = data; addMarkerToMap(currentParkingId, data);
+            });
+        }).catch(err => { console.error("Ошибка обновления:", err); alert('Ошибка обновления: ' + err.message); });
+    });
+}
+
+function deleteParking(parkingId) {
+    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
+    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
+    database.ref(`parkings/${parkingId}`).remove().then(() => {
+        if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]); delete mapMarkers[parkingId]; }
+        delete parkingDataCache[parkingId]; closePanel(); showMap();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        const panelContent = document.getElementById('panelContent');
+        if (panelContent && document.getElementById('searchResults')) {
+            filterParkings();
+        }
+    }).catch(err => { console.error('Ошибка удаления:', err); alert('Ошибка удаления: ' + err.message); });
+}
+
+function confirmParking(parkingId) {
+    if (!currentUser) return;
+    database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (data && data.authorId !== currentUser.id) {
+            database.ref(`users/${data.authorId}/stats/confirmations`).transaction(c => (c || 0) + 1);
+            alert('Спасибо за подтверждение!');
+        }
+    });
+}
+
+function toggleFavorite(parkingId) {
+    if (!currentUser || !parkingId) return;
+    const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
+    favRef.once('value').then(snap => {
+        if (snap.exists()) {
+            favRef.remove(); const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '⭐ Добавить в избранное';
+            if (currentParkingData && currentParkingData.authorId) database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(c => Math.max(0, (c || 1) - 1));
+        } else {
+            const favData = { parkingId, name: currentParkingData ? currentParkingData.name : '', lat: currentParkingData ? currentParkingData.lat : 0, lng: currentParkingData ? currentParkingData.lng : 0, timestamp: Date.now() };
+            favRef.set(favData); const btn = document.getElementById('favBtn'); if (btn) btn.innerHTML = '✅ В избранном';
+            if (currentParkingData && currentParkingData.authorId) database.ref(`users/${currentParkingData.authorId}/stats/favorites`).transaction(c => (c || 0) + 1);
+        }
+    });
+}
 // ===================== МАРШРУТ =====================
 function buildRouteToParking(parkingId) {
 closeParkingSheet();
