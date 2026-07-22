@@ -2170,16 +2170,6 @@ function renderSearchPanel(content) {
     getUserLocation().then(coords => { userLocationForSearch = coords; }).catch(() => { userLocationForSearch = null; });
     filterParkings();
 }
-
-function updateRadiusLabel() {
-    const val = document.getElementById('radiusSlider').value;
-    document.getElementById('radiusLabel').textContent = val + ' км';
-    // При изменении слайдера обновляем радиус в nearbySearchFilter, если уже есть координаты
-    if (userLocationForSearch) {
-        nearbySearchFilter = { lat: userLocationForSearch.lat, lng: userLocationForSearch.lng, radius: val * 1000 };
-    }
-}
-
 function updateRadiusLabel() {
     const val = document.getElementById('radiusSlider').value;
     document.getElementById('radiusLabel').textContent = val + ' км';
