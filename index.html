@@ -1217,10 +1217,7 @@ function addMarkerToMap(id, data) {
         <div style="font-size: 13px; color: #333; margin-top: 6px;">🅿️ Свободно: <b>${freeSpots}</b> / ${totalSpots}</div>
         <div style="font-size: 12px; color: #999; margin-top: 4px;">🕒 Обновлено: ${formatDateTime(data.lastUpdatedAt || data.timestamp)}</div>
         <div style="font-size: 12px; color: #999;">👤 ${data.lastUpdatedBy || data.authorName || 'Неизвестно'}</div>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button onclick="buildRouteToParking('${id}')" style="flex: 1; padding: 6px 0; background: #007AFF; color: #fff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">🗺️ Маршрут</button>
-            <button onclick="openOccupancyPanel('${id}')" style="flex: 1; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer;">✏️ Изменить</button>
-        </div>
+        <button onclick="openOccupancyPanel('${id}')" style="width: 100%; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px;">✏️ Изменить</button>
     </div>
 `;
 
@@ -1692,7 +1689,6 @@ content.innerHTML = `
 <p>📏 ${distKm} км от вас</p>
 <p> На авто: ${driveTime} мин</p>
 <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-<button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
 `;
 sheet.classList.add('active');
 }).catch(() => {
@@ -1701,7 +1697,6 @@ content.innerHTML = `
 <p>📍 ${addr}</p>
 <p>📏 Расстояние неизвестно</p>
 <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-<button class="btn-primary" onclick="buildRouteToParking('${parkingId}')">🗺️ Маршрут</button>
 `;
 sheet.classList.add('active');
 });
