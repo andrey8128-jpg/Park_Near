@@ -1205,6 +1205,25 @@ function addMarkerToMap(id, data) {
 function initMap() {
     console.log('Инициализация карты...');
     map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'], type: 'yandex#map' });
+    // Показываем адрес при клике на любое здание (не на парковку)
+map.events.add('click', function (e) {
+    if (isDrawingMode || editingParkingId) return; // не мешаем рисованию
+    var target = e.get('target');
+    // Если кликнули именно по карте (а не по маркеру/полигону парковки)
+    if (target === map) {
+        var coords = e.get('coords');
+        ymaps.geocode(coords, { kind: 'house', results: 1 }).then(function (res) {
+            var geoObject = res.geoObjects.get(0);
+            if (geoObject) {
+                map.balloon.open(coords, geoObject.getAddressLine());
+            } else {
+                map.balloon.open(coords, 'Адрес не найден');
+            }
+        }).catch(function () {
+            map.balloon.open(coords, 'Не удалось определить адрес');
+        });
+    }
+});
     console.log('Карта инициализирована');
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
     // Долгое нажатие для слоёв
