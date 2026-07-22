@@ -351,6 +351,9 @@ transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 #editIsPaid:checked + .theme-slider {
     background-color: #34C759;
 }
+#settingsThemeToggle:checked + .theme-slider {
+    background-color: #34C759;
+}
 .car-section {
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
@@ -2947,68 +2950,6 @@ function toggleTheme() {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
 }
-function showSettings() {
-    document.getElementById('settingsOverlay').style.display = 'flex';
-    renderSettings();
-}
-
-function closeSettings() {
-    document.getElementById('settingsOverlay').style.display = 'none';
-}
-
-function renderSettings() {
-    const content = document.getElementById('settingsContent');
-    const isDark = document.body.classList.contains('dark-theme');
-    const isGuest = currentUser && currentUser.id.startsWith('guest_');
-
-    let html = `
-        <div class="theme-toggle-row">
-            <div class="theme-toggle-label">🌙 Тёмная тема</div>
-            <label class="theme-switch">
-                <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
-                <span class="theme-slider"></span>
-            </label>
-        </div>
-    `;
-
-    if (!isGuest) {
-        html += `
-            <div class="city-pref-card">
-                <div class="city-pref-title">🏙️ Мой город</div>
-                <div class="city-pref-row">
-                    <div class="form-group">
-                        <label>Регион</label>
-                        <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()">
-                            <option value="">Выберите регион</option>
-                            ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Город</label>
-                        <select id="settingsCity" class="input-field">
-                            <option value="">Выберите город</option>
-                            ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
-                        </select>
-                    </div>
-                </div>
-                <button class="btn-secondary" style="margin-top:8px;" onclick="saveCityFromSettings()">💾 Сохранить город</button>
-            </div>
-
-            <div class="car-section">
-                <div class="car-section-title">🚗 Мой автомобиль</div>
-                <button class="btn-secondary" onclick="editCarDataFromSettings()">✏️ Редактировать данные авто</button>
-            </div>
-
-            <button class="btn-secondary" onclick="resetOnboarding()">📖 Показать обучение ещё раз</button>
-            <button class="btn-danger" onclick="deleteAccount()">🗑️ Удалить аккаунт</button>
-        `;
-    } else {
-        html += `<p style="color:var(--text-secondary); text-align:center;">Гостевой режим — настройки ограничены</p>`;
-    }
-
-    content.innerHTML = html;
-}
-
 function updateCitySelectInSettings() {
     const region = document.getElementById('settingsRegion').value;
     const citySelect = document.getElementById('settingsCity');
