@@ -1014,6 +1014,15 @@ tg.setBackgroundColor('#000000');
         if (tg.initDataUnsafe?.user) {
             const user = tg.initDataUnsafe.user;
             currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
+            if (currentUser) {
+    // ... существующий код статистики и города ...
+    database.ref(`users/${currentUser.id}/nickname`).once('value').then(snap => {
+        if (snap.exists()) {
+            currentUser.nickname = snap.val();
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+        }
+    });
+}
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
             // Показать обучение, если ещё не видели
             if (!localStorage.getItem('onboardingSeen')) {
@@ -1486,7 +1495,7 @@ function submitParkingWithPolygon() {
             authorName: currentUser.firstName,
             authorUsername: currentUser.username,
             lastUpdatedAt: Date.now(),
-            lastUpdatedBy: currentUser.firstName,
+            lastUpdatedBy: currentUser.nickname,
             timestamp: Date.now(),
             status: 'unknown'
         };
@@ -1743,7 +1752,7 @@ function changeOccupancy(delta) {
     database.ref(`parkings/${currentParkingId}`).update({
         occupiedSpots: newOcc,
         lastUpdatedAt: now,
-        lastUpdatedBy: currentUser.firstName
+        lastUpdatedBy: currentUser.nickname
     }).then(() => {
         return database.ref(`parkings/${currentParkingId}/history`).push({
             action: delta < 0 ? 'freed' : 'occupied',
@@ -2367,7 +2376,7 @@ function renderProfile(content) {
                     <div class="profile-header">
                         <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div>
                         <div class="profile-name">${currentUser.firstName}</div>
-                        <div class="profile-username">@${currentUser.username}</div>
+                        <div class="profile-username">@${currentUser.nickname || currentUser.username}</div>
                         ${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}
                     </div>
                 </div>`;
@@ -2553,6 +2562,12 @@ function renderSettings() {
                 <button class="btn-secondary" style="margin-top:8px;" onclick="saveCityFromSettings()">💾 Сохранить город</button>
             </div>
 
+            <div class="form-group" style="margin-top:16px;">
+                <label>👤 Никнейм</label>
+                <input type="text" id="settingsNickname" class="input-field" placeholder="Придумайте никнейм" value="${currentUser.nickname || ''}">
+                <button class="btn-secondary" style="margin-top:8px;" onclick="saveNickname()">💾 Сохранить никнейм</button>
+            </div>
+
             <div class="car-section">
                 <div class="car-section-title">🚗 Мой автомобиль</div>
                 <button class="btn-secondary" onclick="editCarDataFromSettings()">✏️ Редактировать данные авто</button>
@@ -2567,7 +2582,20 @@ function renderSettings() {
 
     content.innerHTML = html;
 }
-
+function saveNickname() {
+    if (!currentUser) return;
+    const newNick = document.getElementById('settingsNickname')?.value.trim();
+    if (!newNick) { alert('Введите никнейм'); return; }
+    database.ref(`users/${currentUser.id}/nickname`).set(newNick)
+    .then(() => {
+        currentUser.nickname = newNick;
+        localStorage.setItem('tgUser', JSON.stringify(currentUser));
+        alert('Никнейм сохранён!');
+        closeSettings();
+        renderProfile(document.getElementById('panelContent'));
+    })
+    .catch(err => alert('Ошибка: ' + err.message));
+}
 function updateCitySelectInSettings() {
     const region = document.getElementById('settingsRegion').value;
     const citySelect = document.getElementById('settingsCity');
@@ -2610,7 +2638,20 @@ function resetOnboarding() {
     closeSettings();
     showOnboarding();
 }
-
+function saveNickname() {
+    if (!currentUser) return;
+    const newNick = document.getElementById('settingsNickname')?.value.trim();
+    if (!newNick) { alert('Введите никнейм'); return; }
+    database.ref(`users/${currentUser.id}/nickname`).set(newNick)
+    .then(() => {
+        currentUser.nickname = newNick;
+        localStorage.setItem('tgUser', JSON.stringify(currentUser));
+        alert('Никнейм сохранён!');
+        closeSettings();
+        renderProfile(document.getElementById('panelContent'));
+    })
+    .catch(err => alert('Ошибка: ' + err.message));
+}
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
     if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
