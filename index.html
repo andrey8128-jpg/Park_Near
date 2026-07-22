@@ -1454,7 +1454,7 @@ function submitParkingWithPolygon() {
     const centerLat = coordsToSave.reduce((s, c) => s + c[0], 0) / coordsToSave.length;
     const centerLng = coordsToSave.reduce((s, c) => s + c[1], 0) / coordsToSave.length;
 
- // Формируем название парковки (без "Парковка на...")
+    // Формируем название парковки (без "Парковка на...")
     const fullStreet = streetType && streetName ? `${streetType} ${streetName}` : (streetName || '');
     let name = fullStreet;
     if (houseNumber) {
@@ -1485,7 +1485,7 @@ function submitParkingWithPolygon() {
             coordinates: coordsToSave,
             totalSpots,
             occupiedSpots: 0,
-            name,                    // <-- имя из введённых данных
+            name,
             isPaid,
             address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
             region: parsed.region,
@@ -1496,7 +1496,7 @@ function submitParkingWithPolygon() {
             authorName: currentUser.firstName,
             authorUsername: currentUser.username,
             lastUpdatedAt: Date.now(),
-            lastUpdatedBy: currentUser.nickname,
+            lastUpdatedBy: currentUser.nickname || currentUser.firstName,
             timestamp: Date.now(),
             status: 'unknown'
         };
@@ -1512,6 +1512,12 @@ function submitParkingWithPolygon() {
             addMarkerToMap(newRef.key, parkingData);
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
             window.newParkingCoords = null;
+            
+            // Автоматически обновляем поиск, если панель поиска активна
+            if (document.getElementById('searchResults')) {
+                filterParkings();
+            }
+            
             closePanel(); showMap();
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -1536,12 +1542,15 @@ function submitParkingWithPolygon() {
             authorId: currentUser.id,
             authorName: currentUser.firstName,
             authorUsername: currentUser.username,
+            lastUpdatedAt: Date.now(),
+            lastUpdatedBy: currentUser.nickname || currentUser.firstName,
             timestamp: Date.now(),
             status: 'unknown'
         };
         const newRef = database.ref('parkings').push();
         return newRef.set(parkingData).then(() => {
-            database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
+            database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
+                .transaction(count => (count || 0) + 1);
             database.ref(`parkings/${newRef.key}/history`).push({
                 action: 'created', timestamp: Date.now(), userId: currentUser.id,
                 username: currentUser.username
@@ -1549,9 +1558,12 @@ function submitParkingWithPolygon() {
             addMarkerToMap(newRef.key, parkingData);
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
             window.newParkingCoords = null;
+            
             // Автоматически обновляем поиск, если панель поиска активна
-if (document.getElementById('searchResults')) {
-    filterParkings();
+            if (document.getElementById('searchResults')) {
+                filterParkings();
+            }
+            
             closePanel(); showMap();
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
