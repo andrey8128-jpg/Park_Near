@@ -922,6 +922,7 @@ let currentParkingId = null;
 let currentParkingData = null;
 let originalPolyCoords = null;
 let editingParkingId = null;
+let editingPolygon = null;
 let parkingDataCache = {};
 let highlightedParkings = {};
 let lastClickTime = 0;
@@ -2295,8 +2296,8 @@ function searchNearMe() {
 function clearFilters() {
     nearbySearchFilter = null;
     userLocationForSearch = null;
-    document.getElementById('regionSelect').value = '';
-    document.getElementById('citySelect').value = '';
+    if (document.getElementById('regionSelect')) document.getElementById('regionSelect').value = '';
+    if (document.getElementById('citySelect')) document.getElementById('citySelect').value = '';
     document.getElementById('searchInput').value = '';
     document.getElementById('radiusSlider').value = 1;
     document.getElementById('radiusLabel').textContent = '1 км';
@@ -2405,7 +2406,6 @@ return dist <= radius;
     const sortBy = document.getElementById('sortSelect')?.value || 'name';
     switch(sortBy) {
         case 'free':
-            parkings.sort((a,b) => (b.totalSpots - (b.occupiedSpots||0)) - (a.totalSpots - (a.occupiedSpots||0)));
             break;
         case 'distance':
             if (userLocationForSearch) {
@@ -2535,9 +2535,6 @@ setTimeout(() => {
 clearInterval(interval);
 marker.options.set({ fillColor: origFillColor, strokeColor: origStrokeColor });
 }, 3000);
-}
-openParkingSheet(parkingId, data);
-closePanel();
 }
 
 // ===================== ПРОФИЛЬ =====================
@@ -2841,6 +2838,9 @@ function saveNickname() {
         renderProfile(document.getElementById('panelContent'));
     })
     .catch(err => alert('Ошибка: ' + err.message));
+}
+function editCarData() {
+    alert('Редактирование автомобиля временно недоступно');
 }
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
