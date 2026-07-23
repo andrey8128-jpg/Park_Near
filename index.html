@@ -381,7 +381,7 @@ left: 2px; bottom: 2px; background-color: white;
 transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 #settingsThemeToggle:checked + .theme-slider {
-    background-color: #34C759;
+    background-color: #007AFF;
 }
 .car-section {
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
@@ -1234,8 +1234,16 @@ tg.setBackgroundColor('#000000');
             else { userCityPrefs = { region: '', city: '' }; }
         });
     }
-    const savedTheme = localStorage.getItem('darkTheme');
-    if (savedTheme === 'true') document.body.classList.add('dark-theme');
+   const savedTheme = localStorage.getItem('darkTheme');
+if (savedTheme === '1' || savedTheme === 'true') {
+    document.body.classList.add('dark-theme');
+    // Применяем фильтр карты сразу при загрузке
+    setTimeout(() => {
+        const mapEl = document.getElementById('map');
+        if (mapEl && map && map.getType() === 'yandex#map') {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        }
+    }, 1500);
 }
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
@@ -3227,16 +3235,49 @@ function showOnboarding() {
 
     renderSlide();
 }
-    // ===================== НАСТРОЙКИ =====================
+// ===================== НАСТРОЙКИ =====================
 function toggleTheme() {
     const isDark = document.body.classList.toggle('dark-theme');
-    localStorage.setItem('darkTheme', isDark);
+    
+    // Сохраняем явно как строку "1" или "0"
+    localStorage.setItem('darkTheme', isDark ? '1' : '0');
+    
+    // Обновляем цвета Telegram WebApp
+    if (window.Telegram?.WebApp) {
+        try {
+            const tg = window.Telegram.WebApp;
+            if (isDark) {
+                tg.setHeaderColor('#1C1C1E');
+                tg.setBackgroundColor('#000000');
+            } else {
+                tg.setHeaderColor('#F2F2F7');
+                tg.setBackgroundColor('#FFFFFF');
+            }
+        } catch(e) { /* игнорируем ошибки Telegram API */ }
+    }
+    
+    // Обновляем фильтр карты
+    const mapEl = document.getElementById('map');
+    if (mapEl) {
+        if (isDark && map && map.getType() === 'yandex#map') {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        } else {
+            mapEl.style.filter = 'none';
+        }
+    }
+    
+    // Вибрация
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+}
     const mapEl = document.getElementById('map');
     if (isDark && map && map.getType() === 'yandex#map') {
         mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
     } else if (mapEl) {
         mapEl.style.filter = 'none';
     }
+    
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
