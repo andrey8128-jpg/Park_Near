@@ -2501,19 +2501,6 @@ function focusMap(lat, lng, parkingId) {
         }
     }, 350); // задержка должна быть не меньше 300–350 мс
 }
-        // Показать информацию о парковке
-        const data = parkingDataCache[parkingId];
-        if (data) {
-            openParkingSheet(parkingId, data);
-        }
-    }, 300);
-}
-    // Открываем балун с информацией о парковке
-    const data = parkingDataCache[parkingId];
-    if (data) {
-        openParkingSheet(parkingId, data);
-    }
-}
 function highlightAndShowParking(parkingId) {
 const data = parkingDataCache[parkingId];
 if (!data) return;
