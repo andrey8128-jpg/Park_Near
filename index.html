@@ -369,7 +369,11 @@ padding: 16px; background: var(--bg-secondary); border-radius: 16px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
 }
 .theme-toggle-label { font-size: 16px; font-weight: 600; }
-.theme-switch { position: relative; width: 51px; height: 31px; }
+.theme-switch { 
+    position: relative;
+    width: 51px; 
+    height: 31px; 
+}
 .theme-switch input { opacity: 0; width: 0; height: 0; }
 .theme-slider {
 position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -382,6 +386,9 @@ transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 #settingsThemeToggle:checked + .theme-slider {
     background-color: #007AFF;
+}
+#settingsThemeToggle:checked + .theme-slider:before {
+    transform: translateX(20px);
 }
 .car-section {
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
