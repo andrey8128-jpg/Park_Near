@@ -64,18 +64,13 @@ display: none; flex-direction: column; overflow: hidden; z-index: 901;
 }
 .layer-menu.active { display: flex; }
 .layer-option {
-padding: 14px 16px; font-size: 15px; font-weight: 500;
+padding: 12px 16px; font-size: 14px; font-weight: 500;
 cursor: pointer; border-bottom: 0.5px solid var(--border-color);
 white-space: nowrap; color: var(--text-primary);
-background: transparent; border: none; width: 100%; text-align: left;
-transition: background 0.15s;
 }
 .layer-option:last-child { border-bottom: none; }
 .layer-option:active { background: var(--bg-primary); }
-.layer-option.selected {
-color: var(--accent); font-weight: 600;
-background: rgba(0,122,255,0.06);
-}
+.layer-option.selected { color: var(--accent); font-weight: 600; }
 #geoBtn {
 position: fixed; bottom: 170px; right: 20px; z-index: 900;
 width: 48px; height: 48px; border-radius: 50%;
@@ -96,233 +91,100 @@ transition: transform 0.2s, box-shadow 0.2s;
 }
 #addBtn:active { transform: scale(0.9); box-shadow: 0 4px 12px rgba(0,122,255,0.4); }
 #addBtn.drawing { background: var(--orange); }
-
-/* ============================================
-   ЕДИНАЯ ДИЗАЙН-СИСТЕМА КНОПОК
-   ============================================ */
-.btn {
-display: inline-flex; align-items: center; justify-content: center;
-gap: 8px; border: none; border-radius: 14px;
-font-family: inherit; font-weight: 600; font-size: 16px;
-letter-spacing: -0.2px; cursor: pointer;
-transition: all 0.2s ease;
--webkit-tap-highlight-color: transparent;
-user-select: none; white-space: nowrap;
-position: relative; overflow: hidden;
-}
-.btn:active { transform: scale(0.97); opacity: 0.85; }
-.btn:disabled { opacity: 0.5; pointer-events: none; }
-
-.btn-primary {
-width: 100%; padding: 16px 24px;
-background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
-color: #fff;
-box-shadow: 0 4px 14px rgba(0,122,255,0.35);
-margin-top: 8px;
-}
-.btn-primary:active { box-shadow: 0 2px 8px rgba(0,122,255,0.25); }
-
-.btn-secondary {
-width: 100%; padding: 14px 20px;
-background: transparent; color: var(--accent);
-border: 1.5px solid var(--accent);
-margin-top: 8px;
-}
-.btn-secondary:active { background: rgba(0,122,255,0.08); }
-
-.btn-danger {
-width: 100%; padding: 16px 24px;
-background: rgba(255,59,48,0.1);
-color: #FF3B30;
-border: 1.5px solid rgba(255,59,48,0.3);
-margin-top: 24px;
-}
-.btn-danger:active { background: rgba(255,59,48,0.2); }
-
-.btn-outline {
-width: 100%; padding: 14px 20px;
-background: transparent; color: var(--text-secondary);
-border: 1.5px solid var(--border-color);
-margin-top: 8px;
-}
-.btn-outline:active { background: var(--bg-primary); }
-
-.btn-ghost {
-padding: 10px; background: transparent;
-color: var(--accent); border-radius: 50%;
-}
-.btn-ghost:active { background: rgba(0,122,255,0.1); }
-
-.telegram-btn {
-width: 100%; padding: 16px 24px;
-background: linear-gradient(135deg, #2AABEE 0%, #229ED9 100%);
-color: #fff;
-box-shadow: 0 4px 14px rgba(42,171,238,0.35);
-margin-top: 12px;
-}
-
-.guest-btn {
-width: 100%; padding: 16px 24px;
-background: var(--bg-secondary); color: var(--accent);
-border: 1.5px solid var(--accent);
-box-shadow: var(--card-shadow);
-margin-top: 12px;
-}
-
-.preset-btn {
-padding: 8px 16px; border-radius: 20px;
-background: var(--bg-secondary); color: var(--text-primary);
-border: 1.5px solid var(--border-color);
-font-size: 13px; font-weight: 500;
-cursor: pointer; transition: 0.2s;
-}
-.preset-btn:active, .preset-btn.active {
-background: var(--accent); color: #fff;
-border-color: var(--accent);
-}
-
-.counter-btn {
-width: 48px; height: 48px; border-radius: 50%;
-background: var(--bg-secondary); color: var(--text-primary);
-border: 1.5px solid var(--border-color);
-font-size: 24px; font-weight: 600;
-display: flex; align-items: center; justify-content: center;
-padding: 0; box-shadow: var(--card-shadow);
-cursor: pointer; transition: all 0.2s;
-}
-.counter-btn:active { background: var(--bg-primary); transform: scale(0.95); }
-.counter-btn.minus { color: #FF3B30; border-color: rgba(255,59,48,0.3); }
-.counter-btn.plus { color: #34C759; border-color: rgba(52,199,89,0.3); }
-
-.btn-finish {
-background: #34C759 !important; color: #fff !important;
-padding: 12px 24px; border-radius: 14px;
-box-shadow: 0 4px 14px rgba(52,199,89,0.35);
-}
-.btn-cancel {
-background: #FF3B30 !important; color: #fff !important;
-padding: 12px 24px; border-radius: 14px;
-box-shadow: 0 4px 14px rgba(255,59,48,0.35);
-}
-
-.address-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
-.address-toggle button {
-flex: 1; padding: 12px 16px; border-radius: 12px;
-border: 1.5px solid var(--border-color);
-background: var(--bg-secondary); color: var(--text-primary);
-font-weight: 500; font-size: 15px;
-cursor: pointer; transition: all 0.2s;
-}
-.address-toggle button.active {
-border-color: var(--accent); background: var(--accent); color: #fff;
-box-shadow: 0 4px 14px rgba(0,122,255,0.3);
-}
-.address-toggle button:active { transform: scale(0.96); }
-
-.icon-btn {
-width: 36px; height: 36px; border-radius: 50%;
-background: transparent; border: none;
-color: var(--accent);
-display: flex; align-items: center; justify-content: center;
-cursor: pointer; transition: all 0.2s; padding: 0;
-}
-.icon-btn:active {
-background: rgba(0,122,255,0.1); transform: scale(0.9);
-}
-.icon-btn svg { width: 22px; height: 22px; stroke: currentColor; }
-
-.settings-btn {
-width: 40px; height: 40px; border-radius: 50%;
-background: var(--bg-primary); border: none;
-display: flex; align-items: center; justify-content: center;
-cursor: pointer; font-size: 20px;
-transition: all 0.2s; color: var(--text-secondary);
-}
-.settings-btn:active {
-transform: rotate(90deg) scale(0.9);
-background: var(--border-color);
-}
-
-/* Кнопки закрытия (единый стиль) */
-.panel-close, .sheet-close, .route-close {
-width: 36px; height: 36px; border-radius: 50%;
-background: transparent !important; border: none;
-color: var(--accent);
-display: flex; align-items: center; justify-content: center;
-cursor: pointer; padding: 0; margin: 0;
-transition: all 0.2s;
--webkit-tap-highlight-color: transparent;
-}
-.panel-close:active, .sheet-close:active, .route-close:active {
-background: rgba(0,122,255,0.1) !important;
-transform: scale(0.9);
-}
-.panel-close svg, .sheet-close svg, .route-close svg {
-width: 22px; height: 22px; stroke: currentColor;
-}
-.sheet-close, .route-close { color: var(--text-secondary); }
-
-/* ============================================
-   TAB BAR (стиль как на фото)
-   ============================================ */
+/* ====== TAB BAR  ====== */
 .tabBar {
-position: fixed; bottom: 16px; left: 50%;
+position: fixed;
+bottom: 16px;
+left: 50%;
 transform: translateX(-50%);
-width: calc(100% - 32px); max-width: 420px;
+width: calc(100% - 32px);
+max-width: 420px;
 height: 64px;
 background: #3A3A3C;
 border-radius: 32px;
 z-index: 2001;
-display: flex; align-items: center; justify-content: space-around;
+display: flex;
+align-items: center;
+justify-content: space-around;
 padding: 0 8px;
 box-shadow:
 0 8px 32px rgba(0, 0, 0, 0.25),
 0 2px 8px rgba(0, 0, 0, 0.15);
 }
+
 body.dark-theme .tabBar {
 background: #2C2C2E;
 box-shadow:
 0 8px 32px rgba(0, 0, 0, 0.5),
 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
 .tab {
-flex: 1; display: flex; flex-direction: column;
-align-items: center; justify-content: center;
-cursor: pointer; padding: 8px 0 4px;
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+padding: 8px 0 4px;
 border-radius: 16px;
 transition: all 0.3s ease;
-position: relative; height: 100%;
+position: relative;
+height: 100%;
 }
+
+/* Иконка */
 .tab .icon {
-width: 28px; height: 28px;
-display: flex; align-items: center; justify-content: center;
+width: 28px;
+height: 28px;
+display: flex;
+align-items: center;
+justify-content: center;
 transition: all 0.3s ease;
-position: relative; z-index: 2;
+position: relative;
+z-index: 2;
 }
+
 .tab .icon svg {
-width: 24px; height: 24px;
+width: 24px;
+height: 24px;
 fill: #8E8E93;
 transition: fill 0.3s ease, transform 0.3s ease;
 }
+
+/* Подпись */
 .tab .label {
-font-size: 10px; color: #8E8E93; font-weight: 500;
+font-size: 10px;
+color: #8E8E93;
+font-weight: 500;
 transition: color 0.3s ease;
 margin-top: 2px;
-position: relative; z-index: 2;
+position: relative;
+z-index: 2;
 }
-/* Активная вкладка — эффект spotlight */
+
+/* ====== АКТИВНАЯ ВКЛАДКА — ЭФФЕКТ SPOTLIGHT ====== */
 .tab.active::before {
-content: ''; position: absolute; top: 0; left: 50%;
+content: '';
+position: absolute;
+top: 0;
+left: 50%;
 transform: translateX(-50%);
-width: 32px; height: 4px;
+width: 32px;
+height: 4px;
 background: #FFFFFF;
 border-radius: 0 0 4px 4px;
 z-index: 3;
 }
+
 .tab.active::after {
-content: ''; position: absolute; top: 4px; left: 50%;
+content: '';
+position: absolute;
+top: 4px;
+left: 50%;
 transform: translateX(-50%);
-width: 60px; height: 50px;
+width: 60px;
+height: 50px;
 background: linear-gradient(
 180deg,
 rgba(255, 255, 255, 0.35) 0%,
@@ -331,73 +193,93 @@ rgba(255, 255, 255, 0.05) 60%,
 transparent 100%
 );
 clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
-z-index: 1; pointer-events: none;
+z-index: 1;
+pointer-events: none;
 }
-.tab.active .icon svg { fill: #FFFFFF; transform: scale(1.1); }
-.tab.active .label { color: #FFFFFF; font-weight: 600; }
-.tab:active { transform: scale(0.92); }
-.tab:active .icon svg { fill: #FFFFFF; }
 
-/* ============================================
-   ПАНЕЛИ
-   ============================================ */
+.tab.active .icon svg {
+fill: #FFFFFF;
+transform: scale(1.1);
+}
+
+.tab.active .label {
+color: #FFFFFF;
+font-weight: 600;
+}
+
+/* Нажатие */
+.tab:active {
+transform: scale(0.92);
+}
+
+.tab:active .icon svg {
+fill: #FFFFFF;
+}
 .panel {
-position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-background: var(--bg-primary);
-z-index: 2000;
-transform: translateY(100%);
-transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-display: flex; flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;   /* отступ снизу, чтобы не перекрывать таб-бар */
+    background: var(--bg-primary);
+    z-index: 2000;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    display: flex;
+    flex-direction: column;
 }
-.panel.active { transform: translateY(0); }
+.panel.active {
+    transform: translateY(0);
+}
 .panel-content {
-flex: 1; overflow-y: auto;
-padding: 20px;
-padding-bottom: calc(20px + 72px + 16px);
--webkit-overflow-scrolling: touch;
-overscroll-behavior: contain;
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    padding-bottom: calc(20px + 72px + 16px);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
-.panel-content::-webkit-scrollbar { width: 4px; }
-.panel-content::-webkit-scrollbar-track { background: transparent; }
-.panel-content::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 2px; }
-
-.panel-header {
-position: relative; display: flex; align-items: center; justify-content: center;
-height: 56px; padding-top: env(safe-area-inset-top);
-background: var(--bg-primary);
+.btn-primary {
+width: 100%; padding: 16px; border-radius: 14px; border: none;
+background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
+cursor: pointer; margin-top: 8px; transition: background 0.2s;
+box-shadow: 0 2px 8px rgba(0,122,255,0.3);
 }
-.panel-title {
-font-size: 17px; font-weight: 700; color: var(--text-primary);
-text-align: center; letter-spacing: -0.3px;
+.btn-primary:active { background: #0051D5; }
+.btn-primary:disabled { opacity: 0.6; }
+.btn-danger {
+width: 100%; padding: 16px; border-radius: 14px;
+border: 1px solid var(--red); font-size: 16px; font-weight: 600;
+cursor: pointer; color: var(--red); background: transparent; margin-top: 24px;
 }
-
-/* ============================================
-   ФОРМЫ
-   ============================================ */
+.btn-danger:active { background: rgba(255,59,48,0.1); }
+.btn-secondary {
+width: 100%; padding: 14px; border-radius: 14px;
+border: 1px solid var(--accent); font-size: 15px; font-weight: 600;
+cursor: pointer; color: var(--accent); background: transparent; margin-top: 8px;
+}
+.btn-secondary:active { background: rgba(0,122,255,0.1); }
+.telegram-btn, .guest-btn {
+width: 100%; padding: 16px; border-radius: 14px; border: none;
+font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px;
+}
+.telegram-btn { background: #0088cc; color: #fff; }
+.telegram-btn:active { background: #006699; }
+.guest-btn { background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent); }
+.guest-btn:active { background: var(--bg-primary); }
 .form-group { margin-bottom: 16px; }
-.form-group label {
-display: block; font-size: 13px; color: var(--text-secondary);
-margin-bottom: 6px; font-weight: 500;
-}
+.form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
 .input-field {
 width: 100%; padding: 12px 16px; border-radius: 12px;
 border: 1px solid var(--input-border); background: var(--input-bg);
 color: var(--text-primary); font-size: 16px;
 outline: none; transition: border-color 0.2s; font-family: inherit;
 }
-.input-field:focus {
-border-color: var(--accent);
-box-shadow: 0 0 0 3px rgba(0,122,255,0.2);
-}
+.input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,122,255,0.2); }
 select.input-field {
-appearance: none;
-background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
 background-repeat: no-repeat; background-position: right 16px center;
 }
-
-/* ============================================
-   СПИСКИ
-   ============================================ */
 .list-container { display: flex; flex-direction: column; gap: 12px; }
 .list-item {
 background: var(--bg-secondary); padding: 16px; border-radius: 16px;
@@ -406,53 +288,24 @@ box-shadow: var(--card-shadow); cursor: pointer;
 transition: transform 0.1s;
 }
 .list-item:active { transform: scale(0.98); }
-.list-icon {
-font-size: 24px; width: 40px; height: 40px;
-display: flex; align-items: center; justify-content: center;
-background: var(--bg-primary); border-radius: 50%;
-}
+.list-icon { font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border-radius: 50%; }
 .list-info { flex: 1; }
 .list-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
 .list-subtitle { font-size: 13px; color: var(--text-secondary); }
-
-.empty-state, .loading-state {
-text-align: center; padding: 60px 20px; color: var(--text-secondary);
-}
+.empty-state, .loading-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
 .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-
-/* ============================================
-   СПИННЕР
-   ============================================ */
 .spinner {
-width: 32px; height: 32px;
-border: 3px solid var(--bg-primary);
-border-top-color: var(--accent);
-border-radius: 50%;
-animation: spin 0.8s linear infinite;
-margin: 0 auto 16px;
+width: 32px; height: 32px; border: 3px solid var(--bg-primary);
+border-top-color: var(--accent); border-radius: 50%;
+animation: spin 0.8s linear infinite; margin: 0 auto 16px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* ============================================
-   ПРОФИЛЬ
-   ============================================ */
 .profile-header { text-align: center; padding: 20px 0 30px; }
 .profile-avatar { font-size: 64px; margin-bottom: 12px; }
-.profile-avatar img {
-width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
-}
+.profile-avatar img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
 .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 .profile-username { font-size: 15px; color: var(--text-secondary); }
-.badge {
-display: inline-block; padding: 4px 10px;
-background: var(--accent); color: #fff;
-border-radius: 20px; font-size: 12px; font-weight: 600;
-margin-top: 8px;
-}
-
-/* ============================================
-   КАРТА: ПОДСКАЗКИ
-   ============================================ */
+.badge { display: inline-block; padding: 4px 10px; background: var(--accent); color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 8px; }
 .map-hint {
 position: fixed; top: 54px; left: 50%; transform: translateX(-50%);
 background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px;
@@ -460,10 +313,6 @@ border-radius: 20px; font-size: 14px; z-index: 800;
 animation: fadeInOut 3s ease-in-out; white-space: nowrap;
 }
 @keyframes fadeInOut { 0%,100%{opacity:0;} 20%,80%{opacity:1;} }
-
-/* ============================================
-   ЗАГРУЖЕННОСТЬ ПАРКОВКИ
-   ============================================ */
 .occupancy-header { text-align: center; padding: 10px 0 20px; }
 .occupancy-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
 .occupancy-stats { display: flex; gap: 12px; margin-bottom: 20px; }
@@ -480,61 +329,76 @@ padding: 16px; text-align: center; box-shadow: var(--card-shadow);
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 box-shadow: var(--card-shadow); transition: background 0.3s;
 }
-.occupancy-control label {
-display: block; font-size: 14px; font-weight: 600;
-margin-bottom: 12px; text-align: center;
-}
+.occupancy-control label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 12px; text-align: center; }
 .counter-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
+.counter-btn {
+width: 48px; height: 48px; border-radius: 50%;
+border: 1px solid var(--input-border); background: var(--bg-secondary);
+color: var(--text-primary); font-size: 24px; font-weight: 600; cursor: pointer;
+display: flex; align-items: center; justify-content: center;
+transition: background 0.2s, transform 0.1s;
+}
+.counter-btn:active { background: var(--bg-primary); transform: scale(0.95); }
+.counter-btn.minus { color: var(--red); border-color: var(--red); }
+.counter-btn.plus { color: var(--green); border-color: var(--green); }
 .counter-value { font-size: 32px; font-weight: 700; min-width: 60px; text-align: center; }
-.progress-bar {
-height: 8px; background: var(--bg-primary);
-border-radius: 4px; margin: 16px 0; overflow: hidden;
-}
-.progress-fill {
-height: 100%; border-radius: 4px;
-transition: width 0.3s, background 0.3s;
-}
-.occupancy-dot {
-width: 12px; height: 12px; border-radius: 50%;
-display: inline-block; margin-right: 8px; flex-shrink: 0;
-}
-
-/* ============================================
-   РИСОВАНИЕ ЗОНЫ
-   ============================================ */
+.progress-bar { height: 8px; background: var(--bg-primary); border-radius: 4px; margin: 16px 0; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s, background 0.3s; }
 .drawing-controls {
-position: fixed; bottom: 120px; left: 50%;
-transform: translateX(-50%); z-index: 900;
-display: flex; gap: 12px;
-background: rgba(255, 255, 255, 0.8);
-backdrop-filter: blur(20px);
--webkit-backdrop-filter: blur(20px);
-padding: 12px 20px; border-radius: 20px;
-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-border: 0.5px solid rgba(0, 0, 0, 0.1);
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 900;
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 20px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 0.5px solid rgba(0, 0, 0, 0.1);
 }
 body.dark-theme .drawing-controls {
-background: rgba(28, 28, 30, 0.8);
-border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(28, 28, 30, 0.8);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 .drawing-controls button {
-padding: 12px 24px; border-radius: 14px; border: none;
-font-size: 15px; font-weight: 600; cursor: pointer;
-box-shadow: none; transition: all 0.2s;
-background: transparent; color: var(--text-primary);
+    padding: 12px 24px;
+    border-radius: 14px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text-primary);
 }
-.drawing-controls button:active { transform: scale(0.96); opacity: 0.8; }
-
-/* ============================================
-   ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ
-   ============================================ */
+.btn-finish {
+    background: var(--green);
+    color: #fff !important;
+}
+.btn-cancel {
+    background: var(--red);
+    color: #fff !important;
+}
+.drawing-controls button:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+}
 .theme-toggle-row {
 display: flex; align-items: center; justify-content: space-between;
 padding: 16px; background: var(--bg-secondary); border-radius: 16px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
 }
 .theme-toggle-label { font-size: 16px; font-weight: 600; }
-.theme-switch { position: relative; width: 51px; height: 31px; }
+.theme-switch { 
+    position: relative;
+    width: 51px; 
+    height: 31px; 
+}
 .theme-switch input { opacity: 0; width: 0; height: 0; }
 .theme-slider {
 position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -543,15 +407,14 @@ background-color: #E5E5EA; transition: .3s; border-radius: 31px;
 .theme-slider:before {
 position: absolute; content: ""; height: 27px; width: 27px;
 left: 2px; bottom: 2px; background-color: white;
-transition: .3s; border-radius: 50%;
-box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
-#settingsThemeToggle:checked + .theme-slider { background-color: #007AFF; }
-#settingsThemeToggle:checked + .theme-slider:before { transform: translateX(20px); }
-
-/* ============================================
-   АВТОМОБИЛЬ
-   ============================================ */
+#settingsThemeToggle:checked + .theme-slider {
+    background-color: #007AFF;
+}
+#settingsThemeToggle:checked + .theme-slider:before {
+    transform: translateX(20px);
+}
 .car-section {
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
@@ -562,82 +425,44 @@ margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
 }
 .car-summary {
 display: flex; align-items: center; justify-content: space-between;
-padding: 16px; background: var(--bg-primary); border-radius: 12px;
-margin-bottom: 12px;
+padding: 16px; background: var(--bg-primary); border-radius: 12px; margin-bottom: 12px;
 }
 .car-summary-info { flex: 1; }
 .car-summary-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
 .car-summary-subtitle { font-size: 13px; color: var(--text-secondary); }
 .car-summary-color {
 width: 32px; height: 32px; border-radius: 50%;
-border: 2px solid var(--border-color);
-box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+border: 2px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-
-/* ============================================
-   СТАТУСЫ
-   ============================================ */
 .status-indicator {
-display: inline-block; width: 12px; height: 12px;
-border-radius: 50%; margin-right: 8px; vertical-align: middle;
+display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+margin-right: 8px; vertical-align: middle;
 }
 .status-free { background: var(--green); }
 .status-occupied { background: var(--red); }
 .status-unknown { background: var(--gray); }
-
-/* ============================================
-   РЕПУТАЦИЯ
-   ============================================ */
 .reputation-card {
-background: var(--bg-secondary); border-radius: 20px; padding: 20px;
+background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
 }
-.reputation-header {
-display: flex; align-items: center; justify-content: space-between;
-margin-bottom: 20px;
+.reputation-title {
+font-size: 17px; font-weight: 600; margin-bottom: 16px;
+cursor: pointer; display: flex; justify-content: space-between; align-items: center;
 }
-.rep-level-badge {
-background: linear-gradient(135deg, var(--accent), #5856D6);
-color: #fff; border-radius: 12px; padding: 6px 14px;
-font-weight: 600; font-size: 13px; letter-spacing: 0.5px;
-}
-.reputation-circle-container {
-display: flex; flex-direction: column; align-items: center;
-margin-bottom: 16px;
-}
-.progress-ring { transform: rotate(-90deg); }
-.progress-ring__circle-bg { fill: none; stroke: var(--bg-primary); stroke-width: 6; }
-.progress-ring__circle-fill {
-fill: none; stroke: url(#gradient); stroke-width: 6;
-stroke-linecap: round; transition: stroke-dashoffset 0.8s ease;
-}
-.rep-stats { display: flex; justify-content: space-around; margin-top: 12px; width: 100%; }
-.rep-stat { text-align: center; }
-.rep-stat-value { font-size: 18px; font-weight: 700; color: var(--text-primary); }
-.rep-stat-label {
-font-size: 11px; color: var(--text-secondary);
-text-transform: uppercase; letter-spacing: 0.3px;
-}
-.rep-xp-info {
-text-align: center; margin-top: 8px;
-font-size: 13px; color: var(--text-secondary);
-}
-
-/* ============================================
-   ДОМАШНЯЯ КАРТОЧКА
-   ============================================ */
+.reputation-body { transition: max-height 0.3s ease; overflow: hidden; }
+.reputation-body.collapsed { max-height: 0; }
+.reputation-mini { display: none; }
+.reputation-body.collapsed .reputation-mini { display: block; }
+.reputation-full { display: block; }
+.reputation-body.collapsed .reputation-full { display: none; }
+.reputation-circle { display: flex; justify-content: center; align-items: center; flex-direction: column; }
 .home-card {
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 margin-bottom: 20px; box-shadow: var(--card-shadow);
 }
-
-/* ============================================
-   СВАЙП
-   ============================================ */
 .swipe-container {
 position: relative; overflow: hidden; border-radius: 16px;
-background: var(--bg-secondary); box-shadow: var(--card-shadow);
-margin-bottom: 12px;
+background: var(--bg-secondary); box-shadow: var(--card-shadow); margin-bottom: 12px;
 }
 .swipe-item {
 position: relative; z-index: 2; background: var(--bg-secondary);
@@ -646,15 +471,9 @@ transition: transform 0.2s ease; will-change: transform;
 }
 .swipe-delete {
 position: absolute; top: 0; right: 0; bottom: 0; width: 80px;
-background: var(--red); color: white;
-display: flex; align-items: center; justify-content: center;
-font-weight: 600; font-size: 14px; z-index: 1;
-border-radius: 0 16px 16px 0; cursor: pointer;
+background: var(--red); color: white; display: flex; align-items: center; justify-content: center;
+font-weight: 600; font-size: 14px; z-index: 1; border-radius: 0 16px 16px 0; cursor: pointer;
 }
-
-/* ============================================
-   НИЖНИЙ ЛИСТ (BOTTOM SHEET)
-   ============================================ */
 .bottom-sheet {
 position: fixed; bottom: 0; left: 0; right: 0;
 background: var(--bg-secondary); border-radius: 20px 20px 0 0;
@@ -668,27 +487,25 @@ padding-bottom: env(safe-area-inset-bottom);
 display: flex; justify-content: center; align-items: center;
 padding: 8px 12px 4px; position: relative;
 }
-.sheet-handle {
-width: 40px; height: 5px; background: var(--gray);
-border-radius: 3px; cursor: pointer;
+.sheet-handle { width: 40px; height: 5px; background: var(--gray); border-radius: 3px; cursor: pointer; }
+.sheet-close {
+position: absolute; top: 8px; right: 12px;
+background: none; border: none; font-size: 24px;
+color: var(--text-secondary); cursor: pointer; line-height: 1; padding: 4px;
 }
 .sheet-content { padding: 0 20px 20px; overflow-y: auto; }
-
-/* ============================================
-   КАРТОЧКА МАРШРУТА
-   ============================================ */
 .route-card {
 position: fixed; bottom: 20px; left: 20px; right: 20px;
 background: var(--bg-secondary); border-radius: 20px; padding: 16px;
-box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 2500;
-display: none;
+box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 2500; display: none;
 }
 .route-card.active { display: block; }
+.route-close {
+position: absolute; top: 8px; right: 12px;
+background: none; border: none; font-size: 24px;
+color: var(--text-secondary); cursor: pointer; line-height: 1;
+}
 .route-actions { display: flex; gap: 8px; margin-top: 12px; }
-
-/* ============================================
-   ПОИСК
-   ============================================ */
 .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
 .search-bar input {
 flex: 1; padding: 10px 14px; border-radius: 12px;
@@ -700,123 +517,343 @@ color: var(--text-primary); font-size: 15px;
 background: var(--bg-secondary); border-radius: 16px; padding: 20px;
 margin-bottom: 16px; box-shadow: var(--card-shadow);
 }
-.city-pref-title { font-size: 17px; font-weight: 600; margin-bottom: 12px; }
+.city-pref-title {
+font-size: 17px; font-weight: 600; margin-bottom: 12px;
+}
 .city-pref-row { display: flex; gap: 12px; }
 .city-pref-row .form-group { flex: 1; }
-
-/* ============================================
-   ВЫБОР МЕТКИ
-   ============================================ */
 .label-picker-overlay {
-display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-background: rgba(0,0,0,0.5); z-index: 4000;
-align-items: center; justify-content: center;
+display: none;
+position: fixed;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.5);
+z-index: 4000;
+align-items: center;
+justify-content: center;
 }
 .label-picker-overlay.active { display: flex; }
 .label-picker-box {
-background: var(--bg-secondary); border-radius: 16px; padding: 24px;
-width: 90%; max-width: 340px;
+background: var(--bg-secondary);
+border-radius: 16px;
+padding: 24px;
+width: 90%;
+max-width: 340px;
 box-shadow: 0 20px 40px rgba(0,0,0,0.3);
 }
 .label-picker-box h3 { text-align: center; margin-bottom: 16px; font-weight: 600; }
 .label-picker-box .btn-secondary { margin-top: 8px; }
 .label-picker-box .label-options { display: flex; flex-direction: column; gap: 8px; }
-
-/* ============================================
-   ФОРМЫ АДРЕСА
-   ============================================ */
+.address-toggle {
+display: flex;
+gap: 8px;
+margin-bottom: 16px;
+}
+.address-toggle button {
+flex: 1;
+padding: 10px;
+border-radius: 12px;
+border: 1px solid var(--input-border);
+background: var(--bg-secondary);
+color: var(--text-primary);
+font-weight: 500;
+cursor: pointer;
+transition: all 0.2s;
+}
+.address-toggle button.active {
+border-color: var(--accent);
+background: var(--accent);
+color: #fff;
+}
+.address-toggle button:active { transform: scale(0.96); }
 .manual-address-form { display: none; }
 .manual-address-form.active { display: block; }
 .map-address-form { display: none; }
 .map-address-form.active { display: block; }
 
-/* Скрываем элементы Яндекс.Карт */
+/* Полностью скрываем все оригинальные элементы Яндекс.Карт */
 .ymaps-2-1-79-copyright,
 .ymaps-2-1-79-logo,
-.ymaps-2-1-79-conditions { bottom: 100px !important; }
-
-/* ============================================
-   ОНБОРДИНГ
-   ============================================ */
-.onboarding-icon { font-size: 60px; margin-bottom: 16px; }
+.ymaps-2-1-79-conditions {
+   bottom: 100px !important;
+}
+    /* Стили для онбординга */
+.onboarding-icon {
+    font-size: 60px;
+    margin-bottom: 16px;
+}
 .onboarding-title {
-font-size: 20px; font-weight: 700; margin-bottom: 8px;
-color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
 }
 .onboarding-text {
-font-size: 14px; color: var(--text-secondary); line-height: 1.5;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
 }
 .onboarding-dot {
-width: 8px; height: 8px; border-radius: 50%;
-background: var(--gray); transition: background 0.2s;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray);
+    transition: background 0.2s;
 }
 .onboarding-dot.active {
-background: var(--accent); width: 24px; border-radius: 4px;
+    background: var(--accent);
+    width: 24px;
+    border-radius: 4px;
 }
+    /* Подсветка элементов при обучении */
 .onboarding-highlight {
-position: relative; z-index: 5001 !important;
-box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5) !important;
-border-radius: 16px !important;
-animation: pulse 1.5s infinite;
+    position: relative;
+    z-index: 5001 !important;
+    box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5) !important;
+    border-radius: 16px !important;
+    animation: pulse 1.5s infinite;
 }
 @keyframes pulse {
-0% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
-50% { box-shadow: 0 0 0 8px var(--accent), 0 0 30px rgba(0,122,255,0.8); }
-100% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
+    0% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
+    50% { box-shadow: 0 0 0 8px var(--accent), 0 0 30px rgba(0,122,255,0.8); }
+    100% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
+}
+/* === НОВЫЙ ДИЗАЙН ЗАГОЛОВКА ПАНЕЛИ === */
+.panel-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Центрируем название */
+    height: 56px;
+    padding-top: env(safe-area-inset-top); /* Отступ под "челку" iPhone */
+    background: var(--bg-primary); /* Фон подстраивается под тему */
+}
+.panel-title { 
+    font-size: 17px; 
+    font-weight: 700; 
+    color: var(--text-primary); 
+    text-align: center; 
+    letter-spacing: -0.3px; 
+}
+.panel-close {
+    position: absolute; /* Вырываем из потока */
+    right: 12px; /* Прижимаем к правому краю */
+    top: 50%;
+    transform: translateY(-50%); /* Центрируем по вертикали */
+    
+    background: transparent !important; /* Убираем белый фон кнопки */
+    border: none;
+    padding: 8px;
+    margin: 0;
+    cursor: pointer;
+    color: var(--accent); /* Синий цвет крестика */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* ============================================
-   АНИМАЦИИ
-   ============================================ */
+.panel-close svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+}
+    /* ===== НОВЫЙ ДИЗАЙН РЕПУТАЦИИ ===== */
+.reputation-card {
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--card-shadow);
+}
+
+.reputation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.rep-level-badge {
+    background: linear-gradient(135deg, var(--accent), #5856D6);
+    color: #fff;
+    border-radius: 12px;
+    padding: 6px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.reputation-circle-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring__circle-bg {
+    fill: none;
+    stroke: var(--bg-primary);
+    stroke-width: 6;
+}
+
+.progress-ring__circle-fill {
+    fill: none;
+    stroke: url(#gradient);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s ease;
+}
+
+.rep-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 12px;
+    width: 100%;
+}
+
+.rep-stat {
+    text-align: center;
+}
+
+.rep-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.rep-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.rep-xp-info {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.panel-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    
+    .panel-content::-webkit-scrollbar { width: 4px; }
+.panel-content::-webkit-scrollbar-track { background: transparent; }
+.panel-content::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 2px; }
+}
+/* Анимация пульсации для маркера в поиске */
 .pulse-marker {
-animation: pulseAndScale 0.6s ease-in-out 3;
-transform-origin: center;
+    animation: pulseAndScale 0.6s ease-in-out 3;
+    transform-origin: center;
 }
 @keyframes pulseAndScale {
-0% { transform: scale(1); filter: brightness(1); }
-50% { transform: scale(1.4); filter: brightness(1.3) hue-rotate(20deg); }
-100% { transform: scale(1); filter: brightness(1); }
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.4); filter: brightness(1.3) hue-rotate(20deg); }
+    100% { transform: scale(1); filter: brightness(1); }
 }
-
-@keyframes gradientMove {
-0% { background-position:0% 50%; }
-50% { background-position:100% 50%; }
-100% { background-position:0% 50%; }
-}
-
-@keyframes logoPulse {
-0% { transform: scale(1); }
-50% { transform: scale(1.05); }
-100% { transform: scale(1); }
-}
-
-/* ============================================
-   ГРУППИРОВКА УЛИЦ
-   ============================================ */
+    /* Группировка улиц в поиске */
 .group-header {
-display: flex; align-items: center; gap: 8px;
-padding: 12px 14px; margin: 4px 0;
-background: var(--bg-secondary); border-radius: 12px;
-cursor: pointer; box-shadow: var(--card-shadow);
-font-weight: 600; font-size: 15px; color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    margin: 4px 0;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: var(--card-shadow);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
 }
-.group-header .group-icon { font-size: 18px; transition: transform 0.2s; }
-.group-header.collapsed .group-icon { transform: rotate(-90deg); }
-.group-items { margin-left: 16px; margin-bottom: 8px; }
+.group-header .group-icon {
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+.group-header.collapsed .group-icon {
+    transform: rotate(-90deg);
+}
+.group-items {
+    margin-left: 16px;
+    margin-bottom: 8px;
+}
+    @keyframes gradientMove {
+    0% { background-position:0% 50%; }
+    50% { background-position:100% 50%; }
+    100% { background-position:0% 50%; }
+}
+    .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes logoPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+    /* Индикатор загруженности */
+.occupancy-dot {
+    width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0;
+}
 
-/* ============================================
-   СЛАЙДЕР РАДИУСА
-   ============================================ */
+/* Стили слайдера */
 #radiusSlider {
--webkit-appearance: none; appearance: none;
-height: 4px; background: var(--border-color);
-border-radius: 2px; outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    outline: none;
 }
 #radiusSlider::-webkit-slider-thumb {
--webkit-appearance: none; appearance: none;
-width: 20px; height: 20px; border-radius: 50%;
-background: var(--accent); border: 2px solid #fff;
-box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+}
+
+/* Кнопки пресетов */
+.preset-btn {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--input-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.preset-btn:hover, .preset-btn:active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+/* Кнопка сброса */
+.btn-outline {
+    width: 100%; padding: 14px; border-radius: 14px;
+    border: 1px solid var(--gray);
+    font-size: 15px; font-weight: 500;
+    cursor: pointer; color: var(--text-secondary); background: transparent;
+    margin-top: 8px;
+}
+.btn-outline:active {
+    background: var(--bg-primary);
 }
 </style>
 </head>
