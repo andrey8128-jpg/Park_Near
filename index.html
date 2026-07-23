@@ -2471,32 +2471,36 @@ parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 function focusMap(lat, lng, parkingId) {
     closePanel();
-    map.setCenter([lat, lng], 18, { duration: 500 });
+    // Ждём завершения анимации закрытия панели (300 мс)
+    setTimeout(() => {
+        if (!map) return;
+        map.setCenter([lat, lng], 18, { duration: 500 });
 
-    const marker = mapMarkers[parkingId];
-    if (marker) {
-        // Анимация пульсации
-        const element = marker.getElement ? marker.getElement() : null;
-        if (element) {
-            element.classList.remove('pulse-marker');
-            void element.offsetWidth;
-            element.classList.add('pulse-marker');
-        } else {
-            const origFill = marker.options.get('fillColor');
-            const origStroke = marker.options.get('strokeColor');
-            marker.options.set({
-                fillColor: '#007AFF55',
-                strokeColor: '#007AFF'
-            });
-            setTimeout(() => {
-                marker.options.set({
-                    fillColor: origFill,
-                    strokeColor: origStroke
-                });
-            }, 1800);
+        // Подсветка маркера
+        const marker = mapMarkers[parkingId];
+        if (marker) {
+            const element = marker.getElement ? marker.getElement() : null;
+            if (element) {
+                element.classList.remove('pulse-marker');
+                void element.offsetWidth;
+                element.classList.add('pulse-marker');
+            } else {
+                const origFill = marker.options.get('fillColor');
+                const origStroke = marker.options.get('strokeColor');
+                marker.options.set({ fillColor: '#007AFF55', strokeColor: '#007AFF' });
+                setTimeout(() => {
+                    marker.options.set({ fillColor: origFill, strokeColor: origStroke });
+                }, 1800);
+            }
         }
-    }
 
+        // Показать информацию о парковке
+        const data = parkingDataCache[parkingId];
+        if (data) {
+            openParkingSheet(parkingId, data);
+        }
+    }, 300);
+}
     // Открываем балун с информацией о парковке
     const data = parkingDataCache[parkingId];
     if (data) {
