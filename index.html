@@ -1704,30 +1704,32 @@ alert('Границы обновлены');
 
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
 function openParkingSheet(parkingId, data) {
-const sheet = document.getElementById('parkingSheet'), content = document.getElementById('sheetContent');
-const addr = data.address || (data.lat && data.lng ? `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}` : 'Адрес не указан');
-const free = data.totalSpots - data.occupiedSpots;
-getUserLocation().then(coords => {
-const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-const distKm = (dist / 1000).toFixed(1);
-const driveTime = Math.round(dist / 500);
-content.innerHTML = `
-<h3>${data.name}</h3>
-<p>📍 ${addr}</p>
-<p>📏 ${distKm} км от вас</p>
-<p> На авто: ${driveTime} мин</p>
-<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-`;
-sheet.classList.add('active');
-}).catch(() => {
-content.innerHTML = `
-<h3>${data.name}</h3>
-<p>📍 ${addr}</p>
-<p>📏 Расстояние неизвестно</p>
-<p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-`;
-sheet.classList.add('active');
-});
+  const sheet = document.getElementById('parkingSheet');
+  const content = document.getElementById('sheetContent');
+  const addr = data.address || `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`;
+  const free = data.totalSpots - data.occupiedSpots;
+
+  getUserLocation().then(coords => {
+    const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
+    const distKm = (dist / 1000).toFixed(1);
+    const driveTime = Math.round(dist / 500);
+    content.innerHTML = `
+      <h3>${data.name}</h3>
+      <p>📍 ${addr}</p>
+      <p>📏 ${distKm} км от вас</p>
+      <p>🚗 На авто: ${driveTime} мин</p>
+      <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+    `;
+    sheet.classList.add('active');
+  }).catch(() => {
+    content.innerHTML = `
+      <h3>${data.name}</h3>
+      <p>📍 ${addr}</p>
+      <p>📏 Расстояние неизвестно</p>
+      <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
+    `;
+    sheet.classList.add('active');
+  });
 }
 function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
 
