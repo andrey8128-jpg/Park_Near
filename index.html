@@ -1235,16 +1235,17 @@ tg.setBackgroundColor('#000000');
         });
     }
    const savedTheme = localStorage.getItem('darkTheme');
-if (savedTheme === '1' || savedTheme === 'true') {
-    document.body.classList.add('dark-theme');
-    // Применяем фильтр карты сразу при загрузке
-    setTimeout(() => {
-        const mapEl = document.getElementById('map');
-        if (mapEl && map && map.getType() === 'yandex#map') {
-            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-        }
-    }, 1500);
-}
+    if (savedTheme === '1' || savedTheme === 'true') {
+        document.body.classList.add('dark-theme');
+        // Применяем фильтр карты сразу при загрузке
+        setTimeout(() => {
+            const mapEl = document.getElementById('map');
+            if (mapEl && map && map.getType() === 'yandex#map') {
+                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+            }
+        }, 1500);
+    }
+} // ← ЭТА СКОБКА ЗАКРЫВАЕТ initAuth()
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
 return new Promise(function(resolve, reject) {
@@ -3267,17 +3268,6 @@ function toggleTheme() {
     }
     
     // Вибрация
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.selectionChanged();
-    }
-}
-    const mapEl = document.getElementById('map');
-    if (isDark && map && map.getType() === 'yandex#map') {
-        mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-    } else if (mapEl) {
-        mapEl.style.filter = 'none';
-    }
-    
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
