@@ -2473,6 +2473,7 @@ function focusMap(lat, lng, parkingId) {
 
     const marker = mapMarkers[parkingId];
     if (marker) {
+        // Анимация пульсации
         const element = marker.getElement ? marker.getElement() : null;
         if (element) {
             element.classList.remove('pulse-marker');
@@ -2492,6 +2493,12 @@ function focusMap(lat, lng, parkingId) {
                 });
             }, 1800);
         }
+    }
+
+    // Открываем балун с информацией о парковке
+    const data = parkingDataCache[parkingId];
+    if (data) {
+        openParkingSheet(parkingId, data);
     }
 }
 function highlightAndShowParking(parkingId) {
