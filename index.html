@@ -2471,7 +2471,7 @@ parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 function focusMap(lat, lng, parkingId) {
     closePanel();
-    // Ждём завершения анимации закрытия панели (300 мс)
+    // Ждём завершения анимации закрытия панели (350 мс)
     setTimeout(() => {
         if (!map) return;
         map.setCenter([lat, lng], 18, { duration: 500 });
@@ -2494,6 +2494,13 @@ function focusMap(lat, lng, parkingId) {
             }
         }
 
+        // Показать информацию о парковке
+        const data = parkingDataCache[parkingId];
+        if (data) {
+            openParkingSheet(parkingId, data);
+        }
+    }, 350); // задержка должна быть не меньше 300–350 мс
+}
         // Показать информацию о парковке
         const data = parkingDataCache[parkingId];
         if (data) {
