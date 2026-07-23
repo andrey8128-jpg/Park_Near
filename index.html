@@ -34,13 +34,24 @@ transition: background 0.4s ease, color 0.4s ease;
 }
 .app-header {
 position: fixed; top: 0; left: 0; right: 0; height: 44px;
-background: rgba(255,255,255,0.04); backdrop-filter: none;
+background: rgba(255, 255, 255, 0.08);
+backdrop-filter: blur(20px) saturate(180%);
+-webkit-backdrop-filter: blur(20px) saturate(180%);
 z-index: 1000; display: flex; align-items: center; justify-content: center;
-border-bottom: 0.5px solid var(--border-color); padding-top: env(safe-area-inset-top);
+border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+padding-top: env(safe-area-inset-top);
+transition: background 0.3s ease;
 }
-body.dark-theme .app-header { background: rgba(28,28,30,0.06); }
-.app-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-.app-title span { color: var(--accent); }
+body.dark-theme .app-header {
+background: rgba(0, 0, 0, 0.3);
+border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.app-title {
+font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
+color: #FFFFFF;
+text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+.app-title span { color: #4DA3FF; }
 #map {
 position: fixed; top: 44px; left: 0; right: 0; bottom: 0;
 background: #E5E5EA; transition: filter 0.5s ease;
