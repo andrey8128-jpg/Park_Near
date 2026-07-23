@@ -769,6 +769,60 @@ color: #fff;
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
 }
+    /* Индикатор загруженности */
+.occupancy-dot {
+    width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0;
+}
+
+/* Стили слайдера */
+#radiusSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    outline: none;
+}
+#radiusSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+}
+
+/* Кнопки пресетов */
+.preset-btn {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--input-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.preset-btn:hover, .preset-btn:active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+/* Кнопка сброса */
+.btn-outline {
+    width: 100%; padding: 14px; border-radius: 14px;
+    border: 1px solid var(--gray);
+    font-size: 15px; font-weight: 500;
+    cursor: pointer; color: var(--text-secondary); background: transparent;
+    margin-top: 8px;
+}
+.btn-outline:active {
+    background: var(--bg-primary);
+}
 </style>
 </head>
 <body>
@@ -1059,7 +1113,13 @@ function getOccupancyColor(occupied, total) {
 const ratio = Math.min(1, total > 0 ? occupied / total : 0);
 return '#' + [Math.round(255 * ratio), Math.round(255 * (1 - ratio)), 0].map(c => c.toString(16).padStart(2, '0')).join('');
 }
-
+function getOccupancyDotColor(free, total) {
+    if (total === 0) return 'var(--gray)';
+    const ratio = free / total;
+    if (ratio >= 0.5) return 'var(--green)';
+    if (ratio >= 0.2) return 'var(--orange)';
+    return 'var(--red)';
+}
 function getDistanceInMeters(lat1, lng1, lat2, lng2) {
 const R = 6371000;
 const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -2311,16 +2371,29 @@ function renderSearchPanel(content) {
         <input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()">
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px;">
-        <button class="btn-secondary" style="flex:1;" onclick="searchNearMe()">📍 Рядом со мной</button>
-        <button class="btn-secondary" style="flex:1;" onclick="clearFilters()">🔄 Сбросить</button>
-    </div>
-    <div style="margin: 12px 0; display: flex; align-items: center; gap: 10px;">
+    <button class="btn-secondary" style="flex:1;" onclick="searchNearMe()">📍 Рядом со мной</button>
+    <button class="btn-outline" style="flex:1;" onclick="clearFilters()">↺ Сбросить</button>
+</div>
+   <div style="position: relative; margin: 12px 0;">
+    <div id="radiusTooltip" style="position: absolute; top: -24px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-primary); padding: 2px 8px; border-radius: 8px; font-size: 12px; display: none; white-space: nowrap;"></div>
+    <div style="display: flex; align-items: center; gap: 10px;">
         <input type="range" id="radiusSlider" min="0.1" max="5" step="0.1" value="1" style="flex:1;" oninput="updateRadiusLabel(); filterParkings();">
         <span id="radiusLabel" style="min-width: 40px;">1 км</span>
     </div>
-    <label style="display:flex; align-items:center; gap:8px; font-size:14px; margin-top:8px;">
-        <input type="checkbox" id="showWithFreeOnly" onchange="filterParkings()"> Только с наличием свободных мест
+    <div style="display: flex; gap: 8px; margin-top: 6px; justify-content: center;">
+        <button class="preset-btn" onclick="setRadiusPreset(0.5)">500 м</button>
+        <button class="preset-btn" onclick="setRadiusPreset(1)">1 км</button>
+        <button class="preset-btn" onclick="setRadiusPreset(2)">2 км</button>
+        <button class="preset-btn" onclick="setRadiusPreset(5)">5 км</button>
+    </div>
+</div>
+    <div class="theme-toggle-row" style="margin-top: 12px; justify-content: space-between;">
+    <div class="theme-toggle-label" style="font-size: 14px;">Только свободные</div>
+    <label class="theme-switch">
+        <input type="checkbox" id="showWithFreeOnly" onchange="filterParkings()">
+        <span class="theme-slider"></span>
     </label>
+</div>
     <div style="margin-top: 8px;">
         <label style="font-size:13px; color:var(--text-secondary);">Сортировка:</label>
         <select id="sortSelect" class="input-field" onchange="filterParkings()" style="margin-top:4px;">
@@ -2336,15 +2409,47 @@ function renderSearchPanel(content) {
     content.innerHTML = html;
     // Пытаемся получить геолокацию для радиуса
     getUserLocation().then(coords => { userLocationForSearch = coords; }).catch(() => { userLocationForSearch = null; });
-    filterParkings();
+        filterParkings();
+
+    // Настройка тултипа для слайдера (появляется при перетаскивании)
+    setTimeout(() => {
+        const slider = document.getElementById('radiusSlider');
+        if (slider) {
+            slider.addEventListener('pointerdown', () => {
+                const tooltip = document.getElementById('radiusTooltip');
+                if (tooltip) tooltip.style.display = 'block';
+            });
+            slider.addEventListener('pointerup', () => {
+                setTimeout(() => {
+                    const tooltip = document.getElementById('radiusTooltip');
+                    if (tooltip) tooltip.style.display = 'none';
+                }, 800);
+            });
+        }
+    }, 100);
 }
 function updateRadiusLabel() {
-    const val = document.getElementById('radiusSlider').value;
+    const slider = document.getElementById('radiusSlider');
+    if (!slider) return;
+    const val = parseFloat(slider.value);
     document.getElementById('radiusLabel').textContent = val + ' км';
-    // При изменении слайдера обновляем радиус в nearbySearchFilter, если уже есть координаты
+    
+    const tooltip = document.getElementById('radiusTooltip');
+    if (tooltip) {
+        tooltip.textContent = val + ' км';
+        tooltip.style.display = 'block';
+    }
+    
     if (userLocationForSearch) {
         nearbySearchFilter = { lat: userLocationForSearch.lat, lng: userLocationForSearch.lng, radius: val * 1000 };
     }
+}
+    function setRadiusPreset(km) {
+    const slider = document.getElementById('radiusSlider');
+    if (!slider) return;
+    slider.value = km;
+    updateRadiusLabel();
+    filterParkings();
 }
 function updateCitySelect() {
 const region = document.getElementById('regionSelect').value;
@@ -2441,27 +2546,32 @@ parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             </div>`;
             // Элементы группы
             html += '<div class="group-items">';
-            items.forEach(p => {
-                const free = p.totalSpots - (p.occupiedSpots || 0);
-                const isAuthor = currentUser && currentUser.id === p.authorId;
-                let addressDisplay = p.address || '';
-                if (p.houseNumber) {
-                    if (!addressDisplay.includes(p.houseNumber)) {
-                        addressDisplay = addressDisplay ? addressDisplay + ', д. ' + p.houseNumber : 'д. ' + p.houseNumber;
-                    }
-                }
-                html += `
-                <div class="swipe-container">
-                    <div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                        <div class="list-icon">🅿️</div>
-                        <div class="list-info">
-                            <div class="list-title">${p.name || 'Без названия'}</div>
-                            <div class="list-subtitle">${addressDisplay} · Свободно: ${free}/${p.totalSpots}</div>
-                        </div>
-                    </div>
-                    ${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}
-                </div>`;
-            });
+           items.forEach(p => {
+    const free = p.totalSpots - (p.occupiedSpots || 0);
+    const isAuthor = currentUser && currentUser.id === p.authorId;
+    
+    // Формируем подзаголовок с расстоянием
+    let subtitle = '';
+    if (userLocationForSearch && p.lat && p.lng) {
+        const dist = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch.lng, p.lat, p.lng);
+        subtitle = (dist < 1000) ? `${Math.round(dist)} м от вас` : `${(dist/1000).toFixed(1)} км от вас`;
+    } else {
+        subtitle = p.address || `${p.lat?.toFixed(4)}, ${p.lng?.toFixed(4)}`;
+    }
+    subtitle += ` · Свободно: ${free}/${p.totalSpots}`;
+
+    html += `
+    <div class="swipe-container">
+        <div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+            <span class="occupancy-dot" style="background: ${getOccupancyDotColor(free, p.totalSpots)};"></span>
+            <div class="list-info">
+                <div class="list-title">${p.name || 'Без названия'}</div>
+                <div class="list-subtitle">${subtitle}</div>
+            </div>
+        </div>
+        ${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}
+    </div>`;
+});
             html += '</div>';
         }
         html += '</div>';
