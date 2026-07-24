@@ -1989,7 +1989,6 @@ function submitParkingWithPolygon() {
     const streetName = document.getElementById('parkStreetName').value.trim();
     const houseNumber = document.getElementById('parkHouseNumber').value.trim();
     const totalSpots = parseInt(document.getElementById('parkSpots').value);
-    const isPaid = document.getElementById('parkIsPaid').checked;
 
     if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
     if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
@@ -2094,7 +2093,7 @@ function submitParkingWithPolygon() {
             totalSpots,
             occupiedSpots: 0,
             name,
-            isPaid,
+            isPaid: false,
             address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
             region: '',
             city: '',
