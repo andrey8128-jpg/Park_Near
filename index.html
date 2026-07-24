@@ -866,6 +866,98 @@ color: #fff;
 .btn-outline:active {
     background: var(--bg-primary);
 }
+/* ======================= */
+/*   КОМПАКТНЫЕ НАСТРОЙКИ  */
+/* ======================= */
+.settings-section {
+    background: var(--bg-secondary);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.settings-section-header {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 12px 16px 6px;
+    background: transparent;
+}
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    min-height: 48px;
+    border-bottom: 0.5px solid var(--border-color);
+    transition: background 0.1s;
+}
+.settings-row:last-child {
+    border-bottom: none;
+}
+.settings-row:active {
+    background: var(--bg-primary);
+}
+.settings-label {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text-primary);
+}
+.settings-value {
+    font-size: 16px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.settings-arrow {
+    color: var(--gray);
+    font-size: 16px;
+    margin-left: 4px;
+}
+/* Компактный выбор региона/города */
+.settings-picker-row {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px;
+    align-items: center;
+    border-bottom: 0.5px solid var(--border-color);
+}
+.settings-picker-row select {
+    flex: 1;
+    font-size: 14px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+}
+/* Кнопка редактирования авто */
+.btn-edit-car {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 4px 0;
+    cursor: pointer;
+}
+/* Опасные действия (красный текст) */
+.btn-danger-text {
+    background: none;
+    border: none;
+    color: var(--red);
+    font-size: 16px;
+    font-weight: 400;
+    padding: 12px 16px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+.btn-danger-text:active {
+    background: var(--bg-primary);
+}
 </style>
 </head>
 <body>
@@ -2902,58 +2994,86 @@ function renderSettings() {
     const isDark = document.body.classList.contains('dark-theme');
     const isGuest = currentUser && currentUser.id.startsWith('guest_');
 
-    let html = `
-        <div class="theme-toggle-row">
-            <div class="theme-toggle-label">🌙 Тёмная тема</div>
-            <label class="theme-switch">
-               <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+    let html = '';
+
+    // --- Секция: Основные ---
+    html += `<div class="settings-section">
+        <div class="settings-section-header">Основные</div>
+        <div class="settings-row">
+            <span class="settings-label">Тёмная тема</span>
+            <label class="theme-switch" style="width: 51px; height: 31px;">
+                <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
                 <span class="theme-slider"></span>
             </label>
-        </div>
-    `;
+        </div>`;
 
     if (!isGuest) {
-        html += `
-            <div class="city-pref-card">
-                <div class="city-pref-title">🏙️ Мой город</div>
-                <div class="city-pref-row">
-                    <div class="form-group">
-                        <label>Регион</label>
-                        <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()">
-                            <option value="">Выберите регион</option>
-                            ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Город</label>
-                        <select id="settingsCity" class="input-field">
-                            <option value="">Выберите город</option>
-                            ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
-                        </select>
-                    </div>
-                </div>
-                <button class="btn-secondary" style="margin-top:8px;" onclick="saveCityFromSettings()">💾 Сохранить город</button>
+        // --- Секция: Город ---
+        html += `<div class="settings-section">
+            <div class="settings-section-header">Мой город</div>
+            <div class="settings-picker-row">
+                <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()" style="margin:0;">
+                    <option value="">Регион</option>
+                    ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
+                </select>
+                <select id="settingsCity" class="input-field" onchange="saveCityFromSettings()" style="margin:0;">
+                    <option value="">Город</option>
+                    ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
+                </select>
             </div>
+        </div>`;
 
-            <div class="form-group" style="margin-top:16px;">
-                <label>👤 Никнейм</label>
-                <input type="text" id="settingsNickname" class="input-field" placeholder="Придумайте никнейм" value="${currentUser.nickname || ''}">
-                <button class="btn-secondary" style="margin-top:8px;" onclick="saveNickname()">💾 Сохранить никнейм</button>
+        // --- Секция: Автомобиль ---
+        // В реальном приложении вы можете отображать марку и модель прямо здесь,
+        // а кнопка "Редактировать" будет открывать модальное окно.
+        html += `<div class="settings-section">
+            <div class="settings-section-header">Автомобиль</div>
+            <div class="settings-row" onclick="editCarDataFromSettings()">
+                <span class="settings-label">Моё авто</span>
+                <span class="settings-value">
+                    ${(currentUser.carBrand || currentUser.carModel) ? `${currentUser.carBrand || ''} ${currentUser.carModel || ''}` : 'Не указано'}
+                    <span class="settings-arrow">›</span>
+                </span>
             </div>
+        </div>`;
 
-            <div class="car-section">
-                <div class="car-section-title">🚗 Мой автомобиль</div>
-                <button class="btn-secondary" onclick="editCarDataFromSettings()">✏️ Редактировать данные авто</button>
+        // --- Секция: Профиль ---
+        html += `<div class="settings-section">
+            <div class="settings-section-header">Профиль</div>
+            <div class="settings-row">
+                <span class="settings-label">Никнейм</span>
+                <input type="text" id="settingsNickname" class="input-field" style="width: 50%; text-align: right; border: none; background: transparent; padding: 0;" placeholder="Укажите ник" value="${currentUser.nickname || ''}" onchange="saveNickname()">
             </div>
+            <div class="settings-row" onclick="resetOnboarding()">
+                <span class="settings-label">Обучение</span>
+                <span class="settings-value">
+                    Показать ещё раз
+                    <span class="settings-arrow">›</span>
+                </span>
+            </div>
+        </div>`;
 
-            <button class="btn-secondary" onclick="resetOnboarding()">📖 Показать обучение ещё раз</button>
-            <button class="btn-danger" onclick="deleteAccount()">🗑️ Удалить аккаунт</button>
-        `;
+        // --- Секция: Опасные действия ---
+        html += `<div class="settings-section">
+            <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
+        </div>`;
     } else {
-        html += `<p style="color:var(--text-secondary); text-align:center;">Гостевой режим — настройки ограничены</p>`;
+        html += `<div class="settings-section">
+            <div class="settings-row">
+                <span class="settings-label" style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span>
+            </div>
+        </div>`;
     }
 
     content.innerHTML = html;
+
+    // Автоматическое сохранение никнейма при потере фокуса (дополнительно к onchange)
+    const nickInput = document.getElementById('settingsNickname');
+    if (nickInput) {
+        nickInput.addEventListener('blur', () => {
+            saveNickname();
+        });
+    }
 }
 function saveNickname() {
     if (!currentUser) return;
@@ -2987,20 +3107,33 @@ function saveCityFromSettings() {
     if (!currentUser) return;
     const region = document.getElementById('settingsRegion').value;
     const city = document.getElementById('settingsCity').value;
-    if (!region || !city) {
-        alert('Выберите регион и город');
-        return;
-    }
+    // Сохраняем, даже если регион выбран без города (город может быть пустым)
     database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
     .then(() => {
         userCityPrefs = { region, city };
-        alert('Город сохранён!');
-        closeSettings();
-        renderProfile(document.getElementById('panelContent'));
+        // Тихое сохранение без всплывающего окна
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
     })
-    .catch(err => alert('Ошибка сохранения'));
+    .catch(err => console.error('Ошибка сохранения города:', err));
 }
-
+// Также необходимо обновить updateCitySelectInSettings, чтобы при смене региона обновлялся список городов:
+function updateCitySelectInSettings() {
+    const region = document.getElementById('settingsRegion').value;
+    const citySelect = document.getElementById('settingsCity');
+    citySelect.innerHTML = '<option value="">Выберите город</option>';
+    if (region && regionsData[region]) {
+        regionsData[region].forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            citySelect.appendChild(opt);
+        });
+    }
+    // Автоматически сохраняем выбранный регион (если город ещё не выбран, он останется пустым)
+    saveCityFromSettings();
+}
 function editCarDataFromSettings() {
     closeSettings();
     editCarData();
