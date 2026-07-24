@@ -1104,20 +1104,19 @@ color: #fff;
     <button class="btn-secondary" onclick="closeCarEditor()">Отмена</button>
   </div>
 </div>
-<div class="label-picker-box">
-<h3>🏷️ Выберите метку</h3>
-<div class="label-options">
-<button class="btn-secondary" onclick="selectLabel('Дом')">🏠 Дом</button>
-<button class="btn-secondary" onclick="selectLabel('Работа')">💼 Работа</button>
-<button class="btn-secondary" onclick="selectLabel('Родственники')">👨‍👩‍‍👦 Родственники</button>
-<button class="btn-secondary" onclick="selectLabel('Другое')">✏️ Другое</button>
-</div>
-<button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
-</div>
-</div>
-<div class="label-picker-overlay" id="labelPickerOverlay">
-<!-- Оверлей редактирования автомобиля -->
 
+<div class="label-picker-overlay" id="labelPickerOverlay">
+  <div class="label-picker-box">
+    <h3>🏷️ Выберите метку</h3>
+    <div class="label-options">
+      <button class="btn-secondary" onclick="selectLabel('Дом')">🏠 Дом</button>
+      <button class="btn-secondary" onclick="selectLabel('Работа')">💼 Работа</button>
+      <button class="btn-secondary" onclick="selectLabel('Родственники')">👨‍👩‍👦 Родственники</button>
+      <button class="btn-secondary" onclick="selectLabel('Другое')">✏️ Другое</button>
+    </div>
+    <button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
+  </div>
+</div>
 <div class="bottom-sheet" id="parkingSheet">
 <div class="sheet-header">
 <div class="sheet-handle" onclick="closeParkingSheet()"></div>
