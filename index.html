@@ -82,57 +82,45 @@ white-space: nowrap; color: var(--text-primary);
 .layer-option:last-child { border-bottom: none; }
 .layer-option:active { background: var(--bg-primary); }
 .layer-option.selected { color: var(--accent); font-weight: 600; }
-#geoBtn {
-  position: fixed;
-  bottom: 170px;
-  right: 20px;
-  z-index: 900;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  color: var(--accent);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+/* Общий стиль для трёх кнопок справа */
+#geoBtn, #refreshBtn, #addBtn {
+    position: fixed;
+    right: 20px;
+    z-index: 900;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--accent);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    font-size: 20px;
+}
+
+/* Вертикальное размещение – над tabBar */
+#addBtn {
+    bottom: 100px;       /* самая нижняя */
 }
 #refreshBtn {
-  position: fixed;
-  bottom: 110px;          /* между geoBtn (170px) и addBtn (50px) */
-  right: 20px;
-  z-index: 900;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  color: var(--accent);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  font-size: 20px;
+    bottom: 160px;       /* над кнопкой добавления */
 }
+#geoBtn {
+    bottom: 220px;       /* самая верхняя */
+}
+
+/* Отключаем градиент и большой размер у addBtn */
 #addBtn {
-  position: fixed;
-  bottom: 50px;
-  right: 20px;
-  z-index: 900;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #007AFF, #0051D5);
-  color: #fff;
-  border: none;
-  font-size: 32px;
-  line-height: 56px;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0,122,255,0.5);
+    background: var(--bg-secondary);
+    color: var(--accent);
+    font-size: 28px;
+    line-height: 48px;
+}
+#addBtn.drawing {
+    background: var(--orange);
 }
 /* ====== TAB BAR  ====== */
 .tabBar {
