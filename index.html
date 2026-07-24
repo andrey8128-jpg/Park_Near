@@ -114,10 +114,13 @@ white-space: nowrap; color: var(--text-primary);
 
 /* Отключаем градиент и большой размер у addBtn */
 #addBtn {
+    bottom: 100px;          /* или 110px, если нужно чуть выше */
+    width: 60px;            /* было 48px – увеличиваем */
+    height: 60px;           /* было 48px – увеличиваем */
     background: var(--bg-secondary);
     color: var(--accent);
-    font-size: 28px;
-    line-height: 48px;
+    font-size: 30px;        /* чуть больше, чтобы плюс смотрелся пропорционально */
+    line-height: 60px;      /* выравниваем по центру новой высоты */
 }
 #addBtn.drawing {
     background: var(--orange);
