@@ -986,6 +986,17 @@ color: #fff;
 .btn-danger-text:active {
     background: var(--bg-primary);
 }
+.settings-edit-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+}
 </style>
 </head>
 <body>
@@ -3082,35 +3093,27 @@ function renderSettings() {
         </div>`;
 
         // --- Секция: Автомобиль ---
-        // В реальном приложении вы можете отображать марку и модель прямо здесь,
-        // а кнопка "Редактировать" будет открывать модальное окно.
-       html += `<div class="settings-section">
+html += `<div class="settings-section">
     <div class="settings-section-header">Автомобиль</div>
-    <div class="settings-row" onclick="editCarDataFromSettings()">
+    <div class="settings-row">
         <span class="settings-label">Моё авто</span>
         <span class="settings-value">
             ${(currentUser.carBrand || currentUser.carModel) ? `${currentUser.carBrand || ''} ${currentUser.carModel || ''}` : 'Не указано'}
-            <span class="settings-arrow">›</span>
+            <button class="settings-edit-btn" onclick="event.stopPropagation(); editCarDataFromSettings()">✏️</button>
         </span>
     </div>
 </div>`;
-
         // --- Секция: Профиль ---
-        html += `<div class="settings-section">
-            <div class="settings-section-header">Профиль</div>
-            <div class="settings-row">
-                <span class="settings-label">Никнейм</span>
-                <input type="text" id="settingsNickname" class="input-field" style="width: 50%; text-align: right; border: none; background: transparent; padding: 0;" placeholder="Укажите ник" value="${currentUser.nickname || ''}" onchange="saveNickname()">
-            </div>
-            <div class="settings-row" onclick="resetOnboarding()">
-                <span class="settings-label">Обучение</span>
-                <span class="settings-value">
-                    Показать ещё раз
-                    <span class="settings-arrow">›</span>
-                </span>
-            </div>
-        </div>`;
-
+html += `<div class="settings-section">
+    <div class="settings-section-header">Профиль</div>
+    <div class="settings-row">
+        <span class="settings-label">Никнейм</span>
+        <span class="settings-value">
+            ${currentUser.nickname || 'Не указан'}
+            <button class="settings-edit-btn" onclick="event.stopPropagation(); editNickname()">✏️</button>
+        </span>
+    </div>
+    ...
         // --- Секция: Опасные действия ---
         html += `<div class="settings-section">
             <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
@@ -3133,17 +3136,28 @@ function renderSettings() {
         });
     }
 }
-function saveNickname() {
+function editNickname() {
+    const newNick = prompt('Введите новый никнейм', currentUser.nickname || '');
+    if (newNick !== null) {
+        saveNickname(newNick);
+    }
+}
+
+function saveNickname(newNickname) {
     if (!currentUser) return;
-    const newNick = document.getElementById('settingsNickname')?.value.trim();
-    if (!newNick) { alert('Введите никнейм'); return; }
-    database.ref(`users/${currentUser.id}/nickname`).set(newNick)
+    const nick = newNickname || (document.getElementById('settingsNickname')?.value?.trim());
+    if (!nick) { alert('Введите никнейм'); return; }
+    database.ref(`users/${currentUser.id}/nickname`).set(nick)
     .then(() => {
-        currentUser.nickname = newNick;
+        currentUser.nickname = nick;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
-        alert('Никнейм сохранён!');
-        closeSettings();
-        renderProfile(document.getElementById('panelContent'));
+        // Если настройки открыты, перерисуем их
+        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+            renderSettings();
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
     })
     .catch(err => alert('Ошибка: ' + err.message));
 }
