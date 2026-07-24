@@ -83,25 +83,57 @@ white-space: nowrap; color: var(--text-primary);
 .layer-option:active { background: var(--bg-primary); }
 .layer-option.selected { color: var(--accent); font-weight: 600; }
 #geoBtn {
-position: fixed; bottom: 170px; right: 20px; z-index: 900;
-width: 48px; height: 48px; border-radius: 50%;
-background: var(--bg-secondary); color: var(--accent); border: none;
-display: flex; align-items: center; justify-content: center;
-cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-transition: transform 0.2s;
+  position: fixed;
+  bottom: 170px;
+  right: 20px;
+  z-index: 900;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--accent);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-#geoBtn:active { transform: scale(0.9); background: var(--bg-primary); }
-#geoBtn svg { width: 24px; height: 24px; fill: var(--accent); }
+#refreshBtn {
+  position: fixed;
+  bottom: 110px;          /* между geoBtn (170px) и addBtn (50px) */
+  right: 20px;
+  z-index: 900;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--accent);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-size: 20px;
+}
 #addBtn {
-position: fixed; bottom: 100px; right: 20px; z-index: 900;
-width: 56px; height: 56px; border-radius: 50%;
-background: linear-gradient(135deg, #007AFF, #0051D5); color: #fff; border: none;
-font-size: 32px; line-height: 56px; text-align: center;
-cursor: pointer; box-shadow: 0 8px 24px rgba(0,122,255,0.5);
-transition: transform 0.2s, box-shadow 0.2s;
+  position: fixed;
+  bottom: 50px;
+  right: 20px;
+  z-index: 900;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #007AFF, #0051D5);
+  color: #fff;
+  border: none;
+  font-size: 32px;
+  line-height: 56px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,122,255,0.5);
 }
-#addBtn:active { transform: scale(0.9); box-shadow: 0 4px 12px rgba(0,122,255,0.4); }
-#addBtn.drawing { background: var(--orange); }
 /* ====== TAB BAR  ====== */
 .tabBar {
 position: fixed;
@@ -1073,7 +1105,7 @@ color: #fff;
 <button id="geoBtn" title="Моё местоположение">
 <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
 </button>
-<button id="refreshBtn" title="Обновить парковки" style="position: fixed; bottom: 170px; right: 80px; z-index: 900; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); color: var(--accent); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" onclick="loadAllParkings(); if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');">🔄</button>
+<button id="refreshBtn" title="Обновить парковки" onclick="loadAllParkings(); if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');">🔄</button>
 <button id="addBtn" title="Добавить парковку">+</button>
 <div class="panel" id="panel">
     <div class="panel-header">
