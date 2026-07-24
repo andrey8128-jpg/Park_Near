@@ -866,6 +866,34 @@ color: #fff;
 .btn-outline:active {
     background: var(--bg-primary);
 }
+/* Оверлей редактора автомобиля */
+.car-editor-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 4000;
+  align-items: center;
+  justify-content: center;
+}
+.car-editor-overlay.active {
+  display: flex;
+}
+.car-editor-box {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 360px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.car-editor-box h3 {
+  text-align: center;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
 /* ======================= */
 /*   КОМПАКТНЫЕ НАСТРОЙКИ  */
 /* ======================= */
@@ -1037,6 +1065,36 @@ color: #fff;
 </div>
 </div>
 <div class="label-picker-overlay" id="labelPickerOverlay">
+<!-- Оверлей редактирования автомобиля -->
+<div class="car-editor-overlay" id="carEditorOverlay">
+  <div class="car-editor-box">
+    <h3>🚗 Мой автомобиль</h3>
+    <div class="form-group">
+      <label>Марка</label>
+      <select id="carBrandSelect" class="input-field" onchange="updateCarModelSelect()">
+        <option value="">Выберите марку</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Модель</label>
+      <select id="carModelSelect" class="input-field">
+        <option value="">Сначала выберите марку</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Цвет</label>
+      <select id="carColorSelect" class="input-field">
+        <option value="">Выберите цвет</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Госномер</label>
+      <input type="text" id="carPlateInput" class="input-field" placeholder="А123БВ 177" maxlength="12">
+    </div>
+    <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
+    <button class="btn-secondary" onclick="closeCarEditor()">Отмена</button>
+  </div>
+</div>
 <div class="label-picker-box">
 <h3>🏷️ Выберите метку</h3>
 <div class="label-options">
@@ -3158,8 +3216,100 @@ function saveNickname() {
     })
     .catch(err => alert('Ошибка: ' + err.message));
 }
+// Открытие редактора авто
+function openCarEditor() {
+    const overlay = document.getElementById('carEditorOverlay');
+    if (!overlay) return;
+    
+    const brandSelect = document.getElementById('carBrandSelect');
+    brandSelect.innerHTML = '<option value="">Выберите марку</option>';
+    for (const brand of Object.keys(carBrands).sort()) {
+        brandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
+    }
+    
+    const colorSelect = document.getElementById('carColorSelect');
+    colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
+    for (const [colorName, colorHex] of Object.entries(carColors)) {
+        colorSelect.innerHTML += `<option value="${colorName}">${colorName}</option>`;
+    }
+    
+    if (currentUser) {
+        database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
+            const car = snap.val() || {};
+            if (car.brand) {
+                brandSelect.value = car.brand;
+                updateCarModelSelect();
+                if (car.model) {
+                    document.getElementById('carModelSelect').value = car.model;
+                }
+            }
+            if (car.color) {
+                colorSelect.value = car.color;
+            }
+            if (car.plate) {
+                document.getElementById('carPlateInput').value = car.plate;
+            }
+        });
+    }
+    
+    overlay.classList.add('active');
+}
+
+// Закрытие редактора
+function closeCarEditor() {
+    document.getElementById('carEditorOverlay').classList.remove('active');
+}
+
+// Обновление списка моделей при выборе марки
+function updateCarModelSelect() {
+    const brand = document.getElementById('carBrandSelect').value;
+    const modelSelect = document.getElementById('carModelSelect');
+    modelSelect.innerHTML = '<option value="">Выберите модель</option>';
+    if (brand && carBrands[brand]) {
+        carBrands[brand].forEach(model => {
+            modelSelect.innerHTML += `<option value="${model}">${model}</option>`;
+        });
+    }
+}
+
+// Сохранение автомобиля в Firebase
+function saveCarData() {
+    if (!currentUser) {
+        alert('Необходимо авторизоваться');
+        return;
+    }
+    const brand = document.getElementById('carBrandSelect').value;
+    const model = document.getElementById('carModelSelect').value;
+    const color = document.getElementById('carColorSelect').value;
+    const plate = document.getElementById('carPlateInput').value.trim().toUpperCase();
+    
+    if (!brand || !model) {
+        alert('Пожалуйста, выберите марку и модель');
+        return;
+    }
+    
+    database.ref(`users/${currentUser.id}/car`).set({
+        brand: brand,
+        model: model,
+        color: color || null,
+        plate: plate || null
+    }).then(() => {
+        closeCarEditor();
+        // Если окно настроек открыто, обновим его
+        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+            renderSettings();
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    }).catch(err => {
+        alert('Ошибка сохранения: ' + err.message);
+    });
+}
+
+// Переопределяем editCarData (она вызывается из настроек)
 function editCarData() {
-    alert('Редактирование автомобиля временно недоступно');
+    openCarEditor();
 }
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
