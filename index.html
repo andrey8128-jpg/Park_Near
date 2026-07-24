@@ -3084,16 +3084,16 @@ function renderSettings() {
         // --- Секция: Автомобиль ---
         // В реальном приложении вы можете отображать марку и модель прямо здесь,
         // а кнопка "Редактировать" будет открывать модальное окно.
-        html += `<div class="settings-section">
-            <div class="settings-section-header">Автомобиль</div>
-            <div class="settings-row" onclick="editCarDataFromSettings()">
-                <span class="settings-label">Моё авто</span>
-                <span class="settings-value">
-                    ${(currentUser.carBrand || currentUser.carModel) ? `${currentUser.carBrand || ''} ${currentUser.carModel || ''}` : 'Не указано'}
-                    <span class="settings-arrow">›</span>
-                </span>
-            </div>
-        </div>`;
+       html += `<div class="settings-section">
+    <div class="settings-section-header">Автомобиль</div>
+    <div class="settings-row" onclick="editCarDataFromSettings()">
+        <span class="settings-label">Моё авто</span>
+        <span class="settings-value">
+            ${(currentUser.carBrand || currentUser.carModel) ? `${currentUser.carBrand || ''} ${currentUser.carModel || ''}` : 'Не указано'}
+            <span class="settings-arrow">›</span>
+        </span>
+    </div>
+</div>`;
 
         // --- Секция: Профиль ---
         html += `<div class="settings-section">
@@ -3306,8 +3306,97 @@ function saveCarData() {
         alert('Ошибка сохранения: ' + err.message);
     });
 }
+// ===================== РЕДАКТОР АВТОМОБИЛЯ =====================
+function openCarEditor() {
+    const overlay = document.getElementById('carEditorOverlay');
+    if (!overlay) return;
+    
+    // Заполняем марки
+    const brandSelect = document.getElementById('carBrandSelect');
+    brandSelect.innerHTML = '<option value="">Выберите марку</option>';
+    for (const brand of Object.keys(carBrands).sort()) {
+        brandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
+    }
+    
+    // Заполняем цвета
+    const colorSelect = document.getElementById('carColorSelect');
+    colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
+    for (const [colorName] of Object.entries(carColors)) {
+        colorSelect.innerHTML += `<option value="${colorName}">${colorName}</option>`;
+    }
+    
+    // Загружаем сохранённые данные
+    if (currentUser) {
+        database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
+            const car = snap.val() || {};
+            if (car.brand) {
+                brandSelect.value = car.brand;
+                updateCarModelSelect(); // обновит модели
+                if (car.model) {
+                    document.getElementById('carModelSelect').value = car.model;
+                }
+            }
+            if (car.color) {
+                colorSelect.value = car.color;
+            }
+            if (car.plate) {
+                document.getElementById('carPlateInput').value = car.plate;
+            }
+        });
+    }
+    
+    overlay.classList.add('active');
+}
 
-// Переопределяем editCarData (она вызывается из настроек)
+function closeCarEditor() {
+    document.getElementById('carEditorOverlay').classList.remove('active');
+}
+
+function updateCarModelSelect() {
+    const brand = document.getElementById('carBrandSelect').value;
+    const modelSelect = document.getElementById('carModelSelect');
+    modelSelect.innerHTML = '<option value="">Выберите модель</option>';
+    if (brand && carBrands[brand]) {
+        carBrands[brand].forEach(model => {
+            modelSelect.innerHTML += `<option value="${model}">${model}</option>`;
+        });
+    }
+}
+
+function saveCarData() {
+    if (!currentUser) {
+        alert('Необходимо авторизоваться');
+        return;
+    }
+    const brand = document.getElementById('carBrandSelect').value;
+    const model = document.getElementById('carModelSelect').value;
+    const color = document.getElementById('carColorSelect').value;
+    const plate = document.getElementById('carPlateInput').value.trim().toUpperCase();
+    
+    if (!brand || !model) {
+        alert('Пожалуйста, выберите марку и модель');
+        return;
+    }
+    
+    database.ref(`users/${currentUser.id}/car`).set({
+        brand, model,
+        color: color || null,
+        plate: plate || null
+    }).then(() => {
+        closeCarEditor();
+        // Обновить настройки, если они открыты
+        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+            renderSettings(); // обновит строку "Моё авто"
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    }).catch(err => {
+        alert('Ошибка сохранения: ' + err.message);
+    });
+}
+
+// Вызывается из настроек
 function editCarData() {
     openCarEditor();
 }
