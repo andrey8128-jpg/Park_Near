@@ -3195,7 +3195,9 @@ function editCarDataFromSettings() {
     closeSettings();
     editCarData();
 }
-
+function editCarData() {
+    openCarEditor();
+}
 function resetOnboarding() {
     localStorage.removeItem('onboardingSeen');
     closeSettings();
@@ -3586,15 +3588,6 @@ function toggleTheme() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
-}
-function editCarDataFromSettings() {
-    closeSettings();
-    editCarData();
-}
-function resetOnboarding() {
-    localStorage.removeItem('onboardingSeen');
-    closeSettings();
-    showOnboarding();
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
