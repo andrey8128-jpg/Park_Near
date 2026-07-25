@@ -1043,6 +1043,132 @@ color: #fff;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
+/* ========== ДИЗАЙН ИЗБРАННОГО ========== */
+.fav-section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 10px;
+    margin-top: 8px;
+}
+
+/* Плитки адресов */
+.addresses-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+.address-tile {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 14px 12px;
+    box-shadow: var(--card-shadow);
+    cursor: pointer;
+    transition: transform 0.1s;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.address-tile:active {
+    transform: scale(0.97);
+}
+.address-tile-icon {
+    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+}
+.address-tile-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.address-tile-addr {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.add-address-tile {
+    background: transparent;
+    border: 1.5px dashed var(--input-border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 20px;
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 500;
+    font-size: 13px;
+}
+.add-address-tile:active {
+    background: var(--bg-primary);
+}
+
+/* Компактная карточка избранной парковки */
+.fav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-radius: 14px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.fav-item:active {
+    background: var(--bg-primary);
+}
+.fav-item-info {
+    flex: 1;
+}
+.fav-item-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.fav-item-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.fav-item-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.occupancy-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+}
+/* Поиск по избранному */
+.fav-search {
+    margin-bottom: 12px;
+}
+.fav-search input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 15px;
+}
 </style>
 </head>
 <body>
@@ -3478,48 +3604,90 @@ function loadUserData(type, content) {
             database.ref(`users/${currentUser.id}/favorites`).once('value'),
             database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
         ]).then(([favSnap, homeSnap]) => {
-            let html = '<div class="home-card"><div style="font-size:18px;font-weight:600;margin-bottom:12px;">🏠 Мои адреса</div>';
+            let html = '';
+
+            // --- Секция: Мои адреса ---
             const addrs = homeSnap.val() || {};
-            if (Object.keys(addrs).length > 0) {
-             Object.entries(addrs).forEach(([id, addr]) => {
+            const addrEntries = Object.entries(addrs);
+
+            html += `<div class="fav-section-title">🏠 Мои адреса</div>`;
+            html += `<div class="addresses-grid">`;
+
+            addrEntries.forEach(([id, addr]) => {
                 const label = addr.label || 'Адрес';
-                const icon = label === 'Дом' ? '' : label === 'Работа' ? '' : label === 'Родственники' ? '👨‍👩‍‍👦' : '';
-                html += `<div class="swipe-container" style="margin-bottom:8px;">
-                    <div class="swipe-item" style="padding:10px 0;" onclick="centerMapOnAddress(${addr.lat || 'null'}, ${addr.lng || 'null'})">
-                        <span style="flex:1;"><strong>${icon} ${label}</strong><br><span style="font-size:13px;color:var(--text-secondary);">${addr.address}</span></span>
+                let icon = '📍';
+                if (label === 'Дом') icon = '🏠';
+                else if (label === 'Работа') icon = '💼';
+                else if (label === 'Родственники') icon = '👨‍👩‍👧‍👦';
+                html += `
+                <div class="swipe-container address-tile" onclick="centerMapOnAddress(${addr.lat || 'null'}, ${addr.lng || 'null'})">
+                    <div class="swipe-item" style="display:flex;flex-direction:column;gap:4px;padding:0;background:transparent;">
+                        <div class="address-tile-icon">${icon}</div>
+                        <div class="address-tile-label">${label}</div>
+                        <div class="address-tile-addr">${addr.address || 'Без адреса'}</div>
                     </div>
-                    <div class="swipe-delete" onclick="removeHomeAddress('${id}')">Удалить</div>
+                    <div class="swipe-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')">Удалить</div>
                 </div>`;
             });
-            } else html += '<p style="color:var(--text-secondary);">Нет адресов</p>';
-            html += Object.keys(addrs).length < 3 ? '<button class="btn-primary" onclick="addHomeAddress()">➕ Добавить адрес</button>' : '<p style="color:var(--text-secondary);">Макс. 3 адреса</p>';
-            html += '</div>';
 
+            if (addrEntries.length < 3) {
+                html += `<div class="add-address-tile" onclick="addHomeAddress()">
+                    <span style="font-size:24px;">➕</span>
+                    <span>Добавить</span>
+                </div>`;
+            }
+
+            html += `</div>`;
+
+            // --- Секция: Избранные парковки ---
             const favs = favSnap.val();
+            html += `<div class="fav-section-title">⭐ Избранные парковки</div>`;
+
             if (!favs) {
-                html += '<div class="empty-state"><div class="icon">⭐</div><p>Нет избранных</p></div>';
+                html += '<div class="empty-state"><p>Нет избранных парковок</p></div>';
             } else {
-                html += '<div class="list-container">';
+                // Поиск по избранному
+                html += `<div class="fav-search">
+                    <input type="text" id="favSearchInput" placeholder="Поиск по избранному..." oninput="filterFavorites()">
+                </div>`;
+                html += '<div id="favListContainer">';
                 Object.values(favs).forEach(item => {
-                    if (item && item.parkingId) {
-                        html += `<div class="swipe-container">
-                            <div class="swipe-item" onclick="highlightAndShowParking('${item.parkingId}')">
-                                <div class="list-icon">⭐</div>
-                                <div class="list-info">
-                                    <div class="list-title">${item.name||'Без названия'}</div>
-                                    <div class="list-subtitle">Добавлено ${item.timestamp?formatDateTime(item.timestamp):''}</div>
-                                </div>
+                    if (!item || !item.parkingId) return;
+                    html += `<div class="fav-item" data-name="${item.name||''}" data-address="${item.address||''}" onclick="highlightAndShowParking('${item.parkingId}')">
+                        <div class="fav-item-info">
+                            <div class="fav-item-name">${item.name || 'Без названия'}</div>
+                            <div class="fav-item-meta">
+                                <span>${item.address || ''}</span>
                             </div>
-                            <div class="swipe-delete" onclick="removeFromFavorites('${item.parkingId}')">Удалить</div>
-                        </div>`;
-                    }
+                        </div>
+                        <div class="fav-item-right">
+                            <span class="occupancy-dot" style="background: var(--accent);"></span>
+                            <button class="settings-edit-btn" onclick="event.stopPropagation(); removeFromFavorites('${item.parkingId}')" title="Удалить из избранного">✕</button>
+                        </div>
+                    </div>`;
                 });
                 html += '</div>';
             }
+
             content.innerHTML = html;
             attachSwipeToContainers(content);
         });
     }
+}
+function filterFavorites() {
+    const input = document.getElementById('favSearchInput');
+    if (!input) return;
+    const query = input.value.trim().toLowerCase();
+    const items = document.querySelectorAll('#favListContainer .fav-item');
+    items.forEach(item => {
+        const name = (item.dataset.name || '').toLowerCase();
+        const address = (item.dataset.address || '').toLowerCase();
+        if (name.includes(query) || address.includes(query)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
 }
 function removeFromFavorites(parkingId) {
     if (!currentUser || !parkingId) return;
