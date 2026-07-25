@@ -3891,9 +3891,9 @@ function loadUserData(type, content) {
                 <span>🏠 Мои адреса</span>
                 <button class="add-address-btn" onclick="addHomeAddress()" title="Добавить адрес">+</button>
             </div>`;
-            html += `<div class="addresses-grid">`;
+         html += `<div class="addresses-list">`;
 
-           addrEntries.forEach(([id, addr]) => {
+addrEntries.forEach(([id, addr]) => {
     const label = addr.label || 'Адрес';
     let icon = '📍';
     if (label === 'Дом') icon = '🏠';
@@ -3915,24 +3915,15 @@ function loadUserData(type, content) {
         <div class="swipe-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')"></div>
     </div>`;
 });
-        <button class="address-card-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')" title="Удалить">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-        </button>
-    </div>`;
-});
-            if (addrEntries.length === 0) {
-    html += `<div class="address-card address-card-add" onclick="addHomeAddress()">
-        <div class="address-card-icon" style="background:var(--bg-primary);"></div>
-        <div class="address-card-info">
-            <div class="address-card-label">Добавить адрес</div>
-            <div class="address-card-text">Нажмите, чтобы добавить</div>
-        </div>
+
+if (addrEntries.length === 0) {
+    html += `<div class="address-tile" onclick="addHomeAddress()" style="opacity:0.5; padding:20px; text-align:center;">
+        <div class="address-tile-icon">➕</div>
+        <div class="address-tile-label">Добавить</div>
     </div>`;
 }
-            html += `</div>`;
+
+html += `</div>`;
             // --- Секция: Избранные парковки ---
             const favs = favSnap.val();
             html += `<div class="fav-section-title">⭐ Избранные парковки</div>`;
