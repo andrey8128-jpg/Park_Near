@@ -1194,6 +1194,9 @@ color: #fff;
   display: flex;
   align-items: center;
 }
+    .bottom-sheet {
+    display: none !important;
+}
 </style>
 </head>
 <body>
@@ -3271,11 +3274,11 @@ function focusMap(lat, lng, parkingId) {
             }
         }
 
-        // Показать информацию о парковке
-        const data = parkingDataCache[parkingId];
-        if (data) {
-            openParkingSheet(parkingId, data);
-        }
+        // Показать информацию о парковке — ОТКЛЮЧЕНО
+// const data = parkingDataCache[parkingId];
+// if (data) {
+//     openParkingSheet(parkingId, data);
+// }
     }, 350); // задержка должна быть не меньше 300–350 мс
 }
 function highlightAndShowParking(parkingId) {
@@ -3313,8 +3316,8 @@ clearInterval(interval);
 marker.options.set({ fillColor: origFillColor, strokeColor: origStrokeColor });
 }, 3000);
 }
-// Показываем информацию и закрываем панель
-openParkingSheet(parkingId, data);
+// Показываем информацию и закрываем панель — ОТКЛЮЧЕНО
+// openParkingSheet(parkingId, data);
 closePanel();
 }
 
