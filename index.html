@@ -1169,6 +1169,31 @@ color: #fff;
     color: var(--text-primary);
     font-size: 15px;
 }
+/* Оверлей редактора адреса */
+.address-editor-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 4100;
+  align-items: center;
+  justify-content: center;
+}
+.address-editor-overlay.active {
+  display: flex;
+}
+
+/* Кнопка "+" рядом с заголовком "Мои адреса" */
+.add-address-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+}
 </style>
 </head>
 <body>
@@ -1251,6 +1276,36 @@ color: #fff;
 <button class="btn-primary" onclick="saveAddressFromPicker()">💾 Сохранить адрес</button>
 </div>
 </div>
+</div>
+<!-- Оверлей редактирования адреса -->
+<div class="address-editor-overlay" id="addressEditorOverlay">
+  <div class="car-editor-box">
+    <h3>✏️ Редактировать адрес</h3>
+    <div class="form-group">
+      <label>Метка</label>
+      <select id="editAddrLabel" class="input-field">
+        <option value="Дом">🏠 Дом</option>
+        <option value="Работа">💼 Работа</option>
+        <option value="Родственники">👨‍👩‍👧‍👦 Родственники</option>
+        <option value="Другое">📍 Другое</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Город</label>
+      <input type="text" id="editAddrCity" class="input-field" placeholder="Москва">
+    </div>
+    <div class="form-group">
+      <label>Улица</label>
+      <input type="text" id="editAddrStreet" class="input-field" placeholder="ул. Тверская">
+    </div>
+    <div class="form-group">
+      <label>Номер дома</label>
+      <input type="text" id="editAddrHouse" class="input-field" placeholder="15">
+    </div>
+    <input type="hidden" id="editAddrId">
+    <button class="btn-primary" onclick="saveAddressChanges()">💾 Сохранить</button>
+    <button class="btn-secondary" onclick="closeAddressEditor()">Отмена</button>
+  </div>
 </div>
 <div class="car-editor-overlay" id="carEditorOverlay">
   <div class="car-editor-box">
@@ -2759,7 +2814,6 @@ function cancelAddressPicker() {
     addressPickerCoords = null;
     pendingAddressData = null;
 }
-
 function saveAddressFromPicker() {
     if (!currentUser) { alert('Необходимо войти'); cancelAddressPicker(); return; }
     if (!addressPickerCoords) { alert('Установите метку на карте'); return; }
@@ -2769,36 +2823,39 @@ function saveAddressFromPicker() {
     saveBtn.textContent = 'Обработка...';
     saveBtn.disabled = true;
 
-    // Определяем адрес по координатам
     ymaps.geocode(addressPickerCoords, { kind: 'house', results: 1 })
     .then(res => {
         const geoObject = res.geoObjects.get(0);
         let addressText = '';
+        let parsed = { region: '', city: '', street: '', houseNumber: '' };
         if (geoObject) {
             addressText = geoObject.getAddressLine();
+            parsed = parseAddress(addressText);
         } else {
-            // Если адрес не определён, сохраняем координаты как текст
             addressText = `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
         }
 
-        // Данные, которые будут сохранены в Firebase
         pendingAddressData = {
             address: addressText,
-            lat: addressPickerCoords[0],   // ← сохраняем координаты
-            lng: addressPickerCoords[1]    // ← сохраняем координаты
+            lat: addressPickerCoords[0],
+            lng: addressPickerCoords[1],
+            city: parsed.city,
+            street: parsed.street,
+            houseNumber: parsed.houseNumber
         };
 
-        // Закрываем карту, открываем выбор метки (Дом/Работа/...)
         document.getElementById('addressPickerOverlay').style.display = 'none';
         document.getElementById('labelPickerOverlay').classList.add('active');
     })
     .catch(err => {
         console.error('Ошибка геокодирования:', err);
-        // Даже при ошибке геокодера сохраняем координаты
         pendingAddressData = {
             address: `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`,
             lat: addressPickerCoords[0],
-            lng: addressPickerCoords[1]
+            lng: addressPickerCoords[1],
+            city: '',
+            street: '',
+            houseNumber: ''
         };
         document.getElementById('addressPickerOverlay').style.display = 'none';
         document.getElementById('labelPickerOverlay').classList.add('active');
@@ -2819,12 +2876,14 @@ function selectLabel(label) {
             cancelLabelPicker();
             return;
         }
-        // В Firebase записываются все поля: address, lat, lng, label, timestamp
         return database.ref(`users/${currentUser.id}/homeAddresses`).push({
             address: data.address,
             lat: data.lat || null,
             lng: data.lng || null,
             label: label,
+            city: data.city || '',
+            street: data.street || '',
+            houseNumber: data.houseNumber || '',
             timestamp: Date.now()
         });
     })
@@ -2839,7 +2898,6 @@ function selectLabel(label) {
         cancelLabelPicker();
     });
 }
-
 function cancelLabelPicker() {
     document.getElementById('labelPickerOverlay').classList.remove('active');
     pendingAddressData = null;
@@ -2852,7 +2910,71 @@ function removeHomeAddress(addressId) {
         .catch(err => alert('Ошибка: ' + err.message));
     }
 }
+// ===================== РЕДАКТОР АДРЕСА =====================
+function openAddressEditor(addressId) {
+    if (!currentUser) return;
+    const overlay = document.getElementById('addressEditorOverlay');
+    if (!overlay) return;
+    document.getElementById('editAddrId').value = addressId;
 
+    database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).once('value')
+    .then(snap => {
+        const addr = snap.val() || {};
+        document.getElementById('editAddrLabel').value = addr.label || 'Дом';
+        document.getElementById('editAddrCity').value = addr.city || '';
+        document.getElementById('editAddrStreet').value = addr.street || '';
+        document.getElementById('editAddrHouse').value = addr.houseNumber || '';
+        overlay.classList.add('active');
+    });
+}
+
+function closeAddressEditor() {
+    document.getElementById('addressEditorOverlay').classList.remove('active');
+}
+
+function saveAddressChanges() {
+    if (!currentUser) return;
+    const addressId = document.getElementById('editAddrId').value;
+    const label = document.getElementById('editAddrLabel').value;
+    const city = document.getElementById('editAddrCity').value.trim();
+    const street = document.getElementById('editAddrStreet').value.trim();
+    const houseNumber = document.getElementById('editAddrHouse').value.trim();
+
+    const fullAddress = [city, street, houseNumber ? `д. ${houseNumber}` : ''].filter(Boolean).join(', ') || 'Адрес не указан';
+
+    database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).update({
+        label: label,
+        city: city,
+        street: street,
+        houseNumber: houseNumber,
+        address: fullAddress
+    }).then(() => {
+        closeAddressEditor();
+        if (document.getElementById('panel').classList.contains('active')) {
+            const content = document.getElementById('panelContent');
+            loadUserData('favorites', content);
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    }).catch(err => alert('Ошибка: ' + err.message));
+}
+
+function filterFavorites() {
+    const input = document.getElementById('favSearchInput');
+    if (!input) return;
+    const query = input.value.trim().toLowerCase();
+    const items = document.querySelectorAll('#favListContainer .fav-item');
+    items.forEach(item => {
+        const name = (item.dataset.name || '').toLowerCase();
+        const address = (item.dataset.address || '').toLowerCase();
+        if (name.includes(query) || address.includes(query)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
 function findParkingsNearAddress(lat, lng, addressText) {
     if (lat && lng) {
         nearbySearchFilter = { lat: lat, lng: lng, radius: 300 };
@@ -3618,7 +3740,10 @@ function loadUserData(type, content) {
             const addrs = homeSnap.val() || {};
             const addrEntries = Object.entries(addrs);
 
-            html += `<div class="fav-section-title">🏠 Мои адреса</div>`;
+            html += `<div class="fav-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>🏠 Мои адреса</span>
+                <button class="add-address-btn" onclick="addHomeAddress()" title="Добавить адрес">+</button>
+            </div>`;
             html += `<div class="addresses-grid">`;
 
             addrEntries.forEach(([id, addr]) => {
@@ -3627,21 +3752,24 @@ function loadUserData(type, content) {
                 if (label === 'Дом') icon = '🏠';
                 else if (label === 'Работа') icon = '💼';
                 else if (label === 'Родственники') icon = '👨‍👩‍👧‍👦';
+                const addressText = addr.city && addr.street && addr.houseNumber
+                    ? `${addr.city}, ${addr.street}, ${addr.houseNumber}`
+                    : (addr.address || 'Без адреса');
                 html += `
-                <div class="swipe-container address-tile" onclick="centerMapOnAddress(${addr.lat || 'null'}, ${addr.lng || 'null'})">
-                    <div class="swipe-item" style="display:flex;flex-direction:column;gap:4px;padding:0;background:transparent;">
+                <div class="swipe-container address-tile">
+                    <div class="swipe-item" onclick="openAddressEditor('${id}')" style="display:flex;flex-direction:column;gap:4px;padding:0;background:transparent;">
                         <div class="address-tile-icon">${icon}</div>
                         <div class="address-tile-label">${label}</div>
-                        <div class="address-tile-addr">${addr.address || 'Без адреса'}</div>
+                        <div class="address-tile-addr">${addressText}</div>
                     </div>
                     <div class="swipe-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')">Удалить</div>
                 </div>`;
             });
 
-            if (addrEntries.length < 3) {
-                html += `<div class="add-address-tile" onclick="addHomeAddress()">
-                    <span style="font-size:24px;">➕</span>
-                    <span>Добавить</span>
+            if (addrEntries.length === 0) {
+                html += `<div class="address-tile" onclick="addHomeAddress()" style="opacity:0.5;">
+                    <div class="address-tile-icon">➕</div>
+                    <div class="address-tile-label">Добавить</div>
                 </div>`;
             }
 
@@ -3654,7 +3782,6 @@ function loadUserData(type, content) {
             if (!favs) {
                 html += '<div class="empty-state"><p>Нет избранных парковок</p></div>';
             } else {
-                // Поиск по избранному
                 html += `<div class="fav-search">
                     <input type="text" id="favSearchInput" placeholder="Поиск по избранному..." oninput="filterFavorites()">
                 </div>`;
