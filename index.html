@@ -2963,7 +2963,15 @@ function renderSearchPanel(content) {
             });
         }
     }, 100);
+// Принудительный обработчик для toggle "Только свободные"
+const freeToggle = document.getElementById('showWithFreeOnly');
+if (freeToggle) {
+    freeToggle.addEventListener('change', () => {
+        setTimeout(filterParkings, 50);
+    });
 }
+}
+
 function updateRadiusLabel() {
     const slider = document.getElementById('radiusSlider');
     if (!slider) return;
