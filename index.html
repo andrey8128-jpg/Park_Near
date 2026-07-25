@@ -2336,7 +2336,7 @@ function submitParkingWithPolygon() {
     }
 
     // Геокодируем (если доступно) для получения адреса и региона
-    ymaps.geocode([centerLat, centerLng], { kind: 'house', results: 1 })
+    ymaps.geocode([centerLat, centerLng], { kind: 'locality', results: 1 })
     .then(res => {
         const geo = res.geoObjects.get(0);
         let address = geo ? geo.getAddressLine() : '';
@@ -2345,10 +2345,11 @@ function submitParkingWithPolygon() {
         // Приоритет отдаём ручному вводу, если он есть
         if (fullStreet) parsed.street = fullStreet;
         if (houseNumber) parsed.houseNumber = houseNumber;
-        if (userCityPrefs.region && userCityPrefs.city) {
-            parsed.region = userCityPrefs.region;
-            parsed.city = userCityPrefs.city;
-        }
+        // Если город не определился геокодером – берём из настроек пользователя (fallback)
+if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
+    parsed.region = userCityPrefs.region;
+    parsed.city = userCityPrefs.city;
+}
 
         const parkingData = {
             lat: centerLat,
@@ -2406,8 +2407,8 @@ function submitParkingWithPolygon() {
             name,
             isPaid: false,
             address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-            region: '',
-            city: '',
+            region: userCityPrefs.region || '',
+            city: userCityPrefs.city || '',
             street: fullStreet,
             houseNumber: houseNumber,
             authorId: currentUser.id,
