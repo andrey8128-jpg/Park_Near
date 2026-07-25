@@ -1055,11 +1055,11 @@ color: #fff;
 }
 
 /* Плитки адресов */
-.addresses-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 24px;
+.addresses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
 }
 .address-tile {
     background: var(--bg-secondary);
@@ -1339,10 +1339,22 @@ color: #fff;
 <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
 <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
 </div>
+    <!-- Невидимый SVG с градиентом для иконок кнопок -->
+<svg width="0" height="0" style="position:absolute;">
+    <defs>
+        <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#4a9eff"/>
+            <stop offset="40%" stop-color="#1a6dd4"/>
+            <stop offset="100%" stop-color="#0a3d8f"/>
+        </linearGradient>
+    </defs>
+</svg>
 <button id="geoBtn" title="Моё местоположение">
 <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
 </button>
-<button id="refreshBtn" title="Обновить парковки" onclick="loadAllParkings(); if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');">🔄</button>
+<button id="refreshBtn" title="Обновить парковки" onclick="loadAllParkings(); this.classList.add('spinning'); setTimeout(()=>this.classList.remove('spinning'),800); if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');">
+    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+</button>
 <button id="addBtn" title="Добавить парковку">+</button>
 <div class="panel" id="panel">
     <div class="panel-header">
@@ -3881,24 +3893,28 @@ function loadUserData(type, content) {
             </div>`;
             html += `<div class="addresses-grid">`;
 
-            addrEntries.forEach(([id, addr]) => {
+           addrEntries.forEach(([id, addr]) => {
     const label = addr.label || 'Адрес';
     let icon = '📍';
     if (label === 'Дом') icon = '🏠';
     else if (label === 'Работа') icon = '💼';
-    else if (label === 'Родственники') icon = '‍👩‍👧👦';
+    else if (label === 'Родственники') icon = '👨‍👩‍👧‍👦';
     const addressText = addr.city && addr.street && addr.houseNumber
-        ? `${addr.city}, ${addr.street}, д. ${addr.houseNumber}`
+        ? `${addr.city}, ${addr.street}, ${addr.houseNumber}`
         : (addr.address || 'Без адреса');
+
     html += `
-    <div class="address-card">
-        <div class="address-card-left" onclick="openAddressEditor('${id}')">
-            <div class="address-card-icon">${icon}</div>
-            <div class="address-card-info">
-                <div class="address-card-label">${label}</div>
-                <div class="address-card-text">${addressText}</div>
+    <div class="swipe-container" style="border-radius:14px; margin-bottom:6px;">
+        <div class="swipe-item" onclick="openAddressEditor('${id}')" style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+            <span style="font-size:20px;">${icon}</span>
+            <div class="fav-item-info">
+                <div class="fav-item-name">${label}</div>
+                <div class="fav-item-meta">${addressText}</div>
             </div>
         </div>
+        <div class="swipe-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')"></div>
+    </div>`;
+});
         <button class="address-card-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')" title="Удалить">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <polyline points="3 6 5 6 21 6"/>
