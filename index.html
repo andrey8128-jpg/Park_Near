@@ -3275,7 +3275,7 @@ function renderSettings() {
             <div class="settings-row">
                 <span class="settings-label">Моё авто</span>
                 <span class="settings-value">
-                    ${(currentUser.carBrand || currentUser.carModel) ? `${currentUser.carBrand || ''} ${currentUser.carModel || ''}` : 'Не указано'}
+                    ${(currentUser.carBrand || currentUser.carModel) ? `${currentUser.carBrand || ''} ${currentUser.carModel || ''}` : ''}
                     <button class="settings-edit-btn" onclick="event.stopPropagation(); editCarDataFromSettings()">✏️</button>
                 </span>
             </div>
