@@ -1977,6 +1977,14 @@ else reject(new Error('Геолокация не поддерживается'))
 
 // ===================== МАРКЕРЫ НА КАРТЕ =====================
     function loadAllParkings() {
+        // Удаляем все старые маркеры
+Object.keys(mapMarkers).forEach(id => {
+    if (mapMarkers[id]) {
+        map.geoObjects.remove(mapMarkers[id]);
+        delete mapMarkers[id];
+    }
+});
+parkingDataCache = {}; // очищаем кеш
     console.log('Загрузка парковок из Firebase...');
     database.ref('parkings').once('value').then(snapshot => {
         const data = snapshot.val();
@@ -1986,6 +1994,15 @@ else reject(new Error('Геолокация не поддерживается'))
                 const p = data[key];
                 console.log('Парковка:', key, p);
                 if (p && p.lat && p.lng) {
+                    // Если город выбран, проверяем совпадение
+if (cityFilter) {
+    const pCity = (p.city || '').toLowerCase();
+    const pAddr = (p.address || '').toLowerCase();
+    const pName = (p.name || '').toLowerCase();
+    if (!pCity.includes(cityFilter) && !pAddr.includes(cityFilter) && !pName.includes(cityFilter)) {
+        return; // пропускаем эту парковку
+    }
+}
                     parkingDataCache[key] = p;
                     addMarkerToMap(key, p);
                 }
@@ -2515,6 +2532,7 @@ function closeParkingSheet() { document.getElementById('parkingSheet').classList
 function openOccupancyPanel(parkingId) {
     database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
         const data = snapshot.val(); if (!data) return;
+        const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
         if (currentUser && currentUser.id !== data.authorId) {
             database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
             database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
@@ -3325,7 +3343,19 @@ const filterCity = (nearbySearchFilter?.city) || userCityPrefs.city || '';
 const filterRegion = (nearbySearchFilter?.region) || userCityPrefs.region || '';
 
 let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
-
+    // Фильтр по городу (если нет поиска по координатам)
+const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
+if (!hasNearbyFilter) {
+    const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
+    if (cityFilter) {
+        parkings = parkings.filter(p => {
+            const pCity = (p.city || '').toLowerCase();
+            const pAddr = (p.address || '').toLowerCase();
+            const pName = (p.name || '').toLowerCase();
+            return pCity.includes(cityFilter) || pAddr.includes(cityFilter) || pName.includes(cityFilter);
+        });
+    }
+}
 // Фильтр по региону
 if (filterRegion) {
 parkings = parkings.filter(p =>
@@ -3795,6 +3825,18 @@ function saveCityFromSettings() {
     database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
     .then(() => {
         userCityPrefs = { region, city };
+        loadAllParkings(); // перезагружаем маркеры на карте
+// Если открыта вкладка поиска, обновляем результаты
+if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
+    filterParkings();
+}
+// Обновляем подпись "Поиск: в городе" (если есть)
+const cityInfo = document.getElementById('cityFilterInfo');
+if (cityInfo) {
+    const label = city ? `в ${city}` : 'везде';
+    const strong = cityInfo.querySelector('strong');
+    if (strong) strong.textContent = label;
+}
         // Тихое сохранение без всплывающего окна
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
