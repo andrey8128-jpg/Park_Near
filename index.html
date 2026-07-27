@@ -1533,6 +1533,7 @@ let map = null;
 let currentUser = null;
 let mapMarkers = {};
 let myLocationPlacemark = null;
+let addressPreviewMarker = null;   // временный маркер для показа адреса на карте
 let drawingPolygon = null;
 let isDrawingMode = false;
 let currentParkingId = null;
@@ -2870,9 +2871,37 @@ function addHomeAddress() {
     }).catch(err => { console.error(err); alert('Ошибка'); });
 }
 function centerMapOnAddress(lat, lng) {
-    if (lat && lng) {
-        map.setCenter([lat, lng], 18, { duration: 500 });
+    if (!lat || !lng) return;
+
+    // Закрываем панель избранного, чтобы была видна карта
+    closePanel();
+
+    // Перемещаем карту к адресу с зумом 17
+    map.setCenter([lat, lng], 17, { duration: 500 });
+
+    // Удаляем предыдущий временный маркер адреса, если есть
+    if (window._addressPreviewMarker) {
+        map.geoObjects.remove(window._addressPreviewMarker);
     }
+
+    // Создаём временный маркер (красный, как в пикере адреса)
+    window._addressPreviewMarker = new ymaps.Placemark([lat, lng], {
+        hintContent: 'Ваш адрес',
+        balloonContent: 'Вы здесь сохранили адрес'
+    }, {
+        preset: 'islands#redHomeIcon',
+        draggable: false
+    });
+
+    map.geoObjects.add(window._addressPreviewMarker);
+
+    // Через 8 секунд маркер исчезнет
+    setTimeout(() => {
+        if (window._addressPreviewMarker) {
+            map.geoObjects.remove(window._addressPreviewMarker);
+            window._addressPreviewMarker = null;
+        }
+    }, 8000);
 }
 function openAddressPicker() {
     if (!currentUser) { alert('Необходимо войти'); return; }
