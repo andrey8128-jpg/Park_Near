@@ -3637,14 +3637,14 @@ html += `<div class="reputation-card">
                     <stop offset="100%" stop-color="#5856D6"/>
                 </linearGradient>
             </defs>
-            <circle cx="60" cy="60" r="${radius}" class="progress-ring__circle-bg"/>
-            <circle cx="60" cy="60" r="${radius}" class="progress-ring__circle-fill"
-                stroke-dasharray="${circumference}"
-                stroke-dashoffset="${offset}"/>
-            <text x="60" y="60" text-anchor="middle" dominant-baseline="central"
-                fill="currentColor" font-size="20" font-weight="700">
-                ${levelEmoji}
-            </text>
+         <circle cx="60" cy="60" r="${radius}" class="progress-ring__circle-fill"
+    stroke-dasharray="${circumference}"
+    stroke-dashoffset="${offset}"/>
+<foreignObject x="45" y="45" width="30" height="30">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--text-primary);">
+        ${levelEmoji}
+    </div>
+</foreignObject>
         </svg>
     </div>
     <div class="rep-stats">
