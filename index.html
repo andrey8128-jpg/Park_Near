@@ -82,48 +82,47 @@ white-space: nowrap; color: var(--text-primary);
 .layer-option:last-child { border-bottom: none; }
 .layer-option:active { background: var(--bg-primary); }
 .layer-option.selected { color: var(--accent); font-weight: 600; }
-/* Общий стиль для трёх кнопок справа */
+/* Общие стили для трёх кнопок */
 #geoBtn, #refreshBtn, #addBtn {
     position: fixed;
     right: 20px;
     z-index: 900;
-    width: 48px;
-    height: 48px;
     border-radius: 50%;
-    background: var(--bg-secondary);
-    color: var(--accent);
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    font-size: 20px;
-}
-
-/* Вертикальное размещение – над tabBar */
-#addBtn {
-    bottom: 90px;       /* самая нижняя */
-}
-#refreshBtn {
-    bottom: 160px;       /* над кнопкой добавления */
-}
-#geoBtn {
-    bottom: 220px;       /* самая верхняя */
-}
-
-/* Отключаем градиент и большой размер у addBtn */
-#addBtn {
-    bottom: 90px;          /* или 110px, если нужно чуть выше */
-    width: 60px;            /* было 48px – увеличиваем */
-    height: 60px;           /* было 48px – увеличиваем */
     background: var(--bg-secondary);
-    color: var(--accent);
-    font-size: 30px;        /* чуть больше, чтобы плюс смотрелся пропорционально */
-    line-height: 60px;      /* выравниваем по центру новой высоты */
 }
+
+/* Размеры: геолокация и обновление – компактные */
+#geoBtn, #refreshBtn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    color: initial;          /* чтобы эмодзи были родного цвета */
+}
+
+/* Кнопка добавления – крупнее */
+#addBtn {
+    width: 56px;
+    height: 56px;
+    font-size: 30px;
+    color: var(--accent);
+    background: var(--bg-secondary);
+}
+
+/* Вертикальное расположение */
+#addBtn    { bottom: 100px; }
+#refreshBtn { bottom: 160px; }
+#geoBtn     { bottom: 220px; }
+
+/* Режим рисования */
 #addBtn.drawing {
     background: var(--orange);
+    color: #fff;
 }
 /* ====== TAB BAR  ====== */
 .tabBar {
@@ -1368,9 +1367,7 @@ color: #fff;
         </linearGradient>
     </defs>
 </svg>
-<button id="geoBtn" title="Моё местоположение">
-<svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-</button>
+<button id="geoBtn" title="Моё местоположение">📍</button>
 <button id="refreshBtn" title="Обновить парковки" onclick="loadAllParkings(); this.classList.add('spinning'); setTimeout(()=>this.classList.remove('spinning'),800); if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');">
     <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
 </button>
