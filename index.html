@@ -82,6 +82,7 @@ white-space: nowrap; color: var(--text-primary);
 .layer-option:last-child { border-bottom: none; }
 .layer-option:active { background: var(--bg-primary); }
 .layer-option.selected { color: var(--accent); font-weight: 600; }
+/* Общие стили для трёх кнопок */
 #geoBtn, #refreshBtn, #addBtn {
     position: fixed;
     right: 20px;
@@ -95,12 +96,16 @@ white-space: nowrap; color: var(--text-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     background: var(--bg-secondary);
 }
+
+/* Размеры: геолокация и обновление – компактные */
 #geoBtn, #refreshBtn {
     width: 40px;
     height: 40px;
     font-size: 20px;
-    color: initial;
+    color: initial;          /* чтобы эмодзи были родного цвета */
 }
+
+/* Кнопка добавления – крупнее */
 #addBtn {
     width: 56px;
     height: 56px;
@@ -108,13 +113,18 @@ white-space: nowrap; color: var(--text-primary);
     color: var(--accent);
     background: var(--bg-secondary);
 }
+
+/* Вертикальное расположение */
 #addBtn    { bottom: 85px; }
 #refreshBtn { bottom: 145px; }
 #geoBtn     { bottom: 190px; }
+
+/* Режим рисования */
 #addBtn.drawing {
     background: var(--orange);
     color: #fff;
 }
+/* ====== TAB BAR  ====== */
 .tabBar {
 position: fixed;
 bottom: 16px;
@@ -134,12 +144,14 @@ box-shadow:
 0 8px 32px rgba(0, 0, 0, 0.25),
 0 2px 8px rgba(0, 0, 0, 0.15);
 }
+
 body.dark-theme .tabBar {
 background: #2C2C2E;
 box-shadow:
 0 8px 32px rgba(0, 0, 0, 0.5),
 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
 .tab {
 flex: 1;
 display: flex;
@@ -153,6 +165,8 @@ transition: all 0.3s ease;
 position: relative;
 height: 100%;
 }
+
+/* Иконка */
 .tab .icon {
 width: 28px;
 height: 28px;
@@ -163,12 +177,15 @@ transition: all 0.3s ease;
 position: relative;
 z-index: 2;
 }
+
 .tab .icon svg {
 width: 24px;
 height: 24px;
 fill: #8E8E93;
 transition: fill 0.3s ease, transform 0.3s ease;
 }
+
+/* Подпись */
 .tab .label {
 font-size: 10px;
 color: #8E8E93;
@@ -178,6 +195,8 @@ margin-top: 2px;
 position: relative;
 z-index: 2;
 }
+
+/* ====== АКТИВНАЯ ВКЛАДКА — ЭФФЕКТ SPOTLIGHT ====== */
 .tab.active::before {
 content: '';
 position: absolute;
@@ -190,6 +209,7 @@ background: #FFFFFF;
 border-radius: 0 0 4px 4px;
 z-index: 3;
 }
+
 .tab.active::after {
 content: '';
 position: absolute;
@@ -209,17 +229,22 @@ clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
 z-index: 1;
 pointer-events: none;
 }
+
 .tab.active .icon svg {
 fill: #FFFFFF;
 transform: scale(1.1);
 }
+
 .tab.active .label {
 color: #FFFFFF;
 font-weight: 600;
 }
+
+/* Нажатие */
 .tab:active {
 transform: scale(0.92);
 }
+
 .tab:active .icon svg {
 fill: #FFFFFF;
 }
@@ -228,7 +253,7 @@ fill: #FFFFFF;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: 0;   /* отступ снизу, чтобы не перекрывать таб-бар */
     background: var(--bg-primary);
     z-index: 2000;
     transform: translateY(100%);
@@ -577,11 +602,14 @@ color: #fff;
 .manual-address-form.active { display: block; }
 .map-address-form { display: none; }
 .map-address-form.active { display: block; }
+
+/* Полностью скрываем все оригинальные элементы Яндекс.Карт */
 .ymaps-2-1-79-copyright,
 .ymaps-2-1-79-logo,
 .ymaps-2-1-79-conditions {
    bottom: 100px !important;
 }
+/* Улучшенный онбординг */
 .onboarding-icon {
     font-size: 64px;
     margin-bottom: 12px;
@@ -611,6 +639,8 @@ color: #fff;
     width: 24px;
     border-radius: 4px;
 }
+
+/* Подсветка элементов при обучении */
 .onboarding-highlight {
     position: relative;
     z-index: 5001 !important;
@@ -618,6 +648,8 @@ color: #fff;
     border-radius: 16px !important;
     animation: pulse 1.5s infinite;
 }
+
+/* Стрелка-указатель под подсвеченным элементом */
 .onboarding-highlight::after {
     content: '';
     position: absolute;
@@ -631,19 +663,21 @@ color: #fff;
     border-top: 10px solid var(--accent);
     z-index: 5002;
 }
+
 @keyframes pulse {
     0% { box-shadow: 0 0 0 5px rgba(0,122,255,0.4), 0 0 20px rgba(0,122,255,0.6); }
     50% { box-shadow: 0 0 0 10px rgba(0,122,255,0.8), 0 0 30px rgba(0,122,255,0.9); }
     100% { box-shadow: 0 0 0 5px rgba(0,122,255,0.4), 0 0 20px rgba(0,122,255,0.6); }
 }
+/* === НОВЫЙ ДИЗАЙН ЗАГОЛОВКА ПАНЕЛИ === */
 .panel-header {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: center; /* Центрируем название */
     height: 56px;
-    padding-top: env(safe-area-inset-top);
-    background: var(--bg-primary);
+    padding-top: env(safe-area-inset-top); /* Отступ под "челку" iPhone */
+    background: var(--bg-primary); /* Фон подстраивается под тему */
 }
 .panel-title { 
     font-size: 17px; 
@@ -653,26 +687,29 @@ color: #fff;
     letter-spacing: -0.3px; 
 }
 .panel-close {
-    position: absolute;
-    right: 12px;
+    position: absolute; /* Вырываем из потока */
+    right: 12px; /* Прижимаем к правому краю */
     top: 50%;
-    transform: translateY(-50%);
-    background: transparent !important;
+    transform: translateY(-50%); /* Центрируем по вертикали */
+    
+    background: transparent !important; /* Убираем белый фон кнопки */
     border: none;
     padding: 8px;
     margin: 0;
     cursor: pointer;
-    color: var(--accent);
+    color: var(--accent); /* Синий цвет крестика */
     display: flex;
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
 }
+
 .panel-close svg {
     width: 24px;
     height: 24px;
     stroke: currentColor;
 }
+    /* ===== НОВЫЙ ДИЗАЙН РЕПУТАЦИИ ===== */
 .reputation-card {
     background: var(--bg-secondary);
     border-radius: 20px;
@@ -680,12 +717,14 @@ color: #fff;
     margin-bottom: 16px;
     box-shadow: var(--card-shadow);
 }
+
 .reputation-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
 }
+
 .rep-level-badge {
     background: linear-gradient(135deg, var(--accent), #5856D6);
     color: #fff;
@@ -695,20 +734,24 @@ color: #fff;
     font-size: 13px;
     letter-spacing: 0.5px;
 }
+
 .reputation-circle-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     margin-bottom: 16px;
 }
+
 .progress-ring {
     transform: rotate(-90deg);
 }
+
 .progress-ring__circle-bg {
     fill: none;
     stroke: var(--bg-primary);
     stroke-width: 6;
 }
+
 .progress-ring__circle-fill {
     fill: none;
     stroke: url(#gradient);
@@ -716,26 +759,31 @@ color: #fff;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.8s ease;
 }
+
 .rep-stats {
     display: flex;
     justify-content: space-around;
     margin-top: 12px;
     width: 100%;
 }
+
 .rep-stat {
     text-align: center;
 }
+
 .rep-stat-value {
     font-size: 18px;
     font-weight: 700;
     color: var(--text-primary);
 }
+
 .rep-stat-label {
     font-size: 11px;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
+
 .rep-xp-info {
     text-align: center;
     margin-top: 8px;
@@ -745,10 +793,12 @@ color: #fff;
 .panel-content {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-}
-.panel-content::-webkit-scrollbar { width: 4px; }
+    
+    .panel-content::-webkit-scrollbar { width: 4px; }
 .panel-content::-webkit-scrollbar-track { background: transparent; }
 .panel-content::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 2px; }
+}
+/* Анимация пульсации для маркера в поиске */
 .pulse-marker {
     animation: pulseAndScale 0.6s ease-in-out 3;
     transform-origin: center;
@@ -758,6 +808,7 @@ color: #fff;
     50% { transform: scale(1.4); filter: brightness(1.3) hue-rotate(20deg); }
     100% { transform: scale(1); filter: brightness(1); }
 }
+    /* Группировка улиц в поиске */
 .group-header {
     display: flex;
     align-items: center;
@@ -783,12 +834,12 @@ color: #fff;
     margin-left: 16px;
     margin-bottom: 8px;
 }
-@keyframes gradientMove {
+    @keyframes gradientMove {
     0% { background-position:0% 50%; }
     50% { background-position:100% 50%; }
     100% { background-position:0% 50%; }
 }
-.spinner {
+    .spinner {
     width: 32px; height: 32px;
     border: 3px solid rgba(255,255,255,0.3);
     border-top-color: #fff;
@@ -797,14 +848,17 @@ color: #fff;
     margin: 0 auto;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes logoPulse {
+    @keyframes logoPulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
 }
+    /* Индикатор загруженности */
 .occupancy-dot {
     width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0;
 }
+
+/* Стили слайдера */
 #radiusSlider {
     -webkit-appearance: none;
     appearance: none;
@@ -823,6 +877,8 @@ color: #fff;
     box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     cursor: pointer;
 }
+
+/* Кнопки пресетов */
 .preset-btn {
     padding: 4px 12px;
     border-radius: 20px;
@@ -839,6 +895,8 @@ color: #fff;
     color: #fff;
     border-color: var(--accent);
 }
+
+/* Кнопка сброса */
 .btn-outline {
     width: 100%; padding: 14px; border-radius: 14px;
     border: 1px solid var(--gray);
@@ -849,6 +907,7 @@ color: #fff;
 .btn-outline:active {
     background: var(--bg-primary);
 }
+/* Оверлей редактора автомобиля */
 .car-editor-overlay {
   display: none;
   position: fixed;
@@ -876,6 +935,9 @@ color: #fff;
   margin-bottom: 16px;
   font-weight: 600;
 }
+/* ======================= */
+/*   КОМПАКТНЫЕ НАСТРОЙКИ  */
+/* ======================= */
 .settings-section {
     background: var(--bg-secondary);
     border-radius: 14px;
@@ -923,6 +985,7 @@ color: #fff;
     font-size: 16px;
     margin-left: 4px;
 }
+/* Компактный выбор региона/города */
 .settings-picker-row {
     display: flex;
     gap: 8px;
@@ -939,6 +1002,7 @@ color: #fff;
     border: 1px solid var(--input-border);
     color: var(--text-primary);
 }
+/* Кнопка редактирования авто */
 .btn-edit-car {
     background: none;
     border: none;
@@ -948,6 +1012,7 @@ color: #fff;
     padding: 4px 0;
     cursor: pointer;
 }
+/* Опасные действия (красный текст) */
 .btn-danger-text {
     background: none;
     border: none;
@@ -973,52 +1038,7 @@ color: #fff;
     display: flex;
     align-items: center;
 }
-.reputation-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 5000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.reputation-modal {
-  background: var(--bg-secondary);
-  border-radius: 20px;
-  padding: 20px;
-  width: 90%;
-  max-width: 400px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-}
-.rep-level-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 12px;
-  margin-bottom: 6px;
-  background: var(--bg-primary);
-  font-size: 14px;
-}
-.rep-level-row.current {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
-.rep-level-row .level-emoji {
-  font-size: 18px;
-  width: 30px;
-  text-align: center;
-}
-.rep-level-row .level-name {
-  flex: 1;
-  margin-left: 8px;
-}
-.rep-level-row .level-xp {
-  font-weight: 500;
-}
+/* Pull-to-refresh */
 .pull-indicator {
     display: flex;
     align-items: center;
@@ -1041,6 +1061,7 @@ color: #fff;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
+/* ========== ДИЗАЙН ИЗБРАННОГО ========== */
 .fav-section-title {
     font-size: 15px;
     font-weight: 600;
@@ -1050,6 +1071,8 @@ color: #fff;
     margin-bottom: 10px;
     margin-top: 8px;
 }
+
+/* Плитки адресов */
 .addresses-list {
     display: flex;
     flex-direction: column;
@@ -1111,6 +1134,8 @@ color: #fff;
 .add-address-tile:active {
     background: var(--bg-primary);
 }
+
+/* Компактная карточка избранной парковки */
 .fav-item {
     display: flex;
     align-items: center;
@@ -1149,6 +1174,7 @@ color: #fff;
 .occupancy-dot {
     width: 10px; height: 10px; border-radius: 50%;
 }
+/* Поиск по избранному */
 .fav-search {
     margin-bottom: 12px;
 }
@@ -1161,6 +1187,7 @@ color: #fff;
     color: var(--text-primary);
     font-size: 15px;
 }
+/* Оверлей редактора адреса */
 .address-editor-overlay {
   display: none;
   position: fixed;
@@ -1173,6 +1200,8 @@ color: #fff;
 .address-editor-overlay.active {
   display: flex;
 }
+
+/* Кнопка "+" рядом с заголовком "Мои адреса" */
 .add-address-btn {
   background: none;
   border: none;
@@ -1183,9 +1212,10 @@ color: #fff;
   display: flex;
   align-items: center;
 }
-.bottom-sheet {
+    .bottom-sheet {
     display: none !important;
 }
+    /* Карточка адреса */
 .address-card {
     display: flex;
     align-items: center;
@@ -1200,6 +1230,7 @@ color: #fff;
 .address-card:active {
     background: var(--bg-primary);
 }
+
 .address-card-left {
     display: flex;
     align-items: center;
@@ -1208,6 +1239,7 @@ color: #fff;
     min-width: 0;
     cursor: pointer;
 }
+
 .address-card-icon {
     width: 40px;
     height: 40px;
@@ -1219,16 +1251,19 @@ color: #fff;
     font-size: 20px;
     flex-shrink: 0;
 }
+
 .address-card-info {
     flex: 1;
     min-width: 0;
 }
+
 .address-card-label {
     font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 2px;
 }
+
 .address-card-text {
     font-size: 13px;
     color: var(--text-secondary);
@@ -1236,6 +1271,7 @@ color: #fff;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .address-card-delete {
     width: 36px;
     height: 36px;
@@ -1255,6 +1291,8 @@ color: #fff;
     background: rgba(255,59,48,0.25);
     transform: scale(0.9);
 }
+
+/* Карточка добавления адреса */
 .address-card-add {
     border: 1.5px dashed var(--border-color);
     background: transparent;
@@ -1273,28 +1311,34 @@ color: #fff;
 </head>
 <body>
 <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.8s ease; background: #02060E; overflow:hidden;">
+    <!-- Лава-лампа: размытые круги -->
     <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" style="position:absolute; width:100%; height:100%;">
         <defs>
             <filter id="lavaBlur" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur stdDeviation="50" />
             </filter>
         </defs>
+        <!-- Первый пузырь -->
         <circle cx="30%" cy="30%" r="90" fill="#0356C5" filter="url(#lavaBlur)" opacity="0.8">
             <animate attributeName="cx" values="30%;70%;40%;30%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             <animate attributeName="cy" values="30%;60%;20%;30%" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             <animate attributeName="r" values="90;120;80;90" dur="10s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
         </circle>
+        <!-- Второй пузырь -->
         <circle cx="70%" cy="70%" r="110" fill="#0356C5" filter="url(#lavaBlur)" opacity="0.7">
             <animate attributeName="cx" values="70%;20%;80%;70%" dur="20s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             <animate attributeName="cy" values="70%;40%;80%;70%" dur="16s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             <animate attributeName="r" values="110;90;130;110" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
         </circle>
+        <!-- Третий пузырь -->
         <circle cx="50%" cy="50%" r="70" fill="#1E3A8A" filter="url(#lavaBlur)" opacity="0.6">
             <animate attributeName="cx" values="50%;30%;90%;50%" dur="22s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             <animate attributeName="cy" values="50%;80%;10%;50%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             <animate attributeName="r" values="70;100;50;70" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
         </circle>
     </svg>
+
+    <!-- Логотип и спиннер -->
     <div style="position:relative; z-index:1; text-align:center;">
         <img src="logo.png" alt="Логотип" style="width: 120px; height: auto; margin-bottom: 20px; animation: logoPulse 3s ease-in-out infinite;" onerror="this.style.display='none'">
         <div style="font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 1px;">Park<span style="color: #4DA3FF;">Near</span></div>
@@ -1313,6 +1357,7 @@ color: #fff;
 <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
 <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
 </div>
+    <!-- Невидимый SVG с градиентом для иконок кнопок -->
 <svg width="0" height="0" style="position:absolute;">
     <defs>
         <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -1355,6 +1400,7 @@ color: #fff;
 </div>
 </div>
 </div>
+<!-- Оверлей редактирования адреса -->
 <div class="address-editor-overlay" id="addressEditorOverlay">
   <div class="car-editor-box">
     <h3>✏️ Редактировать адрес</h3>
@@ -1413,6 +1459,7 @@ color: #fff;
     <button class="btn-secondary" onclick="closeCarEditor()">Отмена</button>
   </div>
 </div>
+
 <div class="label-picker-overlay" id="labelPickerOverlay">
   <div class="label-picker-box">
     <h3>🏷️ Выберите метку</h3>
@@ -1466,22 +1513,14 @@ color: #fff;
 <div class="label">Профиль</div>
 </div>
 </div>
+    <!-- Онбординг -->
+    <!-- Панель настроек -->
 <div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
     <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
         <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
         <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
     </div>
     <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
-</div>
-<div id="reputationOverlay" class="reputation-overlay" style="display:none;">
-  <div class="reputation-modal">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <h3 style="margin:0;">🏆 Уровни репутации</h3>
-      <button onclick="closeReputationOverlay()" style="background:none; border:none; font-size:24px; color:var(--text-secondary); cursor:pointer;">✕</button>
-    </div>
-    <div id="reputationLevelsList"></div>
-    <div id="reputationProgressInfo" style="text-align:center; margin-top:16px; font-size:14px; color:var(--text-secondary);"></div>
-  </div>
 </div>
 <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:5000; align-items:center; justify-content:center;">
   <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative;">
@@ -1510,7 +1549,7 @@ let map = null;
 let currentUser = null;
 let mapMarkers = {};
 let myLocationPlacemark = null;
-let addressPreviewMarker = null;
+let addressPreviewMarker = null;   // временный маркер для показа адреса на карте
 let drawingPolygon = null;
 let isDrawingMode = false;
 let currentParkingId = null;
@@ -1537,7 +1576,8 @@ let userCityPrefs = { region: '', city: '' };
 let nearbySearchFilter = null;
 let userLocationForSearch = null;
 let pendingAddressData = null;
-let newParkingCoords = null;
+let newParkingCoords = null; // <-- ДОБАВИТЬ ЭТУ СТРОКУ
+
 
 // ===================== КОНСТАНТЫ =====================
 const carBrands = {
@@ -1690,7 +1730,7 @@ const regionsData = {
   "Оренбургская область": ["Оренбург", "Орск", "Новотроицк", "Бузулук", "Бугуруслан", "Гай", "Сорочинск", "Кувандык", "Соль-Илецк", "Ясный", "Медногорск"],
   "Другое": ["Прочие населённые пункты"]
 };
-// ===================== УТИЛИТЫ =====================
+// ===================== УТИЛИТЫ (определены ДО использования) =====================
 function getOccupancyColor(occupied, total) {
 const ratio = Math.min(1, total > 0 ? occupied / total : 0);
 return '#' + [Math.round(255 * ratio), Math.round(255 * (1 - ratio)), 0].map(c => c.toString(16).padStart(2, '0')).join('');
@@ -1710,11 +1750,13 @@ const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) *
 const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 return R * c;
 }
+
 function formatDateTime(timestamp) {
 if (!timestamp) return 'Неизвестно';
 const d = new Date(timestamp);
 return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
+
 function checkPolygonSize(coordinates) {
 if (!coordinates || coordinates.length < 3) return { valid: false, error: 'Минимум 3 точки' };
 const lats = coordinates.map(c => c[0]), lngs = coordinates.map(c => c[1]);
@@ -1723,6 +1765,7 @@ const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng), lengthM = ge
 if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) return { valid: false, error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` };
 return { valid: true, width: widthM, length: lengthM };
 }
+
 function parseAddress(fullAddress) {
 if (!fullAddress) return { region: '', city: '', street: '', houseNumber: '' };
 let addr = fullAddress.replace(/^Россия,\s*/i, '');
@@ -1765,17 +1808,19 @@ function extractStreetName(fullStreet) {
             return fullStreet.substring(t.length + 1);
         }
     }
-    return fullStreet;
+    return fullStreet; // если тип не распознан, возвращаем всё как есть
 }
 // ===================== PULL-TO-REFRESH =====================
 let pullStartY = 0;
 let pullCurrentY = 0;
 let pullIsDragging = false;
-let pullThreshold = 70;
-let pullPanelType = null;
+let pullThreshold = 70; // порог в пикселях для срабатывания
+let pullPanelType = null; // 'search', 'favorites', 'profile'
+
 function initPullToRefresh() {
     const panelContent = document.getElementById('panelContent');
     if (!panelContent) return;
+
     panelContent.addEventListener('touchstart', function(e) {
         if (this.scrollTop === 0) {
             pullStartY = e.touches[0].clientY;
@@ -1785,24 +1830,31 @@ function initPullToRefresh() {
             pullIsDragging = false;
         }
     });
+
     panelContent.addEventListener('touchmove', function(e) {
         if (!pullIsDragging) return;
         pullCurrentY = e.touches[0].clientY;
         const delta = pullCurrentY - pullStartY;
         if (delta > 0 && this.scrollTop === 0) {
+            // Показываем индикатор
             const indicator = document.getElementById('pullIndicator');
             if (indicator) {
                 const height = Math.min(delta, pullThreshold);
                 indicator.style.height = height + 'px';
             }
+            if (delta > pullThreshold) {
+                // Достигнут порог – предотвращаем дальнейшее движение (опционально)
+            }
         }
     });
+
     panelContent.addEventListener('touchend', function() {
         if (!pullIsDragging) return;
         pullIsDragging = false;
         const delta = pullCurrentY - pullStartY;
         const indicator = document.getElementById('pullIndicator');
         if (delta >= pullThreshold && this.scrollTop === 0) {
+            // Запуск обновления
             indicator.style.height = '50px';
             indicator.classList.add('visible');
             refreshCurrentPanel();
@@ -1811,6 +1863,7 @@ function initPullToRefresh() {
                 indicator.classList.remove('visible');
             }, 1500);
         } else {
+            // Скрыть индикатор
             indicator.style.height = '0px';
             indicator.classList.remove('visible');
         }
@@ -1818,6 +1871,7 @@ function initPullToRefresh() {
         pullCurrentY = 0;
     });
 }
+
 function getCurrentPanelType() {
     const title = document.getElementById('panelTitle').textContent;
     if (title === 'Поиск') return 'search';
@@ -1825,6 +1879,7 @@ function getCurrentPanelType() {
     if (title === 'Профиль') return 'profile';
     return null;
 }
+
 function refreshCurrentPanel() {
     const content = document.getElementById('panelContent');
     switch (pullPanelType) {
@@ -1846,12 +1901,14 @@ function initAuth() {
     if (window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
-        tg.setHeaderColor('#000000'); 
-        tg.setBackgroundColor('#000000');
+        // Скрываем стандартную шапку Telegram и красим фон в черный
+tg.setHeaderColor('#000000'); 
+tg.setBackgroundColor('#000000');
         if (tg.initDataUnsafe?.user) {
             const user = tg.initDataUnsafe.user;
             currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
             if (currentUser) {
+    // ... существующий код статистики и города ...
     database.ref(`users/${currentUser.id}/nickname`).once('value').then(snap => {
         if (snap.exists()) {
             currentUser.nickname = snap.val();
@@ -1860,11 +1917,12 @@ function initAuth() {
     });
 }
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            // Показать обучение, если ещё не видели
             if (!localStorage.getItem('onboardingSeen')) {
                 setTimeout(() => showOnboarding(), 500);
             }
         }
-    }
+    } // ← ОБЯЗАТЕЛЬНАЯ ЗАКРЫВАЮЩАЯ СКОБКА
     if (!currentUser) { const saved = localStorage.getItem('tgUser'); if (saved) currentUser = JSON.parse(saved); }
     if (currentUser) {
         const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
@@ -1887,6 +1945,7 @@ function initAuth() {
    const savedTheme = localStorage.getItem('darkTheme');
     if (savedTheme === '1' || savedTheme === 'true') {
         document.body.classList.add('dark-theme');
+        // Применяем фильтр карты сразу при загрузке
         setTimeout(() => {
             const mapEl = document.getElementById('map');
             if (mapEl && map && map.getType() === 'yandex#map') {
@@ -1894,7 +1953,7 @@ function initAuth() {
             }
         }, 1500);
     }
-}
+} // ← ЭТА СКОБКА ЗАКРЫВАЕТ initAuth()
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
 return new Promise(function(resolve, reject) {
@@ -1903,6 +1962,7 @@ window.Telegram.WebApp.Geolocation.getLocation().then(loc => resolve({ lat: loc.
 } else tryBrowserGeolocation(resolve, reject);
 });
 }
+
 function tryBrowserGeolocation(resolve, reject) {
 if (typeof ymaps !== 'undefined') {
 ymaps.geolocation.get({ provider: 'browser', timeout: 10000 }).then(result => {
@@ -1914,6 +1974,7 @@ else reject(new Error('Геолокация не поддерживается'))
 } else if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }), reject, { enableHighAccuracy: true, timeout: 10000 });
 else reject(new Error('Геолокация не поддерживается'));
 }
+
 // ===================== МАРКЕРЫ НА КАРТЕ =====================
     function loadAllParkings() {
     console.log('Загрузка парковок из Firebase...');
@@ -1946,16 +2007,21 @@ function refreshParkingMarker() {
 }
 function addMarkerToMap(id, data) {
     console.log('Добавляю маркер:', id, data);
+    
     if (mapMarkers[id]) {
         map.geoObjects.remove(mapMarkers[id]);
         delete mapMarkers[id];
     }
+    
     if (!map) return;
+
     const totalSpots = data.totalSpots || 0;
     const occupiedSpots = data.occupiedSpots || 0;
     const freeSpots = totalSpots - occupiedSpots;
     const color = getOccupancyColor(occupiedSpots, totalSpots);
+    
     let placemark;
+
     const balloonContent = `
     <div style="padding: 10px; font-family: -apple-system, sans-serif; max-width: 220px;">
         <strong style="font-size: 16px;">${data.name}</strong>
@@ -1966,6 +2032,7 @@ function addMarkerToMap(id, data) {
         <button onclick="openOccupancyPanel('${id}')" style="width: 100%; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px;">✏️ Изменить</button>
     </div>
 `;
+
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         placemark = new ymaps.Polygon([data.coordinates], { 
             hintContent: data.name,
@@ -1983,6 +2050,7 @@ function addMarkerToMap(id, data) {
             preset: 'islands#blueParkingIcon' 
         });
     }
+
     placemark.events.add('click', function(e) {
         const now = Date.now();
         if (lastClickParkingId === id && (now - lastClickTime) < 300) {
@@ -1996,6 +2064,7 @@ function addMarkerToMap(id, data) {
         map.balloon.close();
         clickTimeout = setTimeout(() => { lastClickParkingId = null; lastClickTime = 0; }, 300);
     });
+
     map.geoObjects.add(placemark);
     mapMarkers[id] = placemark;
 }
@@ -2005,21 +2074,26 @@ function initMap() {
     map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'], type: 'yandex#map' });
     console.log('Карта инициализирована');
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
+    // Долгое нажатие для слоёв
 const layerBtn = document.getElementById('layerSwitcher');
 let pressTimer = null;
+
 function showLayerMenu() {
     document.getElementById('layerMenu').classList.add('active');
 }
+
 layerBtn.addEventListener('mousedown', function(e) {
     pressTimer = setTimeout(() => {
         showLayerMenu();
         pressTimer = null;
     }, 500);
 });
+
 layerBtn.addEventListener('mouseup', function(e) {
     if (pressTimer) {
         clearTimeout(pressTimer);
         pressTimer = null;
+        // короткое нажатие – переключаем слои (циклично)
         const currentType = map.getType();
         const types = ['yandex#map', 'yandex#satellite', 'yandex#hybrid'];
         let idx = types.indexOf(currentType);
@@ -2036,16 +2110,20 @@ layerBtn.addEventListener('mouseup', function(e) {
         }
     }
 });
+
+// Аналогично для touch-устройств
 layerBtn.addEventListener('touchstart', function(e) {
     pressTimer = setTimeout(() => {
         showLayerMenu();
         pressTimer = null;
     }, 500);
 });
+
 layerBtn.addEventListener('touchend', function(e) {
     if (pressTimer) {
         clearTimeout(pressTimer);
         pressTimer = null;
+        // короткое нажатие – переключаем слои
         const currentType = map.getType();
         const types = ['yandex#map', 'yandex#satellite', 'yandex#hybrid'];
         let idx = types.indexOf(currentType);
@@ -2080,7 +2158,10 @@ if (window.Telegram?.WebApp) message += ' Проверьте настройки 
 if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
 });
 };
+
+// Загружаем парковки после инициализации карты
 loadAllParkings();
+
 setTimeout(() => {
 getUserLocation().then(coords => {
 if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
@@ -2095,7 +2176,7 @@ setTimeout(() => {
         splash.style.opacity = '0';
         setTimeout(() => splash.remove(), 300);
     }
-}, 5000);
+}, 5000); // Показывать 5 секунды
 }
 // ===================== СЛОИ КАРТЫ =====================
 function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
@@ -2114,6 +2195,7 @@ const menu = document.getElementById('layerMenu'), btn = document.getElementById
 if (!menu.classList.contains('active')) return;
 if (!btn.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('active');
 });
+
 // ===================== РИСОВАНИЕ ЗОНЫ =====================
 function startDrawingMode() {
 if (!map || !currentUser) return;
@@ -2132,12 +2214,17 @@ function finishDrawing() {
     if (!drawingPolygon) return;
     drawingPolygon.editor.stopDrawing(); 
     const coordinates = drawingPolygon.geometry.getCoordinates()[0];
+    
+    // СРАЗУ сохраняем очищенные координаты в переменную
     newParkingCoords = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+
     const sizeCheck = checkPolygonSize(newParkingCoords);
     if (!sizeCheck.valid) { alert(sizeCheck.error); cancelDrawing(); return; }
+    
     const controls = document.getElementById('drawingControls'); if (controls) controls.remove();
     document.getElementById('addBtn').classList.remove('drawing'); document.getElementById('addBtn').textContent = '+';
     isDrawingMode = false;
+    
     if (currentParkingId && editingPolygon) { saveEditedPolygon(newParkingCoords); return; }
     openAddPanelWithPolygon(newParkingCoords, sizeCheck);
 }
@@ -2161,12 +2248,14 @@ document.body.appendChild(hint); setTimeout(() => hint.remove(), 3000);
 function openAddPanelWithPolygon(coordinates, sizeCheck) {
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Новая парковка';
+
     document.getElementById('panelContent').innerHTML = `
         <div class="form-group">
             <label>Область парковки</label>
             <div id="miniMapContainer" style="width:100%; height:200px; border-radius:12px; overflow:hidden; margin-top:8px; box-shadow: var(--card-shadow);"></div>
             <p style="font-size:12px; color:var(--text-secondary); margin-top:6px;">Выделенная зона отображается на карте</p>
         </div>
+
         <div class="form-group">
             <label>Тип улицы</label>
             <select id="parkStreetType" class="input-field">
@@ -2190,29 +2279,38 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             <label>Номер дома</label>
             <input type="text" id="parkHouseNumber" class="input-field" placeholder="15">
         </div>
+
         <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
         <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
         <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
     `;
+
     setTimeout(() => {
         initMiniMap(coordinates);
     }, 50);
 }
     function initMiniMap(coords) {
     if (!coords || coords.length < 3) return;
+    
     const container = document.getElementById('miniMapContainer');
     if (!container) return;
+
+    // Создаём карту без элементов управления
     const miniMap = new ymaps.Map(container, {
         center: coords[0],
         zoom: 17,
         controls: []
     });
+
+    // Рисуем тот же полигон
     const polygon = new ymaps.Polygon([coords], {}, {
         fillColor: '#007AFF33',
         strokeColor: '#007AFF',
         strokeWidth: 2
     });
     miniMap.geoObjects.add(polygon);
+
+    // Подгоняем масштаб под полигон
     miniMap.setBounds(polygon.geometry.getBounds(), { checkZoomRange: true });
 }
 function submitParkingWithPolygon() {
@@ -2220,12 +2318,14 @@ function submitParkingWithPolygon() {
     const streetName = document.getElementById('parkStreetName').value.trim();
     const houseNumber = document.getElementById('parkHouseNumber').value.trim();
     const totalSpots = parseInt(document.getElementById('parkSpots').value);
+
     if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
     if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
     if (!streetType && !streetName && !houseNumber) {
         alert('Введите хотя бы улицу или номер дома');
         return;
     }
+
     let coordsToSave = window.newParkingCoords;
     if (!coordsToSave && drawingPolygon && drawingPolygon.geometry) {
         const raw = drawingPolygon.geometry.getCoordinates()[0];
@@ -2235,11 +2335,15 @@ function submitParkingWithPolygon() {
         alert('Ошибка: координаты зоны не найдены. Нарисуйте заново.');
         return;
     }
+
     const btn = document.getElementById('saveParkBtn');
     btn.textContent = 'Сохранение...';
     btn.disabled = true;
+
     const centerLat = coordsToSave.reduce((s, c) => s + c[0], 0) / coordsToSave.length;
     const centerLng = coordsToSave.reduce((s, c) => s + c[1], 0) / coordsToSave.length;
+
+    // Формируем название парковки (без "Парковка на...")
     const fullStreet = streetType && streetName ? `${streetType} ${streetName}` : (streetName || '');
     let name = fullStreet;
     if (houseNumber) {
@@ -2248,18 +2352,23 @@ function submitParkingWithPolygon() {
     if (!name) {
         name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
     }
+
+    // Геокодируем (если доступно) для получения адреса и региона
     ymaps.geocode([centerLat, centerLng], { kind: 'locality', results: 1 })
     .then(res => {
         const geo = res.geoObjects.get(0);
         let address = geo ? geo.getAddressLine() : '';
         if (address.length > 80) address = address.substring(0, 77) + '...';
         const parsed = parseAddress(address);
+        // Приоритет отдаём ручному вводу, если он есть
         if (fullStreet) parsed.street = fullStreet;
         if (houseNumber) parsed.houseNumber = houseNumber;
+        // Если город не определился геокодером – берём из настроек пользователя (fallback)
 if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
     parsed.region = userCityPrefs.region;
     parsed.city = userCityPrefs.city;
 }
+
         const parkingData = {
             lat: centerLat,
             lng: centerLng,
@@ -2281,6 +2390,7 @@ if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
             timestamp: Date.now(),
             status: 'unknown'
         };
+
         const newRef = database.ref('parkings').push();
         return newRef.set(parkingData).then(() => {
             database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
@@ -2292,9 +2402,12 @@ if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
             addMarkerToMap(newRef.key, parkingData);
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
             window.newParkingCoords = null;
+            
+            // Автоматически обновляем поиск, если панель поиска активна
             if (document.getElementById('searchResults')) {
                 filterParkings();
             }
+            
             closePanel(); showMap();
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -2302,6 +2415,7 @@ if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
         });
     })
     .catch(() => {
+        // Если геокодер не сработал, сохраняем без адреса
         const parkingData = {
             lat: centerLat,
             lng: centerLng,
@@ -2334,9 +2448,12 @@ if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
             addMarkerToMap(newRef.key, parkingData);
             if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
             window.newParkingCoords = null;
+            
+            // Автоматически обновляем поиск, если панель поиска активна
             if (document.getElementById('searchResults')) {
                 filterParkings();
             }
+            
             closePanel(); showMap();
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -2362,12 +2479,14 @@ if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedba
 alert('Границы обновлены');
 }).catch(err => { console.error('Ошибка обновления полигона:', err); alert('Ошибка: ' + err.message); cancelDrawing(); });
 }
+
 // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
 function openParkingSheet(parkingId, data) {
   const sheet = document.getElementById('parkingSheet');
   const content = document.getElementById('sheetContent');
   const addr = data.address || `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`;
   const free = data.totalSpots - data.occupiedSpots;
+
   getUserLocation().then(coords => {
     const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
     const distKm = (dist / 1000).toFixed(1);
@@ -2391,6 +2510,7 @@ function openParkingSheet(parkingId, data) {
   });
 }
 function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
+
 // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
 function openOccupancyPanel(parkingId) {
     database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
@@ -2405,14 +2525,17 @@ function openOccupancyPanel(parkingId) {
         } else renderEditPanel(data, false);
     });
 }
+
 function renderEditPanel(data, isFavorite) {
     const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
     const color = getOccupancyColor(occupiedSpots, totalSpots), occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
     const isAuthor = currentUser && currentUser.id === data.authorId;
     const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
     const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
+
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Редактирование';
+
     let html = `
     <div class="occupancy-header"><div class="occupancy-title"><span class="status-indicator ${statusClass}"></span>${data.name}</div></div>
     <div class="occupancy-stats">
@@ -2431,9 +2554,11 @@ function renderEditPanel(data, isFavorite) {
     </div>
     </div>
     `;
+
     if (currentUser) {
         html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
     }
+
     if (isAuthor) {
         const currentStreet = data.street || '';
         html += `
@@ -2454,6 +2579,7 @@ function renderEditPanel(data, isFavorite) {
         </div>
         <div class="form-group"><label>Название улицы</label><input type="text" id="editStreetName" class="input-field" value="${extractStreetName(currentStreet)}" placeholder="Ленина"></div>
         <div class="form-group"><label>Номер дома</label><input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15"></div>
+
         <div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
         <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
         <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
@@ -2474,16 +2600,22 @@ function extractStreetName(fullStreet) {
     }
     return fullStreet;
 }
+
 function saveParkingDetails() {
     if (!currentUser) { alert('Необходимо авторизоваться'); return; }
     if (!currentParkingId || !currentParkingData) return;
+
     const streetType = document.getElementById('editStreetType')?.value || '';
     const streetName = document.getElementById('editStreetName')?.value.trim() || '';
     const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
     const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value) || 0;
     const isPaid = document.getElementById('editIsPaid')?.checked || false;
+
+    // Формируем полное название улицы
     const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street || '');
     if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
+
+// Формируем новое имя парковки (без "Парковка на...")
     let newName = street;
     if (houseNumber) {
         newName = newName ? `${newName}, ${houseNumber}` : houseNumber;
@@ -2491,20 +2623,24 @@ function saveParkingDetails() {
     if (!newName) {
         newName = 'Адрес не указан';
     }
+
     if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
     if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
+
     const updates = { name: newName, street, houseNumber, totalSpots };
+
     database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
         if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
         currentParkingData = {...currentParkingData, ...updates};
         parkingDataCache[currentParkingId] = currentParkingData;
         updateOccupancyDisplay(currentParkingData.occupiedSpots);
         refreshParkingMarker();
-        closePanel();
-        showMap();
+        closePanel();   // ← закрываем редактор
+        showMap();      // ← возвращаемся на карту
         if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
 }
+
 function updateOccupancyDisplay(newOccupied) {
     if (!currentParkingData) return;
     const total = currentParkingData.totalSpots || 0, free = total - newOccupied, color = getOccupancyColor(newOccupied, total), percent = total > 0 ? Math.round((newOccupied / total) * 100) : 0;
@@ -2522,19 +2658,24 @@ function changeOccupancy(delta) {
     const total = currentParkingData.totalSpots || 0,
           cur  = currentParkingData.occupiedSpots || 0,
           newOcc = cur + delta;
+
     if (newOcc < 0 || newOcc > total) {
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
         }
         return;
     }
+
     const now = Date.now();
+
+    // Обновляем занятость, дату и автора
     database.ref(`parkings/${currentParkingId}`).update({
         occupiedSpots: newOcc,
         lastUpdatedAt: now,
         lastUpdatedBy: currentUser.nickname || currentUser.firstName
     })
     .then(() => {
+        // Пишем в историю
         return database.ref(`parkings/${currentParkingId}/history`).push({
             action: delta < 0 ? 'freed' : 'occupied',
             timestamp: now,
@@ -2545,10 +2686,12 @@ function changeOccupancy(delta) {
         });
     })
     .then(() => {
+        // Обновляем отображение в панели
         updateOccupancyDisplay(newOcc);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
+        // Обновляем маркер на карте
         return database.ref(`parkings/${currentParkingId}`).once('value');
     })
     .then(snapshot => {
@@ -2578,6 +2721,7 @@ function deleteParking(parkingId) {
         }
     }).catch(err => { console.error('Ошибка удаления:', err); alert('Ошибка удаления: ' + err.message); });
 }
+
 function confirmParking(parkingId) {
     if (!currentUser) return;
     database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
@@ -2588,6 +2732,7 @@ function confirmParking(parkingId) {
         }
     });
 }
+
 function toggleFavorite(parkingId) {
     if (!currentUser || !parkingId) return;
     const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
@@ -2733,21 +2878,30 @@ if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
 document.getElementById('routeCard').classList.remove('active');
 routeStartCoords = null; routeEndCoords = null; routeParkingData = null;
 }
+
 // ===================== АДРЕСА =====================
 function addHomeAddress() {
     if (!currentUser) { alert('Необходимо войти'); return; }
     database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
         if (Object.keys(snap.val() || {}).length >= 3) { alert('Максимум 3 адреса'); return; }
-        openAddressPicker();
+        openAddressPicker(); // сразу открываем карту
     }).catch(err => { console.error(err); alert('Ошибка'); });
 }
 function centerMapOnAddress(lat, lng) {
     if (!lat || !lng) return;
+
+    // Закрываем панель избранного, чтобы была видна карта
     closePanel();
+
+    // Перемещаем карту к адресу с зумом 17
     map.setCenter([lat, lng], 17, { duration: 500 });
+
+    // Удаляем предыдущий временный маркер адреса, если есть
     if (window._addressPreviewMarker) {
         map.geoObjects.remove(window._addressPreviewMarker);
     }
+
+    // Создаём временный маркер (красный, как в пикере адреса)
     window._addressPreviewMarker = new ymaps.Placemark([lat, lng], {
         hintContent: 'Ваш адрес',
         balloonContent: 'Вы здесь сохранили адрес'
@@ -2755,7 +2909,10 @@ function centerMapOnAddress(lat, lng) {
         preset: 'islands#redHomeIcon',
         draggable: false
     });
+
     map.geoObjects.add(window._addressPreviewMarker);
+
+    // Через 8 секунд маркер исчезнет
     setTimeout(() => {
         if (window._addressPreviewMarker) {
             map.geoObjects.remove(window._addressPreviewMarker);
@@ -2781,6 +2938,7 @@ function openAddressPicker() {
         }
     }, 100);
 }
+
 function setAddressPickerCoords(coords) {
     addressPickerCoords = coords;
     if (addressPickerPlacemark) {
@@ -2799,6 +2957,7 @@ function setAddressPickerCoords(coords) {
         });
     }
 }
+
 function cancelAddressPicker() {
     document.getElementById('addressPickerOverlay').style.display = 'none';
     isAddressPickerOpen = false;
@@ -2812,10 +2971,12 @@ function cancelAddressPicker() {
 function saveAddressFromPicker() {
     if (!currentUser) { alert('Необходимо войти'); cancelAddressPicker(); return; }
     if (!addressPickerCoords) { alert('Установите метку на карте'); return; }
+
     const saveBtn = document.querySelector('#addressPickerContainer .btn-primary');
     const origText = saveBtn.textContent;
     saveBtn.textContent = 'Обработка...';
     saveBtn.disabled = true;
+
     ymaps.geocode(addressPickerCoords, { kind: 'house', results: 1 })
     .then(res => {
         const geoObject = res.geoObjects.get(0);
@@ -2827,6 +2988,7 @@ function saveAddressFromPicker() {
         } else {
             addressText = `Точка (${addressPickerCoords[0].toFixed(6)}, ${addressPickerCoords[1].toFixed(6)})`;
         }
+
         pendingAddressData = {
             address: addressText,
             lat: addressPickerCoords[0],
@@ -2835,6 +2997,7 @@ function saveAddressFromPicker() {
             street: parsed.street,
             houseNumber: parsed.houseNumber
         };
+
         document.getElementById('addressPickerOverlay').style.display = 'none';
         document.getElementById('labelPickerOverlay').classList.add('active');
     })
@@ -2893,6 +3056,7 @@ function cancelLabelPicker() {
     document.getElementById('labelPickerOverlay').classList.remove('active');
     pendingAddressData = null;
 }
+
 function removeHomeAddress(addressId) {
     if (confirm('Удалить адрес?')) {
         database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove()
@@ -2906,6 +3070,7 @@ function openAddressEditor(addressId) {
     const overlay = document.getElementById('addressEditorOverlay');
     if (!overlay) return;
     document.getElementById('editAddrId').value = addressId;
+
     database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).once('value')
     .then(snap => {
         const addr = snap.val() || {};
@@ -2916,9 +3081,11 @@ function openAddressEditor(addressId) {
         overlay.classList.add('active');
     });
 }
+
 function closeAddressEditor() {
     document.getElementById('addressEditorOverlay').classList.remove('active');
 }
+
 function saveAddressChanges() {
     if (!currentUser) return;
     const addressId = document.getElementById('editAddrId').value;
@@ -2926,7 +3093,9 @@ function saveAddressChanges() {
     const city = document.getElementById('editAddrCity').value.trim();
     const street = document.getElementById('editAddrStreet').value.trim();
     const houseNumber = document.getElementById('editAddrHouse').value.trim();
+
     const fullAddress = [city, street, houseNumber ? `д. ${houseNumber}` : ''].filter(Boolean).join(', ') || 'Адрес не указан';
+
     database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).update({
         label: label,
         city: city,
@@ -2944,6 +3113,7 @@ function saveAddressChanges() {
         }
     }).catch(err => alert('Ошибка: ' + err.message));
 }
+
 function filterFavorites() {
     const input = document.getElementById('favSearchInput');
     if (!input) return;
@@ -2994,7 +3164,9 @@ function searchNearMe() {
         filterParkings();
     }).catch(() => alert('Геолокация недоступна'));
 }
+
 function clearFilters() {
+// Сбрасываем радиус, но оставляем город из настроек
 nearbySearchFilter = {
 city: userCityPrefs.city || '',
 region: userCityPrefs.region || ''
@@ -3008,9 +3180,11 @@ if (document.getElementById('sortSelect')) document.getElementById('sortSelect')
 filterParkings();
 }
 function renderSearchPanel(content) {
+// Подставляем город из настроек аккаунта
 const defaultRegion = userCityPrefs.region || '';
 const defaultCity = userCityPrefs.city || '';
 const cityLabel = defaultCity ? `в ${defaultCity}` : 'везде';
+
 let html = `
 <div class="search-bar">
 <input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()">
@@ -3056,13 +3230,18 @@ let html = `
 </div>
 `;
 content.innerHTML = html;
+
+// Применяем фильтр по городу из настроек
 if (defaultCity) {
 nearbySearchFilter = nearbySearchFilter || {};
 nearbySearchFilter.city = defaultCity;
 nearbySearchFilter.region = defaultRegion;
 }
+
 getUserLocation().then(coords => { userLocationForSearch = coords; }).catch(() => { userLocationForSearch = null; });
 filterParkings();
+
+// Настройка тултипа для слайдера
 setTimeout(() => {
 const slider = document.getElementById('radiusSlider');
 if (slider) {
@@ -3078,6 +3257,7 @@ if (tooltip) tooltip.style.display = 'none';
 });
 }
 }, 100);
+
 const freeToggle = document.getElementById('showWithFreeOnly');
 if (freeToggle) {
 freeToggle.addEventListener('change', () => {
@@ -3086,10 +3266,13 @@ setTimeout(filterParkings, 50);
 }
 }
     function changeSearchCity() {
+// Открываем настройки для смены города
 showSettings();
+// После закрытия настроек — обновляем поиск
 const origClose = closeSettings;
 closeSettings = function() {
 origClose();
+// Обновляем поиск с новым городом
 if (document.getElementById('panelTitle').textContent === 'Поиск') {
 renderSearchPanel(document.getElementById('panelContent'));
 }
@@ -3100,11 +3283,13 @@ function updateRadiusLabel() {
     if (!slider) return;
     const val = parseFloat(slider.value);
     document.getElementById('radiusLabel').textContent = val + ' км';
+    
     const tooltip = document.getElementById('radiusTooltip');
     if (tooltip) {
         tooltip.textContent = val + ' км';
         tooltip.style.display = 'block';
     }
+    
     if (userLocationForSearch) {
         nearbySearchFilter = { lat: userLocationForSearch.lat, lng: userLocationForSearch.lng, radius: val * 1000 };
     }
@@ -3134,9 +3319,14 @@ function filterParkings() {
 const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
 const resultsContainer = document.getElementById('searchResults');
 if (!resultsContainer) return;
+
+// Берём город из настроек аккаунта (если не переопределён вручную)
 const filterCity = (nearbySearchFilter?.city) || userCityPrefs.city || '';
 const filterRegion = (nearbySearchFilter?.region) || userCityPrefs.region || '';
+
 let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
+
+// Фильтр по региону
 if (filterRegion) {
 parkings = parkings.filter(p =>
 (p.region && p.region.toLowerCase().includes(filterRegion.toLowerCase())) ||
@@ -3144,6 +3334,8 @@ parkings = parkings.filter(p =>
 (p.name && p.name.toLowerCase().includes(filterRegion.toLowerCase()))
 );
 }
+
+// Фильтр по городу
 if (filterCity) {
 parkings = parkings.filter(p =>
 (p.city && p.city.toLowerCase().includes(filterCity.toLowerCase())) ||
@@ -3151,6 +3343,8 @@ parkings = parkings.filter(p =>
 (p.name && p.name.toLowerCase().includes(filterCity.toLowerCase()))
 );
 }
+
+// Поиск по тексту
 if (query) {
 parkings = parkings.filter(p =>
 (p.name && p.name.toLowerCase().includes(query)) ||
@@ -3159,6 +3353,8 @@ parkings = parkings.filter(p =>
 (p.houseNumber && p.houseNumber.toLowerCase().includes(query))
 );
 }
+
+// Фильтр по радиусу
 if (nearbySearchFilter?.lat && nearbySearchFilter?.lng) {
 const { lat, lng, radius } = nearbySearchFilter;
 parkings = parkings.filter(p => {
@@ -3166,10 +3362,14 @@ const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
 return dist <= radius;
 });
 }
+
+// Фильтр "только свободные"
 const showFreeOnly = document.getElementById('showWithFreeOnly')?.checked;
 if (showFreeOnly) {
 parkings = parkings.filter(p => (p.totalSpots - (p.occupiedSpots || 0)) > 0);
 }
+
+// Сортировка
 const sortBy = document.getElementById('sortSelect')?.value || 'name';
 switch(sortBy) {
 case 'free':
@@ -3187,6 +3387,7 @@ break;
 default:
 parkings.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
 }
+
 let html = '';
 if (parkings.length === 0) {
 html = `<div class="empty-state">
@@ -3194,6 +3395,7 @@ html = `<div class="empty-state">
 ${filterCity ? '<p style="font-size:13px; margin-top:8px;">Попробуйте изменить город в настройках</p>' : ''}
 </div>`;
 } else {
+// Группируем по улице
 const grouped = {};
 parkings.forEach(p => {
 const key = (p.street || p.name || 'Без названия').trim();
@@ -3239,9 +3441,12 @@ attachSwipeToContainers(resultsContainer);
 }
 function focusMap(lat, lng, parkingId) {
     closePanel();
+    // Ждём завершения анимации закрытия панели (350 мс)
     setTimeout(() => {
         if (!map) return;
         map.setCenter([lat, lng], 18, { duration: 500 });
+
+        // Подсветка маркера
         const marker = mapMarkers[parkingId];
         if (marker) {
             const element = marker.getElement ? marker.getElement() : null;
@@ -3258,7 +3463,13 @@ function focusMap(lat, lng, parkingId) {
                 }, 1800);
             }
         }
-    }, 350);
+
+        // Показать информацию о парковке — ОТКЛЮЧЕНО
+// const data = parkingDataCache[parkingId];
+// if (data) {
+//     openParkingSheet(parkingId, data);
+// }
+    }, 350); // задержка должна быть не меньше 300–350 мс
 }
 function highlightAndShowParking(parkingId) {
 const data = parkingDataCache[parkingId];
@@ -3295,8 +3506,11 @@ clearInterval(interval);
 marker.options.set({ fillColor: origFillColor, strokeColor: origStrokeColor });
 }, 3000);
 }
+// Показываем информацию и закрываем панель — ОТКЛЮЧЕНО
+// openParkingSheet(parkingId, data);
 closePanel();
 }
+
 // ===================== ПРОФИЛЬ =====================
 function renderProfile(content) {
     if (!currentUser) {
@@ -3316,6 +3530,8 @@ function renderProfile(content) {
             database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(prefSnap => {
                 const prefs = prefSnap.val() || { region: '', city: '' };
                 userCityPrefs = prefs;
+
+                // Шапка профиля с кнопкой настроек
                 let html = `<div style="position:relative;">
                     <button onclick="showSettings()" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:28px; cursor:pointer; z-index:10; color:var(--text-secondary);">⚙️</button>
                     <div class="profile-header">
@@ -3325,6 +3541,8 @@ function renderProfile(content) {
                         ${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}
                     </div>
                 </div>`;
+
+                // Плашка "Мой город" (ведёт в настройки)
                 html += `<div class="city-pref-card" onclick="showSettings()" style="cursor:pointer;">
                     <div class="city-pref-title">🏙️ Мой город</div>
                     <div class="list-info" style="text-align:left; padding:0 4px;">
@@ -3332,6 +3550,8 @@ function renderProfile(content) {
                         <div class="list-subtitle">${prefs.region || ''}</div>
                     </div>
                 </div>`;
+
+                // Плашка "Мой автомобиль" (ведёт в настройки)
                 if (brand && model && plate) {
                     html += `<div class="car-section" onclick="showSettings()" style="cursor:pointer;">
                         <div class="car-section-title">🚗 Мой автомобиль</div>
@@ -3354,6 +3574,8 @@ function renderProfile(content) {
                         </div>
                     </div>`;
                 }
+
+                // Репутация
                 const created = stats.parkingsCreated || 0,
                       updated = stats.parkingsUpdated || 0,
                       confirmations = stats.confirmations || 0,
@@ -3364,14 +3586,14 @@ function renderProfile(content) {
                 let level = 1, levelName = "Пешеход", levelEmoji = "👣";
                 const levels = [
                     { xp: 0, name: "Пешеход", emoji: "👣" },
-                    { xp: 1000, name: "Водитель-любитель", emoji: "🚗" },
+                    { xp: 1000, name: "Водитель-любитель", emoji: "" },
                     { xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
                     { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
-                    { xp: 10000, name: "Наблюдатель", emoji: "👀" },
+                    { xp: 10000, name: "Наблюдатель", emoji: "️" },
                     { xp: 20000, name: "Помощник района", emoji: "🤝" },
                     { xp: 40000, name: "Картограф", emoji: "🗺️" },
-                    { xp: 70000, name: "Инспектор", emoji: "🕵️‍♂️" },
-                    { xp: 110000, name: "Ветеран дорог", emoji: "🏆" },
+                    { xp: 70000, name: "Инспектор", emoji: "️‍♂️" },
+                    { xp: 110000, name: "Ветеран дорог", emoji: "️" },
                     { xp: 150000, name: "Страж парковки", emoji: "⚖️" },
                     { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
                     { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
@@ -3394,12 +3616,12 @@ function renderProfile(content) {
                     progressPercent = Math.min(100, Math.round((currentInRange / range) * 100));
                     xpForNext = nextLevel.xp - score;
                 }
-               // --- РЕПУТАЦИЯ (НОВЫЙ ДИЗАЙН) — ИСПРАВЛЕННАЯ ШАБЛОННАЯ СТРОКА ---
+               // --- РЕПУТАЦИЯ (НОВЫЙ ДИЗАЙН) ---
 const radius = 45;
 const circumference = 2 * Math.PI * radius;
 const offset = circumference - (progressPercent / 100) * circumference;
 
-html += `<div class="reputation-card" onclick="openReputationOverlay()">
+html += `<div class="reputation-card">
     <div class="reputation-header">
         <span style="font-weight:700; font-size:17px;">🏆 Репутация</span>
         <span class="rep-level-badge">${levelEmoji} Ур. ${level}</span>
@@ -3412,13 +3634,14 @@ html += `<div class="reputation-card" onclick="openReputationOverlay()">
                     <stop offset="100%" stop-color="#5856D6"/>
                 </linearGradient>
             </defs>
-            <circle cx="60" cy="60" r="${radius}" class="progress-ring__circle-fill"
-                stroke-dasharray="${circumference}"
-                stroke-dashoffset="${offset}"/>
-            <text x="60" y="60" text-anchor="middle" dominant-baseline="central"
-                  font-size="22" font-weight="700" fill="var(--text-primary)">
-                ${levelEmoji}
-            </text>
+         <circle cx="60" cy="60" r="${radius}" class="progress-ring__circle-fill"
+    stroke-dasharray="${circumference}"
+    stroke-dashoffset="${offset}"/>
+<foreignObject x="45" y="45" width="30" height="30">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--text-primary);">
+        ${levelEmoji}
+    </div>
+</foreignObject>
         </svg>
     </div>
     <div class="rep-stats">
@@ -3439,10 +3662,13 @@ html += `<div class="reputation-card" onclick="openReputationOverlay()">
         ${nextLevel ? `До ${nextLevel.name}: ${xpForNext.toLocaleString()} XP` : 'Максимальный уровень!'}
     </div>
 </div>`;
+
+                // Кнопки выхода и удаления аккаунта
                 html += `<div style="padding:0 20px;">
                     <p style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:20px;">${isGuest ? 'Данные сохраняются локально' : 'Данные синхронизированы'}</p>
                     <button class="btn-danger" onclick="logout()">🚪 Выйти</button>
                 </div>`;
+
                 content.innerHTML = html;
             });
         });
@@ -3454,6 +3680,7 @@ function showSettings() {
     document.getElementById('settingsOverlay').style.display = 'flex';
     renderSettings();
 }
+
 function closeSettings() {
     document.getElementById('settingsOverlay').style.display = 'none';
 }
@@ -3461,7 +3688,10 @@ function renderSettings() {
     const content = document.getElementById('settingsContent');
     const isDark = document.body.classList.contains('dark-theme');
     const isGuest = currentUser && currentUser.id.startsWith('guest_');
+
     let html = '';
+
+    // --- Секция: Основные ---
     html += `<div class="settings-section">
         <div class="settings-section-header">Основные</div>
         <div class="settings-row">
@@ -3472,7 +3702,9 @@ function renderSettings() {
             </label>
         </div>
     </div>`;
+
     if (!isGuest) {
+        // --- Секция: Город ---
         html += `<div class="settings-section">
             <div class="settings-section-header">Мой город</div>
             <div class="settings-picker-row">
@@ -3486,6 +3718,8 @@ function renderSettings() {
                 </select>
             </div>
         </div>`;
+
+        // --- Секция: Автомобиль ---
         html += `<div class="settings-section">
             <div class="settings-section-header">Автомобиль</div>
             <div class="settings-row">
@@ -3496,6 +3730,8 @@ function renderSettings() {
                 </span>
             </div>
         </div>`;
+
+        // --- Секция: Профиль ---
         html += `<div class="settings-section">
             <div class="settings-section-header">Профиль</div>
             <div class="settings-row">
@@ -3510,6 +3746,8 @@ function renderSettings() {
                 <span class="settings-value">Показать ещё раз <span class="settings-arrow">›</span></span>
             </div>
         </div>`;
+
+        // --- Секция: Опасные действия ---
         html += `<div class="settings-section">
             <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
         </div>`;
@@ -3520,6 +3758,7 @@ function renderSettings() {
             </div>
         </div>`;
     }
+
     content.innerHTML = html;
 }
 function editNickname() {
@@ -3528,6 +3767,7 @@ function editNickname() {
         saveNickname(newNick);
     }
 }
+
 function saveNickname(newNickname) {
     if (!currentUser) return;
     const nick = newNickname || (document.getElementById('settingsNickname')?.value?.trim());
@@ -3536,6 +3776,7 @@ function saveNickname(newNickname) {
     .then(() => {
         currentUser.nickname = nick;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
+        // Если настройки открыты, перерисуем их
         if (document.getElementById('settingsOverlay').style.display === 'flex') {
             renderSettings();
         }
@@ -3545,19 +3786,23 @@ function saveNickname(newNickname) {
     })
     .catch(err => alert('Ошибка: ' + err.message));
 }
+
 function saveCityFromSettings() {
     if (!currentUser) return;
     const region = document.getElementById('settingsRegion').value;
     const city = document.getElementById('settingsCity').value;
+    // Сохраняем, даже если регион выбран без города (город может быть пустым)
     database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
     .then(() => {
         userCityPrefs = { region, city };
+        // Тихое сохранение без всплывающего окна
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
     })
     .catch(err => console.error('Ошибка сохранения города:', err));
 }
+// Также необходимо обновить updateCitySelectInSettings, чтобы при смене региона обновлялся список городов:
 function updateCitySelectInSettings() {
     const region = document.getElementById('settingsRegion').value;
     const citySelect = document.getElementById('settingsCity');
@@ -3570,6 +3815,7 @@ function updateCitySelectInSettings() {
             citySelect.appendChild(opt);
         });
     }
+    // Автоматически сохраняем выбранный регион (если город ещё не выбран, он останется пустым)
     saveCityFromSettings();
 }
 function editCarDataFromSettings() {
@@ -3584,19 +3830,23 @@ function resetOnboarding() {
     closeSettings();
     showOnboarding();
 }
+// Открытие редактора авто
 function openCarEditor() {
     const overlay = document.getElementById('carEditorOverlay');
     if (!overlay) return;
+    
     const brandSelect = document.getElementById('carBrandSelect');
     brandSelect.innerHTML = '<option value="">Выберите марку</option>';
     for (const brand of Object.keys(carBrands).sort()) {
         brandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
     }
+    
     const colorSelect = document.getElementById('carColorSelect');
     colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
     for (const [colorName, colorHex] of Object.entries(carColors)) {
         colorSelect.innerHTML += `<option value="${colorName}">${colorName}</option>`;
     }
+    
     if (currentUser) {
         database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
             const car = snap.val() || {};
@@ -3615,11 +3865,16 @@ function openCarEditor() {
             }
         });
     }
+    
     overlay.classList.add('active');
 }
+
+// Закрытие редактора
 function closeCarEditor() {
     document.getElementById('carEditorOverlay').classList.remove('active');
 }
+
+// Обновление списка моделей при выборе марки
 function updateCarModelSelect() {
     const brand = document.getElementById('carBrandSelect').value;
     const modelSelect = document.getElementById('carModelSelect');
@@ -3630,6 +3885,8 @@ function updateCarModelSelect() {
         });
     }
 }
+
+// Сохранение автомобиля в Firebase
 function saveCarData() {
     if (!currentUser) {
         alert('Необходимо авторизоваться');
@@ -3639,10 +3896,12 @@ function saveCarData() {
     const model = document.getElementById('carModelSelect').value;
     const color = document.getElementById('carColorSelect').value;
     const plate = document.getElementById('carPlateInput').value.trim().toUpperCase();
+    
     if (!brand || !model) {
         alert('Пожалуйста, выберите марку и модель');
         return;
     }
+    
     database.ref(`users/${currentUser.id}/car`).set({
         brand: brand,
         model: model,
@@ -3650,6 +3909,7 @@ function saveCarData() {
         plate: plate || null
     }).then(() => {
         closeCarEditor();
+        // Если окно настроек открыто, обновим его
         if (document.getElementById('settingsOverlay').style.display === 'flex') {
             renderSettings();
         }
@@ -3669,13 +3929,17 @@ function loadUserData(type, content) {
             database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
         ]).then(([favSnap, homeSnap]) => {
             let html = '';
+
+            // --- Секция: Мои адреса ---
             const addrs = homeSnap.val() || {};
             const addrEntries = Object.entries(addrs);
+
             html += `<div class="fav-section-title" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>🏠 Мои адреса</span>
                 <button class="add-address-btn" onclick="addHomeAddress()" title="Добавить адрес">+</button>
             </div>`;
          html += `<div class="addresses-list">`;
+
 addrEntries.forEach(([id, addr]) => {
     const label = addr.label || 'Адрес';
     let icon = '📍';
@@ -3685,6 +3949,7 @@ addrEntries.forEach(([id, addr]) => {
     const addressText = addr.city && addr.street && addr.houseNumber
         ? `${addr.city}, ${addr.street}, ${addr.houseNumber}`
         : (addr.address || 'Без адреса');
+
     html += `
 <div class="swipe-container" style="border-radius:14px; margin-bottom:6px;">
     <div class="swipe-item" onclick="centerMapOnAddress(${addr.lat || 'null'}, ${addr.lng || 'null'})" style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
@@ -3698,15 +3963,19 @@ addrEntries.forEach(([id, addr]) => {
     <div class="swipe-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')"></div>
 </div>`;
 });
+
 if (addrEntries.length === 0) {
     html += `<div class="address-tile" onclick="addHomeAddress()" style="opacity:0.5; padding:20px; text-align:center;">
         <div class="address-tile-icon">➕</div>
         <div class="address-tile-label">Добавить</div>
     </div>`;
 }
+
 html += `</div>`;
+            // --- Секция: Избранные парковки ---
             const favs = favSnap.val();
             html += `<div class="fav-section-title">⭐ Избранные парковки</div>`;
+
             if (!favs) {
                 html += '<div class="empty-state"><p>Нет избранных парковок</p></div>';
             } else {
@@ -3731,6 +4000,7 @@ html += `</div>`;
                 });
                 html += '</div>';
             }
+
             content.innerHTML = html;
             attachSwipeToContainers(content);
         });
@@ -3755,6 +4025,7 @@ function removeFromFavorites(parkingId) {
     if (!currentUser || !parkingId) return;
     const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
     favRef.remove().then(() => {
+        // Обновляем список на экране
         const content = document.getElementById('panelContent');
         if (content && document.getElementById('panel').classList.contains('active')) {
             loadUserData('favorites', content);
@@ -3766,6 +4037,7 @@ function attachSwipeToContainers(container) {
     container.querySelectorAll('.swipe-container').forEach(cnt => {
         const item = cnt.querySelector('.swipe-item');
         if (!item) return;
+        
         let startX = 0, curX = 0, dragging = false;
         item.addEventListener('touchstart', e => {
             startX = e.touches[0].clientX;
@@ -3784,6 +4056,8 @@ function attachSwipeToContainers(container) {
             else item.style.transform = 'translateX(0)';
             curX = 0;
         });
+
+        // Проверяем, есть ли кнопка удаления, и только тогда добавляем обработчик
         const deleteBtn = cnt.querySelector('.swipe-delete');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
@@ -3850,7 +4124,7 @@ currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гост
 localStorage.setItem('tgUser', JSON.stringify(currentUser));
 database.ref(`users/${currentUser.id}/stats`).set({ registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] });
 showPanel('profile');
-   showOnboarding();
+   showOnboarding();   // ← обязательно
 }
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
@@ -3916,12 +4190,14 @@ const onboardingSlides = [
 ];
 let currentSlide = 0;
 let highlightedElement = null;
+
 function removeHighlight() {
     if (highlightedElement) {
         highlightedElement.classList.remove('onboarding-highlight');
         highlightedElement = null;
     }
 }
+
 function applyHighlight(selector) {
     removeHighlight();
     if (!selector) return;
@@ -3933,8 +4209,10 @@ function applyHighlight(selector) {
 }
 function showOnboarding() {
     if (localStorage.getItem('onboardingSeen') === 'true') return;
+
     const overlay = document.getElementById('onboardingOverlay');
     overlay.style.display = 'flex';
+
     function renderSlide() {
         const slide = onboardingSlides[currentSlide];
         document.getElementById('onboardingSlide').innerHTML = `
@@ -3943,10 +4221,12 @@ function showOnboarding() {
             <div class="onboarding-text">${slide.text}</div>
         `;
         applyHighlight(slide.highlightSelector);
+
         const dotsContainer = document.getElementById('onboardingDots');
         dotsContainer.innerHTML = onboardingSlides.map((_, i) =>
             `<div class="onboarding-dot ${i === currentSlide ? 'active' : ''}"></div>`
         ).join('');
+
         const nextBtn = document.getElementById('onboardingNext');
         nextBtn.textContent = currentSlide === onboardingSlides.length - 1 ? 'Понятно' : 'Далее';
     }
@@ -3960,17 +4240,23 @@ function showOnboarding() {
         currentSlide++;
         renderSlide();
     };
+
     document.getElementById('onboardingSkip').onclick = function() {
         localStorage.setItem('onboardingSeen', 'true');
         overlay.style.display = 'none';
         removeHighlight();
     };
+
     renderSlide();
 }
 // ===================== НАСТРОЙКИ =====================
 function toggleTheme() {
     const isDark = document.body.classList.toggle('dark-theme');
+    
+    // Сохраняем явно как строку "1" или "0"
     localStorage.setItem('darkTheme', isDark ? '1' : '0');
+    
+    // Обновляем цвета Telegram WebApp
     if (window.Telegram?.WebApp) {
         try {
             const tg = window.Telegram.WebApp;
@@ -3983,120 +4269,47 @@ function toggleTheme() {
             }
         } catch(e) { /* игнорируем ошибки Telegram API */ }
     }
+    // Вибрация
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
 }
-// ===================== УРОВНИ РЕПУТАЦИИ =====================
-function openReputationOverlay() {
-    if (!currentUser) return;
-    database.ref(`users/${currentUser.id}/stats`).once('value').then(snap => {
-        const stats = snap.val() || {};
-        const created = stats.parkingsCreated || 0,
-              updated = stats.parkingsUpdated || 0,
-              confirmations = stats.confirmations || 0,
-              views = stats.views || 0,
-              favorites = stats.favorites || 0,
-              activeDates = stats.activeDates || [];
-        const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
-        const levels = [
-            { xp: 0, name: "Пешеход", emoji: "👣" },
-            { xp: 1000, name: "Водитель-любитель", emoji: "🚗" },
-            { xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
-            { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
-            { xp: 10000, name: "Наблюдатель", emoji: "👀" },
-            { xp: 20000, name: "Помощник района", emoji: "🤝" },
-            { xp: 40000, name: "Картограф", emoji: "🗺️" },
-            { xp: 70000, name: "Инспектор", emoji: "🕵️‍♂️" },
-            { xp: 110000, name: "Ветеран дорог", emoji: "🏆" },
-            { xp: 150000, name: "Страж парковки", emoji: "⚖️" },
-            { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
-            { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
-        ];
-        let currentLevelIndex = 0;
-        for (let i = levels.length - 1; i >= 0; i--) {
-            if (score >= levels[i].xp) {
-                currentLevelIndex = i;
-                break;
-            }
-        }
-        const listContainer = document.getElementById('reputationLevelsList');
-        let html = '';
-        levels.forEach((lvl, idx) => {
-            const isCurrent = (idx === currentLevelIndex);
-            const isUnlocked = score >= lvl.xp;
-            html += `<div class="rep-level-row ${isCurrent ? 'current' : ''}">
-                <span class="level-emoji">${isUnlocked ? lvl.emoji : '🔒'}</span>
-                <span class="level-name">${lvl.name}</span>
-                <span class="level-xp">${lvl.xp.toLocaleString()} XP</span>
-            </div>`;
-        });
-        listContainer.innerHTML = html;
-        const nextLevel = levels[currentLevelIndex + 1];
-        const progressInfo = document.getElementById('reputationProgressInfo');
-        if (nextLevel) {
-            const progress = score - levels[currentLevelIndex].xp;
-            const needed = nextLevel.xp - levels[currentLevelIndex].xp;
-            progressInfo.textContent = `До следующего уровня «${nextLevel.name}»: ${progress.toLocaleString()} / ${needed.toLocaleString()} XP`;
-        } else {
-            progressInfo.textContent = 'Вы достигли максимального уровня!';
-        }
-        document.getElementById('reputationOverlay').style.display = 'flex';
-    });
-}
-function closeReputationOverlay() {
-    document.getElementById('reputationOverlay').style.display = 'none';
-}
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
-    initAuth();
-    document.getElementById('addBtn').onclick = () => {
-        if (!currentUser) showPanel('profile');
-        else if (isDrawingMode) cancelDrawing();
-        else startDrawingMode();
-    };
-    document.getElementById('geoBtn').onclick = () => {
-        if (!map) return;
-        const btn = document.getElementById('geoBtn');
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-        getUserLocation()
-            .then(coords => {
-                btn.innerHTML = originalContent;
-                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                myLocationPlacemark = new ymaps.Placemark(
-                    [coords.lat, coords.lng],
-                    { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' },
-                    { preset: 'islands#blueCircleDotIconWithCaption' }
-                );
-                myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                map.geoObjects.add(myLocationPlacemark);
-                map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                if (window.Telegram?.WebApp?.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                }
-            })
-            .catch(err => {
-                btn.innerHTML = originalContent;
-                console.error("Ошибка геолокации:", err);
-                let message = 'Не удалось определить местоположение.';
-                if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-                if (window.Telegram?.WebApp?.showAlert) {
-                    window.Telegram.WebApp.showAlert(message);
-                } else {
-                    alert(message);
-                }
-            });
-    };
-    const mapLoadTimeout = setTimeout(() => {
-        alert('⚠️ Не удалось загрузить карту. Проверьте интернет или ключ API.');
-        document.getElementById('splashScreen').style.display = 'none';
-    }, 10000);
-    ymaps.ready(() => {
-        clearTimeout(mapLoadTimeout);
-        initMap();
-    });
+initAuth();
+document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
+document.getElementById('geoBtn').onclick = () => {
+if (!map) return;
+const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
+btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
+getUserLocation().then(coords => {
+btn.innerHTML = originalContent;
+if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
+myLocationPlacemark.properties.set('caption', 'Вы здесь');
+map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+}).catch(err => {
+btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
+let message = 'Не удалось определить местоположение.';
+if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
+if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
+});
+};
+ymaps.ready(() => { initMap(); });
 }
+document.addEventListener('DOMContentLoaded', () => {
+if (typeof ymaps !== 'undefined') {
+initApp();
+setTimeout(() => {
+    initPullToRefresh();
+}, 500);
+} else {
+window.addEventListener('load', () => {
+ymaps.ready(() => { initApp(); });
+});
+}
+});
 </script>
 </body>
 </html>
