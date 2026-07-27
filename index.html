@@ -1947,12 +1947,9 @@ tg.setBackgroundColor('#000000');
         document.body.classList.add('dark-theme');
         // Применяем фильтр карты сразу при загрузке
         setTimeout(() => {
-            const mapEl = document.getElementById('map');
-            if (mapEl && map && map.getType() === 'yandex#map') {
-                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            }
-        }, 1500);
-    }
+           updateMapTheme(); 
+    }, 1500);
+}
 } // ← ЭТА СКОБКА ЗАКРЫВАЕТ initAuth()
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
@@ -2111,7 +2108,7 @@ layerBtn.addEventListener('mouseup', function(e) {
     if (pressTimer) {
         clearTimeout(pressTimer);
         pressTimer = null;
-        // короткое нажатие – переключаем слои (циклично)
+        // короткое нажатие – переключаем слои
         const currentType = map.getType();
         const types = ['yandex#map', 'yandex#satellite', 'yandex#hybrid'];
         let idx = types.indexOf(currentType);
@@ -2120,12 +2117,7 @@ layerBtn.addEventListener('mouseup', function(e) {
         map.setType(nextType);
         document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
         document.querySelector(`.layer-option[data-type="${nextType}"]`).classList.add('selected');
-        const mapEl = document.getElementById('map');
-        if (nextType === 'yandex#map' && document.body.classList.contains('dark-theme')) {
-            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-        } else {
-            mapEl.style.filter = 'none';
-        }
+        updateMapTheme(); // <-- ВСЯ МАГИЯ ЗДЕСЬ!
     }
 });
 
@@ -2150,12 +2142,7 @@ layerBtn.addEventListener('touchend', function(e) {
         map.setType(nextType);
         document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
         document.querySelector(`.layer-option[data-type="${nextType}"]`).classList.add('selected');
-        const mapEl = document.getElementById('map');
-        if (nextType === 'yandex#map' && document.body.classList.contains('dark-theme')) {
-            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-        } else {
-            mapEl.style.filter = 'none';
-        }
+        updateMapTheme(); // <-- ЗАМЕНА
     }
 });
 document.getElementById('geoBtn').onclick = () => {
@@ -2199,21 +2186,13 @@ setTimeout(() => {
 // ===================== СЛОИ КАРТЫ =====================
 function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
 function setMapType(option) {
-if (!map) return;
-map.setType(option.dataset.type);
-document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
-option.classList.add('selected');
-document.getElementById('layerMenu').classList.remove('active');
-const mapEl = document.getElementById('map');
-if (option.dataset.type === 'yandex#map' && document.body.classList.contains('dark-theme')) mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-else mapEl.style.filter = 'none';
+    if (!map) return;
+    map.setType(option.dataset.type);
+    document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
+    option.classList.add('selected');
+    document.getElementById('layerMenu').classList.remove('active');
+    updateMapTheme(); 
 }
-document.addEventListener('click', function(e) {
-const menu = document.getElementById('layerMenu'), btn = document.getElementById('layerSwitcher');
-if (!menu.classList.contains('active')) return;
-if (!btn.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('active');
-});
-
 // ===================== РИСОВАНИЕ ЗОНЫ =====================
 function startDrawingMode() {
 if (!map || !currentUser) return;
@@ -4294,12 +4273,28 @@ function showOnboarding() {
 }
 // ===================== НАСТРОЙКИ =====================
 function toggleTheme() {
+    // Переключаем класс на body
     const isDark = document.body.classList.toggle('dark-theme');
-    
-    // Сохраняем явно как строку "1" или "0"
     localStorage.setItem('darkTheme', isDark ? '1' : '0');
-    
-    // Обновляем цвета Telegram WebApp
+
+    // Принудительно обновляем фильтр карты
+    const mapEl = document.getElementById('map');
+    if (mapEl && map) {
+        const currentType = map.getType ? map.getType() : 'yandex#map';
+        if (isDark && currentType === 'yandex#map') {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        } else {
+            mapEl.style.filter = 'none';
+        }
+    }
+
+    // Сбрасываем инлайн-стиль tab bar, чтобы работал CSS
+    const tabBar = document.querySelector('.tabBar');
+    if (tabBar) {
+        tabBar.style.background = ''; // убираем возможный инлайн-фон
+    }
+
+    // Обновляем цвета Telegram WebApp (если используется)
     if (window.Telegram?.WebApp) {
         try {
             const tg = window.Telegram.WebApp;
@@ -4310,11 +4305,23 @@ function toggleTheme() {
                 tg.setHeaderColor('#F2F2F7');
                 tg.setBackgroundColor('#FFFFFF');
             }
-        } catch(e) { /* игнорируем ошибки Telegram API */ }
+        } catch(e) { /* игнорируем ошибки API */ }
     }
+
     // Вибрация
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+}
+    function updateMapTheme() {
+    const mapEl = document.getElementById('map');
+    if (!mapEl || !map) return;
+    const isDark = document.body.classList.contains('dark-theme');
+    const currentType = map.getType ? map.getType() : 'yandex#map';
+    if (isDark && currentType === 'yandex#map') {
+        mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+    } else {
+        mapEl.style.filter = 'none';
     }
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
