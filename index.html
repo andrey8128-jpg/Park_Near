@@ -1038,6 +1038,53 @@ color: #fff;
     display: flex;
     align-items: center;
 }
+/* Оверлей уровней репутации */
+.reputation-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reputation-modal {
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  padding: 20px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+.rep-level-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  background: var(--bg-primary);
+  font-size: 14px;
+}
+.rep-level-row.current {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.rep-level-row .level-emoji {
+  font-size: 18px;
+  width: 30px;
+  text-align: center;
+}
+.rep-level-row .level-name {
+  flex: 1;
+  margin-left: 8px;
+}
+.rep-level-row .level-xp {
+  font-weight: 500;
+}
 /* Pull-to-refresh */
 .pull-indicator {
     display: flex;
@@ -1521,6 +1568,17 @@ color: #fff;
         <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
     </div>
     <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
+</div>
+<!-- Оверлей уровней репутации -->
+<div id="reputationOverlay" class="reputation-overlay" style="display:none;">
+  <div class="reputation-modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0;">🏆 Уровни репутации</h3>
+      <button onclick="closeReputationOverlay()" style="background:none; border:none; font-size:24px; color:var(--text-secondary); cursor:pointer;">✕</button>
+    </div>
+    <div id="reputationLevelsList"></div>
+    <div id="reputationProgressInfo" style="text-align:center; margin-top:16px; font-size:14px; color:var(--text-secondary);"></div>
+  </div>
 </div>
 <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:5000; align-items:center; justify-content:center;">
   <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative;">
@@ -3621,7 +3679,7 @@ const radius = 45;
 const circumference = 2 * Math.PI * radius;
 const offset = circumference - (progressPercent / 100) * circumference;
 
-html += `<div class="reputation-card">
+html += `<div class="reputation-card" onclick="openReputationOverlay()">`;
     <div class="reputation-header">
         <span style="font-weight:700; font-size:17px;">🏆 Репутация</span>
         <span class="rep-level-badge">${levelEmoji} Ур. ${level}</span>
@@ -4273,6 +4331,71 @@ function toggleTheme() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
+}// ===================== УРОВНИ РЕПУТАЦИИ =====================
+function openReputationOverlay() {
+    if (!currentUser) return;
+    database.ref(`users/${currentUser.id}/stats`).once('value').then(snap => {
+        const stats = snap.val() || {};
+        const created = stats.parkingsCreated || 0,
+              updated = stats.parkingsUpdated || 0,
+              confirmations = stats.confirmations || 0,
+              views = stats.views || 0,
+              favorites = stats.favorites || 0,
+              activeDates = stats.activeDates || [];
+        const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
+
+        const levels = [
+            { xp: 0, name: "Пешеход", emoji: "👣" },
+            { xp: 1000, name: "Водитель-любитель", emoji: "🚗" },
+            { xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
+            { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
+            { xp: 10000, name: "Наблюдатель", emoji: "👀" },
+            { xp: 20000, name: "Помощник района", emoji: "🤝" },
+            { xp: 40000, name: "Картограф", emoji: "🗺️" },
+            { xp: 70000, name: "Инспектор", emoji: "🕵️‍♂️" },
+            { xp: 110000, name: "Ветеран дорог", emoji: "🏆" },
+            { xp: 150000, name: "Страж парковки", emoji: "⚖️" },
+            { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
+            { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
+        ];
+
+        let currentLevelIndex = 0;
+        for (let i = levels.length - 1; i >= 0; i--) {
+            if (score >= levels[i].xp) {
+                currentLevelIndex = i;
+                break;
+            }
+        }
+
+        const listContainer = document.getElementById('reputationLevelsList');
+        let html = '';
+        levels.forEach((lvl, idx) => {
+            const isCurrent = (idx === currentLevelIndex);
+            const isUnlocked = score >= lvl.xp;
+            html += `<div class="rep-level-row ${isCurrent ? 'current' : ''}">
+                <span class="level-emoji">${isUnlocked ? lvl.emoji : '🔒'}</span>
+                <span class="level-name">${lvl.name}</span>
+                <span class="level-xp">${lvl.xp.toLocaleString()} XP</span>
+            </div>`;
+        });
+        listContainer.innerHTML = html;
+
+        const nextLevel = levels[currentLevelIndex + 1];
+        const progressInfo = document.getElementById('reputationProgressInfo');
+        if (nextLevel) {
+            const progress = score - levels[currentLevelIndex].xp;
+            const needed = nextLevel.xp - levels[currentLevelIndex].xp;
+            progressInfo.textContent = `До следующего уровня «${nextLevel.name}»: ${progress.toLocaleString()} / ${needed.toLocaleString()} XP`;
+        } else {
+            progressInfo.textContent = 'Вы достигли максимального уровня!';
+        }
+
+        document.getElementById('reputationOverlay').style.display = 'flex';
+    });
+}
+
+function closeReputationOverlay() {
+    document.getElementById('reputationOverlay').style.display = 'none';
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
