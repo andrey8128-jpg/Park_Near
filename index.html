@@ -3905,16 +3905,17 @@ addrEntries.forEach(([id, addr]) => {
         : (addr.address || 'Без адреса');
 
     html += `
-    <div class="swipe-container" style="border-radius:14px; margin-bottom:6px;">
-        <div class="swipe-item" onclick="openAddressEditor('${id}')" style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
-            <span style="font-size:20px;">${icon}</span>
-            <div class="fav-item-info">
-                <div class="fav-item-name">${label}</div>
-                <div class="fav-item-meta">${addressText}</div>
-            </div>
+<div class="swipe-container" style="border-radius:14px; margin-bottom:6px;">
+    <div class="swipe-item" onclick="centerMapOnAddress(${addr.lat || 'null'}, ${addr.lng || 'null'})" style="display:flex; align-items:center; gap:12px; padding:12px 16px;">
+        <span style="font-size:20px;">${icon}</span>
+        <div class="fav-item-info">
+            <div class="fav-item-name">${label}</div>
+            <div class="fav-item-meta">${addressText}</div>
         </div>
-        <div class="swipe-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')"></div>
-    </div>`;
+        <button class="settings-edit-btn" onclick="event.stopPropagation(); openAddressEditor('${id}')" title="Редактировать адрес" style="flex-shrink:0; margin-left:auto;">✏️</button>
+    </div>
+    <div class="swipe-delete" onclick="event.stopPropagation(); removeHomeAddress('${id}')"></div>
+</div>`;
 });
 
 if (addrEntries.length === 0) {
