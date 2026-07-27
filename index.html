@@ -610,46 +610,65 @@ color: #fff;
 .ymaps-2-1-79-conditions {
    bottom: 100px !important;
 }
-    /* Стили для онбординга */
+/* Улучшенный онбординг */
 .onboarding-icon {
-    font-size: 60px;
-    margin-bottom: 16px;
+    font-size: 64px;
+    margin-bottom: 12px;
 }
 .onboarding-title {
-    font-size: 20px;
+    font-size: 21px;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: var(--text-primary);
+    line-height: 1.3;
 }
 .onboarding-text {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.6;
+    padding: 0 8px;
 }
 .onboarding-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--gray);
-    transition: background 0.2s;
+    transition: background 0.2s, width 0.2s;
 }
 .onboarding-dot.active {
     background: var(--accent);
     width: 24px;
     border-radius: 4px;
 }
-    /* Подсветка элементов при обучении */
+
+/* Подсветка элементов при обучении */
 .onboarding-highlight {
     position: relative;
     z-index: 5001 !important;
-    box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5) !important;
+    box-shadow: 0 0 0 5px rgba(0,122,255,0.4), 0 0 20px rgba(0,122,255,0.6) !important;
     border-radius: 16px !important;
     animation: pulse 1.5s infinite;
 }
+
+/* Стрелка-указатель под подсвеченным элементом */
+.onboarding-highlight::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid var(--accent);
+    z-index: 5002;
+}
+
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
-    50% { box-shadow: 0 0 0 8px var(--accent), 0 0 30px rgba(0,122,255,0.8); }
-    100% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(0,122,255,0.5); }
+    0% { box-shadow: 0 0 0 5px rgba(0,122,255,0.4), 0 0 20px rgba(0,122,255,0.6); }
+    50% { box-shadow: 0 0 0 10px rgba(0,122,255,0.8), 0 0 30px rgba(0,122,255,0.9); }
+    100% { box-shadow: 0 0 0 5px rgba(0,122,255,0.4), 0 0 20px rgba(0,122,255,0.6); }
 }
 /* === НОВЫЙ ДИЗАЙН ЗАГОЛОВКА ПАНЕЛИ === */
 .panel-header {
@@ -4136,28 +4155,40 @@ function deleteAccount() {
 // ===================== ОНБОРДИНГ С ПОДСВЕТКОЙ =====================
 const onboardingSlides = [
     {
-        icon: '🗺️',
-        title: 'Добро пожаловать в ParkNear',
-        text: 'Здесь вы можете отмечать парковки и видеть, где есть свободные места.',
+        icon: '👋',
+        title: 'Добро пожаловать в ParkNear!',
+        text: 'Приложение помогает находить и отмечать парковки, видеть занятость в реальном времени и сохранять любимые места. Давайте быстренько освоимся!',
         highlightSelector: null
     },
     {
         icon: '➕',
         title: 'Добавление парковки',
-        text: 'Нажмите на синюю кнопку «+» в правом нижнем углу, затем обведите зону на карте.',
-        highlightSelector: '#addBtn'                   // подсветка кнопки +
+        text: 'Нажмите синюю кнопку «+» справа внизу, затем обведите зону на карте. Вы сможете указать адрес и количество мест.',
+        highlightSelector: '#addBtn'
+    },
+    {
+        icon: '📍',
+        title: 'Ваше местоположение',
+        text: 'Кнопка геолокации (⦿) перенесёт карту к вам. Рядом — кнопка обновления (🔄), чтобы загрузить свежие данные о парковках.',
+        highlightSelector: '#geoBtn'
     },
     {
         icon: '🔍',
-        title: 'Поиск',
-        text: 'Вкладка «Поиск» (🔍) внизу позволяет найти парковки по адресу.',
-        highlightSelector: '.tab:nth-child(2)'         // вторая вкладка
+        title: 'Поиск парковок',
+        text: 'Вкладка «Поиск» внизу позволяет искать парковки по адресу, фильтровать по расстоянию и видеть только свободные места.',
+        highlightSelector: '.tab:nth-child(2)'
     },
     {
         icon: '⭐',
-        title: 'Избранное',
-        text: 'Вкладка «Избранное» (⭐) хранит ваши сохранённые места.',
-        highlightSelector: '.tab:nth-child(3)'         // третья вкладка
+        title: 'Избранное и адреса',
+        text: 'Вкладка «Избранное» сохраняет ваши парковки и домашние/рабочие адреса. Можно быстро посмотреть на карте или удалить свайпом.',
+        highlightSelector: '.tab:nth-child(3)'
+    },
+    {
+        icon: '🎉',
+        title: 'Вы готовы!',
+        text: 'Теперь вы знаете основы. Начните с добавления первой парковки или поиска ближайших свободных мест. Удачи на дорогах!',
+        highlightSelector: null
     }
 ];
 let currentSlide = 0;
