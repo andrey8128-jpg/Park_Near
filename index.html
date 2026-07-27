@@ -4399,40 +4399,61 @@ function closeReputationOverlay() {
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
-initAuth();
-document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
-document.getElementById('geoBtn').onclick = () => {
-if (!map) return;
-const btn = document.getElementById('geoBtn'); const originalContent = btn.innerHTML;
-btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-getUserLocation().then(coords => {
-btn.innerHTML = originalContent;
-if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-myLocationPlacemark.properties.set('caption', 'Вы здесь');
-map.geoObjects.add(myLocationPlacemark); map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-}).catch(err => {
-btn.innerHTML = originalContent; console.error("Ошибка геолокации:", err);
-let message = 'Не удалось определить местоположение.';
-if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message); else alert(message);
-});
-};
-ymaps.ready(() => { initMap(); });
+    initAuth();
+
+    // Кнопка добавления парковки
+    document.getElementById('addBtn').onclick = () => {
+        if (!currentUser) showPanel('profile');
+        else if (isDrawingMode) cancelDrawing();
+        else startDrawingMode();
+    };
+
+    // Кнопка геолокации
+    document.getElementById('geoBtn').onclick = () => {
+        if (!map) return;
+        const btn = document.getElementById('geoBtn');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
+        getUserLocation()
+            .then(coords => {
+                btn.innerHTML = originalContent;
+                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                myLocationPlacemark = new ymaps.Placemark(
+                    [coords.lat, coords.lng],
+                    { hintContent: 'Вы здесь', balloonContent: '<strong>Ваше местоположение</strong>' },
+                    { preset: 'islands#blueCircleDotIconWithCaption' }
+                );
+                myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                map.geoObjects.add(myLocationPlacemark);
+                map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            })
+            .catch(err => {
+                btn.innerHTML = originalContent;
+                console.error("Ошибка геолокации:", err);
+                let message = 'Не удалось определить местоположение.';
+                if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
+                if (window.Telegram?.WebApp?.showAlert) {
+                    window.Telegram.WebApp.showAlert(message);
+                } else {
+                    alert(message);
+                }
+            });
+    };
+
+    // ===== ИНИЦИАЛИЗАЦИЯ КАРТЫ С ТАЙМАУТОМ =====
+    const mapLoadTimeout = setTimeout(() => {
+        alert('⚠️ Не удалось загрузить карту. Проверьте интернет или ключ API.');
+        document.getElementById('splashScreen').style.display = 'none';
+    }, 10000); // 10 секунд на загрузку
+
+    ymaps.ready(() => {
+        clearTimeout(mapLoadTimeout);
+        initMap();
+    });
 }
-document.addEventListener('DOMContentLoaded', () => {
-if (typeof ymaps !== 'undefined') {
-initApp();
-setTimeout(() => {
-    initPullToRefresh();
-}, 500);
-} else {
-window.addEventListener('load', () => {
-ymaps.ready(() => { initApp(); });
-});
-}
-});
 </script>
 </body>
 </html>
