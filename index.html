@@ -1990,6 +1990,7 @@ parkingDataCache = {}; // очищаем кеш
         const data = snapshot.val();
         console.log('Получено парковок:', data ? Object.keys(data).length : 0);
         if (data) {
+            const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
             Object.keys(data).forEach(key => {
                 const p = data[key];
                 console.log('Парковка:', key, p);
