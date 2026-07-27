@@ -640,27 +640,28 @@ color: #fff;
     border-radius: 4px;
 }
 
-/* Подсветка элементов при обучении */
 .onboarding-highlight {
     position: relative;
     z-index: 5001 !important;
     box-shadow: 0 0 0 5px rgba(0,122,255,0.4), 0 0 20px rgba(0,122,255,0.6) !important;
     border-radius: 16px !important;
     animation: pulse 1.5s infinite;
+    cursor: pointer;
 }
 
-/* Стрелка-указатель под подсвеченным элементом */
 .onboarding-highlight::after {
-    content: '';
+    content: '👆 Нажми меня';
     position: absolute;
-    bottom: -10px;
+    bottom: -32px;
     left: 50%;
     transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 10px solid var(--accent);
+    background: #007AFF;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
     z-index: 5002;
 }
 
@@ -3846,7 +3847,7 @@ function editCarData() {
 }
 function resetOnboarding() {
     localStorage.removeItem('onboardingSeen');
-    closeSettings();
+    closeSettings(); 
     showOnboarding();
 }
 // Открытие редактора авто
@@ -4174,99 +4175,152 @@ const onboardingSlides = [
         icon: '👋',
         title: 'Добро пожаловать в ParkNear!',
         text: 'Приложение помогает находить и отмечать парковки, видеть занятость в реальном времени и сохранять любимые места. Давайте быстренько освоимся!',
-        highlightSelector: null
+        highlightSelector: null,
+        requiredAction: false
     },
     {
         icon: '➕',
-        title: 'Добавление парковки',
-        text: 'Нажмите синюю кнопку «+» справа внизу, затем обведите зону на карте. Вы сможете указать адрес и количество мест.',
-        highlightSelector: '#addBtn'
+        title: 'Шаг 1: Добавление парковки',
+        text: 'Нажмите на синюю кнопку «+» в правом нижнем углу, чтобы начать рисовать зону парковки.',
+        highlightSelector: '#addBtn',
+        requiredAction: true
     },
     {
         icon: '📍',
-        title: 'Ваше местоположение',
-        text: 'Кнопка геолокации (⦿) перенесёт карту к вам. Рядом — кнопка обновления (🔄), чтобы загрузить свежие данные о парковках.',
-        highlightSelector: '#geoBtn'
+        title: 'Шаг 2: Ваше местоположение',
+        text: 'Нажмите на кнопку с эмодзи 📍, чтобы карта переместилась к вам. Рядом — кнопка обновления 🔄 для загрузки свежих данных.',
+        highlightSelector: '#geoBtn',
+        requiredAction: true
     },
     {
         icon: '🔍',
-        title: 'Поиск парковок',
-        text: 'Вкладка «Поиск» внизу позволяет искать парковки по адресу, фильтровать по расстоянию и видеть только свободные места.',
-        highlightSelector: '.tab:nth-child(2)'
+        title: 'Шаг 3: Поиск парковок',
+        text: 'Нажмите на вкладку «Поиск» внизу, чтобы искать парковки по адресу, фильтровать по расстоянию и видеть только свободные места.',
+        highlightSelector: '.tab:nth-child(2)',
+        requiredAction: true
     },
     {
         icon: '⭐',
-        title: 'Избранное и адреса',
-        text: 'Вкладка «Избранное» сохраняет ваши парковки и домашние/рабочие адреса. Можно быстро посмотреть на карте или удалить свайпом.',
-        highlightSelector: '.tab:nth-child(3)'
+        title: 'Шаг 4: Избранное и адреса',
+        text: 'Нажмите на вкладку «Избранное», чтобы сохранить парковки и домашние адреса. Свайпом можно удалить.',
+        highlightSelector: '.tab:nth-child(3)',
+        requiredAction: true
     },
     {
         icon: '🎉',
         title: 'Вы готовы!',
         text: 'Теперь вы знаете основы. Начните с добавления первой парковки или поиска ближайших свободных мест. Удачи на дорогах!',
-        highlightSelector: null
+        highlightSelector: null,
+        requiredAction: false
     }
 ];
 let currentSlide = 0;
 let highlightedElement = null;
+let isOnboardingActive = false;
+let clickHandlerForHighlight = null;
 
-function removeHighlight() {
-    if (highlightedElement) {
-        highlightedElement.classList.remove('onboarding-highlight');
-        highlightedElement = null;
-    }
-}
-
-function applyHighlight(selector) {
-    removeHighlight();
-    if (!selector) return;
-    const el = document.querySelector(selector);
-    if (el) {
-        el.classList.add('onboarding-highlight');
-        highlightedElement = el;
-    }
-}
 function showOnboarding() {
     if (localStorage.getItem('onboardingSeen') === 'true') return;
-
+    isOnboardingActive = true;
     const overlay = document.getElementById('onboardingOverlay');
     overlay.style.display = 'flex';
 
-    function renderSlide() {
-        const slide = onboardingSlides[currentSlide];
+    function removeHighlight() {
+        if (highlightedElement) {
+            highlightedElement.classList.remove('onboarding-highlight');
+            highlightedElement = null;
+        }
+        // Удаляем обработчик клика, если был
+        if (clickHandlerForHighlight) {
+            document.removeEventListener('click', clickHandlerForHighlight);
+            clickHandlerForHighlight = null;
+        }
+    }
+
+    function renderSlide(index) {
+        const slide = onboardingSlides[index];
+        // Убираем старую подсветку
+        removeHighlight();
+
+        // Отображаем контент
         document.getElementById('onboardingSlide').innerHTML = `
             <div class="onboarding-icon">${slide.icon}</div>
             <div class="onboarding-title">${slide.title}</div>
             <div class="onboarding-text">${slide.text}</div>
         `;
-        applyHighlight(slide.highlightSelector);
 
+        // Обновляем точки
         const dotsContainer = document.getElementById('onboardingDots');
         dotsContainer.innerHTML = onboardingSlides.map((_, i) =>
-            `<div class="onboarding-dot ${i === currentSlide ? 'active' : ''}"></div>`
+            `<div class="onboarding-dot ${i === index ? 'active' : ''}"></div>`
         ).join('');
 
+        // Кнопка "Далее" или "Понятно"
         const nextBtn = document.getElementById('onboardingNext');
-        nextBtn.textContent = currentSlide === onboardingSlides.length - 1 ? 'Понятно' : 'Далее';
+        const skipBtn = document.getElementById('onboardingSkip');
+        
+        if (slide.requiredAction) {
+            // Если требуется действие — скрываем кнопку "Далее" и показываем подсказку
+            nextBtn.style.display = 'none';
+            skipBtn.textContent = 'Пропустить шаг';
+            // Подсвечиваем элемент
+            const selector = slide.highlightSelector;
+            if (selector) {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.classList.add('onboarding-highlight');
+                    highlightedElement = el;
+                    // Добавляем обработчик клика на документ, но сработает только если клик по подсвеченному элементу
+                    clickHandlerForHighlight = function(e) {
+                        const target = e.target.closest(selector);
+                        if (target) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Переход к следующему шагу
+                            if (index < onboardingSlides.length - 1) {
+                                currentSlide = index + 1;
+                                renderSlide(currentSlide);
+                            } else {
+                                finishOnboarding();
+                            }
+                        }
+                    };
+                    document.addEventListener('click', clickHandlerForHighlight, true); // capture phase
+                }
+            }
+        } else {
+            // Обычный шаг — показываем кнопку
+            nextBtn.style.display = 'block';
+            skipBtn.textContent = 'Пропустить';
+            nextBtn.textContent = index === onboardingSlides.length - 1 ? 'Понятно' : 'Далее';
+        }
     }
+
+    function finishOnboarding() {
+        localStorage.setItem('onboardingSeen', 'true');
+        document.getElementById('onboardingOverlay').style.display = 'none';
+        removeHighlight();
+        isOnboardingActive = false;
+    }
+
+    // Обработчик кнопки "Далее"
     document.getElementById('onboardingNext').onclick = function() {
         if (currentSlide === onboardingSlides.length - 1) {
-            localStorage.setItem('onboardingSeen', 'true');
-            overlay.style.display = 'none';
-            removeHighlight();
-            return;
+            finishOnboarding();
+        } else {
+            currentSlide++;
+            renderSlide(currentSlide);
         }
-        currentSlide++;
-        renderSlide();
     };
 
+    // Обработчик "Пропустить"
     document.getElementById('onboardingSkip').onclick = function() {
-        localStorage.setItem('onboardingSeen', 'true');
-        overlay.style.display = 'none';
-        removeHighlight();
+        finishOnboarding();
     };
 
-    renderSlide();
+    // Начинаем с первого слайда
+    currentSlide = 0;
+    renderSlide(0);
 }
 // ===================== НАСТРОЙКИ =====================
 function toggleTheme() {
