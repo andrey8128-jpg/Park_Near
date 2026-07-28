@@ -3718,26 +3718,36 @@ function applyCityFromPicker() {
     userCityPrefs.region = region;
     userCityPrefs.city = city;
     
-    // Сохраняем в Firebase
+    // Сбрасываем фильтры поиска по координатам (важно!)
+    nearbySearchFilter = null;
+    userLocationForSearch = null;
+    
+    // Если пользователь авторизован, сохраняем в Firebase
     if (currentUser) {
         database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
         .then(() => {
-            // Обновляем карту
+            // 1. Обновляем карту (загружаем парковки с новым городом)
             loadAllParkings();
-            // Обновляем поиск, если он открыт
-            if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
-                filterParkings();
-            }
-            // Обновляем подпись в поиске
+            
+            // 2. Ждём загрузки и обновляем список поиска
+            setTimeout(() => {
+                if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
+                    filterParkings();
+                }
+            }, 500);
+            
+            // 3. Обновляем подпись в поиске
             const cityInfo = document.getElementById('cityFilterInfo');
             if (cityInfo) {
                 const label = city ? `в ${city}` : 'везде';
                 const strong = cityInfo.querySelector('strong');
                 if (strong) strong.textContent = label;
             }
-            // Закрываем оверлей
+            
+            // 4. Закрываем оверлей
             closeCityPicker();
-            // Вибрация (опционально)
+            
+            // 5. Тактильная отдача (если есть)
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.selectionChanged();
             }
