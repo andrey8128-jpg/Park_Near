@@ -3712,25 +3712,41 @@ function applyCityFromPicker() {
         alert('Выберите регион и город');
         return;
     }
-    // Сохраняем через ту же функцию, что и в настройках
-    if (typeof saveCityFromSettings === 'function') {
-        // Временно подменяем значения, чтобы saveCityFromSettings их использовал
-        const oldRegion = userCityPrefs.region;
-        const oldCity = userCityPrefs.city;
-        userCityPrefs.region = region;
-        userCityPrefs.city = city;
-        // Вызываем сохранение (она обновит Firebase и перезагрузит)
-        saveCityFromSettings();
-        // Если saveCityFromSettings не обновляет подпись, сделаем это здесь
-        const cityInfo = document.getElementById('cityFilterInfo');
-        if (cityInfo) {
-            const label = city ? `в ${city}` : 'везде';
-            const strong = cityInfo.querySelector('strong');
-            if (strong) strong.textContent = label;
-        }
-        closeCityPicker();
+    
+    // Обновляем локальные переменные
+    userCityPrefs.region = region;
+    userCityPrefs.city = city;
+    
+    // Сохраняем в Firebase
+    if (currentUser) {
+        database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
+        .then(() => {
+            // Обновляем карту
+            loadAllParkings();
+            // Обновляем поиск, если он открыт
+            if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
+                filterParkings();
+            }
+            // Обновляем подпись в поиске
+            const cityInfo = document.getElementById('cityFilterInfo');
+            if (cityInfo) {
+                const label = city ? `в ${city}` : 'везде';
+                const strong = cityInfo.querySelector('strong');
+                if (strong) strong.textContent = label;
+            }
+            // Закрываем оверлей
+            closeCityPicker();
+            // Вибрация (опционально)
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка сохранения города:', err);
+            alert('Ошибка сохранения: ' + err.message);
+        });
     } else {
-        alert('Ошибка: функция сохранения не найдена');
+        alert('Пользователь не авторизован');
     }
 }
 function updateRadiusLabel() {
