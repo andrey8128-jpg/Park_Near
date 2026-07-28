@@ -2819,7 +2819,7 @@ if (currentUser) {
 `;
 }
     document.getElementById('panelContent').innerHTML = html;
-// === Управление историей (сворачиваемый блок) ===
+// === Обработчик сворачивания истории ===
 const historyToggle = document.getElementById('historyToggle');
 const historyWrapper = document.getElementById('historyListWrapper');
 const historyArrow = document.getElementById('historyArrow');
@@ -2835,6 +2835,7 @@ if (historyToggle) {
             historyWrapper.classList.add('open');
             if (historyArrow) historyArrow.textContent = '▼';
             if (!historyLoaded && currentUser) {
+                loadHistory(currentParkingId, 10, 3);
                 historyLoaded = true;
             }
         }
@@ -2863,7 +2864,7 @@ function loadHistory(parkingId, limit = 10, days = 3) {
     if (!container) return;
 
     const now = Date.now();
-    const cutoff = now - days * 24 * 60 * 60 * 1000; // вычисляем границу
+    const cutoff = now - days * 24 * 60 * 60 * 1000;
 
     database.ref(`parkings/${parkingId}/history`).orderByChild('timestamp').limitToLast(limit).once('value', snapshot => {
         const history = snapshot.val();
@@ -2874,10 +2875,8 @@ function loadHistory(parkingId, limit = 10, days = 3) {
         }
 
         let entries = Object.entries(history).map(([key, val]) => ({ key, ...val }))
-            .sort((a, b) => b.timestamp - a.timestamp);
-
-        // Фильтр по дням: оставляем только записи новее cutoff
-        entries = entries.filter(entry => entry.timestamp >= cutoff);
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .filter(entry => entry.timestamp >= cutoff);
 
         if (countEl) countEl.textContent = `(${entries.length})`;
 
@@ -2911,14 +2910,13 @@ function loadHistory(parkingId, limit = 10, days = 3) {
         });
         container.innerHTML = html;
 
-        // Кнопка "Показать все" – загружаем больше записей, но с тем же фильтром дней
         if (loadMoreBtn) {
             database.ref(`parkings/${parkingId}/history`).once('value', totalSnap => {
                 const total = totalSnap.numChildren ? totalSnap.numChildren() : 0;
                 if (total > limit) {
                     loadMoreBtn.style.display = 'block';
                     loadMoreBtn.onclick = function() {
-                        loadHistory(parkingId, 100, days); // загружаем до 100 записей
+                        loadHistory(parkingId, 100, days);
                         this.style.display = 'none';
                     };
                 } else {
