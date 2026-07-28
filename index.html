@@ -2818,8 +2818,9 @@ if (currentUser) {
 </div>
 `;
 }
-    document.getElementById('panelContent').innerHTML = html;
-// === Обработчик сворачивания истории ===
+   document.getElementById('panelContent').innerHTML = html;
+
+// Обработчик сворачивания истории
 const historyToggle = document.getElementById('historyToggle');
 const historyWrapper = document.getElementById('historyListWrapper');
 const historyArrow = document.getElementById('historyArrow');
@@ -2841,8 +2842,13 @@ if (historyToggle) {
         }
     });
 }
-    // Сохраняем текущие данные для обновления плашки при сохранении
-    window._editingParkingData = data;
+
+// Сохраняем данные для обновления плашки (если используется)
+window._editingParkingData = data;
+window.toggleParkingEditor = function() {
+    // ... содержимое, если есть
+};
+} // <-- ЭТА СКОБКА ЗАКРЫВАЕТ ФУНКЦИЮ renderEditPanel
 
     // Определяем функцию переключения
     window.toggleParkingEditor = function() {
