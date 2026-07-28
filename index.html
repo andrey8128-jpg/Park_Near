@@ -3071,9 +3071,10 @@ function changeOccupancy(delta) {
         parkingDataCache[currentParkingId] = data;
         addMarkerToMap(currentParkingId, data);
 
-        // Обновляем историю, если она открыта
-        if (document.getElementById('historyList')) 
-        }
+// Обновляем историю, если она открыта
+if (document.getElementById('historyList')) {
+    loadHistory(currentParkingId, 10, 3);
+}
     })
     .catch(err => {
         console.error("Ошибка обновления занятости:", err);
