@@ -2709,7 +2709,7 @@ function renderEditPanel(data, isFavorite) {
     }
 
     // Блок редактирования данных парковки (только для автора)
-    if (isAuthor) {
+ if (currentUser) {
         const currentStreet = data.street || '';
         const streetType = currentStreet.split(' ')[0] || '';
         const streetName = extractStreetName(currentStreet);
@@ -2762,7 +2762,7 @@ function renderEditPanel(data, isFavorite) {
         html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
     }
 // Добавляем блок истории (если пользователь автор)
-if (isAuthor) {
+if (currentUser) {   
     html += `
     <div id="historyContainer" style="margin-top:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
