@@ -3610,7 +3610,39 @@ nearbySearchFilter = nearbySearchFilter || {};
 nearbySearchFilter.city = defaultCity;
 nearbySearchFilter.region = defaultRegion;
 }
+// Добавляем оверлей для быстрого выбора города
+    const overlayHtml = `
+    <div id="cityPickerOverlay" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; border-radius:16px;">
+        <div style="background:var(--bg-secondary); border-radius:16px; padding:20px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0; text-align:center;">Выберите город</h3>
+            <div class="form-group">
+                <label>Регион</label>
+                <select id="cityPickerRegion" class="input-field" onchange="updateCityPickerCities()">
+                    <option value="">Выберите регион</option>
+                    ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Город</label>
+                <select id="cityPickerCity" class="input-field">
+                    <option value="">Выберите город</option>
+                    ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
+                </select>
+            </div>
+            <button class="btn-primary" onclick="applyCityFromPicker()">Применить</button>
+            <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
+        </div>
+    </div>
+    `;
+    content.insertAdjacentHTML('beforeend', overlayHtml);
 
+    // Переопределяем кнопку "Изменить" (она уже есть в HTML, но мы перехватим её)
+    const changeCityBtn = content.querySelector('#cityFilterInfo button');
+    if (changeCityBtn) {
+        changeCityBtn.onclick = function() {
+            openCityPicker();
+        };
+    }
 getUserLocation().then(coords => { userLocationForSearch = coords; }).catch(() => { userLocationForSearch = null; });
 filterParkings();
 
@@ -3638,18 +3670,68 @@ setTimeout(filterParkings, 50);
 });
 }
 }
-    function changeSearchCity() {
-// Открываем настройки для смены города
-showSettings();
-// После закрытия настроек — обновляем поиск
-const origClose = closeSettings;
-closeSettings = function() {
-origClose();
-// Обновляем поиск с новым городом
-if (document.getElementById('panelTitle').textContent === 'Поиск') {
-renderSearchPanel(document.getElementById('panelContent'));
+
+function openCityPicker() {
+    const overlay = document.getElementById('cityPickerOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        // Обновляем списки согласно текущему городу
+        const regionSelect = document.getElementById('cityPickerRegion');
+        const citySelect = document.getElementById('cityPickerCity');
+        if (regionSelect) {
+            regionSelect.value = userCityPrefs.region || '';
+            updateCityPickerCities();
+        }
+    }
 }
-};
+
+function closeCityPicker() {
+    const overlay = document.getElementById('cityPickerOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function updateCityPickerCities() {
+    const region = document.getElementById('cityPickerRegion').value;
+    const citySelect = document.getElementById('cityPickerCity');
+    citySelect.innerHTML = '<option value="">Выберите город</option>';
+    if (region && regionsData[region]) {
+        regionsData[region].forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            if (city === userCityPrefs.city) opt.selected = true;
+            citySelect.appendChild(opt);
+        });
+    }
+}
+
+function applyCityFromPicker() {
+    const region = document.getElementById('cityPickerRegion').value;
+    const city = document.getElementById('cityPickerCity').value;
+    if (!region || !city) {
+        alert('Выберите регион и город');
+        return;
+    }
+    // Сохраняем через ту же функцию, что и в настройках
+    if (typeof saveCityFromSettings === 'function') {
+        // Временно подменяем значения, чтобы saveCityFromSettings их использовал
+        const oldRegion = userCityPrefs.region;
+        const oldCity = userCityPrefs.city;
+        userCityPrefs.region = region;
+        userCityPrefs.city = city;
+        // Вызываем сохранение (она обновит Firebase и перезагрузит)
+        saveCityFromSettings();
+        // Если saveCityFromSettings не обновляет подпись, сделаем это здесь
+        const cityInfo = document.getElementById('cityFilterInfo');
+        if (cityInfo) {
+            const label = city ? `в ${city}` : 'везде';
+            const strong = cityInfo.querySelector('strong');
+            if (strong) strong.textContent = label;
+        }
+        closeCityPicker();
+    } else {
+        alert('Ошибка: функция сохранения не найдена');
+    }
 }
 function updateRadiusLabel() {
     const slider = document.getElementById('radiusSlider');
