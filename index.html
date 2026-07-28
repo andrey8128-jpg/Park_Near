@@ -2843,11 +2843,6 @@ if (historyToggle) {
     });
 }
 
-// Сохраняем данные для обновления плашки (если используется)
-window._editingParkingData = data;
-window.toggleParkingEditor = function() {
-    // ... содержимое, если есть
-};
 } // <-- ЭТА СКОБКА ЗАКРЫВАЕТ ФУНКЦИЮ renderEditPanel
 
     // Определяем функцию переключения
@@ -3062,7 +3057,7 @@ function changeOccupancy(delta) {
         }
         return database.ref(`parkings/${currentParkingId}`).once('value');
     })
-    .then(snapshot => {
+   .then(snapshot => {
         const data = snapshot.val();
         if (mapMarkers[currentParkingId]) {
             map.geoObjects.remove(mapMarkers[currentParkingId]);
@@ -3071,10 +3066,10 @@ function changeOccupancy(delta) {
         parkingDataCache[currentParkingId] = data;
         addMarkerToMap(currentParkingId, data);
 
-// Обновляем историю, если она открыта
-if (document.getElementById('historyList')) {
-    loadHistory(currentParkingId, 10, 3);
-}
+        // Обновляем историю, если она открыта
+        if (document.getElementById('historyList')) {
+            loadHistory(currentParkingId, 10, 3);
+        }
     })
     .catch(err => {
         console.error("Ошибка обновления занятости:", err);
