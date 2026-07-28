@@ -2766,7 +2766,7 @@ if (currentUser) {
     html += `
     <div id="historyContainer" style="margin-top:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:600; font-size:16px;">📋 История изменений</span>
+          <span style="font-weight:600; font-size:16px;">📋 История изменений (за 3 дня)</span>
             <span style="font-size:12px; color:var(--text-secondary);" id="historyCount"></span>
         </div>
         <div id="historyList" style="margin-top:8px; max-height:200px; overflow-y:auto;"></div>
@@ -2792,11 +2792,14 @@ if (currentUser) {
         }
     };
 }
-function loadHistory(parkingId, limit = 10) {
+function loadHistory(parkingId, limit = 10, days = 3) {
     const container = document.getElementById('historyList');
     const countEl = document.getElementById('historyCount');
     const loadMoreBtn = document.getElementById('loadMoreHistory');
     if (!container) return;
+
+    const now = Date.now();
+    const cutoff = now - days * 24 * 60 * 60 * 1000; // вычисляем границу
 
     database.ref(`parkings/${parkingId}/history`).orderByChild('timestamp').limitToLast(limit).once('value', snapshot => {
         const history = snapshot.val();
@@ -2806,10 +2809,19 @@ function loadHistory(parkingId, limit = 10) {
             return;
         }
 
-        const entries = Object.entries(history).map(([key, val]) => ({ key, ...val }))
+        let entries = Object.entries(history).map(([key, val]) => ({ key, ...val }))
             .sort((a, b) => b.timestamp - a.timestamp);
 
+        // Фильтр по дням: оставляем только записи новее cutoff
+        entries = entries.filter(entry => entry.timestamp >= cutoff);
+
         if (countEl) countEl.textContent = `(${entries.length})`;
+
+        if (entries.length === 0) {
+            container.innerHTML = `<div style="color:var(--text-secondary); font-size:13px;">Нет изменений за последние ${days} дней</div>`;
+            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            return;
+        }
 
         let html = '';
         entries.forEach(entry => {
@@ -2835,14 +2847,14 @@ function loadHistory(parkingId, limit = 10) {
         });
         container.innerHTML = html;
 
-        // Проверяем, есть ли ещё записи (больше, чем limit)
+        // Кнопка "Показать все" – загружаем больше записей, но с тем же фильтром дней
         if (loadMoreBtn) {
             database.ref(`parkings/${parkingId}/history`).once('value', totalSnap => {
                 const total = totalSnap.numChildren ? totalSnap.numChildren() : 0;
                 if (total > limit) {
                     loadMoreBtn.style.display = 'block';
                     loadMoreBtn.onclick = function() {
-                        loadHistory(parkingId, 100); // загружаем больше
+                        loadHistory(parkingId, 100, days); // загружаем до 100 записей
                         this.style.display = 'none';
                     };
                 } else {
@@ -2993,7 +3005,7 @@ function changeOccupancy(delta) {
 
         // Обновляем историю, если она открыта
         if (document.getElementById('historyList')) {
-            loadHistory(currentParkingId, 10);
+           loadHistory(currentParkingId, 10, 3);
         }
     })
     .catch(err => {
