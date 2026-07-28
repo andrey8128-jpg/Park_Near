@@ -1201,7 +1201,62 @@ color: #fff;
 .address-editor-overlay.active {
   display: flex;
 }
-
+.parking-editor {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 16px;
+}
+.parking-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.parking-summary:active {
+    background: var(--bg-primary);
+}
+.summary-info {
+    flex: 1;
+    min-width: 0;
+}
+.summary-address {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.summary-spots {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+.edit-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    flex-shrink: 0;
+    transition: transform 0.3s;
+}
+.edit-toggle-btn.active {
+    transform: rotate(45deg);
+}
+.editor-fields {
+    padding: 0 16px 16px;
+    border-top: 0.5px solid var(--border-color);
+    display: none;
+}
+.editor-fields.open {
+    display: block;
+}
 /* Кнопка "+" рядом с заголовком "Мои адреса" */
 .add-address-btn {
   background: none;
@@ -1361,6 +1416,7 @@ color: #fff;
     50% { box-shadow: 0 0 0 10px rgba(0,122,255,0.8), 0 0 30px rgba(0,122,255,0.9); }
     100% { box-shadow: 0 0 0 5px rgba(0,122,255,0.4), 0 0 20px rgba(0,122,255,0.6); }
 }
+
 </style>
 </head>
 <body>
@@ -2592,68 +2648,125 @@ function openOccupancyPanel(parkingId) {
 }
 
 function renderEditPanel(data, isFavorite) {
-    const totalSpots = data.totalSpots || 0, occupiedSpots = data.occupiedSpots || 0, freeSpots = totalSpots - occupiedSpots;
-    const color = getOccupancyColor(occupiedSpots, totalSpots), occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
+    const totalSpots = data.totalSpots || 0;
+    const occupiedSpots = data.occupiedSpots || 0;
+    const freeSpots = totalSpots - occupiedSpots;
+    const color = getOccupancyColor(occupiedSpots, totalSpots);
+    const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
     const isAuthor = currentUser && currentUser.id === data.authorId;
-    const status = data.status || 'unknown', statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
+    const status = data.status || 'unknown';
+    const statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
     const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
+
+    // Формируем адрес для плашки
+    let addressDisplay = data.street || data.name || 'Без названия';
+    if (data.houseNumber) {
+        addressDisplay += `, д. ${data.houseNumber}`;
+    }
 
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Редактирование';
 
     let html = `
-    <div class="occupancy-header"><div class="occupancy-title"><span class="status-indicator ${statusClass}"></span>${data.name}</div></div>
+    <div class="occupancy-header">
+        <div class="occupancy-title">
+            <span class="status-indicator ${statusClass}"></span>
+            ${data.name}
+        </div>
+    </div>
     <div class="occupancy-stats">
-    <div class="stat-card stat-total"><div class="stat-value" id="statTotal">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
-    <div class="stat-card stat-free"><div class="stat-value" id="statFree">${freeSpots}</div><div class="stat-label">Свободно</div></div>
-    <div class="stat-card stat-occupied"><div class="stat-value" id="statOccupied">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
+        <div class="stat-card stat-total"><div class="stat-value" id="statTotal">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
+        <div class="stat-card stat-free"><div class="stat-value" id="statFree">${freeSpots}</div><div class="stat-label">Свободно</div></div>
+        <div class="stat-card stat-occupied"><div class="stat-value" id="statOccupied">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div></div>
     <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">Загруженность: ${occupancyPercent}%</div>
     <div class="occupancy-control" style="margin-bottom:15px;">
-    <label>Изменить количество занятых мест:</label>
-    <div class="counter-row">
-    <button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
-    <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-    <button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
-    </div>
+        <label>Изменить количество занятых мест:</label>
+        <div class="counter-row">
+            <button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
+            <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
+            <button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
+        </div>
     </div>
     `;
 
+    // Кнопка избранного (если пользователь залогинен)
     if (currentUser) {
         html += `<button class="btn-secondary" style="margin-bottom:15px;" id="favBtn" onclick="toggleFavorite('${currentParkingId}')">${isFavorite ? '✅ В избранном' : '⭐ Добавить в избранное'}</button>`;
     }
 
+    // Блок редактирования данных парковки (только для автора)
     if (isAuthor) {
         const currentStreet = data.street || '';
-        html += `
-        <div class="form-group">
-            <label>Тип улицы</label>
-            <select id="editStreetType" class="input-field">
-                <option value="">-- выберите --</option>
-                <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
-                <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
-                <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
-                <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
-                <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
-                <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
-                <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
-                <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
-                <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
-            </select>
-        </div>
-        <div class="form-group"><label>Название улицы</label><input type="text" id="editStreetName" class="input-field" value="${extractStreetName(currentStreet)}" placeholder="Ленина"></div>
-        <div class="form-group"><label>Номер дома</label><input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15"></div>
+        const streetType = currentStreet.split(' ')[0] || '';
+        const streetName = extractStreetName(currentStreet);
 
-        <div class="form-group"><label>Количество мест</label><input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1"></div>
-        <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-        <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
+        html += `
+        <div class="parking-editor">
+            <div class="parking-summary" onclick="toggleParkingEditor()">
+                <div class="summary-info">
+                    <div class="summary-address" id="summaryAddress">${addressDisplay}</div>
+                    <div class="summary-spots" id="summarySpots">🅿️ ${totalSpots} мест</div>
+                </div>
+                <button class="edit-toggle-btn" id="editToggleBtn">✏️</button>
+            </div>
+            <div class="editor-fields" id="editorFields">
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Тип улицы</label>
+                    <select id="editStreetType" class="input-field">
+                        <option value="">-- выберите --</option>
+                        <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
+                        <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
+                        <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
+                        <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
+                        <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
+                        <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
+                        <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
+                        <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
+                        <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Название улицы</label>
+                    <input type="text" id="editStreetName" class="input-field" value="${streetName}" placeholder="Ленина">
+                </div>
+                <div class="form-group">
+                    <label>Номер дома</label>
+                    <input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15">
+                </div>
+                <div class="form-group">
+                    <label>Количество мест</label>
+                    <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1">
+                </div>
+                <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
+                <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
+            </div>
+        </div>
         `;
     } else {
+        // Для не-автора просто показываем статус и кнопку подтверждения
         html += `<div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong></div>`;
         html += `<button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>`;
     }
+
     document.getElementById('panelContent').innerHTML = html;
+
+    // Сохраняем текущие данные для обновления плашки при сохранении
+    window._editingParkingData = data;
+
+    // Определяем функцию переключения
+    window.toggleParkingEditor = function() {
+        const fields = document.getElementById('editorFields');
+        const btn = document.getElementById('editToggleBtn');
+        if (fields) {
+            fields.classList.toggle('open');
+            if (btn) {
+                btn.classList.toggle('active');
+                btn.textContent = fields.classList.contains('open') ? '✕' : '✏️';
+            }
+        }
+    };
 }
 function extractStreetName(fullStreet) {
     if (!fullStreet) return '';
@@ -2674,13 +2787,10 @@ function saveParkingDetails() {
     const streetName = document.getElementById('editStreetName')?.value.trim() || '';
     const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
     const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value) || 0;
-    const isPaid = document.getElementById('editIsPaid')?.checked || false;
 
-    // Формируем полное название улицы
     const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street || '');
     if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
 
-// Формируем новое имя парковки (без "Парковка на...")
     let newName = street;
     if (houseNumber) {
         newName = newName ? `${newName}, ${houseNumber}` : houseNumber;
@@ -2700,12 +2810,37 @@ function saveParkingDetails() {
         parkingDataCache[currentParkingId] = currentParkingData;
         updateOccupancyDisplay(currentParkingData.occupiedSpots);
         refreshParkingMarker();
-        closePanel();   // ← закрываем редактор
-        showMap();      // ← возвращаемся на карту
+
+        // ----- ОБНОВЛЕНИЕ ПЛАШКИ -----
+        const summaryAddress = document.getElementById('summaryAddress');
+        const summarySpots = document.getElementById('summarySpots');
+        if (summaryAddress) {
+            let display = updates.street || updates.name || 'Без названия';
+            if (updates.houseNumber) {
+                display += `, д. ${updates.houseNumber}`;
+            }
+            summaryAddress.textContent = display;
+        }
+        if (summarySpots) {
+            summarySpots.textContent = `🅿️ ${updates.totalSpots} мест`;
+        }
+        // Закрываем редактор полей
+        const fields = document.getElementById('editorFields');
+        const btn = document.getElementById('editToggleBtn');
+        if (fields && fields.classList.contains('open')) {
+            fields.classList.remove('open');
+            if (btn) {
+                btn.classList.remove('active');
+                btn.textContent = '✏️';
+            }
+        }
+        // -----------------------------
+
+        closePanel();
+        showMap();
         if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
 }
-
 function updateOccupancyDisplay(newOccupied) {
     if (!currentParkingData) return;
     const total = currentParkingData.totalSpots || 0, free = total - newOccupied, color = getOccupancyColor(newOccupied, total), percent = total > 0 ? Math.round((newOccupied / total) * 100) : 0;
