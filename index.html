@@ -2857,7 +2857,6 @@ if (historyToggle) {
             }
         }
     };
-}
 function loadHistory(parkingId, limit = 10, days = 3) {
     const container = document.getElementById('historyList');
     const countEl = document.getElementById('historyCount');
@@ -3067,9 +3066,9 @@ function changeOccupancy(delta) {
         addMarkerToMap(currentParkingId, data);
 
         // Обновляем историю, если она открыта
-        if (document.getElementById('historyList')) {
-            loadHistory(currentParkingId, 10, 3);
-        }
+       if (document.getElementById('historyList')) {
+    loadHistory(currentParkingId, 10, 3);
+}
     })
     .catch(err => {
         console.error("Ошибка обновления занятости:", err);
