@@ -2072,57 +2072,115 @@ function refreshCurrentPanel() {
 function initAuth() {
     if (window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
-        // Скрываем стандартную шапку Telegram и красим фон в черный
-tg.setHeaderColor('#000000'); 
-tg.setBackgroundColor('#000000');
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
+
         if (tg.initDataUnsafe?.user) {
+            // Пользователь авторизован через Telegram
             const user = tg.initDataUnsafe.user;
-            currentUser = { id: 'tg_' + user.id, username: user.username || 'tg_user', firstName: user.first_name || 'Пользователь', photoUrl: user.photo_url || '', isGuest: false };
-            if (currentUser) {
-    // ... существующий код статистики и города ...
-    database.ref(`users/${currentUser.id}/nickname`).once('value').then(snap => {
-        if (snap.exists()) {
-            currentUser.nickname = snap.val();
+            currentUser = {
+                id: 'tg_' + user.id,
+                username: user.username || 'tg_user',
+                firstName: user.first_name || 'Пользователь',
+                photoUrl: user.photo_url || '',
+                isGuest: false
+            };
+
+            // Загружаем никнейм, если есть
+            database.ref(`users/${currentUser.id}/nickname`).once('value').then(snap => {
+                if (snap.exists()) {
+                    currentUser.nickname = snap.val();
+                    localStorage.setItem('tgUser', JSON.stringify(currentUser));
+                }
+            });
+
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-        }
-    });
-}
+
+            if (!localStorage.getItem('onboardingSeen')) {
+                setTimeout(() => showOnboarding(), 500);
+            }
+        } else {
+            // Пользователь не авторизован через Telegram → создаём гостя
+            currentUser = {
+                id: 'guest_' + Date.now(),
+                username: 'guest',
+                firstName: 'Гость',
+                photoUrl: '',
+                isGuest: true
+            };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            // Показать обучение, если ещё не видели
+
+            // Создаём статистику для гостя
+            database.ref(`users/${currentUser.id}/stats`).set({
+                registeredAt: Date.now(),
+                lastActive: Date.now(),
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [new Date().toISOString().split('T')[0]]
+            });
+
             if (!localStorage.getItem('onboardingSeen')) {
                 setTimeout(() => showOnboarding(), 500);
             }
         }
-    } // ← ОБЯЗАТЕЛЬНАЯ ЗАКРЫВАЮЩАЯ СКОБКА
-    if (!currentUser) { const saved = localStorage.getItem('tgUser'); if (saved) currentUser = JSON.parse(saved); }
+    } else {
+        // Приложение запущено не в Telegram – восстанавливаем пользователя из localStorage
+        if (!currentUser) {
+            const saved = localStorage.getItem('tgUser');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+            }
+        }
+    }
+
+    // Обновляем статистику и город для существующего пользователя
     if (currentUser) {
         const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
         userStatsRef.once('value').then(snapshot => {
             if (!snapshot.exists()) {
-                const initialStats = { registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] };
+                const initialStats = {
+                    registeredAt: Date.now(),
+                    lastActive: Date.now(),
+                    parkingsCreated: 0,
+                    parkingsUpdated: 0,
+                    confirmations: 0,
+                    views: 0,
+                    favorites: 0,
+                    activeDates: [new Date().toISOString().split('T')[0]]
+                };
                 userStatsRef.set(initialStats);
             } else {
-                const stats = snapshot.val(); const today = new Date().toISOString().split('T')[0];
+                const stats = snapshot.val();
+                const today = new Date().toISOString().split('T')[0];
                 let activeDates = stats.activeDates || [];
                 if (!activeDates.includes(today)) activeDates.push(today);
                 userStatsRef.update({ lastActive: Date.now(), activeDates: activeDates });
             }
         });
+
         database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
-            if (snap.exists()) { userCityPrefs = snap.val(); }
-            else { userCityPrefs = { region: '', city: '' }; }
+            if (snap.exists()) {
+                userCityPrefs = snap.val();
+            } else {
+                userCityPrefs = { region: '', city: '' };
+            }
         });
     }
-   const savedTheme = localStorage.getItem('darkTheme');
+
+    // Применяем сохранённую тему
+    const savedTheme = localStorage.getItem('darkTheme');
     if (savedTheme === '1' || savedTheme === 'true') {
         document.body.classList.add('dark-theme');
-        // Применяем фильтр карты сразу при загрузке
         setTimeout(() => {
-           updateMapTheme(); 
-    }, 1500);
+            updateMapTheme();
+        }, 1500);
+    }
 }
-} // ← ЭТА СКОБКА ЗАКРЫВАЕТ initAuth()
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
 return new Promise(function(resolve, reject) {
