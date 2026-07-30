@@ -4722,7 +4722,21 @@ else if (orig.preset) mapMarkers[id].options.set('preset', orig.preset);
 highlightedParkings = {};
 }
 // ===================== АУТЕНТИФИКАЦИЯ =====================
-function openTelegramBot() { if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert('Запустите бота @parknear_bot'); else window.open('https://t.me/parknear_bot', '_blank'); }
+function openTelegramBot() {
+    const botUrl = 'https://t.me/parknear_bot';
+    // Если внутри Telegram WebApp – используем встроенный метод открытия ссылок в Telegram
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(botUrl);
+    }
+    // Если openTelegramLink недоступен, но есть showAlert – просто показываем подсказку
+    else if (window.Telegram?.WebApp?.showAlert) {
+        window.Telegram.WebApp.showAlert('Запустите бота @parknear_bot');
+    }
+    // Вне Telegram – открываем в новой вкладке
+    else {
+        window.open(botUrl, '_blank');
+    }
+}
 function continueAsGuest() {
 hideAuthScreen();
 currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '', isGuest: true };
