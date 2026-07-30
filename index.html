@@ -4723,7 +4723,7 @@ highlightedParkings = {};
 }
 // ===================== АУТЕНТИФИКАЦИЯ =====================
 function openTelegramBot() {
-    const botUrl = 'https://t.me/parknear_bot';
+    const botUrl = 'https://t.me/parknear_bot?start=referral';
     // Если внутри Telegram WebApp – используем встроенный метод открытия ссылок в Telegram
     if (window.Telegram?.WebApp?.openTelegramLink) {
         window.Telegram.WebApp.openTelegramLink(botUrl);
