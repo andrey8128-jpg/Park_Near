@@ -1677,6 +1677,16 @@ color: #fff;
     <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
 </div>
 <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:5000; align-items:center; justify-content:center; pointer-events:none;">
+    <!-- Экран входа / регистрации -->
+<div id="authOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:6000; align-items:center; justify-content:center; flex-direction:column;">
+    <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4);">
+        <div style="font-size:48px; margin-bottom:12px;">🚗</div>
+        <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
+        <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
+        <button class="telegram-btn" onclick="openTelegramBot()" style="margin-bottom:12px;">📱 Войти через Telegram</button>
+        <button class="guest-btn" onclick="continueAsGuest()" style="background:var(--bg-secondary); color:var(--accent); border:1px solid var(--accent);">Продолжить как гость</button>
+    </div>
+</div>
     <div style="background:var(--bg-secondary); border-radius:24px; padding:24px 20px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative; pointer-events:auto;">
         
         <!-- Прогресс-бар -->
@@ -2102,32 +2112,9 @@ function initAuth() {
                 setTimeout(() => showOnboarding(), 500);
             }
         } else {
-            // Пользователь не авторизован через Telegram → создаём гостя
-            currentUser = {
-                id: 'guest_' + Date.now(),
-                username: 'guest',
-                firstName: 'Гость',
-                photoUrl: '',
-                isGuest: true
-            };
-            localStorage.setItem('tgUser', JSON.stringify(currentUser));
-
-            // Создаём статистику для гостя
-            database.ref(`users/${currentUser.id}/stats`).set({
-                registeredAt: Date.now(),
-                lastActive: Date.now(),
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
-                activeDates: [new Date().toISOString().split('T')[0]]
-            });
-
-            if (!localStorage.getItem('onboardingSeen')) {
-                setTimeout(() => showOnboarding(), 500);
-            }
-        }
+    // Не авторизован – показываем экран входа
+    showAuthScreen();
+}
     } else {
         // Приложение запущено не в Telegram – восстанавливаем пользователя из localStorage
         if (!currentUser) {
@@ -4737,6 +4724,7 @@ highlightedParkings = {};
 // ===================== АУТЕНТИФИКАЦИЯ =====================
 function openTelegramBot() { if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert('Запустите бота @parknear_bot'); else window.open('https://t.me/parknear_bot', '_blank'); }
 function continueAsGuest() {
+hideAuthScreen();
 currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '', isGuest: true };
 localStorage.setItem('tgUser', JSON.stringify(currentUser));
 database.ref(`users/${currentUser.id}/stats`).set({ registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] });
@@ -4788,7 +4776,16 @@ function showOnboarding() {
     isOnboardingActive = true;
     const overlay = document.getElementById('onboardingOverlay');
     overlay.style.display = 'flex';
+    
+    function showAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) overlay.style.display = 'flex';
+}
 
+function hideAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
     function updateProgress(index) {
         const fill = document.getElementById('onboardingProgressFill');
         if (fill) {
