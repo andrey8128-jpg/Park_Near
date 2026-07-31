@@ -4713,6 +4713,10 @@ function continueAsGuest() {
     showPanel('profile');
     showOnboarding();
 }
+    function openTelegramBot() {
+    showAuthScreen(); // показываем экран входа с виджетом
+    closePanel();     // закрываем панель профиля
+}
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
 }
