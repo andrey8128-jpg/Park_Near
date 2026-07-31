@@ -2809,46 +2809,47 @@ function renderEditPanel(data, isFavorite) {
         const streetName = extractStreetName(currentStreet);
 
         html += `
-        <div class="parking-editor">
-            <div class="parking-summary" onclick="toggleParkingEditor()">
-                <div class="summary-info">
-                    <div class="summary-address" id="summaryAddress">${addressDisplay}</div>
-                    <div class="summary-spots" id="summarySpots">🅿️ ${totalSpots} мест</div>
-                </div>
-                <button class="edit-toggle-btn" id="editToggleBtn">✏️</button>
-            </div>
-            <div class="editor-fields" id="editorFields">
-                <div class="form-group" style="margin-top:12px;">
-                    <label>Тип улицы</label>
-                    <select id="editStreetType" class="input-field">
-                        <option value="">-- выберите --</option>
-                        <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
-                        <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
-                        <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
-                        <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
-                        <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
-                        <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
-                        <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
-                        <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
-                        <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Название улицы</label>
-                    <input type="text" id="editStreetName" class="input-field" value="${streetName}" placeholder="Ленина">
-                </div>
-                <div class="form-group">
-                    <label>Номер дома</label>
-                    <input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15">
-                </div>
-                <div class="form-group">
-                    <label>Количество мест</label>
-                    <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1">
-                </div>
-                <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-                <button class="btn-danger" onclick="deleteParking('${currentParkingId}')">🗑️ Удалить парковку</button>
-            </div>
+     <div class="parking-editor">
+    <div class="parking-summary" onclick="toggleParkingEditor()">
+        <div class="summary-info">
+            <div class="summary-address" id="summaryAddress">${addressDisplay}</div>
+            <div class="summary-spots" id="summarySpots">🅿️ ${totalSpots} мест</div>
         </div>
+        <button class="edit-toggle-btn" id="editToggleBtn">✏️</button>
+    </div>
+    <div class="editor-fields" id="editorFields">
+        <div class="form-group" style="margin-top:12px;">
+            <label>Тип улицы</label>
+            <select id="editStreetType" class="input-field">
+                <option value="">-- выберите --</option>
+                <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
+                <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
+                <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
+                <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
+                <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
+                <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
+                <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
+                <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
+                <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Название улицы</label>
+            <input type="text" id="editStreetName" class="input-field" value="${streetName}" placeholder="Ленина">
+        </div>
+        <div class="form-group">
+            <label>Номер дома</label>
+            <input type="text" id="editHouseNumber" class="input-field" value="${data.houseNumber || ''}" placeholder="15">
+        </div>
+        <div class="form-group">
+            <label>Количество мест</label>
+            <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1">
+        </div>
+        <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
+    </div>
+    <!-- Кнопка удаления всегда видна -->
+    <button class="btn-danger" onclick="deleteParking('${currentParkingId}')" style="margin-top:12px;">🗑️ Удалить парковку</button>
+</div>
         `;
     } else {
         // Для не-автора просто показываем статус и кнопку подтверждения
