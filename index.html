@@ -1679,7 +1679,13 @@ color: #fff;
         <div style="font-size:48px; margin-bottom:12px;">🚗</div>
         <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
         <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
-        <button class="telegram-btn" onclick="openTelegramBot()" style="margin-bottom:12px;">📱 Войти через Telegram</button>
+       <!-- Виджет входа через Telegram (работает в браузере) -->
+<script async src="https://telegram.org/js/telegram-widget.js?22"
+    data-telegram-login="parknear_bot"
+    data-size="large"
+    data-onauth="onTelegramAuth(user)"
+    data-request-access="write">
+</script>
         <button class="guest-btn" onclick="continueAsGuest()" style="background:var(--bg-secondary); color:var(--accent); border:1px solid var(--accent);">Продолжить как гость</button>
     </div>
 </div>
@@ -2076,93 +2082,56 @@ function refreshCurrentPanel() {
 }
 // ===================== АВТОРИЗАЦИЯ =====================
 function initAuth() {
-    if (window.Telegram?.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        tg.setHeaderColor('#000000');
-        tg.setBackgroundColor('#000000');
-
-        if (tg.initDataUnsafe?.user) {
-            // Пользователь авторизован через Telegram
-            const user = tg.initDataUnsafe.user;
-            currentUser = {
-                id: 'tg_' + user.id,
-                username: user.username || 'tg_user',
-                firstName: user.first_name || 'Пользователь',
-                photoUrl: user.photo_url || '',
-                isGuest: false
-            };
-
-            // Загружаем никнейм, если есть
-            database.ref(`users/${currentUser.id}/nickname`).once('value').then(snap => {
-                if (snap.exists()) {
-                    currentUser.nickname = snap.val();
-                    localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                }
-            });
-
-            localStorage.setItem('tgUser', JSON.stringify(currentUser));
-
-            if (!localStorage.getItem('onboardingSeen')) {
-                setTimeout(() => showOnboarding(), 500);
-            }
-        } else {
-    // Не авторизован – показываем экран входа
-    showAuthScreen();
-}
-    } else {
-        // Приложение запущено не в Telegram – восстанавливаем пользователя из localStorage
-        if (!currentUser) {
-            const saved = localStorage.getItem('tgUser');
-            if (saved) {
-                currentUser = JSON.parse(saved);
-            }
+    // Пытаемся восстановить пользователя из localStorage
+    const saved = localStorage.getItem('tgUser');
+    if (saved) {
+        try {
+            currentUser = JSON.parse(saved);
+            // Проверяем, не истекла ли сессия (можно добавить проверку времени)
+            // Если пользователь восстановлен – скрываем экран входа
+            hideAuthScreen();
+            // Загружаем город и другие данные
+            loadUserData();
+            return;
+        } catch(e) {
+            localStorage.removeItem('tgUser');
         }
     }
 
-    // Обновляем статистику и город для существующего пользователя
-    if (currentUser) {
-        const userStatsRef = database.ref(`users/${currentUser.id}/stats`);
-        userStatsRef.once('value').then(snapshot => {
-            if (!snapshot.exists()) {
-                const initialStats = {
-                    registeredAt: Date.now(),
-                    lastActive: Date.now(),
-                    parkingsCreated: 0,
-                    parkingsUpdated: 0,
-                    confirmations: 0,
-                    views: 0,
-                    favorites: 0,
-                    activeDates: [new Date().toISOString().split('T')[0]]
-                };
-                userStatsRef.set(initialStats);
-            } else {
-                const stats = snapshot.val();
-                const today = new Date().toISOString().split('T')[0];
-                let activeDates = stats.activeDates || [];
-                if (!activeDates.includes(today)) activeDates.push(today);
-                userStatsRef.update({ lastActive: Date.now(), activeDates: activeDates });
-            }
-        });
+    // Если пользователя нет – показываем экран входа
+    showAuthScreen();
+}
 
-        database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
-            if (snap.exists()) {
-                userCityPrefs = snap.val();
-            } else {
-                userCityPrefs = { region: '', city: '' };
-            }
-        });
-    }
+// Вспомогательная функция для загрузки данных пользователя
+function loadUserData() {
+    if (!currentUser) return;
+    database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+            const initialStats = {
+                registeredAt: Date.now(),
+                lastActive: Date.now(),
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [new Date().toISOString().split('T')[0]]
+            };
+            database.ref(`users/${currentUser.id}/stats`).set(initialStats);
+        } else {
+            const stats = snapshot.val();
+            const today = new Date().toISOString().split('T')[0];
+            let activeDates = stats.activeDates || [];
+            if (!activeDates.includes(today)) activeDates.push(today);
+            database.ref(`users/${currentUser.id}/stats`).update({ lastActive: Date.now(), activeDates: activeDates });
+        }
+    });
 
-    // Применяем сохранённую тему
-    const savedTheme = localStorage.getItem('darkTheme');
-    if (savedTheme === '1' || savedTheme === 'true') {
-        document.body.classList.add('dark-theme');
-        setTimeout(() => {
-            updateMapTheme();
-        }, 1500);
-    }
+    database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
+        if (snap.exists()) {
+            userCityPrefs = snap.val();
+        }
+    });
 }
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
@@ -4718,28 +4687,28 @@ else if (orig.preset) mapMarkers[id].options.set('preset', orig.preset);
 highlightedParkings = {};
 }
 // ===================== АУТЕНТИФИКАЦИЯ =====================
-function openTelegramBot() {
-    const botUrl = 'https://t.me/parknear_bot?start=referral';
-    // Если внутри Telegram WebApp – используем встроенный метод открытия ссылок в Telegram
-    if (window.Telegram?.WebApp?.openTelegramLink) {
-        window.Telegram.WebApp.openTelegramLink(botUrl);
-    }
-    // Если openTelegramLink недоступен, но есть showAlert – просто показываем подсказку
-    else if (window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert('Запустите бота @parknear_bot');
-    }
-    // Вне Telegram – открываем в новой вкладке
-    else {
-        window.open(botUrl, '_blank');
-    }
-}
 function continueAsGuest() {
-hideAuthScreen();
-currentUser = { id: 'guest_'+Date.now(), username: 'guest', firstName: 'Гость', photoUrl: '', isGuest: true };
-localStorage.setItem('tgUser', JSON.stringify(currentUser));
-database.ref(`users/${currentUser.id}/stats`).set({ registeredAt: Date.now(), lastActive: Date.now(), parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]] });
-showPanel('profile');
-   showOnboarding();   // ← обязательно
+    hideAuthScreen();
+    currentUser = {
+        id: 'guest_' + Date.now(),
+        username: 'guest',
+        firstName: 'Гость',
+        photoUrl: '',
+        isGuest: true
+    };
+    localStorage.setItem('tgUser', JSON.stringify(currentUser));
+    database.ref(`users/${currentUser.id}/stats`).set({
+        registeredAt: Date.now(),
+        lastActive: Date.now(),
+        parkingsCreated: 0,
+        parkingsUpdated: 0,
+        confirmations: 0,
+        views: 0,
+        favorites: 0,
+        activeDates: [new Date().toISOString().split('T')[0]]
+    });
+    showPanel('profile');
+    showOnboarding();
 }
 function logout() {
 if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
@@ -4787,7 +4756,7 @@ function showOnboarding() {
     const overlay = document.getElementById('onboardingOverlay');
     overlay.style.display = 'flex';
     
-    function showAuthScreen() {
+   function showAuthScreen() {
     const overlay = document.getElementById('authOverlay');
     if (overlay) overlay.style.display = 'flex';
 }
@@ -5019,6 +4988,41 @@ function toggleTheme() {
     }, duration);
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
+    // Обработчик данных от Telegram Login Widget
+function onTelegramAuth(user) {
+    // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
+    if (!user) return;
+
+    // Сохраняем пользователя в текущую сессию
+    currentUser = {
+        id: 'tg_' + user.id,
+        username: user.username || 'tg_user',
+        firstName: user.first_name || 'Пользователь',
+        photoUrl: user.photo_url || '',
+        isGuest: false
+    };
+
+    // Сохраняем в localStorage для восстановления сессии
+    localStorage.setItem('tgUser', JSON.stringify(currentUser));
+
+    // Создаём/обновляем запись в Firebase
+    database.ref(`users/${currentUser.id}/stats`).set({
+        registeredAt: Date.now(),
+        lastActive: Date.now(),
+        parkingsCreated: 0,
+        parkingsUpdated: 0,
+        confirmations: 0,
+        views: 0,
+        favorites: 0,
+        activeDates: [new Date().toISOString().split('T')[0]]
+    });
+
+    // Скрываем экран входа
+    hideAuthScreen();
+
+    // Обновляем приложение
+    location.reload(); // или можно вызвать initApp повторно
+}
 function initApp() {
 initAuth();
 document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('profile'); else if (isDrawingMode) cancelDrawing(); else startDrawingMode(); };
