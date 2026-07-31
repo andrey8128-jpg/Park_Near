@@ -3823,6 +3823,9 @@ function applyCityFromPicker() {
         alert('Пользователь не авторизован');
     }
 }
+    function changeSearchCity() {
+    openCityPicker();
+}
 function updateRadiusLabel() {
     const slider = document.getElementById('radiusSlider');
     if (!slider) return;
@@ -4749,7 +4752,16 @@ let currentSlide = 0;
 let highlightedElement = null;
 let isOnboardingActive = false;
 let clickHandlerForHighlight = null;
+// ===== ФУНКЦИИ ДЛЯ ЭКРАНА ВХОДА (глобальные) =====
+function showAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) overlay.style.display = 'flex';
+}
 
+function hideAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
 function showOnboarding() {
     if (localStorage.getItem('onboardingSeen') === 'true') return;
     isOnboardingActive = true;
