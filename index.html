@@ -2095,7 +2095,67 @@ function initAuth() {
     // Если пользователя нет – показываем экран входа
     showAuthScreen();
 }
+// Обработка возврата на сайт после авторизации в боте
+function handleTelegramLogin() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (!token) return;
 
+    // Проверяем, что токен совпадает с тем, что мы отправили (защита)
+    const savedToken = sessionStorage.getItem('loginToken');
+    if (savedToken && savedToken !== token) {
+        // Если не совпадает – возможно, это атака, игнорируем
+        console.warn('Токен не совпадает');
+        return;
+    }
+
+    // Загружаем данные пользователя из Firebase по токену
+    database.ref(`loginTokens/${token}`).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (!data) {
+            alert('Ошибка: токен недействителен');
+            return;
+        }
+        // Проверяем срок действия (5 минут)
+        if (data.expires < Date.now()) {
+            alert('Сессия истекла, попробуйте ещё раз');
+            database.ref(`loginTokens/${token}`).remove();
+            return;
+        }
+
+        // Извлекаем данные пользователя
+        const userId = data.userId;
+        // Загружаем профиль пользователя из Firebase (если есть)
+        database.ref(`users/tg_${userId}`).once('value').then(userSnap => {
+            const userData = userSnap.val() || {};
+            // Создаём объект пользователя
+            currentUser = {
+                id: 'tg_' + userId,
+                username: userData.username || 'tg_user',
+                firstName: userData.firstName || 'Пользователь',
+                photoUrl: userData.photoUrl || '',
+                isGuest: false
+            };
+            // Сохраняем в localStorage для постоянной сессии
+            localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            // Удаляем использованный токен
+            database.ref(`loginTokens/${token}`).remove();
+            sessionStorage.removeItem('loginToken');
+            // Скрываем экран входа
+            hideAuthScreen();
+            // Перезагружаем страницу (чтобы применить изменения)
+            window.location.href = window.location.pathname; // убираем параметры из URL
+        });
+    }).catch(err => {
+        console.error('Ошибка загрузки токена:', err);
+        alert('Ошибка авторизации, попробуйте позже');
+    });
+}
+
+// Вызываем эту функцию при загрузке страницы (после инициализации Firebase)
+document.addEventListener('DOMContentLoaded', function() {
+    handleTelegramLogin();
+});
 // Вспомогательная функция для загрузки данных пользователя
 function loadUserData() {
     if (!currentUser) return;
@@ -4685,14 +4745,18 @@ highlightedParkings = {};
 }
 // ===================== АУТЕНТИФИКАЦИЯ =====================
    function openTelegramBot() {
-    // Ссылка на вашего бота
-    const botUrl = 'https://t.me/parknear_bot';
+    // Генерируем случайный токен для сессии
+    const token = Math.random().toString(36).substring(2, 12);
+    // Сохраняем токен в сессионном хранилище (только для текущей вкладки)
+    sessionStorage.setItem('loginToken', token);
     
-    // Пытаемся открыть через протокол tg:// (открывает приложение Telegram)
-    // Если не сработает, открываем через https://t.me/
+    // Ссылка на бота с параметром start
+    const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
+    
+    // Открываем бота в Telegram (на мобильном откроется приложение)
     try {
-        window.location.href = 'tg://resolve?domain=parknear_bot';
-        // Если через секунду не переключилось, используем fallback
+        window.location.href = `tg://resolve?domain=parknear_bot&start=login_${token}`;
+        // Fallback – если не сработало, открываем через веб-ссылку
         setTimeout(() => {
             window.open(botUrl, '_blank');
         }, 500);
@@ -4768,30 +4832,12 @@ let highlightedElement = null;
 let isOnboardingActive = false;
 let clickHandlerForHighlight = null;
 // ===== ФУНКЦИИ ДЛЯ ЭКРАНА ВХОДА (глобальные) =====
-function showAuthScreen() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.style.display = 'flex';
-}
-
-function hideAuthScreen() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.style.display = 'none';
-}
 function showOnboarding() {
     if (localStorage.getItem('onboardingSeen') === 'true') return;
     isOnboardingActive = true;
     const overlay = document.getElementById('onboardingOverlay');
     overlay.style.display = 'flex';
     
-   function showAuthScreen() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.style.display = 'flex';
-}
-
-function hideAuthScreen() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) overlay.style.display = 'none';
-}
     function updateProgress(index) {
         const fill = document.getElementById('onboardingProgressFill');
         if (fill) {
@@ -4799,7 +4845,6 @@ function hideAuthScreen() {
             fill.style.width = percent + '%';
         }
     }
-
     function removeHighlight() {
         if (highlightedElement) {
             highlightedElement.classList.remove('onboarding-highlight');
