@@ -1,5 +1,5 @@
 // В начале файла определите SITE_URL
-const SITE_URL = 'https://ваш-username.github.io/название-репозитория';
+const SITE_URL = 'https://andrey8128-jpg.github.io/Park_Near';
 
 // Обработчик команды /start login_...
 bot.onText(/\/start (.+)/, async (msg, match) => {
