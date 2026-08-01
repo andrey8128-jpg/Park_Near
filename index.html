@@ -2108,11 +2108,14 @@ function initAuth() {
     showAuthScreen();
 }
 function handleTelegramLogin() {
+    console.log('handleTelegramLogin вызвана'); // 1
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
+    console.log('token из URL:', token); // 2
     if (!token) return;
 
     const savedToken = sessionStorage.getItem('loginToken');
+    console.log('savedToken:', savedToken); // 3
     if (savedToken && savedToken !== token) {
         console.warn('Токен не совпадает');
         return;
@@ -2120,11 +2123,12 @@ function handleTelegramLogin() {
 
     database.ref(`loginTokens/${token}`).once('value').then(snapshot => {
         const data = snapshot.val();
-         console.log('Данные из Firebase:', data);
+        console.log('данные из Firebase:', data); // 4
         if (!data) {
             showToast('❌ Токен недействителен', 3000);
             return;
         }
+        
         if (data.expires < Date.now()) {
             showToast('❌ Сессия истекла', 3000);
             database.ref(`loginTokens/${token}`).remove();
@@ -5058,7 +5062,7 @@ function toggleTheme() {
         mapEl.style.filter = 'none';
     }
 }
-    function showToast(message, duration = 3000) {
+function showToast(message, duration = 3000) {
     const toast = document.getElementById('toast');
     if (!toast) return;
     toast.textContent = message;
@@ -5128,6 +5132,7 @@ setTimeout(() => {
 } else {
 window.addEventListener('load', () => {
 ymaps.ready(() => { initApp(); });
+handleTelegramLogin();
 });
 }
 });
