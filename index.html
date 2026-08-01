@@ -4768,8 +4768,21 @@ highlightedParkings = {};
 function openTelegramBot() {
     const token = Math.random().toString(36).substring(2, 12);
     sessionStorage.setItem('loginToken', token);
+    
     const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
-    window.open(botUrl, '_blank');
+    const tgUrl = `tg://resolve?domain=parknear_bot&start=login_${token}`;
+    
+    // Пробуем открыть через tg:// (приложение Telegram)
+    try {
+        window.location.href = tgUrl;
+        // Если через 500 мс Telegram не открылся, используем fallback (веб-версия)
+        setTimeout(() => {
+            window.open(botUrl, '_blank');
+        }, 500);
+    } catch (e) {
+        // В случае ошибки (например, на десктопе) открываем через https
+        window.open(botUrl, '_blank');
+    }
 }
 function continueAsGuest() {
     hideAuthScreen();
