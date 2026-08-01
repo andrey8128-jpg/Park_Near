@@ -2101,34 +2101,27 @@ function handleTelegramLogin() {
     const token = urlParams.get('token');
     if (!token) return;
 
-    // Проверяем, что токен совпадает с тем, что мы отправили (защита)
     const savedToken = sessionStorage.getItem('loginToken');
     if (savedToken && savedToken !== token) {
-        // Если не совпадает – возможно, это атака, игнорируем
         console.warn('Токен не совпадает');
         return;
     }
 
-    // Загружаем данные пользователя из Firebase по токену
     database.ref(`loginTokens/${token}`).once('value').then(snapshot => {
         const data = snapshot.val();
         if (!data) {
-            alert('Ошибка: токен недействителен');
+            showToast('❌ Токен недействителен', 3000);
             return;
         }
-        // Проверяем срок действия (5 минут)
         if (data.expires < Date.now()) {
-            alert('Сессия истекла, попробуйте ещё раз');
+            showToast('❌ Сессия истекла', 3000);
             database.ref(`loginTokens/${token}`).remove();
             return;
         }
 
-        // Извлекаем данные пользователя
         const userId = data.userId;
-        // Загружаем профиль пользователя из Firebase (если есть)
         database.ref(`users/tg_${userId}`).once('value').then(userSnap => {
             const userData = userSnap.val() || {};
-            // Создаём объект пользователя
             currentUser = {
                 id: 'tg_' + userId,
                 username: userData.username || 'tg_user',
@@ -2136,26 +2129,24 @@ function handleTelegramLogin() {
                 photoUrl: userData.photoUrl || '',
                 isGuest: false
             };
-            // Сохраняем в localStorage для постоянной сессии
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            // Удаляем использованный токен
             database.ref(`loginTokens/${token}`).remove();
             sessionStorage.removeItem('loginToken');
-            // Скрываем экран входа
             hideAuthScreen();
-            // Перезагружаем страницу (чтобы применить изменения)
-            window.location.href = window.location.pathname; // убираем параметры из URL
+            // Обновляем интерфейс без перезагрузки
+            if (document.getElementById('panelTitle').textContent === 'Профиль') {
+                renderProfile(document.getElementById('panelContent'));
+            }
+            // Убираем токен из URL без перезагрузки
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            showToast('✅ Вы успешно вошли!', 3000);
         });
     }).catch(err => {
         console.error('Ошибка загрузки токена:', err);
-        alert('Ошибка авторизации, попробуйте позже');
+        showToast('❌ Ошибка авторизации, попробуйте позже', 4000);
     });
 }
-
-// Вызываем эту функцию при загрузке страницы (после инициализации Firebase)
-document.addEventListener('DOMContentLoaded', function() {
-    handleTelegramLogin();
-});
 // Вспомогательная функция для загрузки данных пользователя
 function loadUserData() {
     if (!currentUser) return;
@@ -4744,26 +4735,18 @@ else if (orig.preset) mapMarkers[id].options.set('preset', orig.preset);
 highlightedParkings = {};
 }
 // ===================== АУТЕНТИФИКАЦИЯ =====================
-   function openTelegramBot() {
-    // Генерируем случайный токен для сессии
+function openTelegramBot() {
     const token = Math.random().toString(36).substring(2, 12);
-    // Сохраняем токен в сессионном хранилище (только для текущей вкладки)
     sessionStorage.setItem('loginToken', token);
-    
-    // Ссылка на бота с параметром start
     const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
-    
-    // Открываем бота в Telegram (на мобильном откроется приложение)
     try {
         window.location.href = `tg://resolve?domain=parknear_bot&start=login_${token}`;
-        // Fallback – если не сработало, открываем через веб-ссылку
-        setTimeout(() => {
-            window.open(botUrl, '_blank');
-        }, 500);
+        setTimeout(() => { window.open(botUrl, '_blank'); }, 500);
     } catch(e) {
         window.open(botUrl, '_blank');
     }
 }
+
 function continueAsGuest() {
     hideAuthScreen();
     currentUser = {
@@ -4787,14 +4770,16 @@ function continueAsGuest() {
     showPanel('profile');
     showOnboarding();
 }
-    function openTelegramBot() {
-    showAuthScreen(); // показываем экран входа с виджетом
-    closePanel();     // закрываем панель профиля
-}
-    
+
 function logout() {
-if (confirm('Выйти?')) { currentUser = null; localStorage.removeItem('tgUser'); if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); else showPanel('profile'); }
+    if (confirm('Выйти?')) {
+        currentUser = null;
+        localStorage.removeItem('tgUser');
+        if (window.Telegram?.WebApp) window.Telegram.WebApp.close();
+        else showPanel('profile');
+    }
 }
+
 function deleteAccount() {
     if (!currentUser || currentUser.id.startsWith('guest_')) {
         alert('Гостевой аккаунт нельзя удалить');
