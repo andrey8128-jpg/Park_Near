@@ -2004,6 +2004,12 @@ streetPart = streetPart.replace(/^[, ]+/, '').replace(/[, ]+$/, '');
 street = streetPart;
 return { region, city, street, houseNumber };
 }
+    function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 function extractStreetName(fullStreet) {
     if (!fullStreet) return '';
     const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
@@ -2107,7 +2113,7 @@ function initAuth() {
         try {
             currentUser = JSON.parse(saved);
             hideAuthScreen();
-            loadUserData();
+            loadUserData(); // загружает статистику и город
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
@@ -4771,12 +4777,13 @@ function openTelegramBot() {
     const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
     try {
         window.location.href = `tg://resolve?domain=parknear_bot&start=login_${token}`;
-        setTimeout(() => { window.open(botUrl, '_blank'); }, 500);
+        setTimeout(() => {
+            window.open(botUrl, '_blank');
+        }, 500);
     } catch(e) {
         window.open(botUrl, '_blank');
     }
 }
-
 function continueAsGuest() {
     hideAuthScreen();
     currentUser = {
