@@ -2127,6 +2127,7 @@ function handleTelegramLogin() {
 
     database.ref(`loginTokens/${token}`).once('value').then(snapshot => {
         const data = snapshot.val();
+         console.log('Данные из Firebase:', data);
         if (!data) {
             showToast('❌ Токен недействителен', 3000);
             return;
@@ -2158,6 +2159,7 @@ function handleTelegramLogin() {
             };
 
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
+            console.log('Сохранён пользователь в localStorage:', currentUser);
             database.ref(`loginTokens/${token}`).remove();
             sessionStorage.removeItem('loginToken');
             hideAuthScreen();
