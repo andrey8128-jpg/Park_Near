@@ -36,7 +36,7 @@ transition: background 0.4s ease, color 0.4s ease;
 -webkit-font-smoothing: antialiased;
 }
 .app-header {
-position: fixed; top: 0; left: 0; right: 0; height: 44px;
+position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; height: 44px;
 background: rgba(255, 255, 255, 0.08);
 backdrop-filter: blur(20px) saturate(180%);
 -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -61,13 +61,14 @@ text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     left: 0;
     right: 0;
     bottom: env(safe-area-inset-bottom, 0px);
-background: #E5E5EA; transition: filter 0.5s ease;
+    background: #E5E5EA;
+    transition: filter 0.5s ease;
 }
 body.dark-theme #map { filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85); }
 body.dark-theme #map .ymaps-2-1-79-map-pane img,
 body.dark-theme #map .ymaps-2-1-79-ground-pane img { filter: invert(1) hue-rotate(180deg); }
 .layer-switcher {
-position: fixed; top: 12px; right: 12px; z-index: 900;
+position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 900;
 background: var(--bg-secondary); backdrop-filter: blur(20px);
 border-radius: 14px; box-shadow: var(--card-shadow);
 width: 44px; height: 44px;
@@ -132,13 +133,13 @@ white-space: nowrap; color: var(--text-primary);
 }
 /* ====== TAB BAR  ====== */
 .tabBar {
-position: fixed;
-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-left: 50%;
-transform: translateX(-50%);
-width: calc(100% - 32px);
-max-width: 420px;
-height: 64px;
+    position: fixed;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 420px;
+    height: 64px;
 background: #3A3A3C;
 border-radius: 32px;
 z-index: 2001;
