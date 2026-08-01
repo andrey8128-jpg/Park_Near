@@ -112,6 +112,9 @@ white-space: nowrap; color: var(--text-primary);
     --button-gap: 60px;              /* расстояние между кнопками (add → geo) */
 }
 #addBtn {
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
     position: fixed;
     right: 20px;
     bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + env(safe-area-inset-bottom, 0px));
@@ -119,6 +122,9 @@ white-space: nowrap; color: var(--text-primary);
 }
 
 #geoBtn {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
     position: fixed;
     right: 20px;
     bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + var(--button-gap) + env(safe-area-inset-bottom, 0px));
