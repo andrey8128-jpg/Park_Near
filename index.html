@@ -1479,6 +1479,7 @@ color: #fff;
 </style>
 </head>
 <body>
+    <div id="toast" style="position:fixed; top:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:12px; font-size:15px; z-index:9999; opacity:0; transition: opacity 0.3s, transform 0.3s; pointer-events:none; text-align:center; max-width:90%;"></div>
 <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.8s ease; background: #02060E; overflow:hidden;">
     <!-- Лава-лампа: размытые круги -->
     <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" style="position:absolute; width:100%; height:100%;">
@@ -2106,7 +2107,7 @@ function initAuth() {
         try {
             currentUser = JSON.parse(saved);
             hideAuthScreen();
-            loadUserData(); // загружает статистику и город
+            loadUserData();
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
@@ -2138,19 +2139,16 @@ function handleTelegramLogin() {
         }
 
         const userId = data.userId;
-        console.log('handleTelegramLogin: токен получен, userId =', userId);
         const userData = data.userData || {};
 
-        // Сохраняем профиль в Firebase
         const userRef = database.ref(`users/tg_${userId}`);
         userRef.update({
             username: userData.username || '',
             firstName: userData.firstName || 'Пользователь',
             photoUrl: userData.photoUrl || '',
             lastLogin: Date.now()
-        }).then(() => {
-            return userRef.once('value');
-        }).then(snap => {
+        }).then(() => userRef.once('value'))
+        .then(snap => {
             const fullData = snap.val() || {};
             currentUser = {
                 id: 'tg_' + userId,
@@ -2169,9 +2167,7 @@ function handleTelegramLogin() {
             window.history.replaceState({}, document.title, newUrl);
 
             showToast('✅ Вы успешно вошли!', 2000);
-            setTimeout(() => {
-                location.reload();
-            }, 300);
+            setTimeout(() => location.reload(), 300);
         });
     }).catch(err => {
         console.error('Ошибка загрузки токена:', err);
@@ -4768,19 +4764,12 @@ highlightedParkings = {};
 function openTelegramBot() {
     const token = Math.random().toString(36).substring(2, 12);
     sessionStorage.setItem('loginToken', token);
-    
-    const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
     const tgUrl = `tg://resolve?domain=parknear_bot&start=login_${token}`;
-    
-    // Пробуем открыть через tg:// (приложение Telegram)
+    const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
     try {
         window.location.href = tgUrl;
-        // Если через 500 мс Telegram не открылся, используем fallback (веб-версия)
-        setTimeout(() => {
-            window.open(botUrl, '_blank');
-        }, 500);
-    } catch (e) {
-        // В случае ошибки (например, на десктопе) открываем через https
+        setTimeout(() => { window.open(botUrl, '_blank'); }, 500);
+    } catch(e) {
         window.open(botUrl, '_blank');
     }
 }
