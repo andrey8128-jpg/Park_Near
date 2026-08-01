@@ -2144,6 +2144,7 @@ function handleTelegramLogin() {
         }
 
         const userId = data.userId;
+        console.log('handleTelegramLogin: токен получен, userId =', userId);
         const userData = data.userData || {};
 
         // Сохраняем профиль в Firebase
