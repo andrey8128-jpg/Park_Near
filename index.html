@@ -2100,22 +2100,13 @@ function initAuth() {
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
-            // Скрываем экран входа
             hideAuthScreen();
-            // Загружаем данные
             loadUserData();
-            // Если открыт профиль – обновляем его
-            if (document.getElementById('panelTitle').textContent === 'Профиль') {
-                renderProfile(document.getElementById('panelContent'));
-            }
-            // Если открыта карта – просто показываем
-            console.log('Пользователь восстановлен:', currentUser);
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
         }
     }
-    // Если пользователя нет – показываем экран входа
     showAuthScreen();
 }
 function handleTelegramLogin() {
@@ -2142,35 +2133,39 @@ function handleTelegramLogin() {
         }
 
         const userId = data.userId;
-        database.ref(`users/tg_${userId}`).once('value').then(userSnap => {
-            const userData = userSnap.val() || {};
+        const userData = data.userData || {};
+
+        // Сохраняем профиль в Firebase
+        const userRef = database.ref(`users/tg_${userId}`);
+        userRef.update({
+            username: userData.username || '',
+            firstName: userData.firstName || 'Пользователь',
+            photoUrl: userData.photoUrl || '',
+            lastLogin: Date.now()
+        }).then(() => {
+            return userRef.once('value');
+        }).then(snap => {
+            const fullData = snap.val() || {};
             currentUser = {
                 id: 'tg_' + userId,
-                username: userData.username || 'tg_user',
-                firstName: userData.firstName || 'Пользователь',
-                photoUrl: userData.photoUrl || '',
+                username: fullData.username || userData.username || 'tg_user',
+                firstName: fullData.firstName || userData.firstName || 'Пользователь',
+                photoUrl: fullData.photoUrl || userData.photoUrl || '',
                 isGuest: false
             };
-            
-            // Сохраняем в localStorage
+
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            
-            // Удаляем использованный токен
             database.ref(`loginTokens/${token}`).remove();
             sessionStorage.removeItem('loginToken');
-            
-            // Скрываем экран входа
             hideAuthScreen();
-            
-            // Убираем токен из URL
+
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
-            
-            // Перезагружаем страницу, чтобы initAuth восстановил пользователя
-            // Добавляем небольшую задержку для гарантии записи
+
+            showToast('✅ Вы успешно вошли!', 2000);
             setTimeout(() => {
                 location.reload();
-            }, 200);
+            }, 300);
         });
     }).catch(err => {
         console.error('Ошибка загрузки токена:', err);
