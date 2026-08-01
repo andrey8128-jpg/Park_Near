@@ -1,3 +1,7 @@
+// В начале файла определите SITE_URL
+const SITE_URL = 'https://ваш-username.github.io/название-репозитория';
+
+// Обработчик команды /start login_...
 bot.onText(/\/start (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -12,7 +16,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
       username: msg.from.username || '',
       firstName: msg.from.first_name || '',
       lastName: msg.from.last_name || '',
-      photoUrl: '' // можно оставить пустым
+      photoUrl: ''
     };
 
     try {
@@ -23,19 +27,20 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
         userData: userData
       });
 
-      // Отправляем только кнопку (без лишнего текста)
-      await bot.sendMessage(chatId, 'Нажмите, чтобы открыть приложение:', {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: '🚀 Открыть приложение',
-                web_app: { url: `${SITE_URL}/?token=${token}` }
-              }
+      // 👇 ЭТА СТРОКА ДОЛЖНА БЫТЬ ЗДЕСЬ (ПОСЛЕ СОХРАНЕНИЯ)
+      const redirectUrl = `${SITE_URL}/?token=${token}`;
+
+      // Отправляем сообщение с кнопкой
+      await bot.sendMessage(chatId,
+        `✅ Вы успешно авторизованы!\n\nНажмите на кнопку ниже, чтобы вернуться на сайт.`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🔙 Вернуться на сайт', url: redirectUrl }]
             ]
-          ]
+          }
         }
-      });
+      );
     } catch (err) {
       console.error('Ошибка сохранения токена:', err);
       bot.sendMessage(chatId, '❌ Произошла ошибка, попробуйте позже.');
