@@ -4807,16 +4807,11 @@ function continueAsGuest() {
     showPanel('profile');
     showOnboarding();
 }
-
 function logout() {
-    if (confirm('Выйти?')) {
-        currentUser = null;
-        localStorage.removeItem('tgUser');
-        if (window.Telegram?.WebApp) window.Telegram.WebApp.close();
-        else showPanel('profile');
-    }
+    localStorage.removeItem('tgUser');
+    currentUser = null;
+    showAuthScreen();
 }
-
 function deleteAccount() {
     if (!currentUser || currentUser.id.startsWith('guest_')) {
         alert('Гостевой аккаунт нельзя удалить');
