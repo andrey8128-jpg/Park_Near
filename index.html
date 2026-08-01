@@ -2134,17 +2134,14 @@ function handleTelegramLogin() {
                 isGuest: false
             };
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            database.ref(`loginTokens/${token}`).remove();
-            sessionStorage.removeItem('loginToken');
-            hideAuthScreen();
-            // Обновляем интерфейс без перезагрузки
-            if (document.getElementById('panelTitle').textContent === 'Профиль') {
-                renderProfile(document.getElementById('panelContent'));
-            }
-            // Убираем токен из URL без перезагрузки
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, newUrl);
-            showToast('✅ Вы успешно вошли!', 3000);
+    database.ref(`loginTokens/${token}`).remove();
+    sessionStorage.removeItem('loginToken');
+    hideAuthScreen();
+    // Убираем токен из URL
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
+    // Перезагружаем страницу, чтобы initAuth() восстановил пользователя
+    location.reload();
         });
     }).catch(err => {
         console.error('Ошибка загрузки токена:', err);
