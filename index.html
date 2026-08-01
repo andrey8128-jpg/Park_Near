@@ -56,7 +56,11 @@ text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 .app-title span { color: #4DA3FF; }
 #map {
-position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 0;
+    right: 0;
+    bottom: env(safe-area-inset-bottom, 0px);
 background: #E5E5EA; transition: filter 0.5s ease;
 }
 body.dark-theme #map { filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85); }
@@ -129,7 +133,7 @@ white-space: nowrap; color: var(--text-primary);
 /* ====== TAB BAR  ====== */
 .tabBar {
 position: fixed;
-bottom: 16px;
+bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 left: 50%;
 transform: translateX(-50%);
 width: calc(100% - 32px);
