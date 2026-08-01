@@ -2090,26 +2090,28 @@ function refreshCurrentPanel() {
 }
 // ===================== АВТОРИЗАЦИЯ =====================
 function initAuth() {
-    // Пытаемся восстановить пользователя из localStorage
     const saved = localStorage.getItem('tgUser');
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
-            // Проверяем, не истекла ли сессия (можно добавить проверку времени)
-            // Если пользователь восстановлен – скрываем экран входа
+            // Скрываем экран входа
             hideAuthScreen();
-            // Загружаем город и другие данные
+            // Загружаем данные
             loadUserData();
+            // Если открыт профиль – обновляем его
+            if (document.getElementById('panelTitle').textContent === 'Профиль') {
+                renderProfile(document.getElementById('panelContent'));
+            }
+            // Если открыта карта – просто показываем
+            console.log('Пользователь восстановлен:', currentUser);
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
         }
     }
-
     // Если пользователя нет – показываем экран входа
     showAuthScreen();
 }
-// Обработка возврата на сайт после авторизации в боте
 function handleTelegramLogin() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -2143,22 +2145,32 @@ function handleTelegramLogin() {
                 photoUrl: userData.photoUrl || '',
                 isGuest: false
             };
+            
+            // Сохраняем в localStorage
             localStorage.setItem('tgUser', JSON.stringify(currentUser));
-    database.ref(`loginTokens/${token}`).remove();
-    sessionStorage.removeItem('loginToken');
-    hideAuthScreen();
-    // Убираем токен из URL
-    const newUrl = window.location.pathname;
-    window.history.replaceState({}, document.title, newUrl);
-    // Перезагружаем страницу, чтобы initAuth() восстановил пользователя
-    location.reload();
+            
+            // Удаляем использованный токен
+            database.ref(`loginTokens/${token}`).remove();
+            sessionStorage.removeItem('loginToken');
+            
+            // Скрываем экран входа
+            hideAuthScreen();
+            
+            // Убираем токен из URL
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            
+            // Перезагружаем страницу, чтобы initAuth восстановил пользователя
+            // Добавляем небольшую задержку для гарантии записи
+            setTimeout(() => {
+                location.reload();
+            }, 200);
         });
     }).catch(err => {
         console.error('Ошибка загрузки токена:', err);
         showToast('❌ Ошибка авторизации, попробуйте позже', 4000);
     });
 }
-// Вспомогательная функция для загрузки данных пользователя
 function loadUserData() {
     if (!currentUser) return;
     database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
