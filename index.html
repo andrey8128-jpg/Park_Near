@@ -4176,7 +4176,7 @@ function renderProfile(content) {
                 let html = `<div style="position:relative;">
                     <button onclick="showSettings()" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:28px; cursor:pointer; z-index:10; color:var(--text-secondary);">⚙️</button>
                     <div class="profile-header">
-                        <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" alt="Profile">` : '👤'}</div>
+                       <div class="profile-avatar">${currentUser.photoUrl ? `<img src="${escapeHtml(currentUser.photoUrl)}" alt="Profile">` : '👤'}</div>
                         <div class="profile-name">${currentUser.firstName}</div>
                         <div class="profile-username">@${currentUser.nickname || currentUser.username}</div>
                         ${isGuest ? '<span class="badge">Гость</span>' : '<span class="badge">Telegram</span>'}
