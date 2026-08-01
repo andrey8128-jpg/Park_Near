@@ -1,7 +1,5 @@
-// В начале файла определите SITE_URL
 const SITE_URL = 'https://andrey8128-jpg.github.io/Park_Near';
 
-// Обработчик команды /start login_...
 bot.onText(/\/start (.+)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
@@ -20,17 +18,15 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     };
 
     try {
-      // Сохраняем токен в Firebase
       await admin.database().ref(`loginTokens/${token}`).set({
         userId: userId,
         expires: expires,
         userData: userData
       });
 
-      // 👇 ЭТА СТРОКА ДОЛЖНА БЫТЬ ЗДЕСЬ (ПОСЛЕ СОХРАНЕНИЯ)
-      const redirectUrl = `${https://andrey8128-jpg.github.io/Park_Near}/?token=${token}`;
+      // ✅ Правильная строка
+      const redirectUrl = `${SITE_URL}/?token=${token}`;
 
-      // Отправляем сообщение с кнопкой
       await bot.sendMessage(chatId,
         `✅ Вы успешно авторизованы!\n\nНажмите на кнопку ниже, чтобы вернуться на сайт.`,
         {
