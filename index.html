@@ -4763,11 +4763,13 @@ highlightedParkings = {};
 function openTelegramBot() {
     const token = Math.random().toString(36).substring(2, 12);
     sessionStorage.setItem('loginToken', token);
-    const tgUrl = `tg://resolve?domain=parknear_bot&start=login_${token}`;
     const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
+    const tgUrl = `tg://resolve?domain=parknear_bot&start=login_${token}`;
     try {
         window.location.href = tgUrl;
-        setTimeout(() => { window.open(botUrl, '_blank'); }, 500);
+        setTimeout(() => {
+            window.open(botUrl, '_blank');
+        }, 500);
     } catch(e) {
         window.open(botUrl, '_blank');
     }
