@@ -28,7 +28,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
       });
 
       // 👇 ЭТА СТРОКА ДОЛЖНА БЫТЬ ЗДЕСЬ (ПОСЛЕ СОХРАНЕНИЯ)
-      const redirectUrl = `${SITE_URL}/?token=${token}`;
+      const redirectUrl = `${https://andrey8128-jpg.github.io/Park_Near}/?token=${token}`;
 
       // Отправляем сообщение с кнопкой
       await bot.sendMessage(chatId,
