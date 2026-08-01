@@ -1927,6 +1927,12 @@ function getOccupancyColor(occupied, total) {
 const ratio = Math.min(1, total > 0 ? occupied / total : 0);
 return '#' + [Math.round(255 * ratio), Math.round(255 * (1 - ratio)), 0].map(c => c.toString(16).padStart(2, '0')).join('');
 }
+    function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 function getOccupancyDotColor(free, total) {
     if (total === 0) return 'var(--gray)';
     const ratio = free / total;
