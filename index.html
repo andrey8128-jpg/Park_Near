@@ -105,26 +105,17 @@ white-space: nowrap; color: var(--text-primary);
 }
 
 /* Размеры: геолокация и обновление – компактные */
-#geoBtn, #refreshBtn {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-    color: initial;          /* чтобы эмодзи были родного цвета */
+#geoBtn {
+    position: fixed;
+    right: 20px;
+    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 20px + 60px + env(safe-area-inset-bottom, 0px));
 }
-
 /* Кнопка добавления – крупнее */
 #addBtn {
-    width: 56px;
-    height: 56px;
-    font-size: 30px;
-    color: var(--accent);
-    background: var(--bg-secondary);
+    position: fixed;
+    right: 20px;
+    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 20px + env(safe-area-inset-bottom, 0px));
 }
-
-/* Вертикальное расположение */
-#addBtn    { bottom: 85px; }
-#geoBtn     { bottom: 145px; }
-
 /* Режим рисования */
 #addBtn.drawing {
     background: var(--orange);
