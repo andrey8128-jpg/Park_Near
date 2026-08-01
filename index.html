@@ -4775,14 +4775,7 @@ function openTelegramBot() {
     const token = Math.random().toString(36).substring(2, 12);
     sessionStorage.setItem('loginToken', token);
     const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
-    try {
-        window.location.href = `tg://resolve?domain=parknear_bot&start=login_${token}`;
-        setTimeout(() => {
-            window.open(botUrl, '_blank');
-        }, 500);
-    } catch(e) {
-        window.open(botUrl, '_blank');
-    }
+    window.open(botUrl, '_blank');
 }
 function continueAsGuest() {
     hideAuthScreen();
