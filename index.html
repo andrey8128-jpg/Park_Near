@@ -17,6 +17,11 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
+--tab-bar-height: 64px;
+--tab-bar-bottom: 16px;
+--button-offset-from-tab: 20px;
+--button-gap: 60px;
+}
 --bg-primary: #F2F2F7; --bg-secondary: #FFFFFF; --text-primary: #000000;
 --text-secondary: #8E8E93; --border-color: rgba(0,0,0,0.1); --input-bg: #FFFFFF;
 --input-border: #C7C7CC; --card-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -123,13 +128,15 @@ white-space: nowrap; color: var(--text-primary);
 }
 /* ====== TAB BAR  ====== */
 .tabBar {
+   .tabBar {
     position: fixed;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--tab-bar-bottom) + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
     max-width: 420px;
-    height: 64px;
+    height: var(--tab-bar-height);
+
 background: #3A3A3C;
 border-radius: 32px;
 z-index: 2001;
