@@ -5177,9 +5177,15 @@ function closeAuthScreen() {
     if (overlay) {
         overlay.style.display = 'none';
     }
-    // Опционально: показать уведомление, что пользователь не авторизован
-    // showToast('Вы не авторизованы. Некоторые функции могут быть недоступны.', 3000);
 }
+    document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // Страница стала видимой – проверяем, не появился ли пользователь
+        if (!currentUser && localStorage.getItem('tgUser')) {
+            location.reload(); // или можно вызвать autoLogin вручную
+        }
+    }
+});
 </script>
 </body>
 </html>
