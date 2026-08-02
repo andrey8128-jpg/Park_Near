@@ -2096,7 +2096,7 @@ function initAuth() {
         try {
             currentUser = JSON.parse(saved);
             hideAuthScreen();
-            loadUserData(null, null);  // ← этот вызов может вызвать ошибку, если loadUserData ожидает параметры
+           loadUserData('profile', document.getElementById('panelContent'));
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
@@ -4968,7 +4968,7 @@ function showToast(message, duration = 3000) {
         toast.style.transform = 'translateX(-50%) translateY(-20px)';
     }, duration);
 }
-   function onTelegramAuth(user) {
+  function onTelegramAuth(user) {
     var currentUser = {
         id: 'tg_' + user.id,
         username: user.username || 'tg_user',
@@ -4976,7 +4976,10 @@ function showToast(message, duration = 3000) {
         photoUrl: user.photo_url || '',
         isGuest: false
     };
+
+    // Сохраняем в localStorage
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
+
     // Сохраняем статистику в Firebase
     database.ref('users/' + currentUser.id + '/stats').set({
         registeredAt: Date.now(),
@@ -4987,12 +4990,31 @@ function showToast(message, duration = 3000) {
         views: 0,
         favorites: 0,
         activeDates: [new Date().toISOString().split('T')[0]]
+    }).catch(function(err) {
+        console.error('Ошибка сохранения в Firebase:', err);
     });
+
+    // Сохраняем базовую информацию о пользователе
+    database.ref('users/' + currentUser.id).update({
+        username: currentUser.username,
+        firstName: currentUser.firstName,
+        photoUrl: currentUser.photoUrl,
+        lastActive: Date.now()
+    });
+
     // Обновляем глобальную переменную
     window.currentUser = currentUser;
-    // Скрываем экран входа и обновляем интерфейс
+
+    // Скрываем экран входа
     hideAuthScreen();
+
+    // Показываем профиль
     showPanel('profile');
+
+    // Если есть тактильная отдача
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
@@ -5023,13 +5045,13 @@ ymaps.ready(() => { initMap(); });
 // ============================================
 
 (function autoLogin() {
-    // Проверяем, есть ли сохранённый пользователь в localStorage
     var savedUser = localStorage.getItem('tgUser');
     if (savedUser) {
         try {
             var user = JSON.parse(savedUser);
             window.currentUser = user;
             hideAuthScreen();
+            // Если панель профиля уже активна, обновим её
             if (document.getElementById('panelTitle').textContent === 'Профиль') {
                 showPanel('profile');
             }
@@ -5039,8 +5061,8 @@ ymaps.ready(() => { initMap(); });
         }
         return;
     }
-    
-    // Если нет сохранённого пользователя, но мы внутри Telegram WebApp — авторизуем
+
+    // Если нет сохранённого пользователя, но мы внутри Telegram WebApp
     if (window.Telegram && window.Telegram.WebApp) {
         var webApp = window.Telegram.WebApp;
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
@@ -5058,20 +5080,18 @@ ymaps.ready(() => { initMap(); });
         }
     }
 })();
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     if (typeof ymaps !== 'undefined') {
         initApp();
-        setTimeout(() => {
-            initPullToRefresh();
-        }, 500);
+        setTimeout(function() { initPullToRefresh(); }, 500);
     } else {
-        window.addEventListener('load', () => {
-            ymaps.ready(() => { 
+        window.addEventListener('load', function() {
+            ymaps.ready(function() { 
                 initApp(); 
             });
         });
     }
-}); // <-- обязательно проверьте, что здесь есть закрывающая скобка и точка с запятой
+});
 function openTelegramBot() {
     console.log('openTelegramBot вызвана');
     
