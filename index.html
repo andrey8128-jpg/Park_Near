@@ -2107,69 +2107,22 @@ function initAuth() {
     showAuthScreen();
 }
 function handleTelegramLogin() {
-    console.log('handleTelegramLogin вызвана'); // 1
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    console.log('token из URL:', token); // 2
     if (!token) return;
 
-    const savedToken = sessionStorage.getItem('loginToken');
-    console.log('savedToken:', savedToken); // 3
-    if (savedToken && savedToken !== token) {
-        console.warn('Токен не совпадает');
-        return;
-    }
-
-    database.ref(`loginTokens/${token}`).once('value').then(snapshot => {
-        const data = snapshot.val();
-        console.log('данные из Firebase:', data); // 4
-        if (!data) {
-            showToast('❌ Токен недействителен', 3000);
-            return;
-        }
-        
-        if (data.expires < Date.now()) {
-            showToast('❌ Сессия истекла', 3000);
-            database.ref(`loginTokens/${token}`).remove();
-            return;
-        }
-
-        const userId = data.userId;
-        const userData = data.userData || {};
-
-        const userRef = database.ref(`users/tg_${userId}`);
-        userRef.update({
-            username: userData.username || '',
-            firstName: userData.firstName || 'Пользователь',
-            photoUrl: userData.photoUrl || '',
-            lastLogin: Date.now()
-        }).then(() => userRef.once('value'))
-        .then(snap => {
-            const fullData = snap.val() || {};
-            currentUser = {
-                id: 'tg_' + userId,
-                username: fullData.username || userData.username || 'tg_user',
-                firstName: fullData.firstName || userData.firstName || 'Пользователь',
-                photoUrl: fullData.photoUrl || userData.photoUrl || '',
-                isGuest: false
-            };
-
-            localStorage.setItem('tgUser', JSON.stringify(currentUser));
-            console.log('Сохранён пользователь в localStorage:', currentUser);
-            database.ref(`loginTokens/${token}`).remove();
-            sessionStorage.removeItem('loginToken');
-            hideAuthScreen();
-
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, newUrl);
-
-            showToast('✅ Вы успешно вошли!', 2000);
-            setTimeout(() => location.reload(), 300);
-        });
-    }).catch(err => {
-        console.error('Ошибка загрузки токена:', err);
-        showToast('❌ Ошибка авторизации, попробуйте позже', 4000);
-    });
+    // Создаём тестового пользователя
+    currentUser = {
+        id: 'tg_test',
+        username: 'test_user',
+        firstName: 'Тестовый',
+        photoUrl: '',
+        isGuest: false
+    };
+    localStorage.setItem('tgUser', JSON.stringify(currentUser));
+    hideAuthScreen();
+    showToast('✅ Тестовый вход выполнен!', 2000);
+    setTimeout(() => location.reload(), 300);
 }
 function loadUserData() {
     if (!currentUser) return;
