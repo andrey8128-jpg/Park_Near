@@ -5023,10 +5023,8 @@ function showToast(message, duration = 3000) {
         toast.style.transform = 'translateX(-50%) translateY(-20px)';
     }, duration);
 }
-    function onTelegramAuth(user) {
-    if (!user) return;
-    // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
-    currentUser = {
+   function onTelegramAuth(user) {
+    var currentUser = {
         id: 'tg_' + user.id,
         username: user.username || 'tg_user',
         firstName: user.first_name || 'Пользователь',
@@ -5034,8 +5032,8 @@ function showToast(message, duration = 3000) {
         isGuest: false
     };
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
-    // Создаём запись в Firebase
-    database.ref(`users/${currentUser.id}/stats`).set({
+    // Сохраняем статистику в Firebase
+    database.ref('users/' + currentUser.id + '/stats').set({
         registeredAt: Date.now(),
         lastActive: Date.now(),
         parkingsCreated: 0,
@@ -5045,8 +5043,11 @@ function showToast(message, duration = 3000) {
         favorites: 0,
         activeDates: [new Date().toISOString().split('T')[0]]
     });
+    // Обновляем глобальную переменную
+    window.currentUser = currentUser;
+    // Скрываем экран входа и обновляем интерфейс
     hideAuthScreen();
-    location.reload(); // обновляем страницу, чтобы применить пользователя
+    showPanel('profile');
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
