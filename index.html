@@ -1694,7 +1694,7 @@ color: #fff;
         <div style="font-size:48px; margin-bottom:12px;">🚗</div>
         <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
         <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
-<button class="telegram-btn" onclick="openTelegramBot()" style="margin-bottom:12px;">📱 Войти через Telegram</button>
+
         <!-- Редирект-виджет (стабильно на iOS) -->
         <script async src="https://telegram.org/js/telegram-widget.js?24"
                 data-telegram-login="parknear_bot"
@@ -2136,10 +2136,8 @@ function initAuth() {
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
-            window.currentUser = currentUser;   // добавить для синхронизации
             hideAuthScreen();
-            // Загружаем данные, но не показываем панель, если она не активна
-            loadUserData('profile', document.getElementById('panelContent'));
+           loadUserData('profile', document.getElementById('panelContent'));
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
@@ -5012,24 +5010,19 @@ function showToast(message, duration = 3000) {
     }, duration);
 }
   function onTelegramAuth(user) {
-    // Присваиваем глобальной переменной (без var/let/const)
-    currentUser = {
+    var currentUser = {
         id: 'tg_' + user.id,
         username: user.username || 'tg_user',
         firstName: user.first_name || 'Пользователь',
         photoUrl: user.photo_url || '',
         isGuest: false
     };
-    // Дублируем для надёжности
-    window.currentUser = currentUser;
-
-    console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
-
+   console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
     // Сохраняем в localStorage
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
-    // Сохраняем в Firebase
-    var userRef = database.ref('users/' + currentUser.id);
+    // Сохраняем статистику и основную информацию в Firebase
+   var userRef = database.ref('users/' + currentUser.id);
     userRef.update({
         username: currentUser.username,
         firstName: currentUser.firstName,
@@ -5040,7 +5033,6 @@ function showToast(message, duration = 3000) {
     }).catch(function(err) {
         console.error('❌ Ошибка сохранения в Firebase:', err);
     });
-
     userRef.child('stats').set({
         registeredAt: Date.now(),
         lastActive: Date.now(),
@@ -5054,10 +5046,14 @@ function showToast(message, duration = 3000) {
         console.error('Ошибка сохранения статистики:', err);
     });
 
+    // Обновляем глобальную переменную
+    window.currentUser = currentUser;
+
     // Скрываем экран входа и показываем профиль
     hideAuthScreen();
     showPanel('profile');
 
+    // Тактильная отдача (опционально)
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }
@@ -5089,16 +5085,18 @@ ymaps.ready(() => { initMap(); });
     // ============================================
 // АВТОМАТИЧЕСКИЙ ВХОД ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 // ============================================
+
 (function autoLogin() {
     var savedUser = localStorage.getItem('tgUser');
     if (savedUser) {
         try {
             var user = JSON.parse(savedUser);
-            currentUser = user;              // ← добавить эту строку
-            window.currentUser = user;       // оставить для совместимости
+            window.currentUser = user;
             hideAuthScreen();
-            // Не вызываем showPanel('profile') здесь, так как при загрузке карта ещё не инициализирована.
-            // Если нужно показать профиль, лучше делать это после загрузки.
+            // Если панель профиля уже активна, обновим её
+            if (document.getElementById('panelTitle').textContent === 'Профиль') {
+                showPanel('profile');
+            }
             console.log('👤 Восстановлен пользователь из localStorage:', user.firstName);
         } catch(e) {
             localStorage.removeItem('tgUser');
