@@ -2091,7 +2091,7 @@ function refreshCurrentPanel() {
 }
 // ===================== АВТОРИЗАЦИЯ =====================
 function initAuth() {
-    const saved = localStorage.getItem('tgUser');
+    const saved =.getItem('tgUser');
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
@@ -5089,12 +5089,49 @@ document.addEventListener('DOMContentLoaded', () => {
 }); // <-- обязательно проверьте, что здесь есть закрывающая скобка и точка с запятой
 function openTelegramBot() {
     console.log('openTelegramBot вызвана');
-    if (window.Telegram && window.Telegram.WebApp) {
-        console.log('Telegram WebApp найден');
-        var webApp = window.Telegram.WebApp;
-        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-            console.log('Пользователь найден в initDataUnsafe:', webApp.initDataUnsafe.user);
-            var user = webApp.initDataUnsafe.user;
+  // ============================================
+// АВТОМАТИЧЕСКИЙ ВХОД ЧЕРЕЗ TELEGRAM WEBAPP
+// ============================================
+
+if (window.Telegram && window.Telegram.WebApp) {
+    console.log('✅ Telegram WebApp обнаружен');
+    var webApp = window.Telegram.WebApp;
+    
+    if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+        var user = webApp.initDataUnsafe.user;
+        console.log('👤 Данные пользователя из Telegram:', user);
+        
+        // Проверяем, есть ли уже сохранённый пользователь в localStorage
+        var savedUser = localStorage.getItem('tgUser');
+        var savedUserObj = null;
+        if (savedUser) {
+            try {
+                savedUserObj = JSON.parse(savedUser);
+            } catch(e) {}
+        }
+        
+        // Если есть сохранённый пользователь и он гость — спросить, переключиться ли на Telegram
+        if (savedUserObj && savedUserObj.isGuest) {
+            if (confirm('Вы уже вошли как гость. Переключиться на Telegram-аккаунт?')) {
+                // Удаляем гостя
+                localStorage.removeItem('tgUser');
+                console.log('👋 Гость удалён, выполняем вход через Telegram');
+                // Выполняем вход через Telegram
+                onTelegramAuth({
+                    id: user.id,
+                    first_name: user.first_name,
+                    last_name: user.last_name || '',
+                    username: user.username || '',
+                    photo_url: user.photo_url || '',
+                    auth_date: Math.floor(Date.now() / 1000),
+                    hash: webApp.initDataUnsafe.hash || ''
+                });
+            } else {
+                console.log('⏩ Пользователь отказался переключаться на Telegram');
+            }
+        } else if (!savedUser) {
+            // Если пользователя нет — сразу авторизуем
+            console.log('🔄 Сохранённого пользователя нет, выполняем вход...');
             onTelegramAuth({
                 id: user.id,
                 first_name: user.first_name,
@@ -5102,18 +5139,21 @@ function openTelegramBot() {
                 username: user.username || '',
                 photo_url: user.photo_url || '',
                 auth_date: Math.floor(Date.now() / 1000),
-                hash: ''
+                hash: webApp.initDataUnsafe.hash || ''
             });
-            return;
         } else {
-            console.warn('initDataUnsafe или user отсутствуют, открываю бота');
-            webApp.openTelegramLink('https://t.me/parknear_bot');
-            return;
+            // Если уже залогинен через Telegram — просто показываем профиль
+            console.log('👤 Пользователь уже залогинен (из localStorage)');
+            var currentUser = savedUserObj;
+            window.currentUser = currentUser;
+            hideAuthScreen();
+            showPanel('profile');
         }
     } else {
-        console.warn('Telegram не найден, открываю ссылку в браузере');
-        window.open('https://t.me/parknear_bot', '_blank');
+        console.warn('⚠️ initDataUnsafe или user отсутствуют. Возможно, приложение открыто не как Mini App.');
     }
+} else {
+    console.warn('⚠️ Telegram WebApp не найден. Приложение открыто в обычном браузере.');
 }
 </script>
 </body>
