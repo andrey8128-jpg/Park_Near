@@ -2136,8 +2136,10 @@ function initAuth() {
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
+            window.currentUser = currentUser;   // добавить для синхронизации
             hideAuthScreen();
-           loadUserData('profile', document.getElementById('panelContent'));
+            // Загружаем данные, но не показываем панель, если она не активна
+            loadUserData('profile', document.getElementById('panelContent'));
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
@@ -5086,18 +5088,16 @@ ymaps.ready(() => { initMap(); });
     // ============================================
 // АВТОМАТИЧЕСКИЙ ВХОД ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 // ============================================
-
 (function autoLogin() {
     var savedUser = localStorage.getItem('tgUser');
     if (savedUser) {
         try {
             var user = JSON.parse(savedUser);
-            window.currentUser = user;
+            currentUser = user;              // ← добавить эту строку
+            window.currentUser = user;       // оставить для совместимости
             hideAuthScreen();
-            // Если панель профиля уже активна, обновим её
-            if (document.getElementById('panelTitle').textContent === 'Профиль') {
-                showPanel('profile');
-            }
+            // Не вызываем showPanel('profile') здесь, так как при загрузке карта ещё не инициализирована.
+            // Если нужно показать профиль, лучше делать это после загрузки.
             console.log('👤 Восстановлен пользователь из localStorage:', user.firstName);
         } catch(e) {
             localStorage.removeItem('tgUser');
