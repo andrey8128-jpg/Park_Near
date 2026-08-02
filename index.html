@@ -5087,11 +5087,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }); // <-- обязательно проверьте, что здесь есть закрывающая скобка и точка с запятой
 function openTelegramBot() {
-    // Проверяем, работаем ли внутри Telegram WebApp
+    console.log('openTelegramBot вызвана');
     if (window.Telegram && window.Telegram.WebApp) {
+        console.log('Telegram WebApp найден');
         var webApp = window.Telegram.WebApp;
-        // Если данные пользователя уже есть — авторизуем сразу
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+            console.log('Пользователь найден в initDataUnsafe:', webApp.initDataUnsafe.user);
             var user = webApp.initDataUnsafe.user;
             onTelegramAuth({
                 id: user.id,
@@ -5103,14 +5104,15 @@ function openTelegramBot() {
                 hash: ''
             });
             return;
+        } else {
+            console.warn('initDataUnsafe или user отсутствуют, открываю бота');
+            webApp.openTelegramLink('https://t.me/parknear_bot');
+            return;
         }
-        // Если нет — открываем ссылку на бота
-        webApp.openTelegramLink('https://t.me/parknear_bot');
-        return;
+    } else {
+        console.warn('Telegram не найден, открываю ссылку в браузере');
+        window.open('https://t.me/parknear_bot', '_blank');
     }
-
-    // Если не в Telegram — открываем ссылку в новой вкладке
-    window.open('https://t.me/parknear_bot', '_blank');
 }
 </script>
 </body>
