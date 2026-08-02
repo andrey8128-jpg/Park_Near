@@ -4976,12 +4976,23 @@ function showToast(message, duration = 3000) {
         photoUrl: user.photo_url || '',
         isGuest: false
     };
-
+   console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
     // Сохраняем в localStorage
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
-    // Сохраняем статистику в Firebase
-    database.ref('users/' + currentUser.id + '/stats').set({
+    // Сохраняем статистику и основную информацию в Firebase
+   var userRef = database.ref('users/' + currentUser.id);
+    userRef.update({
+        username: currentUser.username,
+        firstName: currentUser.firstName,
+        photoUrl: currentUser.photoUrl,
+        lastActive: Date.now()
+    }).then(function() {
+        console.log('🔥 Пользователь успешно сохранён в Firebase');
+    }).catch(function(err) {
+        console.error('❌ Ошибка сохранения в Firebase:', err);
+    });
+    userRef.child('stats').set({
         registeredAt: Date.now(),
         lastActive: Date.now(),
         parkingsCreated: 0,
@@ -4991,27 +5002,17 @@ function showToast(message, duration = 3000) {
         favorites: 0,
         activeDates: [new Date().toISOString().split('T')[0]]
     }).catch(function(err) {
-        console.error('Ошибка сохранения в Firebase:', err);
-    });
-
-    // Сохраняем базовую информацию о пользователе
-    database.ref('users/' + currentUser.id).update({
-        username: currentUser.username,
-        firstName: currentUser.firstName,
-        photoUrl: currentUser.photoUrl,
-        lastActive: Date.now()
+        console.error('Ошибка сохранения статистики:', err);
     });
 
     // Обновляем глобальную переменную
     window.currentUser = currentUser;
 
-    // Скрываем экран входа
+    // Скрываем экран входа и показываем профиль
     hideAuthScreen();
-
-    // Показываем профиль
     showPanel('profile');
 
-    // Если есть тактильная отдача
+    // Тактильная отдача (опционально)
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }
