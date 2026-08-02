@@ -5010,14 +5010,15 @@ function showToast(message, duration = 3000) {
     }, duration);
 }
   function onTelegramAuth(user) {
-    var currentUser = {
+    currentUser = {
         id: 'tg_' + user.id,
         username: user.username || 'tg_user',
         firstName: user.first_name || 'Пользователь',
         photoUrl: user.photo_url || '',
         isGuest: false
     };
-   console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
+      window.currentUser = currentUser; 
+    console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
     // Сохраняем в localStorage
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
