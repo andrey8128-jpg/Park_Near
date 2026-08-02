@@ -2091,19 +2091,19 @@ function refreshCurrentPanel() {
 }
 // ===================== АВТОРИЗАЦИЯ =====================
 function initAuth() {
-    const saved =.getItem('tgUser');
+    const saved = localStorage.getItem('tgUser');
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
             hideAuthScreen();
-            loadUserData();
+            loadUserData();  // ← этот вызов может вызвать ошибку, если loadUserData ожидает параметры
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
         }
     }
     showAuthScreen();
-}   
+}
 function loadUserData() {
     if (!currentUser) return;
     database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
