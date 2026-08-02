@@ -5012,6 +5012,7 @@ function showToast(message, duration = 3000) {
     }, duration);
 }
   function onTelegramAuth(user) {
+    // Присваиваем глобальной переменной (без var/let/const)
     currentUser = {
         id: 'tg_' + user.id,
         username: user.username || 'tg_user',
@@ -5019,13 +5020,16 @@ function showToast(message, duration = 3000) {
         photoUrl: user.photo_url || '',
         isGuest: false
     };
-      window.currentUser = currentUser; 
+    // Дублируем для надёжности
+    window.currentUser = currentUser;
+
     console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
+
     // Сохраняем в localStorage
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
-    // Сохраняем статистику и основную информацию в Firebase
-   var userRef = database.ref('users/' + currentUser.id);
+    // Сохраняем в Firebase
+    var userRef = database.ref('users/' + currentUser.id);
     userRef.update({
         username: currentUser.username,
         firstName: currentUser.firstName,
@@ -5036,6 +5040,7 @@ function showToast(message, duration = 3000) {
     }).catch(function(err) {
         console.error('❌ Ошибка сохранения в Firebase:', err);
     });
+
     userRef.child('stats').set({
         registeredAt: Date.now(),
         lastActive: Date.now(),
@@ -5049,14 +5054,10 @@ function showToast(message, duration = 3000) {
         console.error('Ошибка сохранения статистики:', err);
     });
 
-    // Обновляем глобальную переменную
-    window.currentUser = currentUser;
-
     // Скрываем экран входа и показываем профиль
     hideAuthScreen();
     showPanel('profile');
 
-    // Тактильная отдача (опционально)
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }
