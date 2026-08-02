@@ -1692,7 +1692,12 @@ color: #fff;
         <div style="font-size:48px; margin-bottom:12px;">🚗</div>
         <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
         <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
-        <button class="telegram-btn" onclick="openTelegramBot()" style="margin-bottom:12px;">📱 Войти через Telegram</button>
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+    data-telegram-login="parknear_bot"
+    data-size="large"
+    data-onauth="onTelegramAuth(user)"
+    data-request-access="write">
+</script>
         <button class="guest-btn" onclick="continueAsGuest()" style="background:var(--bg-secondary); color:var(--accent); border:1px solid var(--accent);">Продолжить как гость</button>
     </div>
 </div>
@@ -2105,25 +2110,7 @@ function initAuth() {
         }
     }
     showAuthScreen();
-}
-function handleTelegramLogin() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    if (!token) return;
 
-    // Создаём тестового пользователя
-    currentUser = {
-        id: 'tg_test',
-        username: 'test_user',
-        firstName: 'Тестовый',
-        photoUrl: '',
-        isGuest: false
-    };
-    localStorage.setItem('tgUser', JSON.stringify(currentUser));
-    hideAuthScreen();
-    showToast('✅ Тестовый вход выполнен!', 2000);
-    setTimeout(() => location.reload(), 300);
-}
 function loadUserData() {
     if (!currentUser) return;
     database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
@@ -4717,19 +4704,30 @@ else if (orig.preset) mapMarkers[id].options.set('preset', orig.preset);
 highlightedParkings = {};
 }
 // ===================== АУТЕНТИФИКАЦИЯ =====================
-function openTelegramBot() {
-    const token = Math.random().toString(36).substring(2, 12);
-    sessionStorage.setItem('loginToken', token);
-    const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
-    const tgUrl = `tg://resolve?domain=parknear_bot&start=login_${token}`;
-    try {
-        window.location.href = tgUrl;
-        setTimeout(() => {
-            window.open(botUrl, '_blank');
-        }, 500);
-    } catch(e) {
-        window.open(botUrl, '_blank');
-    }
+function onTelegramAuth(user) {
+    if (!user) return;
+    // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
+    currentUser = {
+        id: 'tg_' + user.id,
+        username: user.username || 'tg_user',
+        firstName: user.first_name || 'Пользователь',
+        photoUrl: user.photo_url || '',
+        isGuest: false
+    };
+    localStorage.setItem('tgUser', JSON.stringify(currentUser));
+    // Сохраняем в Firebase
+    database.ref(`users/${currentUser.id}/stats`).set({
+        registeredAt: Date.now(),
+        lastActive: Date.now(),
+        parkingsCreated: 0,
+        parkingsUpdated: 0,
+        confirmations: 0,
+        views: 0,
+        favorites: 0,
+        activeDates: [new Date().toISOString().split('T')[0]]
+    });
+    hideAuthScreen();
+    location.reload(); // обновляем страницу, чтобы применить пользователя
 }
 function continueAsGuest() {
     hideAuthScreen();
