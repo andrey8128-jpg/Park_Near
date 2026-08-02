@@ -5091,13 +5091,18 @@ document.addEventListener('DOMContentLoaded', () => {
  * Если приложение запущено внутри Telegram WebApp — используем данные пользователя,
  * иначе открываем ссылку на бота.
  */
+/**
+ * Инициализация входа через Telegram
+ * Если приложение запущено внутри Telegram WebApp — используем данные пользователя,
+ * иначе открываем ссылку на бота @parknear_bot.
+ */
 function openTelegramBot() {
     // Проверяем, работаем ли внутри Telegram WebApp
     if (window.Telegram && window.Telegram.WebApp) {
-        const webApp = window.Telegram.WebApp;
+        var webApp = window.Telegram.WebApp;
         // Если данные пользователя уже есть — авторизуем сразу
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-            const user = webApp.initDataUnsafe.user;
+            var user = webApp.initDataUnsafe.user;
             onTelegramAuth({
                 id: user.id,
                 first_name: user.first_name,
@@ -5109,13 +5114,13 @@ function openTelegramBot() {
             });
             return;
         }
-        // Если нет — открываем ссылку на бота (замените на реальный юзернейм)
-       webApp.openTelegramLink('t.me/parknear_bot'');
+        // Если нет — открываем ссылку на бота
+        webApp.openTelegramLink('https://t.me/parknear_bot');
         return;
     }
 
     // Если не в Telegram — открываем ссылку в новой вкладке
-   window.open('https://t.me/parknear_bot', '_blank');
+    window.open('https://t.me/parknear_bot', '_blank');
 }
 </script>
 </body>
