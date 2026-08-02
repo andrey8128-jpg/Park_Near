@@ -5086,16 +5086,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 }); // <-- обязательно проверьте, что здесь есть закрывающая скобка и точка с запятой
-    /**
- * Инициализация входа через Telegram
- * Если приложение запущено внутри Telegram WebApp — используем данные пользователя,
- * иначе открываем ссылку на бота.
- */
-/**
- * Инициализация входа через Telegram
- * Если приложение запущено внутри Telegram WebApp — используем данные пользователя,
- * иначе открываем ссылку на бота @parknear_bot.
- */
 function openTelegramBot() {
     // Проверяем, работаем ли внутри Telegram WebApp
     if (window.Telegram && window.Telegram.WebApp) {
