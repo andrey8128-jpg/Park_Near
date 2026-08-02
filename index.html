@@ -5086,6 +5086,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 }); // <-- обязательно проверьте, что здесь есть закрывающая скобка и точка с запятой
+    /**
+ * Инициализация входа через Telegram
+ * Если приложение запущено внутри Telegram WebApp — используем данные пользователя,
+ * иначе открываем ссылку на бота.
+ */
+function openTelegramBot() {
+    // Проверяем, работаем ли внутри Telegram WebApp
+    if (window.Telegram && window.Telegram.WebApp) {
+        const webApp = window.Telegram.WebApp;
+        // Если данные пользователя уже есть — авторизуем сразу
+        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+            const user = webApp.initDataUnsafe.user;
+            onTelegramAuth({
+                id: user.id,
+                first_name: user.first_name,
+                last_name: user.last_name || '',
+                username: user.username || '',
+                photo_url: user.photo_url || '',
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: ''
+            });
+            return;
+        }
+        // Если нет — открываем ссылку на бота (замените на реальный юзернейм)
+        webApp.openTelegramLink('https://t.me/your_bot_username');
+        return;
+    }
+
+    // Если не в Telegram — открываем ссылку в новой вкладке
+    window.open('https://t.me/your_bot_username', '_blank');
+}
 </script>
 </body>
 </html>
