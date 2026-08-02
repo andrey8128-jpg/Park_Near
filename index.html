@@ -2096,43 +2096,13 @@ function initAuth() {
         try {
             currentUser = JSON.parse(saved);
             hideAuthScreen();
-            loadUserData();  // ← этот вызов может вызвать ошибку, если loadUserData ожидает параметры
+            loadUserData(null, null);  // ← этот вызов может вызвать ошибку, если loadUserData ожидает параметры
             return;
         } catch(e) {
             localStorage.removeItem('tgUser');
         }
     }
     showAuthScreen();
-}
-function loadUserData() {
-    if (!currentUser) return;
-    database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
-        if (!snapshot.exists()) {
-            const initialStats = {
-                registeredAt: Date.now(),
-                lastActive: Date.now(),
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
-                activeDates: [new Date().toISOString().split('T')[0]]
-            };
-            database.ref(`users/${currentUser.id}/stats`).set(initialStats);
-        } else {
-            const stats = snapshot.val();
-            const today = new Date().toISOString().split('T')[0];
-            let activeDates = stats.activeDates || [];
-            if (!activeDates.includes(today)) activeDates.push(today);
-            database.ref(`users/${currentUser.id}/stats`).update({ lastActive: Date.now(), activeDates: activeDates });
-        }
-    });
-
-    database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
-        if (snap.exists()) {
-            userCityPrefs = snap.val();
-        }
-    });
 }
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
@@ -4697,31 +4667,6 @@ else if (orig.preset) mapMarkers[id].options.set('preset', orig.preset);
 highlightedParkings = {};
 }
 // ===================== АУТЕНТИФИКАЦИЯ =====================
-function onTelegramAuth(user) {
-    if (!user) return;
-    // user содержит: id, first_name, last_name, username, photo_url, auth_date, hash
-    currentUser = {
-        id: 'tg_' + user.id,
-        username: user.username || 'tg_user',
-        firstName: user.first_name || 'Пользователь',
-        photoUrl: user.photo_url || '',
-        isGuest: false
-    };
-    localStorage.setItem('tgUser', JSON.stringify(currentUser));
-    // Сохраняем в Firebase
-    database.ref(`users/${currentUser.id}/stats`).set({
-        registeredAt: Date.now(),
-        lastActive: Date.now(),
-        parkingsCreated: 0,
-        parkingsUpdated: 0,
-        confirmations: 0,
-        views: 0,
-        favorites: 0,
-        activeDates: [new Date().toISOString().split('T')[0]]
-    });
-    hideAuthScreen();
-    location.reload(); // обновляем страницу, чтобы применить пользователя
-}
 function continueAsGuest() {
     hideAuthScreen();
     currentUser = {
