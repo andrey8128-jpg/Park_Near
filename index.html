@@ -4314,9 +4314,14 @@ function closeSettings() {
     document.getElementById('settingsOverlay').style.display = 'none';
 }
 function renderSettings() {
+    if (!currentUser) {
+        document.getElementById('settingsContent').innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Пожалуйста, войдите в аккаунт</p>';
+        return;
+    }
+
     const content = document.getElementById('settingsContent');
     const isDark = document.body.classList.contains('dark-theme');
-    const isGuest = currentUser && currentUser.id.startsWith('guest_');
+    const isGuest = currentUser.id.startsWith('guest_');
 
     let html = '';
 
@@ -4349,12 +4354,13 @@ function renderSettings() {
         </div>`;
 
         // --- Секция: Автомобиль ---
+        const car = currentUser.car || {};
         html += `<div class="settings-section">
             <div class="settings-section-header">Автомобиль</div>
             <div class="settings-row">
                 <span class="settings-label">Моё авто</span>
                 <span class="settings-value">
-                    ${(currentUser.carBrand || currentUser.carModel) ? `${currentUser.carBrand || ''} ${currentUser.carModel || ''}` : ''}
+                    ${(car.brand || car.model) ? `${car.brand || ''} ${car.model || ''}` : 'Не указан'}
                     <button class="settings-edit-btn" onclick="event.stopPropagation(); editCarDataFromSettings()">✏️</button>
                 </span>
             </div>
