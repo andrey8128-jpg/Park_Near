@@ -5074,19 +5074,17 @@ if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message
 };
 ymaps.ready(() => { initMap(); });
 }
-document.addEventListener('DOMContentLoaded', () => {
-if (typeof ymaps !== 'undefined') {
-initApp();
-setTimeout(() => {
-    initPullToRefresh();
-}, 500);
-} else {
-window.addEventListener('load', () => {
-ymaps.ready(() => { initApp(); });
-handleTelegramLogin();
-console.log('Конец скрипта');
-});
-}
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof ymaps !== 'undefined') {
+        initApp();
+        setTimeout(() => {
+            initPullToRefresh();
+        }, 500);
+    } else {
+        window.addEventListener('load', function() {
+            ymaps.ready(function() { initApp(); });
+        });
+    }
 });
 </script>
 </body>
