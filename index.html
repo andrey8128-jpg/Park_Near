@@ -5074,18 +5074,20 @@ if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message
 };
 ymaps.ready(() => { initMap(); });
 }
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     if (typeof ymaps !== 'undefined') {
         initApp();
         setTimeout(() => {
             initPullToRefresh();
         }, 500);
     } else {
-        window.addEventListener('load', function() {
-            ymaps.ready(function() { initApp(); });
+        window.addEventListener('load', () => {
+            ymaps.ready(() => { 
+                initApp(); 
+            });
         });
     }
-});
+}); // <-- обязательно проверьте, что здесь есть закрывающая скобка и точка с запятой
 </script>
 </body>
 </html>
