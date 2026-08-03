@@ -1643,12 +1643,20 @@ color: #fff;
 <div class="sheet-content" id="sheetContent"></div>
 </div>
 <div class="route-card" id="routeCard">
-<button class="route-close" onclick="closeRoute()">✕</button>
-<div id="routeInfo"></div>
-<div class="route-actions">
-<button class="btn-primary" onclick="startNavigation()">▶ Начать</button>
-<button class="btn-secondary" onclick="rebuildRoute()">🔄 Перестроить</button>
-</div>
+    <button class="route-close" onclick="closeRoute()">✕</button>
+    <div id="routeInfo"></div>
+    <!-- НОВЫЙ БЛОК -->
+    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; padding:0 4px;">
+        <select id="routeTypeSelect" style="flex:1; padding:6px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:14px;">
+            <option value="driving">🚗 Автомобиль</option>
+            <option value="walking">🚶 Пешком</option>
+            <option value="transit">🚌 Общественный транспорт</option>
+        </select>
+    </div>
+    <div class="route-actions">
+        <button class="btn-primary" onclick="startNavigation()">▶ Начать</button>
+        <button class="btn-secondary" onclick="rebuildRoute()">🔄 Перестроить</button>
+    </div>
 </div>
 <div class="tabBar">
 <div class="tab active" onclick="showMap()">
@@ -3153,67 +3161,121 @@ function toggleFavorite(parkingId) {
 }
 // ===================== МАРШРУТ =====================
 function buildRouteToParking(parkingId) {
-closeParkingSheet();
-const data = parkingDataCache[parkingId];
-if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
-alert('Ошибка: данные парковки не содержат координат');
-return;
-}
-getUserLocation()
-.then(coords => {
-routeStartCoords = [coords.lat, coords.lng];
-routeEndCoords = [data.lat, data.lng];
-routeParkingData = data;
-buildAndShowRoute();
-})
-.catch(err => {
-console.warn('Не удалось получить геолокацию, используем центр карты:', err);
-const center = map.getCenter();
-routeStartCoords = center;
-routeEndCoords = [data.lat, data.lng];
-routeParkingData = data;
-buildAndShowRoute();
-});
+    closeParkingSheet();
+    const data = parkingDataCache[parkingId];
+    if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
+        alert('Ошибка: данные парковки не содержат координат');
+        return;
+    }
+
+    getUserLocation()
+        .then(coords => {
+            routeStartCoords = [coords.lat, coords.lng];
+            routeEndCoords = [data.lat, data.lng];
+            routeParkingData = data;
+            buildAndShowRoute();
+        })
+        .catch(err => {
+            console.warn('Не удалось получить геолокацию, используем центр карты:', err);
+            const center = map.getCenter();
+            routeStartCoords = center;
+            routeEndCoords = [data.lat, data.lng];
+            routeParkingData = data;
+            buildAndShowRoute();
+        });
 }
 function buildAndShowRoute() {
-if (currentRoute) {
-map.geoObjects.remove(currentRoute);
-currentRoute = null;
+    // Удаляем старый маршрут
+    if (currentRoute) {
+        map.geoObjects.remove(currentRoute);
+        currentRoute = null;
+    }
+    if (!routeStartCoords || !routeEndCoords) {
+        alert('Ошибка: координаты не определены');
+        return;
+    }
+
+    // Показываем индикатор загрузки в routeCard
+    document.getElementById('routeInfo').innerHTML = `
+        <div style="text-align:center; padding:10px;">
+            <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
+            <p>Строим маршрут...</p>
+        </div>
+    `;
+    document.getElementById('routeCard').classList.add('active');
+
+    // Параметры маршрута (можно добавить выбор типа)
+    var routeParams = {
+        // 'driving' – автомобильный, 'walking' – пешеходный, 'transit' – общественный транспорт
+        mode: 'driving'
+    };
+
+    currentRoute = new ymaps.multiRouter.MultiRoute({
+        referencePoints: [routeStartCoords, routeEndCoords],
+        params: routeParams
+    }, {
+        boundsAutoApply: true, // автоматически масштабировать карту под маршрут
+        // Стиль линии маршрута
+        routeStrokeColor: '#007AFF',
+        routeStrokeWidth: 5,
+        routeStrokeOpacity: 0.8,
+        // Стиль меток начала и конца
+        wayPointStartIconColor: '#34C759',
+        wayPointFinishIconColor: '#FF3B30'
+    });
+
+    // Добавляем маршрут на карту
+    map.geoObjects.add(currentRoute);
+
+    // Обработчик события при успешном построении маршрута
+    currentRoute.events.add('add', function() {
+        // Получаем информацию о маршруте после его добавления
+        updateRouteInfoFromMultiRoute(currentRoute);
+    });
+
+    // Если маршрут не построился (ошибка), показываем прямую линию
+    currentRoute.events.add('error', function() {
+        console.warn('Не удалось построить маршрут, показываем прямую линию');
+        showDirectLine();
+    });
 }
-if (!routeStartCoords || !routeEndCoords) {
-alert('Ошибка: координаты не определены');
-return;
-}
-ymaps.route([routeStartCoords, routeEndCoords], { mapStateAutoApply: false })
-.then(route => {
-map.geoObjects.add(route);
-currentRoute = route;
-const paths = route.getPaths();
-if (paths && paths.length > 0) {
-const active = paths[0];
-const dist = active.getLength() / 1000;
-const time = active.getTime() / 60;
-const arrival = new Date(Date.now() + active.getTime() * 1000)
-.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-document.getElementById('routeInfo').innerHTML = `
-<div> До парковки</div>
-<div> ${dist.toFixed(1)} км</div>
-<div>⏱ ${Math.round(time)} мин</div>
-<div>🚦 Прибытие: ${arrival}</div>
-<div>🚘 Свободных мест: ${free}</div>
-<div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
-`;
-document.getElementById('routeCard').classList.add('active');
-map.setBounds(route.getBounds(), { duration: 500 });
-} else {
-showDirectLine();
-}
-})
-.catch(err => {
-console.error('Ошибка построения маршрута:', err);
-showDirectLine();
-});
+    function updateRouteInfoFromMultiRoute(route) {
+    // Ждём, пока маршрут загрузится
+    route.model.events.add('update', function() {
+        var activeRoute = route.getActiveRoute();
+        if (!activeRoute) return;
+
+        var distance = activeRoute.getLength(); // в метрах
+        var time = activeRoute.getTime();       // в секундах
+
+        var distKm = (distance / 1000).toFixed(1);
+        var timeMin = Math.round(time / 60);
+
+        // Получаем пошаговые инструкции (опционально)
+        var instructions = activeRoute.getWayPoints();
+        var stepsHtml = '';
+        instructions.forEach(function(item, index) {
+            if (index > 0 && index < 10) {
+                stepsHtml += `<div style="font-size:12px; color:var(--text-secondary);">${item.getName()}</div>`;
+            }
+        });
+
+        var free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+
+        document.getElementById('routeInfo').innerHTML = `
+            <div style="margin-bottom:8px;">
+                <div style="font-weight:600; font-size:18px;">🚗 До парковки</div>
+                <div>📏 Расстояние: <b>${distKm}</b> км</div>
+                <div>⏱ Время в пути: <b>${timeMin}</b> мин</div>
+                <div>🅿️ Свободных мест: <b>${free}</b> / ${routeParkingData.totalSpots}</div>
+                <div style="font-size:12px; color:var(--text-secondary);">Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+            </div>
+            <div style="margin-top:8px; border-top:0.5px solid var(--border-color); padding-top:8px; max-height:120px; overflow-y:auto;">
+                <div style="font-size:13px; font-weight:500;">📋 Основные точки маршрута:</div>
+                ${stepsHtml || '<div style="font-size:12px; color:var(--text-secondary);">Инструкции не доступны</div>'}
+            </div>
+        `;
+    });
 }
 function showDirectLine() {
 if (!routeStartCoords || !routeEndCoords) return;
@@ -3253,29 +3315,25 @@ window.open(`https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${
 }
 }
 function rebuildRoute() {
-if (routeStartCoords && routeEndCoords) {
-if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
-ymaps.route([routeStartCoords, routeEndCoords]).then(route => {
-map.geoObjects.add(route);
-currentRoute = route;
-const active = route.getPaths()[0];
-const dist = active.getLength() / 1000;
-const time = active.getTime() / 60;
-const arrival = new Date(Date.now() + active.getTime() * 1000)
-.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-document.getElementById('routeInfo').innerHTML = `
-<div>🚗 До парковки</div>
-<div>📍 ${dist.toFixed(1)} км</div>
-<div>⏱ ${Math.round(time)} мин</div>
-<div> Прибытие: ${arrival}</div>
-<div>🚘 Свободных мест: ${free}</div>
-`;
-}).catch(err => {
-alert('Ошибка при перестроении маршрута');
-showDirectLine();
-});
-}
+    if (routeStartCoords && routeEndCoords) {
+        if (currentRoute) {
+            map.geoObjects.remove(currentRoute);
+            currentRoute = null;
+        }
+        // Получаем выбранный тип маршрута
+        var mode = document.getElementById('routeTypeSelect')?.value || 'driving';
+        currentRoute = new ymaps.multiRouter.MultiRoute({
+            referencePoints: [routeStartCoords, routeEndCoords],
+            params: { mode: mode }
+        }, {
+            boundsAutoApply: true,
+            routeStrokeColor: '#007AFF',
+            routeStrokeWidth: 5,
+            routeStrokeOpacity: 0.8
+        });
+        map.geoObjects.add(currentRoute);
+        updateRouteInfoFromMultiRoute(currentRoute);
+    }
 }
 function closeRoute() {
 if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
