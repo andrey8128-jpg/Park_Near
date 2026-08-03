@@ -5240,7 +5240,32 @@ document.addEventListener('visibilitychange', function() {
         }
     }
 });
-
+function rebuildRoute() {
+    if (!routeStartCoords || !routeEndCoords) {
+        alert('Сначала постройте маршрут');
+        return;
+    }
+    if (currentRoute) {
+        map.geoObjects.remove(currentRoute);
+        currentRoute = null;
+    }
+    // Получаем выбранный тип маршрута из выпадающего списка
+    var mode = document.getElementById('routeTypeSelect')?.value || 'driving';
+    currentRoute = new ymaps.multiRouter.MultiRoute({
+        referencePoints: [routeStartCoords, routeEndCoords],
+        params: { mode: mode }
+    }, {
+        boundsAutoApply: true,
+        routeStrokeColor: '#007AFF',
+        routeStrokeWidth: 5,
+        routeStrokeOpacity: 0.8
+    });
+    map.geoObjects.add(currentRoute);
+    // Обновляем информацию о маршруте
+    if (typeof updateRouteInfoFromMultiRoute === 'function') {
+        updateRouteInfoFromMultiRoute(currentRoute);
+    }
+}
 </script>
 </body>
 </html>
