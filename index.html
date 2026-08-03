@@ -1781,6 +1781,7 @@ const database = firebase.database();
 // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
 let map = null;
 let currentUser = null;
+let lastKnownLocation = null;
 let mapMarkers = {};
 let myLocationPlacemark = null;
 let addressPreviewMarker = null;   // временный маркер для показа адреса на карте
@@ -2156,23 +2157,74 @@ function initAuth() {
 }
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
-return new Promise(function(resolve, reject) {
-if (window.Telegram?.WebApp?.Geolocation?.getLocation && typeof window.Telegram.WebApp.Geolocation.getLocation === 'function') {
-window.Telegram.WebApp.Geolocation.getLocation().then(loc => resolve({ lat: loc.latitude, lng: loc.longitude })).catch(() => tryBrowserGeolocation(resolve, reject));
-} else tryBrowserGeolocation(resolve, reject);
-});
+    // Если уже есть сохранённые координаты – возвращаем их сразу
+    if (lastKnownLocation) {
+        console.log('📍 Используем кешированную геолокацию:', lastKnownLocation);
+        return Promise.resolve(lastKnownLocation);
+    }
+
+    console.log('📍 Запрашиваем свежую геолокацию...');
+
+    return new Promise(function(resolve, reject) {
+        // 1. Пытаемся получить через Telegram WebApp (если приложение открыто внутри Telegram)
+        if (window.Telegram?.WebApp?.Geolocation?.getLocation && 
+            typeof window.Telegram.WebApp.Geolocation.getLocation === 'function') {
+            window.Telegram.WebApp.Geolocation.getLocation()
+                .then(function(loc) {
+                    const coords = { lat: loc.latitude, lng: loc.longitude };
+                    lastKnownLocation = coords; // сохраняем в кеш
+                    console.log('✅ Геолокация получена через Telegram:', coords);
+                    resolve(coords);
+                })
+                .catch(function() {
+                    console.warn('⚠️ Геолокация через Telegram не удалась, пробуем браузер...');
+                    tryBrowserGeolocation(resolve, reject);
+                });
+            return;
+        }
+
+        // 2. Если не в Telegram – используем браузерную геолокацию
+        tryBrowserGeolocation(resolve, reject);
+    });
+}
+function tryBrowserGeolocation(resolve, reject) {
+    // Пытаемся через Яндекс.Карты
+    if (typeof ymaps !== 'undefined') {
+        ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
+            .then(function(result) {
+                const coords = result.geoObjects.get(0).geometry.getCoordinates();
+                const location = { lat: coords[0], lng: coords[1] };
+                lastKnownLocation = location;
+                console.log('✅ Геолокация получена через Яндекс:', location);
+                resolve(location);
+            })
+            .catch(function() {
+                // Если Яндекс не дал геолокацию – пробуем нативный navigator.geolocation
+                fallbackToNavigator(resolve, reject);
+            });
+    } else {
+        fallbackToNavigator(resolve, reject);
+    }
 }
 
-function tryBrowserGeolocation(resolve, reject) {
-if (typeof ymaps !== 'undefined') {
-ymaps.geolocation.get({ provider: 'browser', timeout: 10000 }).then(result => {
-const coords = result.geoObjects.get(0).geometry.getCoordinates(); resolve({ lat: coords[0], lng: coords[1] });
-}).catch(() => {
-if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }), reject, { enableHighAccuracy: true, timeout: 10000 });
-else reject(new Error('Геолокация не поддерживается'));
-});
-} else if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }), reject, { enableHighAccuracy: true, timeout: 10000 });
-else reject(new Error('Геолокация не поддерживается'));
+function fallbackToNavigator(resolve, reject) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                lastKnownLocation = coords;
+                console.log('✅ Геолокация получена через navigator.geolocation:', coords);
+                resolve(coords);
+            },
+            function(err) {
+                console.error('❌ Ошибка геолокации:', err);
+                reject(err);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    } else {
+        reject(new Error('Геолокация не поддерживается браузером'));
+    }
 }
 
 // ===================== МАРКЕРЫ НА КАРТЕ =====================
@@ -3188,7 +3240,6 @@ function buildRouteToParking(parkingId) {
         });
 }
 function buildAndShowRoute() {
-    // Удаляем старый маршрут
     if (currentRoute) {
         map.geoObjects.remove(currentRoute);
         currentRoute = null;
@@ -3198,7 +3249,7 @@ function buildAndShowRoute() {
         return;
     }
 
-    // Показываем индикатор загрузки в routeCard
+    // Показываем индикатор загрузки
     document.getElementById('routeInfo').innerHTML = `
         <div style="text-align:center; padding:10px;">
             <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
@@ -3207,40 +3258,47 @@ function buildAndShowRoute() {
     `;
     document.getElementById('routeCard').classList.add('active');
 
-    // Параметры маршрута (можно добавить выбор типа)
-    var routeParams = {
-        // 'driving' – автомобильный, 'walking' – пешеходный, 'transit' – общественный транспорт
-        mode: 'driving'
-    };
+    var mode = document.getElementById('routeTypeSelect')?.value || 'driving';
 
-    currentRoute = new ymaps.multiRouter.MultiRoute({
-        referencePoints: [routeStartCoords, routeEndCoords],
-        params: routeParams
-    }, {
-        boundsAutoApply: true, // автоматически масштабировать карту под маршрут
-        // Стиль линии маршрута
-        routeStrokeColor: '#007AFF',
-        routeStrokeWidth: 5,
-        routeStrokeOpacity: 0.8,
-        // Стиль меток начала и конца
-        wayPointStartIconColor: '#34C759',
-        wayPointFinishIconColor: '#FF3B30'
-    });
+    try {
+        currentRoute = new ymaps.multiRouter.MultiRoute({
+            referencePoints: [routeStartCoords, routeEndCoords],
+            params: {
+                mode: mode,
+                avoidTrafficJams: false, // отключаем пробки для скорости
+                results: 1               // только один вариант маршрута
+            }
+        }, {
+            routeStrokeColor: '#007AFF',
+            routeStrokeWidth: 5,
+            routeStrokeOpacity: 0.8,
+            wayPointStartIconColor: '#34C759',
+            wayPointFinishIconColor: '#FF3B30',
+            animation: false            // отключаем анимацию
+        });
 
-    // Добавляем маршрут на карту
-    map.geoObjects.add(currentRoute);
+        map.geoObjects.add(currentRoute);
 
-    // Обработчик события при успешном построении маршрута
-    currentRoute.events.add('add', function() {
-        // Получаем информацию о маршруте после его добавления
-        updateRouteInfoFromMultiRoute(currentRoute);
-    });
+        var isUpdated = false;
+        currentRoute.model.events.add('update', function() {
+            if (!isUpdated) {
+                isUpdated = true;
+                // Ждём первый апдейт, потом обновляем информацию и границы
+                setTimeout(function() {
+                    updateRouteInfoFromMultiRoute(currentRoute);
+                    map.setBounds(currentRoute.getBounds(), { duration: 300 });
+                }, 100);
+            }
+        });
 
-    // Если маршрут не построился (ошибка), показываем прямую линию
-    currentRoute.events.add('error', function() {
-        console.warn('Не удалось построить маршрут, показываем прямую линию');
+        currentRoute.events.add('error', function() {
+            console.warn('Не удалось построить маршрут, показываем прямую линию');
+            showDirectLine();
+        });
+    } catch (e) {
+        console.error('Ошибка построения маршрута:', e);
         showDirectLine();
-    });
+    }
 }
     function updateRouteInfoFromMultiRoute(route) {
     // Ждём, пока маршрут загрузится
@@ -5249,21 +5307,27 @@ function rebuildRoute() {
         map.geoObjects.remove(currentRoute);
         currentRoute = null;
     }
-    // Получаем выбранный тип маршрута из выпадающего списка
     var mode = document.getElementById('routeTypeSelect')?.value || 'driving';
-    currentRoute = new ymaps.multiRouter.MultiRoute({
-        referencePoints: [routeStartCoords, routeEndCoords],
-        params: { mode: mode }
-    }, {
-        boundsAutoApply: true,
-        routeStrokeColor: '#007AFF',
-        routeStrokeWidth: 5,
-        routeStrokeOpacity: 0.8
-    });
-    map.geoObjects.add(currentRoute);
-    // Обновляем информацию о маршруте
-    if (typeof updateRouteInfoFromMultiRoute === 'function') {
+    try {
+        currentRoute = new ymaps.multiRouter.MultiRoute({
+            referencePoints: [routeStartCoords, routeEndCoords],
+            params: {
+                mode: mode,
+                avoidTrafficJams: false,
+                results: 1
+            }
+        }, {
+            routeStrokeColor: '#007AFF',
+            routeStrokeWidth: 5,
+            routeStrokeOpacity: 0.8,
+            animation: false
+        });
+        map.geoObjects.add(currentRoute);
         updateRouteInfoFromMultiRoute(currentRoute);
+        map.setBounds(currentRoute.getBounds(), { duration: 300 });
+    } catch (e) {
+        console.error('Ошибка перестроения:', e);
+        alert('Не удалось перестроить маршрут');
     }
 }
 </script>
