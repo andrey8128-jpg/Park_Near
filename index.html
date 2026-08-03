@@ -3313,30 +3313,30 @@ map.setBounds([
 ], { duration: 500 });
 }
 function startNavigation() {
-if (routeEndCoords) {
-window.open(`https://yandex.com/navi/?build=full&lat=${routeEndCoords[0]}&lon=${routeEndCoords[1]}`, '_blank');
-}
-}
-function rebuildRoute() {
-    if (routeStartCoords && routeEndCoords) {
-        if (currentRoute) {
-            map.geoObjects.remove(currentRoute);
-            currentRoute = null;
-        }
-        // Получаем выбранный тип маршрута
-        var mode = document.getElementById('routeTypeSelect')?.value || 'driving';
-        currentRoute = new ymaps.multiRouter.MultiRoute({
-            referencePoints: [routeStartCoords, routeEndCoords],
-            params: { mode: mode }
-        }, {
-            boundsAutoApply: true,
-            routeStrokeColor: '#007AFF',
-            routeStrokeWidth: 5,
-            routeStrokeOpacity: 0.8
-        });
-        map.geoObjects.add(currentRoute);
-        updateRouteInfoFromMultiRoute(currentRoute);
+    if (!routeEndCoords) {
+        alert('Сначала постройте маршрут');
+        return;
     }
+
+    // Пытаемся получить текущее местоположение
+    getUserLocation()
+        .then(coords => {
+            const fromLat = coords.lat;
+            const fromLng = coords.lng;
+            const toLat = routeEndCoords[0];
+            const toLng = routeEndCoords[1];
+
+            // Ссылка на Яндекс.Карты с маршрутом от (from) до (to)
+            const url = `https://yandex.ru/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;
+            window.open(url, '_blank');
+        })
+        .catch(() => {
+            // Если геолокация не получена, открываем без начальной точки
+            const toLat = routeEndCoords[0];
+            const toLng = routeEndCoords[1];
+            const url = `https://yandex.ru/maps/?rtext=~${toLat},${toLng}&rtt=auto`;
+            window.open(url, '_blank');
+        });
 }
 function closeRoute() {
 if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
