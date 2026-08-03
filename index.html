@@ -2144,10 +2144,11 @@ function initAuth() {
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
+            window.currentUser = currentUser;
             hideAuthScreen();
-           loadUserData('profile', document.getElementById('panelContent'));
+            loadUserData('profile', document.getElementById('panelContent'));
             return;
-        } catch(e) {
+        } catch (e) {
             localStorage.removeItem('tgUser');
         }
     }
@@ -5067,30 +5068,33 @@ function showToast(message, duration = 3000) {
         toast.style.transform = 'translateX(-50%) translateY(-20px)';
     }, duration);
 }
-  function onTelegramAuth(user) {
-    var currentUser = {
+ function onTelegramAuth(user) {
+    // Присваиваем глобальную переменную (без var/let/const!)
+    currentUser = {
         id: 'tg_' + user.id,
         username: user.username || 'tg_user',
         firstName: user.first_name || 'Пользователь',
         photoUrl: user.photo_url || '',
         isGuest: false
     };
-   console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
-    // Сохраняем в localStorage
+    window.currentUser = currentUser;
+
+    console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
+
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
-    // Сохраняем статистику и основную информацию в Firebase
-   var userRef = database.ref('users/' + currentUser.id);
+    const userRef = database.ref('users/' + currentUser.id);
     userRef.update({
         username: currentUser.username,
         firstName: currentUser.firstName,
         photoUrl: currentUser.photoUrl,
         lastActive: Date.now()
-    }).then(function() {
-        console.log('🔥 Пользователь успешно сохранён в Firebase');
-    }).catch(function(err) {
+    }).then(() => {
+        console.log('🔥 Пользователь сохранён в Firebase');
+    }).catch(err => {
         console.error('❌ Ошибка сохранения в Firebase:', err);
     });
+
     userRef.child('stats').set({
         registeredAt: Date.now(),
         lastActive: Date.now(),
@@ -5100,18 +5104,13 @@ function showToast(message, duration = 3000) {
         views: 0,
         favorites: 0,
         activeDates: [new Date().toISOString().split('T')[0]]
-    }).catch(function(err) {
+    }).catch(err => {
         console.error('Ошибка сохранения статистики:', err);
     });
 
-    // Обновляем глобальную переменную
-    window.currentUser = currentUser;
-
-    // Скрываем экран входа и показываем профиль
     hideAuthScreen();
     showPanel('profile');
 
-    // Тактильная отдача (опционально)
     if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }
@@ -5145,22 +5144,42 @@ ymaps.ready(() => { initMap(); });
 // ============================================
 
 (function autoLogin() {
-    var savedUser = localStorage.getItem('tgUser');
+    const savedUser = localStorage.getItem('tgUser');
     if (savedUser) {
         try {
-            var user = JSON.parse(savedUser);
+            const user = JSON.parse(savedUser);
+            currentUser = user;
             window.currentUser = user;
             hideAuthScreen();
-            // Если панель профиля уже активна, обновим её
+            // Если панель профиля активна – обновляем её
             if (document.getElementById('panelTitle').textContent === 'Профиль') {
                 showPanel('profile');
             }
             console.log('👤 Восстановлен пользователь из localStorage:', user.firstName);
-        } catch(e) {
+        } catch (e) {
             localStorage.removeItem('tgUser');
         }
         return;
     }
+
+    // Если внутри Telegram WebApp – автоматический вход
+    if (window.Telegram && window.Telegram.WebApp) {
+        const webApp = window.Telegram.WebApp;
+        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+            const user = webApp.initDataUnsafe.user;
+            console.log('🔄 Автоматический вход через Telegram:', user.first_name);
+            onTelegramAuth({
+                id: user.id,
+                first_name: user.first_name,
+                last_name: user.last_name || '',
+                username: user.username || '',
+                photo_url: user.photo_url || '',
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: webApp.initDataUnsafe.hash || ''
+            });
+        }
+    }
+})();
 
     // Если нет сохранённого пользователя, но мы внутри Telegram WebApp
     if (window.Telegram && window.Telegram.WebApp) {
