@@ -5249,20 +5249,21 @@ function openTelegramBot() {
     window.open('https://t.me/parknear_bot', '_blank');
 }
     // Закрытие экрана входа (без входа в аккаунт)
-function closeAuthScreen() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-}
-    document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        // Страница стала видимой – проверяем, не появился ли пользователь
-        if (!currentUser && localStorage.getItem('tgUser')) {
-            location.reload(); // или можно вызвать autoLogin вручную
+ function closeAuthScreen() {
+        const overlay = document.getElementById('authOverlay');
+        if (overlay) {
+            overlay.style.display = 'none';
         }
     }
-});
+
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            if (!currentUser && localStorage.getItem('tgUser')) {
+                autoLogin();
+            }
+        }
+    });
+
 </script>
 </body>
 </html>
