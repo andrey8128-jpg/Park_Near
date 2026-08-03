@@ -5151,7 +5151,6 @@ ymaps.ready(() => { initMap(); });
             currentUser = user;
             window.currentUser = user;
             hideAuthScreen();
-            // Если панель профиля активна – обновляем её
             if (document.getElementById('panelTitle').textContent === 'Профиль') {
                 showPanel('profile');
             }
@@ -5162,7 +5161,6 @@ ymaps.ready(() => { initMap(); });
         return;
     }
 
-    // Если внутри Telegram WebApp – автоматический вход
     if (window.Telegram && window.Telegram.WebApp) {
         const webApp = window.Telegram.WebApp;
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
@@ -5181,24 +5179,6 @@ ymaps.ready(() => { initMap(); });
     }
 })();
 
-    // Если нет сохранённого пользователя, но мы внутри Telegram WebApp
-    if (window.Telegram && window.Telegram.WebApp) {
-        var webApp = window.Telegram.WebApp;
-        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-            var user = webApp.initDataUnsafe.user;
-            console.log('🔄 Автоматический вход через Telegram:', user.first_name);
-            onTelegramAuth({
-                id: user.id,
-                first_name: user.first_name,
-                last_name: user.last_name || '',
-                username: user.username || '',
-                photo_url: user.photo_url || '',
-                auth_date: Math.floor(Date.now() / 1000),
-                hash: webApp.initDataUnsafe.hash || ''
-            });
-        }
-    }
-})();
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof ymaps !== 'undefined') {
         initApp();
@@ -5211,18 +5191,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
 function openTelegramBot() {
     console.log('openTelegramBot вызвана');
     
-    // Если мы уже внутри Telegram WebApp и есть данные пользователя — используем их
     if (window.Telegram && window.Telegram.WebApp) {
         var webApp = window.Telegram.WebApp;
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
             var user = webApp.initDataUnsafe.user;
-            // Проверяем, есть ли уже сохранённый пользователь
             var savedUser = localStorage.getItem('tgUser');
             if (!savedUser) {
-                // Вход через Telegram
                 onTelegramAuth({
                     id: user.id,
                     first_name: user.first_name,
@@ -5233,36 +5211,33 @@ function openTelegramBot() {
                     hash: webApp.initDataUnsafe.hash || ''
                 });
             } else {
-                // Уже залогинен
                 console.log('👤 Пользователь уже залогинен');
                 hideAuthScreen();
                 showPanel('profile');
             }
             return;
         }
-        // Если внутри Telegram, но данных нет — открываем бота
         webApp.openTelegramLink('https://t.me/parknear_bot');
         return;
     }
     
-    // Если в обычном браузере — открываем бота
     window.open('https://t.me/parknear_bot', '_blank');
 }
-    // Закрытие экрана входа (без входа в аккаунт)
- function closeAuthScreen() {
-        const overlay = document.getElementById('authOverlay');
-        if (overlay) {
-            overlay.style.display = 'none';
+
+function closeAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        if (!currentUser && localStorage.getItem('tgUser')) {
+            autoLogin();
         }
     }
-
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            if (!currentUser && localStorage.getItem('tgUser')) {
-                autoLogin();
-            }
-        }
-    });
+});
 
 </script>
 </body>
