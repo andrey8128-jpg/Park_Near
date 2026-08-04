@@ -1,8 +1,7 @@
 {
   "name": "ParkNear",
   "short_name": "ParkNear",
-  "description": "Поиск и отметка парковок с актуальной занятостью",
-  "start_url": "/Park_Near/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#02060E",
   "theme_color": "#007AFF",
@@ -10,14 +9,12 @@
     {
       "src": "logo.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "logo.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
