@@ -4385,12 +4385,12 @@ html += `<div class="reputation-card">
  
 // ===================== НАСТРОЙКИ =====================
 function showSettings() {
-    document.getElementById('settingsOverlay').style.display = 'flex';
+    document.getElementById('').style.display = 'flex';
     renderSettings();
 }
 
 function closeSettings() {
-    document.getElementById('settingsOverlay').style.display = 'none';
+    document.getElementById('').style.display = 'none';
 }
 function renderSettings() {
     if (!currentUser) {
@@ -4491,7 +4491,7 @@ function saveNickname(newNickname) {
         currentUser.nickname = nick;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
         // Если настройки открыты, перерисуем их
-        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+        if (document.getElementById('').style.display === 'flex') {
             renderSettings();
         }
         if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -4636,7 +4636,7 @@ function saveCarData() {
     }).then(() => {
         closeCarEditor();
         // Если окно настроек открыто, обновим его
-        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+        if (document.getElementById('').style.display === 'flex') {
             renderSettings();
         }
         if (window.Telegram?.WebApp?.HapticFeedback) {
