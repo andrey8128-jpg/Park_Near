@@ -2157,35 +2157,53 @@ function initAuth() {
 }
 // ===================== ГЕОЛОКАЦИЯ =====================
 function getUserLocation() {
-    // Если уже есть сохранённые координаты – возвращаем их сразу
     if (lastKnownLocation) {
-        console.log('📍 Используем кешированную геолокацию:', lastKnownLocation);
+        console.log('📍 Используем кешированную геолокацию');
         return Promise.resolve(lastKnownLocation);
     }
 
-    console.log('📍 Запрашиваем свежую геолокацию...');
-
     return new Promise(function(resolve, reject) {
-        // 1. Пытаемся получить через Telegram WebApp (если приложение открыто внутри Telegram)
         if (window.Telegram?.WebApp?.Geolocation?.getLocation && 
             typeof window.Telegram.WebApp.Geolocation.getLocation === 'function') {
             window.Telegram.WebApp.Geolocation.getLocation()
                 .then(function(loc) {
-                    const coords = { lat: loc.latitude, lng: loc.longitude };
-                    lastKnownLocation = coords; // сохраняем в кеш
-                    console.log('✅ Геолокация получена через Telegram:', coords);
-                    resolve(coords);
+                    lastKnownLocation = { lat: loc.latitude, lng: loc.longitude };
+                    resolve(lastKnownLocation);
                 })
-                .catch(function() {
-                    console.warn('⚠️ Геолокация через Telegram не удалась, пробуем браузер...');
-                    tryBrowserGeolocation(resolve, reject);
-                });
+                .catch(function() { tryBrowserGeolocation(resolve, reject); });
             return;
         }
-
-        // 2. Если не в Telegram – используем браузерную геолокацию
         tryBrowserGeolocation(resolve, reject);
     });
+}
+
+function tryBrowserGeolocation(resolve, reject) {
+    if (typeof ymaps !== 'undefined') {
+        ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
+            .then(function(result) {
+                const coords = result.geoObjects.get(0).geometry.getCoordinates();
+                lastKnownLocation = { lat: coords[0], lng: coords[1] };
+                resolve(lastKnownLocation);
+            })
+            .catch(function() { fallbackToNavigator(resolve, reject); });
+    } else {
+        fallbackToNavigator(resolve, reject);
+    }
+}
+
+function fallbackToNavigator(resolve, reject) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                lastKnownLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                resolve(lastKnownLocation);
+            },
+            function(err) { reject(err); },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    } else {
+        reject(new Error('Геолокация не поддерживается'));
+    }
 }
 function tryBrowserGeolocation(resolve, reject) {
     // Пытаемся через Яндекс.Карты
@@ -2304,7 +2322,7 @@ function addMarkerToMap(id, data) {
         <div style="font-size: 12px; color: #999; margin-top: 4px;">🕒 Обновлено: ${formatDateTime(data.lastUpdatedAt || data.timestamp)}</div>
         <div style="font-size: 12px; color: #999;">👤 ${data.lastUpdatedBy || data.authorName || 'Неизвестно'}</div>
         <button onclick="openOccupancyPanel('${id}')" style="width: 100%; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px;">✏️ Изменить</button>
-        <button onclick="buildRouteToParking('${id}')" style="width:100%; padding:6px 0; background:transparent; color:#007AFF; border:1px solid #007AFF; border-radius:8px; font-size:14px; cursor:pointer; margin-top:6px;">🧭 Построить маршрут</button>
+     <button onclick="buildRouteToParking('${id}')" style="width:100%; padding:6px 0; background:transparent; color:#007AFF; border:1px solid #007AFF; border-radius:8px; font-size:14px; cursor:pointer; margin-top:6px;">🧭 Построить маршрут</button>
     </div>
 `;
 
@@ -2917,7 +2935,7 @@ function renderEditPanel(data, isFavorite) {
     `;
     }
     // Кнопка построения маршрута
-    html += `<button class="btn-secondary" onclick="buildRouteToParking('${currentParkingId}')" style="margin-top:10px;">🧭 Построить маршрут</button>`;
+  html += `<button class="btn-secondary" onclick="buildRouteToParking('${currentParkingId}')" style="margin-top:10px;">🧭 Построить маршрут</button>`;
     document.getElementById('panelContent').innerHTML = html;
 
     // Обработчик сворачивания истории
@@ -3216,7 +3234,6 @@ function toggleFavorite(parkingId) {
 }
 // ===================== МАРШРУТ =====================
 function buildRouteToParking(parkingId) {
-    console.log('🔧 buildRouteToParking вызвана для парковки:', parkingId);
     closeParkingSheet();
     const data = parkingDataCache[parkingId];
     if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
@@ -3284,7 +3301,6 @@ function buildAndShowRoute() {
         currentRoute.model.events.add('update', function() {
             if (!isUpdated) {
                 isUpdated = true;
-                // Ждём первый апдейт, потом обновляем информацию и границы
                 setTimeout(function() {
                     updateRouteInfoFromMultiRoute(currentRoute);
                     map.setBounds(currentRoute.getBounds(), { duration: 300 });
@@ -3302,7 +3318,6 @@ function buildAndShowRoute() {
     }
 }
     function updateRouteInfoFromMultiRoute(route) {
-    // Ждём, пока маршрут загрузится
     route.model.events.add('update', function() {
         var activeRoute = route.getActiveRoute();
         if (!activeRoute) return;
@@ -3313,7 +3328,7 @@ function buildAndShowRoute() {
         var distKm = (distance / 1000).toFixed(1);
         var timeMin = Math.round(time / 60);
 
-        // Получаем пошаговые инструкции (опционально)
+        // Получаем пошаговые инструкции
         var instructions = activeRoute.getWayPoints();
         var stepsHtml = '';
         instructions.forEach(function(item, index) {
@@ -3377,15 +3392,13 @@ function startNavigation() {
         return;
     }
 
-    // Пытаемся получить текущее местоположение
     getUserLocation()
         .then(coords => {
             const fromLat = coords.lat;
             const fromLng = coords.lng;
             const toLat = routeEndCoords[0];
             const toLng = routeEndCoords[1];
-
-            // Ссылка на Яндекс.Карты с маршрутом от (from) до (to)
+            // Открываем Яндекс.Карты с построенным маршрутом
             const url = `https://yandex.ru/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;
             window.open(url, '_blank');
         })
@@ -5312,11 +5325,7 @@ function rebuildRoute() {
     try {
         currentRoute = new ymaps.multiRouter.MultiRoute({
             referencePoints: [routeStartCoords, routeEndCoords],
-            params: {
-                mode: mode,
-                avoidTrafficJams: false,
-                results: 1
-            }
+            params: { mode: mode, avoidTrafficJams: false, results: 1 }
         }, {
             routeStrokeColor: '#007AFF',
             routeStrokeWidth: 5,
