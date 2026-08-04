@@ -3216,6 +3216,7 @@ function toggleFavorite(parkingId) {
 }
 // ===================== МАРШРУТ =====================
 function buildRouteToParking(parkingId) {
+    console.log('🔧 buildRouteToParking вызвана для парковки:', parkingId);
     closeParkingSheet();
     const data = parkingDataCache[parkingId];
     if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
