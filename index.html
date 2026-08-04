@@ -1814,7 +1814,6 @@ const database = firebase.database();
 
 // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
 let map = null;
-let mapCity = null;
 let currentUser = null;
 let lastKnownLocation = null;
 let mapMarkers = {};
@@ -1845,6 +1844,7 @@ let routeStartCoords = null;
 let routeEndCoords = null;
 let routeParkingData = null;
 let userCityPrefs = { region: '', city: '' };
+let mapCity = null; // временный город для карты
 let nearbySearchFilter = null;
 let userLocationForSearch = null;
 let pendingAddressData = null;
@@ -3921,54 +3921,15 @@ function applyCityFromPicker() {
         alert('Выберите регион и город');
         return;
     }
-    
-    // Обновляем локальные переменные
-    userCityPrefs.region = region;
-    userCityPrefs.city = city;
-    
-    // Сбрасываем фильтры поиска по координатам (важно!)
-    nearbySearchFilter = null;
-    userLocationForSearch = null;
-    
-    // Если пользователь авторизован, сохраняем в Firebase
-    if (currentUser) {
-        database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
-        .then(() => {
-            // 1. Обновляем карту (загружаем парковки с новым городом)
-            loadAllParkings();
-            
-            // 2. Ждём загрузки и обновляем список поиска
-            setTimeout(() => {
-                if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
-                    filterParkings();
-                }
-            }, 500);
-            
-            // 3. Обновляем подпись в поиске
-            const cityInfo = document.getElementById('cityFilterInfo');
-            if (cityInfo) {
-                const label = city ? `в ${city}` : 'везде';
-                const strong = cityInfo.querySelector('strong');
-                if (strong) strong.textContent = label;
-            }
-            
-            // 4. Закрываем оверлей
-            closeCityPicker();
-            
-            // 5. Тактильная отдача (если есть)
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
-        })
-        .catch(err => {
-            console.error('Ошибка сохранения города:', err);
-            alert('Ошибка сохранения: ' + err.message);
-        });
-    } else {
-        alert('Пользователь не авторизован');
+    mapCity = { region, city };
+    closeCityPicker();
+    updateCityDisplay();
+    loadAllParkings();
+    if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
+        filterParkings();
     }
 }
-   function updateCityDisplay() {
+  function updateCityDisplay() {
     const cityName = mapCity ? mapCity.city : (userCityPrefs.city || 'Не указан');
     const displayEl = document.getElementById('cityDisplayName');
     if (displayEl) {
@@ -4028,7 +3989,7 @@ let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...da
     // Фильтр по городу (если нет поиска по координатам)
 const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
 if (!hasNearbyFilter) {
-    const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
+    const cityFilter = mapCity ? mapCity.city.toLowerCase() : (userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '');
     if (cityFilter) {
         parkings = parkings.filter(p => {
             const pCity = (p.city || '').toLowerCase();
@@ -4389,11 +4350,12 @@ html += `<div class="reputation-card">
  
 // ===================== НАСТРОЙКИ =====================
 function showSettings() {
-    document.getElementById('settingsOverlay').style.display = 'flex';  // ← было '', стало 'settingsOverlay'
+    document.getElementById('settingsOverlay').style.display = 'flex';
     renderSettings();
 }
+
 function closeSettings() {
-    document.getElementById('settingsOverlay').style.display = 'none';   // ← было '', стало 'settingsOverlay'
+    document.getElementById('settingsOverlay').style.display = 'none';
 }
 function renderSettings() {
     if (!currentUser) {
@@ -4640,9 +4602,9 @@ function saveCarData() {
     }).then(() => {
         closeCarEditor();
         // Если окно настроек открыто, обновим его
-        if (document.getElementById('').style.display === 'flex') {
-            renderSettings();
-        }
+       if (document.getElementById('settingsOverlay').style.display === 'flex') {
+    renderSettings();
+}
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
