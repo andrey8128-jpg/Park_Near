@@ -1697,12 +1697,11 @@ color: #fff;
     <!-- Онбординг -->
     <!-- Панель настроек -->
 <div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
-    <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
-        <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
-        <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
-    <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
-</div>
-
+    <!-- ЗАГОЛОВОК: название по центру, крестик справа от названия -->
+    <div style="padding:16px 20px; display:flex; align-items:center; justify-content:center; position:relative; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
+        <div style="font-size:17px; font-weight:600; text-align:center;">⚙️ Настройки</div>
+        <button onclick="closeSettings()" style="position:absolute; right:16px; background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer; padding:0; line-height:1;">✕</button>
+    </div>
 <!-- Оверлей выбора города (теперь независим) -->
 <div id="cityPickerOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:4500; align-items:center; justify-content:center; flex-direction:column;">
     <div style="background:var(--bg-secondary); border-radius:16px; padding:24px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
