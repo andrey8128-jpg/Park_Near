@@ -1704,12 +1704,12 @@ color: #fff;
         <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
 
         <!-- Редирект-виджет (стабильно на iOS) -->
-        <script async src="https://telegram.org/js/telegram-widget.js?24"
-                data-telegram-login="parknear_bot"
-                data-size="large"
-                data-auth-url="https://andrey8128-jpg.github.io/Park_Near/"
-                data-request-access="write">
-        </script>
+        <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
+        data-telegram-login="parknear_bot"
+        data-size="large"
+        data-onauth="onTelegramAuth(user)"
+        data-request-access="write">
+</script>
 
         <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
 
@@ -5142,8 +5142,7 @@ function showToast(message, duration = 3000) {
         toast.style.transform = 'translateX(-50%) translateY(-20px)';
     }, duration);
 }
- function onTelegramAuth(user) {
-    // Присваиваем глобальную переменную (без var/let/const!)
+function onTelegramAuth(user) {
     currentUser = {
         id: 'tg_' + user.id,
         username: user.username || 'tg_user',
@@ -5152,9 +5151,6 @@ function showToast(message, duration = 3000) {
         isGuest: false
     };
     window.currentUser = currentUser;
-
-    console.log('✅ onTelegramAuth вызвана, сохраняем пользователя:', currentUser);
-
     localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
     const userRef = database.ref('users/' + currentUser.id);
@@ -5163,11 +5159,7 @@ function showToast(message, duration = 3000) {
         firstName: currentUser.firstName,
         photoUrl: currentUser.photoUrl,
         lastActive: Date.now()
-    }).then(() => {
-        console.log('🔥 Пользователь сохранён в Firebase');
-    }).catch(err => {
-        console.error('❌ Ошибка сохранения в Firebase:', err);
-    });
+    }).catch(console.error);
 
     userRef.child('stats').set({
         registeredAt: Date.now(),
@@ -5178,16 +5170,10 @@ function showToast(message, duration = 3000) {
         views: 0,
         favorites: 0,
         activeDates: [new Date().toISOString().split('T')[0]]
-    }).catch(err => {
-        console.error('Ошибка сохранения статистики:', err);
-    });
+    }).catch(console.error);
 
     hideAuthScreen();
     showPanel('profile');
-
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-    }
 }
 // ===================== ИНИЦИАЛИЗАЦИЯ =====================
 function initApp() {
@@ -5308,7 +5294,7 @@ function closeAuthScreen() {
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
         if (!currentUser && localStorage.getItem('tgUser')) {
-            autoLogin();
+            autoLogin(); // или location.reload()
         }
     }
 });
