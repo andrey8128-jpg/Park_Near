@@ -3472,6 +3472,7 @@ function closeRoute() {
         routeUpdateHandler = null;
     }
     if (currentRoute) { map.geoObjects.remove(currentRoute); currentRoute = null; }
+    }  
 // ===================== АДРЕСА =====================
 function addHomeAddress() {
     if (!currentUser) { alert('Необходимо войти'); return; }
