@@ -1699,7 +1699,7 @@ color: #fff;
 <div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
     <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
         <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
-         </div>
+        <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
     <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
 </div>
 
@@ -1814,6 +1814,7 @@ const database = firebase.database();
 
 // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
 let map = null;
+let mapCity = null;
 let currentUser = null;
 let lastKnownLocation = null;
 let mapMarkers = {};
@@ -2294,7 +2295,7 @@ function fallbackToNavigator(resolve, reject) {
         database.ref('parkings').once('value').then(snapshot => {
             const data = snapshot.val();
             if (data) {
-                const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
+                const cityFilter = mapCity ? mapCity.city.toLowerCase() : (userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '');
                 Object.keys(data).forEach(key => {
                     const p = data[key];
                     if (p && p.lat && p.lng) {
@@ -3967,8 +3968,8 @@ function applyCityFromPicker() {
         alert('Пользователь не авторизован');
     }
 }
-    function updateCityDisplay() {
-    const cityName = userCityPrefs.city || 'Не указан';
+   function updateCityDisplay() {
+    const cityName = mapCity ? mapCity.city : (userCityPrefs.city || 'Не указан');
     const displayEl = document.getElementById('cityDisplayName');
     if (displayEl) {
         displayEl.textContent = cityName;
@@ -4020,8 +4021,8 @@ const resultsContainer = document.getElementById('searchResults');
 if (!resultsContainer) return;
 
 // Берём город из настроек аккаунта (если не переопределён вручную)
-const filterCity = (nearbySearchFilter?.city) || userCityPrefs.city || '';
-const filterRegion = (nearbySearchFilter?.region) || userCityPrefs.region || '';
+const filterCity = (nearbySearchFilter?.city) || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
+const filterRegion = (nearbySearchFilter?.region) || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
 
 let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
     // Фильтр по городу (если нет поиска по координатам)
@@ -4507,6 +4508,7 @@ function saveCityFromSettings() {
     if (!currentUser) return;
     const region = document.getElementById('settingsRegion').value;
     const city = document.getElementById('settingsCity').value;
+     mapCity = null; 
     // Сохраняем, даже если регион выбран без города (город может быть пустым)
     database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
     .then(() => {
