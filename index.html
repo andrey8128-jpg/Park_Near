@@ -4388,11 +4388,11 @@ html += `<div class="reputation-card">
  
 // ===================== НАСТРОЙКИ =====================
 function showSettings() {
-    document.getElementById('settingsOverlay').style.display = 'flex';
+    document.getElementById('settingsOverlay').style.display = 'flex';  // ← было '', стало 'settingsOverlay'
     renderSettings();
 }
 function closeSettings() {
-    document.getElementById('settingsOverlay').style.display = 'none';
+    document.getElementById('settingsOverlay').style.display = 'none';   // ← было '', стало 'settingsOverlay'
 }
 function renderSettings() {
     if (!currentUser) {
