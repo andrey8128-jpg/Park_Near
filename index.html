@@ -1699,9 +1699,11 @@ color: #fff;
 <div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
     <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
         <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
-        <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
-    </div>
-    <!-- Оверлей выбора города (глобальный) -->
+         </div>
+    <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
+</div>
+
+<!-- Оверлей выбора города (теперь независим) -->
 <div id="cityPickerOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:4500; align-items:center; justify-content:center; flex-direction:column;">
     <div style="background:var(--bg-secondary); border-radius:16px; padding:24px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
         <h3 style="margin-top:0; text-align:center; font-weight:600;">Выберите город</h3>
@@ -1722,6 +1724,7 @@ color: #fff;
         <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
     </div>
 </div>
+
     <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
 </div>
 <div id="authOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:6000; align-items:center; justify-content:center; flex-direction:column;">
