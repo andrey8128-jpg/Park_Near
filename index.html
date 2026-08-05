@@ -1701,6 +1701,8 @@ color: #fff;
         <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
         <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
     </div>
+    <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
+</div>
 <!-- Оверлей выбора города (теперь независим) -->
 <div id="cityPickerOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:4500; align-items:center; justify-content:center; flex-direction:column;">
     <div style="background:var(--bg-secondary); border-radius:16px; padding:24px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
@@ -1779,34 +1781,24 @@ appId: "1:1066552333578:web:e60e333cf877852eba16f3"
 };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-    // Обработка редиректа после входа через Telegram (для iOS/Safari)
-(function handleTelegramRedirect() {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-    const firstName = params.get('first_name');
-    const lastName = params.get('last_name');
-    const username = params.get('username');
-    const photoUrl = params.get('photo_url');
-    const authDate = params.get('auth_date');
-    const hash = params.get('hash');
 
-    if (id && firstName && authDate) {
-        // Удаляем параметры из URL (чтобы не засорять историю)
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        // Вызываем функцию сохранения
-        onTelegramAuth({
-            id: id,
-            first_name: firstName,
-            last_name: lastName || '',
-            username: username || '',
-            photo_url: photoUrl || '',
-            auth_date: parseInt(authDate),
-            hash: hash || ''
-        });
+// ===== НОВЫЙ КОД: Восстановление темы =====
+(function restoreTheme() {
+    const darkTheme = localStorage.getItem('darkTheme');
+    if (darkTheme === '1') {
+        document.body.classList.add('dark-theme');
+        const mapEl = document.getElementById('map');
+        if (mapEl) {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        }
+        if (window.Telegram?.WebApp) {
+            try {
+                window.Telegram.WebApp.setHeaderColor('#1C1C1E');
+                window.Telegram.WebApp.setBackgroundColor('#000000');
+            } catch(e) {}
+        }
     }
 })();
-
 // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
 let map = null;
 let currentUser = null;
@@ -4364,9 +4356,91 @@ function closeSettings() {
 function renderSettings() {
     const contentEl = document.getElementById('settingsContent');
     if (!contentEl) {
-        console.error('Элемент settingsContent не найден!');
+        console.warn('❌ Элемент settingsContent не найден!');
         return;
     }
+
+    if (!currentUser) {
+        contentEl.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Пожалуйста, войдите в аккаунт</p>';
+        return;
+    }
+
+    const isDark = document.body.classList.contains('dark-theme');
+    const isGuest = currentUser.id.startsWith('guest_');
+
+    let html = '';
+
+    // --- Основные ---
+    html += `<div class="settings-section">
+        <div class="settings-section-header">Основные</div>
+        <div class="settings-row">
+            <span class="settings-label">Тёмная тема</span>
+            <label class="theme-switch" style="width: 51px; height: 31px;">
+                <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+                <span class="theme-slider"></span>
+            </label>
+        </div>
+    </div>`;
+
+    if (!isGuest) {
+        // Город
+        html += `<div class="settings-section">
+            <div class="settings-section-header">Мой город</div>
+            <div class="settings-picker-row">
+                <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()" style="margin:0;">
+                    <option value="">Регион</option>
+                    ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
+                </select>
+                <select id="settingsCity" class="input-field" onchange="saveCityFromSettings()" style="margin:0;">
+                    <option value="">Город</option>
+                    ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
+                </select>
+            </div>
+        </div>`;
+
+        // Автомобиль
+        const car = currentUser.car || {};
+        html += `<div class="settings-section">
+            <div class="settings-section-header">Автомобиль</div>
+            <div class="settings-row">
+                <span class="settings-label">Моё авто</span>
+                <span class="settings-value">
+                    ${(car.brand || car.model) ? `${car.brand || ''} ${car.model || ''}` : 'Не указан'}
+                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editCarDataFromSettings()">✏️</button>
+                </span>
+            </div>
+        </div>`;
+
+        // Профиль
+        html += `<div class="settings-section">
+            <div class="settings-section-header">Профиль</div>
+            <div class="settings-row">
+                <span class="settings-label">Никнейм</span>
+                <span class="settings-value">
+                    ${currentUser.nickname || 'Не указан'}
+                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editNickname()">✏️</button>
+                </span>
+            </div>
+            <div class="settings-row" onclick="resetOnboarding()">
+                <span class="settings-label">Обучение</span>
+                <span class="settings-value">Показать ещё раз <span class="settings-arrow">›</span></span>
+            </div>
+        </div>`;
+
+        // Опасные действия
+        html += `<div class="settings-section">
+            <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
+        </div>`;
+    } else {
+        html += `<div class="settings-section">
+            <div class="settings-row">
+                <span class="settings-label" style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span>
+            </div>
+        </div>`;
+    }
+
+    contentEl.innerHTML = html;
+}
 // ===================== НАСТРОЙКИ: ГОРОД =====================
 
 // Обновляет список городов в настройках при смене региона
