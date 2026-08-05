@@ -1701,7 +1701,7 @@ color: #fff;
         <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
         <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
     </div>
-    <!-- Оверлей выбора города (глобальный) -->
+   <!-- Оверлей выбора города (теперь независим) -->
 <div id="cityPickerOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:4500; align-items:center; justify-content:center; flex-direction:column;">
     <div style="background:var(--bg-secondary); border-radius:16px; padding:24px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
         <h3 style="margin-top:0; text-align:center; font-weight:600;">Выберите город</h3>
@@ -3916,15 +3916,10 @@ function applyCityFromPicker() {
         alert('Выберите регион и город');
         return;
     }
-
-    // Устанавливаем временный город для карты (НЕ трогаем userCityPrefs)
     mapCity = { region, city };
-
     closeCityPicker();
-    updateCityDisplay();   // обновляем плашку на карте
-    loadAllParkings();     // перезагружаем парковки с новым городом
-
-    // Если открыта панель поиска – обновляем список
+    updateCityDisplay();
+    loadAllParkings();
     if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
         filterParkings();
     }
@@ -4455,9 +4450,9 @@ function saveNickname(newNickname) {
         currentUser.nickname = nick;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
         // Если настройки открыты, перерисуем их
-        if (document.getElementById('').style.display === 'flex') {
-            renderSettings();
-        }
+        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+    renderSettings();
+}
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
@@ -4601,7 +4596,7 @@ function saveCarData() {
     }).then(() => {
         closeCarEditor();
         // Если окно настроек открыто, обновим его
-      if (document.getElementById('settingsOverlay').style.display === 'flex') {
+    if (document.getElementById('settingsOverlay').style.display === 'flex') {
     renderSettings();
 }
         if (window.Telegram?.WebApp?.HapticFeedback) {
