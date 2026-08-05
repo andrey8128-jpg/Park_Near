@@ -4428,7 +4428,7 @@ function renderSettings() {
         html += `<div class="settings-section">
             <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
         </div>`;
-    } else {
+     else {
         html += `<div class="settings-section">
             <div class="settings-row">
                 <span class="settings-label" style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span>
@@ -4438,11 +4438,14 @@ function renderSettings() {
 
     content.innerHTML = html;
 }
-function editNickname() {
-    const newNick = prompt('Введите новый никнейм', currentUser.nickname || '');
-    if (newNick !== null) {
-        saveNickname(newNick);
-    }
+
+function showSettings() {
+    document.getElementById('settingsOverlay').style.display = 'flex';
+    renderSettings();
+}
+
+function closeSettings() {
+    document.getElementById('settingsOverlay').style.display = 'none';
 }
 
 function saveNickname(newNickname) {
@@ -4453,10 +4456,9 @@ function saveNickname(newNickname) {
     .then(() => {
         currentUser.nickname = nick;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
-        // Если настройки открыты, перерисуем их
         if (document.getElementById('settingsOverlay').style.display === 'flex') {
-    renderSettings();
-}
+            renderSettings();
+        }
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
@@ -4464,119 +4466,6 @@ function saveNickname(newNickname) {
     .catch(err => alert('Ошибка: ' + err.message));
 }
 
-function saveCityFromSettings() {
-    if (!currentUser) return;
-    const region = document.getElementById('settingsRegion').value;
-    const city = document.getElementById('settingsCity').value;
-    mapCity = null; // сбрасываем временный город, чтобы показать основной
-    // Сохраняем, даже если регион выбран без города (город может быть пустым)
-    database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
-    .then(() => {
-        userCityPrefs = { region, city };
-        loadAllParkings(); // перезагружаем маркеры на карте
-// Если открыта вкладка поиска, обновляем результаты
-if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
-    filterParkings();
-}
-// Обновляем подпись "Поиск: в городе" (если есть)
-const cityInfo = document.getElementById('cityFilterInfo');
-if (cityInfo) {
-    const label = city ? `в ${city}` : 'везде';
-    const strong = cityInfo.querySelector('strong');
-    if (strong) strong.textContent = label;
-}
-        // Тихое сохранение без всплывающего окна
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.selectionChanged();
-        }
-    })
-    .catch(err => console.error('Ошибка сохранения города:', err));
-}
-// Также необходимо обновить updateCitySelectInSettings, чтобы при смене региона обновлялся список городов:
-function updateCitySelectInSettings() {
-    const region = document.getElementById('settingsRegion').value;
-    const citySelect = document.getElementById('settingsCity');
-    citySelect.innerHTML = '<option value="">Выберите город</option>';
-    if (region && regionsData[region]) {
-        regionsData[region].forEach(city => {
-            const opt = document.createElement('option');
-            opt.value = city;
-            opt.textContent = city;
-            citySelect.appendChild(opt);
-        });
-    }
-    // Автоматически сохраняем выбранный регион (если город ещё не выбран, он останется пустым)
-    saveCityFromSettings();
-}
-function editCarDataFromSettings() {
-    closeSettings();
-    editCarData();
-}
-function editCarData() {
-    openCarEditor();
-}
-function resetOnboarding() {
-    localStorage.removeItem('onboardingSeen');
-    closeSettings(); 
-    showOnboarding();
-}
-// Открытие редактора авто
-function openCarEditor() {
-    const overlay = document.getElementById('carEditorOverlay');
-    if (!overlay) return;
-    
-    const brandSelect = document.getElementById('carBrandSelect');
-    brandSelect.innerHTML = '<option value="">Выберите марку</option>';
-    for (const brand of Object.keys(carBrands).sort()) {
-        brandSelect.innerHTML += `<option value="${brand}">${brand}</option>`;
-    }
-    
-    const colorSelect = document.getElementById('carColorSelect');
-    colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
-    for (const [colorName, colorHex] of Object.entries(carColors)) {
-        colorSelect.innerHTML += `<option value="${colorName}">${colorName}</option>`;
-    }
-    
-    if (currentUser) {
-        database.ref(`users/${currentUser.id}/car`).once('value').then(snap => {
-            const car = snap.val() || {};
-            if (car.brand) {
-                brandSelect.value = car.brand;
-                updateCarModelSelect();
-                if (car.model) {
-                    document.getElementById('carModelSelect').value = car.model;
-                }
-            }
-            if (car.color) {
-                colorSelect.value = car.color;
-            }
-            if (car.plate) {
-                document.getElementById('carPlateInput').value = car.plate;
-            }
-        });
-    }
-    
-    overlay.classList.add('active');
-}
-
-// Закрытие редактора
-function closeCarEditor() {
-    document.getElementById('carEditorOverlay').classList.remove('active');
-}
-
-// Обновление списка моделей при выборе марки
-function updateCarModelSelect() {
-    const brand = document.getElementById('carBrandSelect').value;
-    const modelSelect = document.getElementById('carModelSelect');
-    modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-    if (brand && carBrands[brand]) {
-        carBrands[brand].forEach(model => {
-            modelSelect.innerHTML += `<option value="${model}">${model}</option>`;
-        });
-    }
-}
-
-// Сохранение автомобиля в Firebase
 function saveCarData() {
     if (!currentUser) {
         alert('Необходимо авторизоваться');
@@ -4586,12 +4475,12 @@ function saveCarData() {
     const model = document.getElementById('carModelSelect').value;
     const color = document.getElementById('carColorSelect').value;
     const plate = document.getElementById('carPlateInput').value.trim().toUpperCase();
-    
+
     if (!brand || !model) {
         alert('Пожалуйста, выберите марку и модель');
         return;
     }
-    
+
     database.ref(`users/${currentUser.id}/car`).set({
         brand: brand,
         model: model,
@@ -4599,10 +4488,9 @@ function saveCarData() {
         plate: plate || null
     }).then(() => {
         closeCarEditor();
-        // Если окно настроек открыто, обновим его
-    if (document.getElementById('settingsOverlay').style.display === 'flex') {
-    renderSettings();
-}
+        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+            renderSettings();
+        }
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
