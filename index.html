@@ -1524,7 +1524,7 @@ color: #fff;
     <!-- Выбор города на карте -->
 <div id="citySelectorOnMap" onclick="openCityPicker()" style="position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 1001; background: var(--bg-secondary); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 8px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; color: var(--text-primary); transition: background 0.2s;">
     <span>🏙️</span>
-    <span id="cityDisplayName">Москва</span>
+<span id="cityDisplayName"></span>
     <span style="font-size: 12px; color: var(--text-secondary);">▼</span>
 </div>
 <div class="layer-switcher" id="layerSwitcher">🗺️</div>
@@ -3878,17 +3878,22 @@ function renderSearchPanel(content) {
 }
 function openCityPicker() {
     const overlay = document.getElementById('cityPickerOverlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-        const regionSelect = document.getElementById('cityPickerRegion');
-        const citySelect = document.getElementById('cityPickerCity');
-        if (regionSelect) {
-            regionSelect.value = userCityPrefs.region || '';
-            updateCityPickerCities();
-        }
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    
+    const regionSelect = document.getElementById('cityPickerRegion');
+    if (regionSelect) {
+        regionSelect.innerHTML = '<option value="">Выберите регион</option>';
+        Object.keys(regionsData).sort().forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = r;
+            if (r === userCityPrefs.region) opt.selected = true;
+            regionSelect.appendChild(opt);
+        });
+        updateCityPickerCities(); // обновляем города
     }
 }
-
 function closeCityPicker() {
     const overlay = document.getElementById('cityPickerOverlay');
     if (overlay) overlay.style.display = 'none';
@@ -3977,7 +3982,6 @@ const resultsContainer = document.getElementById('searchResults');
 if (!resultsContainer) return;
 
 // Берём город из настроек аккаунта (если не переопределён вручную)
-const filterCity = (nearbySearchFilter?.city) || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
 const filterRegion = (nearbySearchFilter?.region) || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
 let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
     // Фильтр по городу (если нет поиска по координатам)
@@ -4608,8 +4612,52 @@ function saveCarData() {
 }
 // ===================== ИЗБРАННОЕ =====================
 function loadUserData(type, content) {
-    if (!currentUser) { content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>'; return; }
-    if (type === 'favorites') {
+    if (!currentUser) {
+        if (content) {
+            content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>';
+        }
+        return;
+    }
+
+    // 1. Загружаем статистику пользователя (всегда)
+    database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+            const initialStats = {
+                registeredAt: Date.now(),
+                lastActive: Date.now(),
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [new Date().toISOString().split('T')[0]]
+            };
+            database.ref(`users/${currentUser.id}/stats`).set(initialStats);
+        } else {
+            const stats = snapshot.val();
+            const today = new Date().toISOString().split('T')[0];
+            let activeDates = stats.activeDates || [];
+            if (!activeDates.includes(today)) activeDates.push(today);
+            database.ref(`users/${currentUser.id}/stats`).update({ 
+                lastActive: Date.now(), 
+                activeDates: activeDates 
+            });
+        }
+    });
+
+    // 2. Загружаем предпочтения города (и обновляем плашку на карте)
+    database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
+        if (snap.exists()) {
+            userCityPrefs = snap.val();
+            // ★★★ ОБНОВЛЯЕМ ОТОБРАЖЕНИЕ ГОРОДА НА КАРТЕ ★★★
+            if (typeof updateCityDisplay === 'function') {
+                updateCityDisplay();
+            }
+        }
+    });
+
+    // 3. Если передан тип 'favorites' и есть контейнер – загружаем избранное
+    if (type === 'favorites' && content) {
         Promise.all([
             database.ref(`users/${currentUser.id}/favorites`).once('value'),
             database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
