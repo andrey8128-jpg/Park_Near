@@ -3930,8 +3930,8 @@ function applyCityFromPicker() {
         filterParkings();
     }
 }
-    function updateCityDisplay() {
-    const cityName = userCityPrefs.city || 'Не указан';
+   function updateCityDisplay() {
+    const cityName = mapCity ? mapCity.city : (userCityPrefs.city || 'Не указан');
     const displayEl = document.getElementById('cityDisplayName');
     if (displayEl) {
         displayEl.textContent = cityName;
@@ -3983,14 +3983,15 @@ const resultsContainer = document.getElementById('searchResults');
 if (!resultsContainer) return;
 
 // Берём город из настроек аккаунта (если не переопределён вручную)
-const filterCity = (nearbySearchFilter?.city) || userCityPrefs.city || '';
+const filterCity = (nearbySearchFilter?.city) || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
+const filterRegion = (nearbySearchFilter?.region) || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
 const filterRegion = (nearbySearchFilter?.region) || userCityPrefs.region || '';
 
 let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
     // Фильтр по городу (если нет поиска по координатам)
 const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
 if (!hasNearbyFilter) {
-    const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
+    const cityFilter = mapCity ? mapCity.city.toLowerCase() : (userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '');
     if (cityFilter) {
         parkings = parkings.filter(p => {
             const pCity = (p.city || '').toLowerCase();
@@ -4471,6 +4472,7 @@ function saveCityFromSettings() {
     if (!currentUser) return;
     const region = document.getElementById('settingsRegion').value;
     const city = document.getElementById('settingsCity').value;
+    mapCity = null; // сбрасываем временный город, чтобы показать основной
     // Сохраняем, даже если регион выбран без города (город может быть пустым)
     database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
     .then(() => {
