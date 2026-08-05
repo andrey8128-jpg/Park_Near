@@ -3887,21 +3887,24 @@ function openCityPicker() {
             const opt = document.createElement('option');
             opt.value = r;
             opt.textContent = r;
-            // Если есть сохранённый регион – выбираем его
             if (r === userCityPrefs.region) opt.selected = true;
             regionSelect.appendChild(opt);
         });
         updateCityPickerCities(); // обновляем города
     }
 }
+
 function closeCityPicker() {
     const overlay = document.getElementById('cityPickerOverlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
 }
 
 function updateCityPickerCities() {
-    const region = document.getElementById('cityPickerRegion').value;
+    const region = document.getElementById('cityPickerRegion')?.value;
     const citySelect = document.getElementById('cityPickerCity');
+    if (!citySelect) return;
     citySelect.innerHTML = '<option value="">Выберите город</option>';
     if (region && regionsData[region]) {
         regionsData[region].forEach(city => {
@@ -3915,8 +3918,8 @@ function updateCityPickerCities() {
 }
 
 function applyCityFromPicker() {
-    const region = document.getElementById('cityPickerRegion').value;
-    const city = document.getElementById('cityPickerCity').value;
+    const region = document.getElementById('cityPickerRegion')?.value;
+    const city = document.getElementById('cityPickerCity')?.value;
     if (!region || !city) {
         alert('Выберите регион и город');
         return;
@@ -3929,7 +3932,8 @@ function applyCityFromPicker() {
         filterParkings();
     }
 }
-   function updateCityDisplay() {
+
+function updateCityDisplay() {
     const cityName = mapCity ? mapCity.city : (userCityPrefs.city || 'Не указан');
     const displayEl = document.getElementById('cityDisplayName');
     if (displayEl) {
@@ -4356,18 +4360,81 @@ function closeSettings() {
     document.getElementById('settingsOverlay').style.display = 'none';
 }
 function renderSettings() {
+    const contentEl = document.getElementById('settingsContent');
+    if (!contentEl) {
+        console.error('Элемент settingsContent не найден!');
+        return;
+    }
+// ===================== НАСТРОЙКИ: ГОРОД =====================
+
+// Обновляет список городов в настройках при смене региона
+function updateCitySelectInSettings() {
+    const region = document.getElementById('settingsRegion')?.value;
+    const citySelect = document.getElementById('settingsCity');
+    if (!citySelect) return;
+    
+    // Очищаем список и добавляем дефолтный пункт
+    citySelect.innerHTML = '<option value="">Выберите город</option>';
+    
+    if (region && regionsData[region]) {
+        regionsData[region].forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.textContent = city;
+            // Если это текущий город пользователя – делаем выбранным
+            if (city === userCityPrefs.city) opt.selected = true;
+            citySelect.appendChild(opt);
+        });
+    }
+}
+
+// Сохраняет выбранный город из настроек в Firebase и обновляет карту
+function saveCityFromSettings() {
     if (!currentUser) {
-        document.getElementById('settingsContent').innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Пожалуйста, войдите в аккаунт</p>';
+        console.warn('Пользователь не авторизован');
+        return;
+    }
+    
+    const region = document.getElementById('settingsRegion')?.value;
+    const city = document.getElementById('settingsCity')?.value;
+    
+    if (!region || !city) {
+        // Если регион или город не выбраны – ничего не делаем
+        return;
+    }
+    
+    // Сбрасываем временный город на карте, чтобы отображался основной
+    mapCity = null;
+    
+    database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
+    .then(() => {
+        userCityPrefs = { region, city };
+        updateCityDisplay();   // обновляем плашку на карте
+        loadAllParkings();     // перезагружаем парковки
+        if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
+            filterParkings();
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+        console.log('✅ Город сохранён в профиле:', city);
+    })
+    .catch(err => {
+        console.error('❌ Ошибка сохранения города:', err);
+        alert('Не удалось сохранить город: ' + err.message);
+    });
+}
+    if (!currentUser) {
+        contentEl.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Пожалуйста, войдите в аккаунт</p>';
         return;
     }
 
-    const content = document.getElementById('settingsContent');
     const isDark = document.body.classList.contains('dark-theme');
     const isGuest = currentUser.id.startsWith('guest_');
 
     let html = '';
 
-    // --- Секция: Основные ---
+    // --- Основные ---
     html += `<div class="settings-section">
         <div class="settings-section-header">Основные</div>
         <div class="settings-row">
@@ -4380,7 +4447,7 @@ function renderSettings() {
     </div>`;
 
     if (!isGuest) {
-        // --- Секция: Город ---
+        // Город
         html += `<div class="settings-section">
             <div class="settings-section-header">Мой город</div>
             <div class="settings-picker-row">
@@ -4395,7 +4462,7 @@ function renderSettings() {
             </div>
         </div>`;
 
-        // --- Секция: Автомобиль ---
+        // Автомобиль
         const car = currentUser.car || {};
         html += `<div class="settings-section">
             <div class="settings-section-header">Автомобиль</div>
@@ -4408,7 +4475,7 @@ function renderSettings() {
             </div>
         </div>`;
 
-        // --- Секция: Профиль ---
+        // Профиль
         html += `<div class="settings-section">
             <div class="settings-section-header">Профиль</div>
             <div class="settings-row">
@@ -4424,12 +4491,11 @@ function renderSettings() {
             </div>
         </div>`;
 
-        // --- Секция: Опасные действия ---
+        // Опасные действия
         html += `<div class="settings-section">
             <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
         </div>`;
     } else {
-        // --- Секция для гостя ---
         html += `<div class="settings-section">
             <div class="settings-row">
                 <span class="settings-label" style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span>
@@ -4437,15 +4503,21 @@ function renderSettings() {
         </div>`;
     }
 
-    content.innerHTML = html;
+    contentEl.innerHTML = html;
 }
 function showSettings() {
-    document.getElementById('settingsOverlay').style.display = 'flex';
-    renderSettings();
+    const overlay = document.getElementById('settingsOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        renderSettings();
+    }
 }
 
 function closeSettings() {
-    document.getElementById('settingsOverlay').style.display = 'none';
+    const overlay = document.getElementById('settingsOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
 }
 
 function saveNickname(newNickname) {
@@ -4456,7 +4528,7 @@ function saveNickname(newNickname) {
     .then(() => {
         currentUser.nickname = nick;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
-        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+        if (document.getElementById('settingsOverlay')?.style?.display === 'flex') {
             renderSettings();
         }
         if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -4471,10 +4543,10 @@ function saveCarData() {
         alert('Необходимо авторизоваться');
         return;
     }
-    const brand = document.getElementById('carBrandSelect').value;
-    const model = document.getElementById('carModelSelect').value;
-    const color = document.getElementById('carColorSelect').value;
-    const plate = document.getElementById('carPlateInput').value.trim().toUpperCase();
+    const brand = document.getElementById('carBrandSelect')?.value;
+    const model = document.getElementById('carModelSelect')?.value;
+    const color = document.getElementById('carColorSelect')?.value;
+    const plate = document.getElementById('carPlateInput')?.value?.trim()?.toUpperCase();
 
     if (!brand || !model) {
         alert('Пожалуйста, выберите марку и модель');
@@ -4488,7 +4560,7 @@ function saveCarData() {
         plate: plate || null
     }).then(() => {
         closeCarEditor();
-        if (document.getElementById('settingsOverlay').style.display === 'flex') {
+        if (document.getElementById('settingsOverlay')?.style?.display === 'flex') {
             renderSettings();
         }
         if (window.Telegram?.WebApp?.HapticFeedback) {
