@@ -3880,7 +3880,6 @@ function openCityPicker() {
     const overlay = document.getElementById('cityPickerOverlay');
     if (overlay) {
         overlay.style.display = 'flex';
-        // Обновляем списки согласно текущему городу
         const regionSelect = document.getElementById('cityPickerRegion');
         const citySelect = document.getElementById('cityPickerCity');
         if (regionSelect) {
@@ -3985,8 +3984,6 @@ if (!resultsContainer) return;
 // Берём город из настроек аккаунта (если не переопределён вручную)
 const filterCity = (nearbySearchFilter?.city) || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
 const filterRegion = (nearbySearchFilter?.region) || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
-const filterRegion = (nearbySearchFilter?.region) || userCityPrefs.region || '';
-
 let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
     // Фильтр по городу (если нет поиска по координатам)
 const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
@@ -4604,9 +4601,9 @@ function saveCarData() {
     }).then(() => {
         closeCarEditor();
         // Если окно настроек открыто, обновим его
-        if (document.getElementById('').style.display === 'flex') {
-            renderSettings();
-        }
+      if (document.getElementById('settingsOverlay').style.display === 'flex') {
+    renderSettings();
+}
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
