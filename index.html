@@ -3917,51 +3917,17 @@ function applyCityFromPicker() {
         alert('Выберите регион и город');
         return;
     }
-    
-    // Обновляем локальные переменные
-    userCityPrefs.region = region;
-    userCityPrefs.city = city;
-    
-    // Сбрасываем фильтры поиска по координатам (важно!)
-    nearbySearchFilter = null;
-    userLocationForSearch = null;
-    
-    // Если пользователь авторизован, сохраняем в Firebase
-    if (currentUser) {
-        database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
-        .then(() => {
-            // 1. Обновляем карту (загружаем парковки с новым городом)
-            loadAllParkings();
-            
-            // 2. Ждём загрузки и обновляем список поиска
-            setTimeout(() => {
-                if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
-                    filterParkings();
-                }
-            }, 500);
-            
-            // 3. Обновляем подпись в поиске
-            const cityInfo = document.getElementById('cityFilterInfo');
-            if (cityInfo) {
-                const label = city ? `в ${city}` : 'везде';
-                const strong = cityInfo.querySelector('strong');
-                if (strong) strong.textContent = label;
-            }
-            
-            // 4. Закрываем оверлей
-            closeCityPicker();
-            
-            // 5. Тактильная отдача (если есть)
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
-        })
-        .catch(err => {
-            console.error('Ошибка сохранения города:', err);
-            alert('Ошибка сохранения: ' + err.message);
-        });
-    } else {
-        alert('Пользователь не авторизован');
+
+    // Устанавливаем временный город для карты (НЕ трогаем userCityPrefs)
+    mapCity = { region, city };
+
+    closeCityPicker();
+    updateCityDisplay();   // обновляем плашку на карте
+    loadAllParkings();     // перезагружаем парковки с новым городом
+
+    // Если открыта панель поиска – обновляем список
+    if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
+        filterParkings();
     }
 }
     function updateCityDisplay() {
