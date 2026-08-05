@@ -4356,7 +4356,7 @@ function closeSettings() {
 function renderSettings() {
     const contentEl = document.getElementById('settingsContent');
     if (!contentEl) {
-        console.warn('❌ Элемент settingsContent не найден!');
+        console.error('Элемент settingsContent не найден!');
         return;
     }
 
@@ -4440,7 +4440,7 @@ function renderSettings() {
     }
 
     contentEl.innerHTML = html;
-}
+} 
 // ===================== НАСТРОЙКИ: ГОРОД =====================
 
 // Обновляет список городов в настройках при смене региона
