@@ -4428,7 +4428,8 @@ function renderSettings() {
         html += `<div class="settings-section">
             <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
         </div>`;
-     else {
+    } else {
+        // --- Секция для гостя ---
         html += `<div class="settings-section">
             <div class="settings-row">
                 <span class="settings-label" style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span>
@@ -4438,7 +4439,6 @@ function renderSettings() {
 
     content.innerHTML = html;
 }
-
 function showSettings() {
     document.getElementById('settingsOverlay').style.display = 'flex';
     renderSettings();
