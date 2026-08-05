@@ -1821,6 +1821,7 @@ let currentParkingData = null;
 let originalPolyCoords = null;
 let editingParkingId = null;
 let editingPolygon = null;
+let mapCity = null;
 let parkingDataCache = {};
 let highlightedParkings = {};
 let lastClickTime = 0;
@@ -3987,6 +3988,7 @@ if (!resultsContainer) return;
 
 // Берём город из настроек аккаунта (если не переопределён вручную)
 const filterRegion = (nearbySearchFilter?.region) || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
+const filterCity = (nearbySearchFilter?.city) || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
 let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
     // Фильтр по городу (если нет поиска по координатам)
 const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
