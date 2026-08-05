@@ -4385,12 +4385,12 @@ html += `<div class="reputation-card">
  
 // ===================== НАСТРОЙКИ =====================
 function showSettings() {
-    document.getElementById('').style.display = 'flex';
+    document.getElementById('settingsOverlay').style.display = 'flex';
     renderSettings();
 }
 
 function closeSettings() {
-    document.getElementById('').style.display = 'none';
+    document.getElementById('settingsOverlay').style.display = 'none';
 }
 function renderSettings() {
     if (!currentUser) {
