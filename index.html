@@ -5286,14 +5286,12 @@ function renderProfile(content) {
 function toggleProfileSection(section) {
     const content = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}Content`);
     if (!content) return;
-
     const isOpen = content.classList.contains('open');
     if (isOpen) {
         content.classList.remove('open');
     } else {
         content.classList.add('open');
     }
-
     // Обновляем стрелку
     const header = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}`);
     if (header) {
@@ -5303,22 +5301,15 @@ function toggleProfileSection(section) {
         }
     }
 
-    // Загружаем/обновляем данные, если секция открывается
-    if (!isOpen) {
-        if (section === 'history') {
-            // Сбрасываем флаг, чтобы при повторном открытии данные обновились
-            window._historyLoaded = false;
-            loadUserParkingHistory();
-            window._historyLoaded = true;
-        } else if (section === 'favorites') {
-            window._favoritesLoaded = false;
-            loadFavoritesInline();
-            window._favoritesLoaded = true;
-        } else if (section === 'settings') {
-            // Перерисовываем настройки на случай, если они изменились
-            renderSettingsInline();
-        }
+    // Загружаем данные, если секция открыта
+    if (section === 'history' && !window._historyLoaded) {
+        loadUserParkingHistory();
+        window._historyLoaded = true;
+    } else if (section === 'favorites' && !window._favoritesLoaded) {
+        loadFavoritesInline();
+        window._favoritesLoaded = true;
     }
+  }
 }
 // ---- Загрузка истории парковок пользователя ----
 function loadUserParkingHistory() {
