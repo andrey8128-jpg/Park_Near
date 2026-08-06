@@ -5277,73 +5277,40 @@
 
                 content.innerHTML = html;
 
-                // ---- Загружаем данные в секции ----
-                // Автомобиль уже отрендерен
-                // История - загружаем при открытии
-                // Избранное - загружаем при открытии
-                // Настройки - рендерим сразу (inline)
+                // ---- Загружаем настройки сразу ----
                 renderSettingsInline();
 
-                // Подписываемся на события открытия секций, чтобы загружать данные
-                // Используем MutationObserver или просто при клике будем проверять, загружено ли
-                // В toggleProfileSection будем вызывать загрузку
-                // Но проще при клике на заголовок проверять, загружено ли, и если нет - загружать.
-                // Добавим флаги.
+                // ---- Флаги для загрузки (чтобы не дублировать) ----
                 window._historyLoaded = false;
                 window._favoritesLoaded = false;
 
-                // Для истории и избранного добавим обработчики в toggleProfileSection
-                // Но мы можем просто переопределить функцию toggleProfileSection, чтобы она вызывала загрузку.
-                // Или добавим проверку внутри.
-                // Так как toggleProfileSection будет определена позже, мы её переопределим.
-
-                // Переопределим функцию toggleProfileSection, чтобы она загружала данные.
-                const originalToggle = window.toggleProfileSection;
-                window.toggleProfileSection = function(section) {
-                    // Открываем/закрываем
-                    const content = document.getElementById(`profileSection${capitalize(section)}Content`);
-                    if (content) {
-                        const isOpen = content.classList.contains('open');
+                // ---- Переопределяем toggleProfileSection, если она ещё не определена ----
+                if (typeof window.toggleProfileSection === 'undefined') {
+                    window.toggleProfileSection = function(section) {
+                        const contentEl = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}Content`);
+                        if (!contentEl) return;
+                        const isOpen = contentEl.classList.contains('open');
                         if (isOpen) {
-                            content.classList.remove('open');
+                            contentEl.classList.remove('open');
                         } else {
-                            content.classList.add('open');
+                            contentEl.classList.add('open');
                         }
-                        // Обновляем стрелку
-                        const header = document.getElementById(`profileSection${capitalize(section)}`);
+                        const header = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}`);
                         if (header) {
                             const arrow = header.querySelector('span:last-child');
                             if (arrow) {
                                 arrow.textContent = isOpen ? '▶' : '▼';
                             }
                         }
-                    }
-
-                    // Загружаем данные, если секция открыта
-                    if (section === 'history' && !window._historyLoaded) {
-                        loadUserParkingHistory();
-                        window._historyLoaded = true;
-                    } else if (section === 'favorites' && !window._favoritesLoaded) {
-                        loadFavoritesInline();
-                        window._favoritesLoaded = true;
-                    }
-                };
-
-                // Вспомогательная функция capitalize
-                function capitalize(str) {
-                    return str.charAt(0).toUpperCase() + str.slice(1);
+                        if (section === 'history' && !window._historyLoaded) {
+                            loadUserParkingHistory();
+                            window._historyLoaded = true;
+                        } else if (section === 'favorites' && !window._favoritesLoaded) {
+                            loadFavoritesInline();
+                            window._favoritesLoaded = true;
+                        }
+                    };
                 }
-
-                // Если секция настроек открыта по умолчанию? Нет, все закрыты.
-                // Но для настроек мы уже отрендерили inline.
-
-                // ---- Обновляем состояние секций (закрыты) ----
-                document.querySelectorAll('.profile-section-content').forEach(el => el.classList.remove('open'));
-                // Стрелки в заголовках ставим '▶'
-                document.querySelectorAll('.profile-section-header span:last-child').forEach(el => el.textContent = '▶');
-
-                // Сохраняем ссылку на функцию для повторного вызова
-                window._renderProfile = renderProfile;
             });
         });
     });
