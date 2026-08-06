@@ -3045,21 +3045,21 @@
 
     // ===================== АВТОРИЗАЦИЯ =====================
     function initAuth() {
-        const saved = localStorage.getItem('tgUser');
-        if (saved) {
-            try {
-                currentUser = JSON.parse(saved);
-                window.currentUser = currentUser;
-                hideAuthScreen();
-                loadUserData('profile', document.getElementById('panelContent'));
-                return;
-            } catch (e) {
-                localStorage.removeItem('tgUser');
-            }
+    const saved = localStorage.getItem('tgUser');
+    if (saved) {
+        try {
+            currentUser = JSON.parse(saved);
+            window.currentUser = currentUser;
+            hideAuthScreen();
+            // Убираем вызов loadUserData() без аргументов – он не нужен здесь
+            showPanel('home');
+            return;
+        } catch (e) {
+            localStorage.removeItem('tgUser');
         }
-        showAuthScreen();
     }
-
+    showAuthScreen();
+}
     // ===================== ГЕОЛОКАЦИЯ =====================
     function getUserLocation() {
         if (lastKnownLocation) {
@@ -6314,39 +6314,42 @@ function saveCityFromSettingsInline() {
         }, duration);
     }
 
-    function onTelegramAuth(user) {
-        currentUser = {
-            id: 'tg_' + user.id,
-            username: user.username || 'tg_user',
-            firstName: user.first_name || 'Пользователь',
-            photoUrl: user.photo_url || '',
-            isGuest: false
-        };
-        window.currentUser = currentUser;
-        localStorage.setItem('tgUser', JSON.stringify(currentUser));
+   function onTelegramAuth(user) {
+    currentUser = {
+        id: 'tg_' + user.id,
+        username: user.username || 'tg_user',
+        firstName: user.first_name || 'Пользователь',
+        photoUrl: user.photo_url || '',
+        isGuest: false
+    };
+    window.currentUser = currentUser;
+    localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
-        const userRef = database.ref('users/' + currentUser.id);
-        userRef.update({
-            username: currentUser.username,
-            firstName: currentUser.firstName,
-            photoUrl: currentUser.photoUrl,
-            lastActive: Date.now()
-        }).catch(console.error);
+    const userRef = database.ref('users/' + currentUser.id);
+    userRef.update({
+        username: currentUser.username,
+        firstName: currentUser.firstName,
+        photoUrl: currentUser.photoUrl,
+        lastActive: Date.now()
+    }).catch(console.error);
 
-        userRef.child('stats').set({
-            registeredAt: Date.now(),
-            lastActive: Date.now(),
-            parkingsCreated: 0,
-            parkingsUpdated: 0,
-            confirmations: 0,
-            views: 0,
-            favorites: 0,
-            activeDates: [new Date().toISOString().split('T')[0]]
-        }).catch(console.error);
+    userRef.child('stats').set({
+        registeredAt: Date.now(),
+        lastActive: Date.now(),
+        parkingsCreated: 0,
+        parkingsUpdated: 0,
+        confirmations: 0,
+        views: 0,
+        favorites: 0,
+        activeDates: [new Date().toISOString().split('T')[0]]
+    }).catch(console.error);
 
-        hideAuthScreen();
-        showPanel('home');
-    }
+    hideAuthScreen();
+    // Убираем loadUserData() – она вызывается внутри showPanel('home')
+    // через renderHomePanel, который не требует данных пользователя для отображения
+    showPanel('home');
+    showOnboarding();
+}
     function renderHomePanel(content) {
     getUserLocation().then(coords => {
         userLocationForSearch = coords;
