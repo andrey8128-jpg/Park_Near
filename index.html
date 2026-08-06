@@ -5145,7 +5145,7 @@
     }
 
     // ===================== ПРОФИЛЬ =====================
-    function renderProfile(content) {
+function renderProfile(content) {
     if (!currentUser) {
         content.innerHTML = `
             <div class="profile-header">
@@ -5277,7 +5277,7 @@
                 renderSettingsInline();
 
                 window._historyLoaded = false;
-window._favoritesLoaded = false;
+                window._favoritesLoaded = false;
             });
         });
     });
