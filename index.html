@@ -4710,42 +4710,45 @@ onerror="document.getElementById('telegramWidgetContainer').innerHTML='<button c
         if (document.getElementById('sortSelect')) document.getElementById('sortSelect').value = 'name';
         filterParkings();
     }
-
     function renderSearchPanel(content) {
-        const now = Date.now();
-        const needRefresh = (now - lastDataRefresh > REFRESH_INTERVAL_MS) || lastDataRefresh === 0;
-        if (needRefresh) {
-            const savedSearch = document.getElementById('searchInput')?.value || '';
-            const savedSort = document.getElementById('sortSelect')?.value || 'name';
-            const savedRadius = document.getElementById('radiusSlider')?.value || '1';
-            const savedFreeOnly = document.getElementById('showWithFreeOnly')?.checked || false;
+    const now = Date.now();
+    const needRefresh = (now - lastDataRefresh > REFRESH_INTERVAL_MS) || lastDataRefresh === 0;
+    if (needRefresh) {
+        const searchInput = document.getElementById('searchInput');
+        const sortSelect = document.getElementById('sortSelect');
+        const radiusSlider = document.getElementById('radiusSlider');
+        const freeOnlyCheck = document.getElementById('showWithFreeOnly');
+        const savedSearch = searchInput ? searchInput.value : '';
+        const savedSort = sortSelect ? sortSelect.value : 'name';
+        const savedRadius = radiusSlider ? radiusSlider.value : '1';
+        const savedFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
 
-            content.innerHTML = `
+        content.innerHTML = `
             <div class="loading-state">
                 <div class="spinner"></div>
                 <p>Обновление данных...</p>
             </div>
         `;
 
-            loadAllParkings()
-                .then(() => {
-                    renderSearchPanel(content, {
-                        searchQuery: savedSearch,
-                        sortBy: savedSort,
-                        radius: savedRadius,
-                        freeOnly: savedFreeOnly
-                    });
-                })
-                .catch(() => {
-                    renderSearchPanel(content, {
-                        searchQuery: savedSearch,
-                        sortBy: savedSort,
-                        radius: savedRadius,
-                        freeOnly: savedFreeOnly
-                    });
+        loadAllParkings()
+            .then(() => {
+                renderSearchPanel(content, {
+                    searchQuery: savedSearch,
+                    sortBy: savedSort,
+                    radius: savedRadius,
+                    freeOnly: savedFreeOnly
                 });
-            return;
-        }
+            })
+            .catch(() => {
+                renderSearchPanel(content, {
+                    searchQuery: savedSearch,
+                    sortBy: savedSort,
+                    radius: savedRadius,
+                    freeOnly: savedFreeOnly
+                });
+            });
+        return;
+    }
 
         const state = arguments[1] || {};
         const defaultCity = userCityPrefs.city || '';
@@ -4941,17 +4944,15 @@ onerror="document.getElementById('telegramWidgetContainer').innerHTML='<button c
         }
         filterParkings();
     }
-
     function filterParkings() {
-        const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
-        const resultsContainer = document.getElementById('searchResults');
-        if (!resultsContainer) return;
+    const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+    const resultsContainer = document.getElementById('searchResults');
+    if (!resultsContainer) return;
 
-        const filterRegion = (nearbySearchFilter?.region) || (mapCity ? mapCity.region : '') || userCityPrefs
-            .region || '';
-        const filterCity = (nearbySearchFilter?.city) || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
-        let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
-        const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
+    const filterRegion = (nearbySearchFilter ? nearbySearchFilter.region : '') || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
+    const filterCity = (nearbySearchFilter ? nearbySearchFilter.city : '') || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
+    let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
+    const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
         if (!hasNearbyFilter) {
             const cityFilter = mapCity ? mapCity.city.toLowerCase() : (userCityPrefs.city ? userCityPrefs.city
                 .toLowerCase() : '');
@@ -4990,8 +4991,8 @@ onerror="document.getElementById('telegramWidgetContainer').innerHTML='<button c
             );
         }
 
-        if (nearbySearchFilter?.lat && nearbySearchFilter?.lng) {
-            const { lat, lng, radius } = nearbySearchFilter;
+     if (nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng) {
+    const { lat, lng, radius } = nearbySearchFilter;
             parkings = parkings.filter(p => {
                 const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
                 return dist <= radius;
