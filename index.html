@@ -5285,8 +5285,6 @@
                 window._favoritesLoaded = false;
 
                 // ---- Переопределяем toggleProfileSection, если она ещё не определена ----
-                if (typeof window.toggleProfileSection === 'undefined') {
-                    window.toggleProfileSection = function(section) {
                         const contentEl = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}Content`);
                         if (!contentEl) return;
                         const isOpen = contentEl.classList.contains('open');
@@ -6349,6 +6347,45 @@ function saveCityFromSettingsInline() {
         hideAuthScreen();
         showPanel('home');
     }
+    function renderHomePanel(content) {
+    getUserLocation().then(coords => {
+        userLocationForSearch = coords;
+        renderHomeContent(content, coords);
+    }).catch(() => {
+        userLocationForSearch = null;
+        renderHomeContent(content, null);
+    });
+}
+
+function renderHomeContent(content, coords) {
+    let html = `
+        <div class="home-header">
+            <div class="home-title">Парковка без забот</div>
+            <div class="home-subtitle">найдите свободное место рядом с домом</div>
+        </div>
+        <div class="home-search">
+            <input type="text" id="homeSearchInput" placeholder="куда вы направляетесь?" oninput="filterHomeParkings()">
+        </div>
+        <div class="home-actions">
+            <button class="btn-home btn-home-primary" onclick="goHome()">🏠 Еду домой</button>
+            <button class="btn-home btn-home-secondary" onclick="searchNearMe()">📍 Рядом со мной</button>
+        </div>
+        <div class="section-header">
+            <span>Рядом с вами</span>
+            <button class="see-all" onclick="showAllNearby()">См. все →</button>
+        </div>
+        <div id="homeParkingList" class="parking-list">
+            <div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>
+        </div>
+    `;
+    content.innerHTML = html;
+
+    if (coords) {
+        showNearbyParkings(coords, 5);
+    } else {
+        document.getElementById('homeParkingList').innerHTML = '<div class="empty-state"><p>Не удалось определить местоположение</p></div>';
+    }
+}
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
     function initApp() {
         initAuth();
