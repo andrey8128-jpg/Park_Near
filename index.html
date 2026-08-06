@@ -5301,15 +5301,20 @@ function toggleProfileSection(section) {
         }
     }
 
-    // Загружаем данные, если секция открыта
-    if (section === 'history' && !window._historyLoaded) {
-        loadUserParkingHistory();
-        window._historyLoaded = true;
-    } else if (section === 'favorites' && !window._favoritesLoaded) {
-        loadFavoritesInline();
-        window._favoritesLoaded = true;
+    // Загружаем данные, если секция открывается
+    if (!isOpen) {
+        if (section === 'history') {
+            window._historyLoaded = false;
+            loadUserParkingHistory();
+            window._historyLoaded = true;
+        } else if (section === 'favorites') {
+            window._favoritesLoaded = false;
+            loadFavoritesInline();
+            window._favoritesLoaded = true;
+        } else if (section === 'settings') {
+            renderSettingsInline();
+        }
     }
-  }
 }
 // ---- Загрузка истории парковок пользователя ----
 function loadUserParkingHistory() {
