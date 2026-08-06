@@ -5326,29 +5326,21 @@ function loadUserParkingHistory() {
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    // Собираем все парковки и проходим по их истории
     database.ref('parkings').once('value').then(snapshot => {
         const parkings = snapshot.val() || {};
         let allEntries = [];
 
-        // Проходим по всем парковкам
-        const promises = [];
         Object.keys(parkings).forEach(parkingId => {
             const parking = parkings[parkingId];
             if (!parking.history) return;
-            // Проверяем каждую запись в истории
             const history = parking.history;
             Object.keys(history).forEach(entryKey => {
                 const entry = history[entryKey];
                 if (entry.userId === userId) {
-                    // Если запись старше недели - удаляем (через отдельный запрос)
-                    // Но лучше удалить все старые записи для этого пользователя, чтобы не засорять
                     if (entry.timestamp < weekAgo) {
-                        // Удаляем запись
                         database.ref(`parkings/${parkingId}/history/${entryKey}`).remove();
-                        return; // не добавляем в список
+                        return;
                     }
-                    // Добавляем в список
                     allEntries.push({
                         parkingId: parkingId,
                         parkingName: parking.name || 'Без названия',
@@ -5363,7 +5355,6 @@ function loadUserParkingHistory() {
             });
         });
 
-        // Сортируем по времени (новые сверху)
         allEntries.sort((a, b) => b.timestamp - a.timestamp);
 
         if (allEntries.length === 0) {
@@ -5414,7 +5405,6 @@ function loadFavoritesInline() {
         }
         let html = '';
         entries.forEach(item => {
-            // Получаем актуальные данные о парковке из кеша или из базы
             const parking = parkingDataCache[item.parkingId];
             const free = parking ? (parking.totalSpots - parking.occupiedSpots) : '?';
             html += `
@@ -5447,7 +5437,6 @@ function renderSettingsInline() {
 
     let html = '';
 
-    // Тема
     html += `
         <div class="settings-row">
             <span class="settings-label">Тёмная тема</span>
@@ -5459,7 +5448,6 @@ function renderSettingsInline() {
     `;
 
     if (!isGuest) {
-        // Город
         html += `
             <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 6px;">
                 <span class="settings-label">Мой город</span>
@@ -5476,7 +5464,6 @@ function renderSettingsInline() {
             </div>
         `;
 
-        // Никнейм
         html += `
             <div class="settings-row">
                 <span class="settings-label">Никнейм</span>
@@ -5487,7 +5474,6 @@ function renderSettingsInline() {
             </div>
         `;
 
-        // Удалить аккаунт
         html += `
             <div class="settings-row" style="border-bottom: none;">
                 <button class="btn-danger-text" onclick="deleteAccount()" style="padding: 8px 0;">Удалить аккаунт</button>
@@ -5528,9 +5514,10 @@ function saveCityFromSettingsInline() {
             userCityPrefs = { region, city };
             updateCityDisplay();
             loadAllParkings();
-            if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
-                filterParkings();
-            }
+            // Если используется поиск (старый), но он удалён, просто не вызываем filterParkings
+            // if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
+            //     filterParkings();
+            // }
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.selectionChanged();
             }
