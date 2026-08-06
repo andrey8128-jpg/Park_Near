@@ -2391,12 +2391,20 @@
             <div style="font-size:48px; margin-bottom:12px;">🚗</div>
             <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
             <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
-            <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
-            data-telegram-login="parknear_bot"
-            data-size="large"
-            data-onauth="onTelegramAuth(user)"
-            data-request-access="write">
-        </script>
+           <!-- Виджет Telegram (загружается асинхронно) -->
+<div id="telegramWidgetContainer" style="min-height: 44px; margin-bottom: 8px;">
+    <div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0 auto;"></div>
+</div>
+<script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
+data-telegram-login="parknear_bot"
+data-size="large"
+data-onauth="onTelegramAuth(user)"
+data-request-access="write"
+onerror="document.getElementById('telegramWidgetContainer').innerHTML='<button class=\'telegram-btn\' onclick=\'openTelegramBot()\'>📱 Войти через Telegram</button>'">
+</script>
+
+<!-- Fallback кнопка (всегда видна) -->
+<button class="telegram-btn" onclick="openTelegramBot()" style="margin-top:8px;">📱 Войти через Telegram (альтернатива)</button>
         <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
         <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
     </div>
@@ -3044,22 +3052,24 @@
     }
 
     // ===================== АВТОРИЗАЦИЯ =====================
-    function initAuth() {
-        const saved = localStorage.getItem('tgUser');
-        if (saved) {
-            try {
-                currentUser = JSON.parse(saved);
-                window.currentUser = currentUser;
-                hideAuthScreen();
-                loadUserData('profile', document.getElementById('panelContent'));
-                return;
-            } catch (e) {
-                localStorage.removeItem('tgUser');
-            }
+   function initAuth() {
+    const saved = localStorage.getItem('tgUser');
+    if (saved) {
+        try {
+            currentUser = JSON.parse(saved);
+            window.currentUser = currentUser;
+            hideAuthScreen();
+            // Загружаем данные пользователя (статистика, город)
+            loadUserData();
+            // Показываем главную страницу
+            showPanel('home');
+            return;
+        } catch (e) {
+            localStorage.removeItem('tgUser');
         }
-        showAuthScreen();
     }
-
+    showAuthScreen();
+}
     // ===================== ГЕОЛОКАЦИЯ =====================
     function getUserLocation() {
         if (lastKnownLocation) {
@@ -6305,9 +6315,12 @@ function saveCityFromSettingsInline() {
             activeDates: [new Date().toISOString().split('T')[0]]
         }).catch(console.error);
 
-        hideAuthScreen();
-        showPanel('home');
-    }
+    hideAuthScreen();
+    // Загружаем данные пользователя перед показом панели
+    loadUserData();
+    showPanel('home');
+    showOnboarding();
+}
     function renderHomePanel(content) {
     getUserLocation().then(coords => {
         userLocationForSearch = coords;
@@ -6521,54 +6534,35 @@ function goHome() {
     // ============================================
 
     (function autoLogin() {
-        const savedUser = localStorage.getItem('tgUser');
-        if (savedUser) {
-            try {
-                const user = JSON.parse(savedUser);
-                currentUser = user;
-                window.currentUser = user;
-                hideAuthScreen();
-                if (document.getElementById('panelTitle').textContent === 'Профиль') {
-                    showPanel('home');
-                }
-                console.log('👤 Восстановлен пользователь из localStorage:', user.firstName);
-            } catch (e) {
-                localStorage.removeItem('tgUser');
-            }
-            return;
+    const savedUser = localStorage.getItem('tgUser');
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser);
+            currentUser = user;
+            window.currentUser = user;
+            console.log('👤 Восстановлен пользователь из localStorage:', user.firstName);
+        } catch (e) {
+            localStorage.removeItem('tgUser');
         }
-
-        if (window.Telegram && window.Telegram.WebApp) {
-            const webApp = window.Telegram.WebApp;
-            if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-                const user = webApp.initDataUnsafe.user;
-                console.log('🔄 Автоматический вход через Telegram:', user.first_name);
-                onTelegramAuth({
-                    id: user.id,
-                    first_name: user.first_name,
-                    last_name: user.last_name || '',
-                    username: user.username || '',
-                    photo_url: user.photo_url || '',
-                    auth_date: Math.floor(Date.now() / 1000),
-                    hash: webApp.initDataUnsafe.hash || ''
-                });
-            }
-        }
-    })();
-
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof ymaps !== 'undefined') {
-            initApp();
-            setTimeout(function() { initPullToRefresh(); }, 500);
-        } else {
-            window.addEventListener('load', function() {
-                ymaps.ready(function() {
-                    initApp();
-                });
+        return;
+    }
+    if (window.Telegram && window.Telegram.WebApp) {
+        const webApp = window.Telegram.WebApp;
+        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+            const user = webApp.initDataUnsafe.user;
+            console.log('🔄 Автоматический вход через Telegram:', user.first_name);
+            onTelegramAuth({
+                id: user.id,
+                first_name: user.first_name,
+                last_name: user.last_name || '',
+                username: user.username || '',
+                photo_url: user.photo_url || '',
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: webApp.initDataUnsafe.hash || ''
             });
         }
-    });
-
+    }
+})();
     function openTelegramBot() {
         console.log('openTelegramBot вызвана');
 
@@ -6602,11 +6596,15 @@ function goHome() {
     }
 
     function closeAuthScreen() {
-        const overlay = document.getElementById('authOverlay');
-        if (overlay) {
-            overlay.style.display = 'none';
-        }
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
     }
+    // Если пользователь не авторизован, показываем главную как гостевой режим
+    if (!currentUser) {
+        showPanel('home');
+    }
+}
 
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
