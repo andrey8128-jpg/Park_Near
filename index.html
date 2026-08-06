@@ -3052,16 +3052,15 @@ onerror="document.getElementById('telegramWidgetContainer').innerHTML='<button c
     }
 
     // ===================== АВТОРИЗАЦИЯ =====================
-   function initAuth() {
+  function initAuth() {
     const saved = localStorage.getItem('tgUser');
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
             window.currentUser = currentUser;
             hideAuthScreen();
-            // Загружаем данные пользователя (статистика, город)
+            // Загружаем данные пользователя и показываем главную
             loadUserData();
-            // Показываем главную страницу
             showPanel('home');
             return;
         } catch (e) {
@@ -3179,8 +3178,7 @@ onerror="document.getElementById('telegramWidgetContainer').innerHTML='<button c
                                 const pCity = (p.city || '').toLowerCase();
                                 const pAddr = (p.address || '').toLowerCase();
                                 const pName = (p.name || '').toLowerCase();
-                                if (!pCity.includes(cityFilter) && !pAddr.includes(cityFilter) && !pName
-                                    .includes(cityFilter)) {
+                                if (!pCity.includes(cityFilter) && !pAddr.includes(cityFilter) && !pName.includes(cityFilter)) {
                                     return;
                                 }
                             }
@@ -5458,22 +5456,35 @@ function renderSettingsInline() {
     `;
 
     if (!isGuest) {
-        html += `
-            <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 6px;">
-                <span class="settings-label">Мой город</span>
-                <div style="display: flex; gap: 8px;">
-                    <select id="settingsRegionInline" class="input-field" onchange="updateCitySelectInSettingsInline()" style="flex:1; margin:0;">
-                        <option value="">Регион</option>
-                        ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
-                    </select>
-                    <select id="settingsCityInline" class="input-field" onchange="saveCityFromSettingsInline()" style="flex:1; margin:0;">
-                        <option value="">Город</option>
-                        ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
-                    </select>
-                </div>
-            </div>
-        `;
+        // Генерируем options для региона
+let regionOptions = '<option value="">Регион</option>';
+Object.keys(regionsData).sort().forEach(r => {
+    const sel = (r === userCityPrefs.region) ? ' selected' : '';
+    regionOptions += '<option value="' + r + '"' + sel + '>' + r + '</option>';
+});
 
+// Генерируем options для города
+let cityOptions = '<option value="">Город</option>';
+if (userCityPrefs.region && regionsData[userCityPrefs.region]) {
+    regionsData[userCityPrefs.region].forEach(c => {
+        const sel = (c === userCityPrefs.city) ? ' selected' : '';
+        cityOptions += '<option value="' + c + '"' + sel + '>' + c + '</option>';
+    });
+}
+
+html += `
+<div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 6px;">
+<span class="settings-label">Мой город</span>
+<div style="display: flex; gap: 8px;">
+<select id="settingsRegionInline" class="input-field" onchange="updateCitySelectInSettingsInline()" style="flex:1; margin:0;">
+${regionOptions}
+</select>
+<select id="settingsCityInline" class="input-field" onchange="saveCityFromSettingsInline()" style="flex:1; margin:0;">
+${cityOptions}
+</select>
+</div>
+</div>
+`;
         html += `
             <div class="settings-row">
                 <span class="settings-label">Никнейм</span>
@@ -5570,19 +5581,20 @@ function saveCityFromSettingsInline() {
     </div>`;
 
         if (!isGuest) {
-            html += `<div class="settings-section">
-            <div class="settings-section-header">Мой город</div>
-            <div class="settings-picker-row">
-                <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()" style="margin:0;">
-                    <option value="">Регион</option>
-                    ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
-                </select>
-                <select id="settingsCity" class="input-field" onchange="saveCityFromSettings()" style="margin:0;">
-                    <option value="">Город</option>
-                    ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
-                </select>
-            </div>
-        </div>`;
+            // Перед html += в renderSettings():
+let regionOptionsSettings = '<option value="">Регион</option>';
+Object.keys(regionsData).sort().forEach(r => {
+    const sel = (r === userCityPrefs.region) ? ' selected' : '';
+    regionOptionsSettings += '<option value="' + r + '"' + sel + '>' + r + '</option>';
+});
+
+let cityOptionsSettings = '<option value="">Город</option>';
+if (userCityPrefs.region && regionsData[userCityPrefs.region]) {
+    regionsData[userCityPrefs.region].forEach(c => {
+        const sel = (c === userCityPrefs.city) ? ' selected' : '';
+        cityOptionsSettings += '<option value="' + c + '"' + sel + '>' + c + '</option>';
+    });
+}
 
             const car = currentUser.car || {};
             html += `<div class="settings-section">
