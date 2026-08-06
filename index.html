@@ -6355,6 +6355,141 @@ function renderHomeContent(content, coords) {
         document.getElementById('homeParkingList').innerHTML = '<div class="empty-state"><p>Не удалось определить местоположение</p></div>';
     }
 }
+    function showNearbyParkings(coords, limit) {
+    const container = document.getElementById('homeParkingList');
+    if (!container) return;
+
+    const radius = 1000;
+    let parkings = Object.entries(parkingDataCache)
+        .map(([id, data]) => ({ id, ...data }))
+        .filter(p => p.lat && p.lng)
+        .map(p => {
+            const dist = getDistanceInMeters(coords.lat, coords.lng, p.lat, p.lng);
+            return { ...p, distance: dist };
+        })
+        .filter(p => p.distance <= radius)
+        .sort((a, b) => a.distance - b.distance);
+
+    if (parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
+        return;
+    }
+
+    const show = parkings.slice(0, limit);
+    let html = '';
+    show.forEach(p => {
+        const free = p.totalSpots - (p.occupiedSpots || 0);
+        const distStr = p.distance < 1000 ? Math.round(p.distance) + ' м' : (p.distance/1000).toFixed(1) + ' км';
+        html += `
+            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                <div class="info">
+                    <div class="name">${p.name || 'Без названия'}</div>
+                    <div class="addr">${p.address || ''}</div>
+                </div>
+                <div class="free">${free} мест</div>
+                <div class="distance">${distStr}</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    window._nearbyParkings = parkings;
+}
+
+function showAllNearby() {
+    const coords = userLocationForSearch;
+    if (!coords) {
+        alert('Геолокация не определена');
+        return;
+    }
+    const container = document.getElementById('homeParkingList');
+    if (container) {
+        showNearbyParkings(coords, 9999);
+        const seeAll = document.querySelector('.section-header .see-all');
+        if (seeAll) {
+            seeAll.textContent = 'Скрыть';
+            seeAll.onclick = function() {
+                showNearbyParkings(coords, 5);
+                this.textContent = 'См. все →';
+                this.onclick = showAllNearby;
+            };
+        }
+    }
+}
+
+function filterHomeParkings() {
+    const query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
+    const container = document.getElementById('homeParkingList');
+    if (!container) return;
+
+    if (!query) {
+        if (userLocationForSearch) {
+            showNearbyParkings(userLocationForSearch, 5);
+        }
+        return;
+    }
+
+    let parkings = Object.entries(parkingDataCache)
+        .map(([id, data]) => ({ id, ...data }))
+        .filter(p => {
+            const name = (p.name || '').toLowerCase();
+            const addr = (p.address || '').toLowerCase();
+            return name.includes(query) || addr.includes(query);
+        });
+
+    if (parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
+        return;
+    }
+
+    let html = '';
+    parkings.forEach(p => {
+        const free = p.totalSpots - (p.occupiedSpots || 0);
+        html += `
+            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                <div class="info">
+                    <div class="name">${p.name || 'Без названия'}</div>
+                    <div class="addr">${p.address || ''}</div>
+                </div>
+                <div class="free">${free} мест</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function goHome() {
+    if (!currentUser) {
+        alert('Войдите, чтобы использовать домашний адрес');
+        return;
+    }
+    database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
+        .then(snap => {
+            const addrs = snap.val() || {};
+            let home = null;
+            for (const key in addrs) {
+                if (addrs[key].label === 'Дом') {
+                    home = addrs[key];
+                    break;
+                }
+            }
+            if (!home) {
+                alert('Домашний адрес не найден. Добавьте его в избранном.');
+                return;
+            }
+            if (home.lat && home.lng) {
+                map.setCenter([home.lat, home.lng], 16, { duration: 500 });
+                const coords = { lat: home.lat, lng: home.lng };
+                userLocationForSearch = coords;
+                const container = document.getElementById('homeParkingList');
+                if (container) {
+                    showNearbyParkings(coords, 5);
+                }
+            } else {
+                alert('У домашнего адреса нет координат. Добавьте адрес через карту.');
+            }
+        })
+        .catch(err => alert('Ошибка: ' + err.message));
+}
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
     function initApp() {
         initAuth();
