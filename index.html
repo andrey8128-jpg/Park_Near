@@ -3061,25 +3061,55 @@
 }
     // ===================== ГЕОЛОКАЦИЯ =====================
     function getUserLocation() {
-        if (lastKnownLocation) {
-            console.log('📍 Используем кешированную геолокацию');
-            return Promise.resolve(lastKnownLocation);
-        }
-
-        return new Promise(function(resolve, reject) {
-            if (window.Telegram?.WebApp?.Geolocation?.getLocation &&
-                typeof window.Telegram.WebApp.Geolocation.getLocation === 'function') {
-                window.Telegram.WebApp.Geolocation.getLocation()
-                    .then(function(loc) {
-                        lastKnownLocation = { lat: loc.latitude, lng: loc.longitude };
-                        resolve(lastKnownLocation);
-                    })
-                    .catch(function() { tryBrowserGeolocation(resolve, reject); });
-                return;
-            }
-            tryBrowserGeolocation(resolve, reject);
-        });
+    // Если уже есть кешированные координаты – возвращаем их сразу
+    if (lastKnownLocation) {
+        console.log('📍 Используем кешированную геолокацию');
+        return Promise.resolve(lastKnownLocation);
     }
+
+    return new Promise(function(resolve, reject) {
+        // Сначала пытаемся через нативный navigator.geolocation (работает в HTTPS)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    var coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    lastKnownLocation = coords;
+                    console.log('✅ Геолокация получена через navigator.geolocation:', coords);
+                    resolve(coords);
+                },
+                function(err) {
+                    console.warn('❌ navigator.geolocation не удался:', err.message);
+                    // Если нативный не сработал – пробуем через Яндекс (если карта готова)
+                    tryYandexGeolocation(resolve, reject);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        } else {
+            // navigator.geolocation недоступен – пробуем Яндекс
+            tryYandexGeolocation(resolve, reject);
+        }
+    });
+}
+
+function tryYandexGeolocation(resolve, reject) {
+    if (typeof ymaps !== 'undefined' && ymaps.geolocation) {
+        ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
+            .then(function(result) {
+                var coords = result.geoObjects.get(0).geometry.getCoordinates();
+                var location = { lat: coords[0], lng: coords[1] };
+                lastKnownLocation = location;
+                console.log('✅ Геолокация получена через Яндекс:', location);
+                resolve(location);
+            })
+            .catch(function(err) {
+                console.error('❌ Яндекс.Геолокация не удалась:', err);
+                reject(new Error('Геолокация недоступна'));
+            });
+    } else {
+        // Ни один метод не сработал
+        reject(new Error('Геолокация не поддерживается браузером'));
+    }
+}
 
     function tryBrowserGeolocation(resolve, reject) {
         if (typeof ymaps !== 'undefined') {
@@ -4679,14 +4709,40 @@
 
     // ===================== ПОИСК =====================
     function searchNearMe() {
-        getUserLocation().then(coords => {
-            userLocationForSearch = coords;
-            nearbySearchFilter = { lat: coords.lat, lng: coords.lng, radius: 1000 };
-            document.getElementById('radiusSlider').value = 1;
-            document.getElementById('radiusLabel').textContent = '1 км';
-            filterParkings();
-        }).catch(() => alert('Геолокация недоступна'));
+    // Показываем индикатор загрузки в блоке "Рядом с вами"
+    var container = document.getElementById('homeParkingList');
+    if (container) {
+        container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Поиск парковок рядом...</p></div>';
     }
+
+    getUserLocation().then(function(coords) {
+        userLocationForSearch = coords;
+        // Обновляем список на главной
+        if (container) {
+            showNearbyParkings(coords, 5);
+        }
+        // Также обновляем фильтр в поиске (если он открыт)
+        if (document.getElementById('searchResults')) {
+            nearbySearchFilter = { lat: coords.lat, lng: coords.lng, radius: 1000 };
+            filterParkings();
+        }
+        // Обновляем слайдер радиуса (если есть)
+        var radiusSlider = document.getElementById('radiusSlider');
+        if (radiusSlider) {
+            radiusSlider.value = 1;
+            var radiusLabel = document.getElementById('radiusLabel');
+            if (radiusLabel) radiusLabel.textContent = '1 км';
+        }
+    }).catch(function(err) {
+        console.error('Ошибка геолокации:', err);
+        alert('Не удалось определить ваше местоположение. Проверьте разрешения для геолокации в браузере.');
+        // Если геолокация не удалась, показываем все парковки (без сортировки)
+        if (container) {
+            var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
+            renderParkingList(container, allParkings);
+        }
+    });
+}
 
     function clearFilters() {
         nearbySearchFilter = {
@@ -6378,6 +6434,171 @@ function renderHomeContent(content, coords) {
             renderParkingList(container, allParkings);
         }
     }
+}
+function showNearbyParkings(coords, limit) {
+    var container = document.getElementById('homeParkingList');
+    if (!container) return;
+
+    var radius = 1000;
+    var parkings = Object.entries(parkingDataCache)
+        .map(function(entry) {
+            var id = entry[0];
+            var data = entry[1];
+            var dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
+            return { id: id, ...data, distance: dist };
+        })
+        .filter(function(p) { return p.lat && p.lng && p.distance <= radius; })
+        .sort(function(a, b) { return a.distance - b.distance; });
+
+    if (parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
+        return;
+    }
+
+    var show = parkings.slice(0, limit);
+    var html = '';
+    show.forEach(function(p) {
+        var free = p.totalSpots - (p.occupiedSpots || 0);
+        var distStr = p.distance < 1000 ? Math.round(p.distance) + ' м' : (p.distance/1000).toFixed(1) + ' км';
+        html += `
+            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                <div class="info">
+                    <div class="name">${p.name || 'Без названия'}</div>
+                    <div class="addr">${p.address || ''}</div>
+                </div>
+                <div class="free">${free} мест</div>
+                <div class="distance">${distStr}</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    window._nearbyParkings = parkings;
+}
+
+function showAllNearby() {
+    var coords = userLocationForSearch;
+    if (!coords) {
+        alert('Геолокация не определена');
+        return;
+    }
+    var container = document.getElementById('homeParkingList');
+    if (container) {
+        showNearbyParkings(coords, 9999);
+        var seeAll = document.querySelector('.section-header .see-all');
+        if (seeAll) {
+            seeAll.textContent = 'Скрыть';
+            seeAll.onclick = function() {
+                showNearbyParkings(coords, 5);
+                this.textContent = 'См. все →';
+                this.onclick = showAllNearby;
+            };
+        }
+    }
+}
+
+function filterHomeParkings() {
+    var query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
+    var container = document.getElementById('homeParkingList');
+    if (!container) return;
+
+    if (!query) {
+        if (userLocationForSearch) {
+            showNearbyParkings(userLocationForSearch, 5);
+        } else {
+            var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
+            renderParkingList(container, allParkings);
+        }
+        return;
+    }
+
+    var parkings = Object.entries(parkingDataCache)
+        .map(function(entry) {
+            var id = entry[0];
+            var data = entry[1];
+            return { id: id, ...data };
+        })
+        .filter(function(p) {
+            var name = (p.name || '').toLowerCase();
+            var addr = (p.address || '').toLowerCase();
+            return name.indexOf(query) !== -1 || addr.indexOf(query) !== -1;
+        });
+
+    if (parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
+        return;
+    }
+
+    var html = '';
+    parkings.forEach(function(p) {
+        var free = p.totalSpots - (p.occupiedSpots || 0);
+        html += `
+            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                <div class="info">
+                    <div class="name">${p.name || 'Без названия'}</div>
+                    <div class="addr">${p.address || ''}</div>
+                </div>
+                <div class="free">${free} мест</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function goHome() {
+    if (!currentUser) {
+        alert('Войдите, чтобы использовать домашний адрес');
+        return;
+    }
+    database.ref('users/' + currentUser.id + '/homeAddresses').once('value')
+        .then(function(snap) {
+            var addrs = snap.val() || {};
+            var home = null;
+            for (var key in addrs) {
+                if (addrs.hasOwnProperty(key) && addrs[key].label === 'Дом') {
+                    home = addrs[key];
+                    break;
+                }
+            }
+            if (!home) {
+                alert('Домашний адрес не найден. Добавьте его в избранном.');
+                return;
+            }
+            if (home.lat && home.lng) {
+                map.setCenter([home.lat, home.lng], 16, { duration: 500 });
+                var coords = { lat: home.lat, lng: home.lng };
+                userLocationForSearch = coords;
+                var container = document.getElementById('homeParkingList');
+                if (container) {
+                    showNearbyParkings(coords, 5);
+                }
+            } else {
+                alert('У домашнего адреса нет координат. Добавьте адрес через карту.');
+            }
+        })
+        .catch(function(err) { alert('Ошибка: ' + err.message); });
+}
+
+// Вспомогательная функция для отображения списка парковок
+function renderParkingList(container, parkings) {
+    if (!parkings || parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Нет парковок</p></div>';
+        return;
+    }
+    var html = '';
+    parkings.forEach(function(p) {
+        var free = p.totalSpots - (p.occupiedSpots || 0);
+        var address = p.address || (p.lat ? p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) : '');
+        html += `
+            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
+                <div class="info">
+                    <div class="name">${p.name || 'Без названия'}</div>
+                    <div class="addr">${address}</div>
+                </div>
+                <div class="free">🅿️ ${free} свободно</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
 }
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
     function initApp() {
