@@ -3748,33 +3748,46 @@ function tryYandexGeolocation(resolve, reject) {
 
     // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
     function openParkingSheet(parkingId, data) {
-        const sheet = document.getElementById('parkingSheet');
-        const content = document.getElementById('sheetContent');
-        const addr = data.address || `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`;
-        const free = data.totalSpots - data.occupiedSpots;
-
-        getUserLocation().then(coords => {
-            const dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-            const distKm = (dist / 1000).toFixed(1);
-            const driveTime = Math.round(dist / 500);
-            content.innerHTML = `
-          <h3>${data.name}</h3>
-          <p>📍 ${addr}</p>
-          <p>📏 ${distKm} км от вас</p>
-          <p>🚗 На авто: ${driveTime} мин</p>
-          <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-        `;
-            sheet.classList.add('active');
-        }).catch(() => {
-            content.innerHTML = `
-          <h3>${data.name}</h3>
-          <p>📍 ${addr}</p>
-          <p>📏 Расстояние неизвестно</p>
-          <p>🅿️ Свободно: ${free} / ${data.totalSpots}</p>
-        `;
-            sheet.classList.add('active');
-        });
+    // Получаем элементы bottom-sheet
+    var sheet = document.getElementById('parkingSheet');
+    var content = document.getElementById('sheetContent');
+    if (!sheet || !content) {
+        console.error('❌ Bottom-sheet элементы не найдены');
+        return;
     }
+
+    var addr = data.address || (data.lat && data.lng ? data.lat.toFixed(6) + ', ' + data.lng.toFixed(6) : 'Адрес не указан');
+    var free = data.totalSpots - (data.occupiedSpots || 0);
+
+    // Функция рендеринга содержимого с расстоянием
+    function renderContent(distKm, driveTime) {
+        var html = '';
+        html += '<h3>' + data.name + '</h3>';
+        html += '<p>📍 ' + addr + '</p>';
+        if (distKm !== undefined) {
+            html += '<p>📏 ' + distKm + ' км от вас</p>';
+            html += '<p>🚗 На авто: ' + driveTime + ' мин</p>';
+        } else {
+            html += '<p>📏 Расстояние неизвестно</p>';
+        }
+        html += '<p>🅿️ Свободно: ' + free + ' / ' + data.totalSpots + '</p>';
+        html += '<button class="btn-secondary" onclick="openOccupancyPanel(\'' + parkingId + '\')" style="margin-top:12px;">✏️ Редактировать</button>';
+        html += '<button class="btn-secondary" onclick="buildRouteToParking(\'' + parkingId + '\')" style="margin-top:8px;">🧭 Построить маршрут</button>';
+        content.innerHTML = html;
+        sheet.classList.add('active');
+    }
+
+    // Пытаемся получить геолокацию для расчёта расстояния
+    getUserLocation().then(function(coords) {
+        var dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
+        var distKm = (dist / 1000).toFixed(1);
+        var driveTime = Math.round(dist / 500);
+        renderContent(distKm, driveTime);
+    }).catch(function() {
+        // Если геолокация недоступна – показываем без расстояния
+        renderContent();
+    });
+}
 
     function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
 
