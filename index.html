@@ -4703,62 +4703,60 @@
     }
 
     function renderSearchPanel(content) {
-        const now = Date.now();
-        const needRefresh = (now - lastDataRefresh > REFRESH_INTERVAL_MS) || lastDataRefresh === 0;
-        if (needRefresh) {
-            const searchInput = document.getElementById('searchInput');
-const savedSearch = searchInput ? searchInput.value : '';
-const sortSelect = document.getElementById('sortSelect');
-const savedSort = sortSelect ? sortSelect.value : 'name';
-const radiusSlider = document.getElementById('radiusSlider');
-const savedRadius = radiusSlider ? radiusSlider.value : '1';
-const freeOnlyCheck = document.getElementById('showWithFreeOnly');
-const savedFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
+    const now = Date.now();
+    const needRefresh = (now - lastDataRefresh > REFRESH_INTERVAL_MS) || lastDataRefresh === 0;
+    if (needRefresh) {
+        const searchInput = document.getElementById('searchInput');
+        const sortSelect = document.getElementById('sortSelect');
+        const radiusSlider = document.getElementById('radiusSlider');
+        const freeOnlyCheck = document.getElementById('showWithFreeOnly');
+        const savedSearch = searchInput ? searchInput.value : '';
+        const savedSort = sortSelect ? sortSelect.value : 'name';
+        const savedRadius = radiusSlider ? radiusSlider.value : '1';
+        const savedFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
 
-            content.innerHTML = `
+        content.innerHTML = `
             <div class="loading-state">
                 <div class="spinner"></div>
                 <p>Обновление данных...</p>
             </div>
         `;
 
-            loadAllParkings()
-                .then(() => {
-                    renderSearchPanel(content, {
-                        searchQuery: savedSearch,
-                        sortBy: savedSort,
-                        radius: savedRadius,
-                        freeOnly: savedFreeOnly
-                    });
-                })
-                .catch(() => {
-                    renderSearchPanel(content, {
-                        searchQuery: savedSearch,
-                        sortBy: savedSort,
-                        radius: savedRadius,
-                        freeOnly: savedFreeOnly
-                    });
+        loadAllParkings()
+            .then(function() {
+                renderSearchPanel(content, {
+                    searchQuery: savedSearch,
+                    sortBy: savedSort,
+                    radius: savedRadius,
+                    freeOnly: savedFreeOnly
                 });
-            return;
-        }
+            })
+            .catch(function() {
+                renderSearchPanel(content, {
+                    searchQuery: savedSearch,
+                    sortBy: savedSort,
+                    radius: savedRadius,
+                    freeOnly: savedFreeOnly
+                });
+            });
+        return;
+    }
 
-        const state = arguments[1] || {};
-        const defaultCity = userCityPrefs.city || '';
-        const cityLabel = defaultCity ? `в ${defaultCity}` : 'везде';
+    var state = arguments[1] || {};
+    var defaultCity = userCityPrefs.city || '';
+    var searchQuery = state.searchQuery || '';
+    var sortBy = state.sortBy || 'name';
+    var radius = state.radius || '1';
+    var freeOnly = state.freeOnly !== undefined ? state.freeOnly : false;
 
-        const searchQuery = state.searchQuery || '';
-        const sortBy = state.sortBy || 'name';
-        const radius = state.radius || '1';
-        const freeOnly = state.freeOnly !== undefined ? state.freeOnly : false;
-
-        let html = `
+    var html = `
     <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()" value="${searchQuery}">
     </div>
- <div style="display:flex; gap:8px; margin-bottom:12px;">
-    <button class="btn-secondary" style="flex:1;" onclick="searchNearMe()">📍 Рядом со мной</button>
-    <button class="btn-outline" style="flex:1;" onclick="clearFilters()">↺ Сбросить</button>
-</div>
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <button class="btn-secondary" style="flex:1;" onclick="searchNearMe()">📍 Рядом со мной</button>
+        <button class="btn-outline" style="flex:1;" onclick="clearFilters()">↺ Сбросить</button>
+    </div>
     <div style="position: relative; margin: 12px 0;">
         <div id="radiusTooltip" style="position: absolute; top: -24px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-primary); padding: 2px 8px; border-radius: 8px; font-size: 12px; display: none; white-space: nowrap;"></div>
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -4791,41 +4789,39 @@ const savedFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
         <p style="color:var(--text-secondary); text-align:center;">Введите улицу для поиска</p>
     </div>
     `;
-        content.innerHTML = html;
+    content.innerHTML = html;
 
-        getUserLocation().then(coords => { userLocationForSearch = coords; }).catch(() => { userLocationForSearch =
-            null; });
-        filterParkings();
+    getUserLocation().then(function(coords) { userLocationForSearch = coords; }).catch(function() { userLocationForSearch = null; });
+    filterParkings();
 
-        setTimeout(() => {
-            const slider = document.getElementById('radiusSlider');
-            if (slider) {
-                slider.addEventListener('pointerdown', () => {
-                    const tooltip = document.getElementById('radiusTooltip');
-                    if (tooltip) tooltip.style.display = 'block';
-                });
-                slider.addEventListener('pointerup', () => {
-                    setTimeout(() => {
-                        const tooltip = document.getElementById('radiusTooltip');
-                        if (tooltip) tooltip.style.display = 'none';
-                    }, 800);
-                });
-            }
-        }, 100);
-
-        const freeToggle = document.getElementById('showWithFreeOnly');
-        if (freeToggle) {
-            freeToggle.addEventListener('change', () => {
-                setTimeout(filterParkings, 50);
+    setTimeout(function() {
+        var slider = document.getElementById('radiusSlider');
+        if (slider) {
+            slider.addEventListener('pointerdown', function() {
+                var tooltip = document.getElementById('radiusTooltip');
+                if (tooltip) tooltip.style.display = 'block';
+            });
+            slider.addEventListener('pointerup', function() {
+                setTimeout(function() {
+                    var tooltip = document.getElementById('radiusTooltip');
+                    if (tooltip) tooltip.style.display = 'none';
+                }, 800);
             });
         }
+    }, 100);
 
-        const radiusLabel = document.getElementById('radiusLabel');
-        if (radiusLabel) {
-            radiusLabel.textContent = radius + ' км';
-        }
+    var freeToggle = document.getElementById('showWithFreeOnly');
+    if (freeToggle) {
+        freeToggle.addEventListener('change', function() {
+            setTimeout(filterParkings, 50);
+        });
     }
 
+    var radiusLabel = document.getElementById('radiusLabel');
+    if (radiusLabel) {
+        radiusLabel.textContent = radius + ' км';
+    }
+}
     function openCityPicker() {
         const overlay = document.getElementById('cityPickerOverlay');
         if (!overlay) return;
@@ -4938,139 +4934,147 @@ const savedFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
     }
 
     function filterParkings() {
-        const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
-        const resultsContainer = document.getElementById('searchResults');
-        if (!resultsContainer) return;
+    var searchInput = document.getElementById('searchInput');
+    var query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    var resultsContainer = document.getElementById('searchResults');
+    if (!resultsContainer) return;
 
-        const filterRegion = (nearbySearchFilter ? nearbySearchFilter.region : '') || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
-const filterCity = (nearbySearchFilter ? nearbySearchFilter.city : '') || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
-        let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
-        const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
-        if (!hasNearbyFilter) {
-            const cityFilter = mapCity ? mapCity.city.toLowerCase() : (userCityPrefs.city ? userCityPrefs.city
-                .toLowerCase() : '');
-            if (cityFilter) {
-                parkings = parkings.filter(p => {
-                    const pCity = (p.city || '').toLowerCase();
-                    const pAddr = (p.address || '').toLowerCase();
-                    const pName = (p.name || '').toLowerCase();
-                    return pCity.includes(cityFilter) || pAddr.includes(cityFilter) || pName.includes(
-                    cityFilter);
+    var filterRegion = (nearbySearchFilter ? nearbySearchFilter.region : '') || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
+    var filterCity = (nearbySearchFilter ? nearbySearchFilter.city : '') || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
+    var parkings = Object.entries(parkingDataCache).map(function(entry) {
+        return { id: entry[0], ...entry[1] };
+    });
+    var hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
+
+    if (!hasNearbyFilter) {
+        var cityFilter = mapCity ? mapCity.city.toLowerCase() : (userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '');
+        if (cityFilter) {
+            parkings = parkings.filter(function(p) {
+                var pCity = (p.city || '').toLowerCase();
+                var pAddr = (p.address || '').toLowerCase();
+                var pName = (p.name || '').toLowerCase();
+                return pCity.indexOf(cityFilter) !== -1 || pAddr.indexOf(cityFilter) !== -1 || pName.indexOf(cityFilter) !== -1;
+            });
+        }
+    }
+
+    if (filterRegion) {
+        parkings = parkings.filter(function(p) {
+            return (p.region && p.region.toLowerCase().indexOf(filterRegion.toLowerCase()) !== -1) ||
+                   (p.address && p.address.toLowerCase().indexOf(filterRegion.toLowerCase()) !== -1) ||
+                   (p.name && p.name.toLowerCase().indexOf(filterRegion.toLowerCase()) !== -1);
+        });
+    }
+
+    if (filterCity) {
+        parkings = parkings.filter(function(p) {
+            return (p.city && p.city.toLowerCase().indexOf(filterCity.toLowerCase()) !== -1) ||
+                   (p.address && p.address.toLowerCase().indexOf(filterCity.toLowerCase()) !== -1) ||
+                   (p.name && p.name.toLowerCase().indexOf(filterCity.toLowerCase()) !== -1);
+        });
+    }
+
+    if (query) {
+        parkings = parkings.filter(function(p) {
+            return (p.name && p.name.toLowerCase().indexOf(query) !== -1) ||
+                   (p.address && p.address.toLowerCase().indexOf(query) !== -1) ||
+                   (p.street && p.street.toLowerCase().indexOf(query) !== -1) ||
+                   (p.houseNumber && p.houseNumber.toLowerCase().indexOf(query) !== -1);
+        });
+    }
+
+    if (nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng) {
+        var lat = nearbySearchFilter.lat;
+        var lng = nearbySearchFilter.lng;
+        var radius = nearbySearchFilter.radius;
+        parkings = parkings.filter(function(p) {
+            var dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
+            return dist <= radius;
+        });
+    }
+
+    var freeOnlyCheck = document.getElementById('showWithFreeOnly');
+    var showFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
+    if (showFreeOnly) {
+        parkings = parkings.filter(function(p) {
+            return (p.totalSpots - (p.occupiedSpots || 0)) > 0;
+        });
+    }
+
+    var sortSelect = document.getElementById('sortSelect');
+    var sortBy = sortSelect ? sortSelect.value : 'name';
+    switch (sortBy) {
+        case 'free':
+            parkings.sort(function(a, b) {
+                return (a.totalSpots - (a.occupiedSpots || 0)) - (b.totalSpots - (b.occupiedSpots || 0));
+            });
+            break;
+        case 'distance':
+            if (userLocationForSearch) {
+                parkings.sort(function(a, b) {
+                    var distA = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch.lng, a.lat, a.lng);
+                    var distB = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch.lng, b.lat, b.lng);
+                    return distA - distB;
                 });
             }
-        }
-        if (filterRegion) {
-            parkings = parkings.filter(p =>
-                (p.region && p.region.toLowerCase().includes(filterRegion.toLowerCase())) ||
-                (p.address && p.address.toLowerCase().includes(filterRegion.toLowerCase())) ||
-                (p.name && p.name.toLowerCase().includes(filterRegion.toLowerCase()))
-            );
-        }
-
-        if (filterCity) {
-            parkings = parkings.filter(p =>
-                (p.city && p.city.toLowerCase().includes(filterCity.toLowerCase())) ||
-                (p.address && p.address.toLowerCase().includes(filterCity.toLowerCase())) ||
-                (p.name && p.name.toLowerCase().includes(filterCity.toLowerCase()))
-            );
-        }
-
-        if (query) {
-            parkings = parkings.filter(p =>
-                (p.name && p.name.toLowerCase().includes(query)) ||
-                (p.address && p.address.toLowerCase().includes(query)) ||
-                (p.street && p.street.toLowerCase().includes(query)) ||
-                (p.houseNumber && p.houseNumber.toLowerCase().includes(query))
-            );
-        }
-
-        if (nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng) {
-    const { lat, lng, radius } = nearbySearchFilter;
-            parkings = parkings.filter(p => {
-                const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
-                return dist <= radius;
+            break;
+        default:
+            parkings.sort(function(a, b) {
+                return (a.name || '').localeCompare(b.name || '');
             });
-        }
+    }
 
-        const showFreeOnly = document.getElementById('showWithFreeOnly')?.checked;
-        if (showFreeOnly) {
-            parkings = parkings.filter(p => (p.totalSpots - (p.occupiedSpots || 0)) > 0);
-        }
-
-        const sortBy = document.getElementById('sortSelect')?.value || 'name';
-        switch (sortBy) {
-            case 'free':
-                parkings.sort((a, b) => (a.totalSpots - (a.occupiedSpots || 0)) - (b.totalSpots - (b.occupiedSpots ||
-                0)));
-                break;
-            case 'distance':
-                if (userLocationForSearch) {
-                    parkings.sort((a, b) => {
-                        const distA = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch
-                            .lng, a.lat, a.lng);
-                        const distB = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch
-                            .lng, b.lat, b.lng);
-                        return distA - distB;
-                    });
-                }
-                break;
-            default:
-                parkings.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        }
-
-        let html = '';
-        if (parkings.length === 0) {
-            html = `<div class="empty-state">
-        <p>Ничего не найдено${filterCity ? ' в ' + filterCity : ''}</p>
-        ${filterCity ? '<p style="font-size:13px; margin-top:8px;">Попробуйте изменить город в настройках</p>' : ''}
-        </div>`;
-        } else {
-            const grouped = {};
-            parkings.forEach(p => {
-                const key = (p.street || p.name || 'Без названия').trim();
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(p);
-            });
-            html = '<div class="list-container">';
-            for (const [street, items] of Object.entries(grouped)) {
-                html += `<div class="group-header" onclick="toggleGroup(this)">
-                <span class="group-icon">▼</span>
-                <span>${street} (${items.length})</span>
-                </div>`;
+    var html = '';
+    if (parkings.length === 0) {
+        html = '<div class="empty-state"><p>Ничего не найдено' + (filterCity ? ' в ' + filterCity : '') + '</p>' +
+               (filterCity ? '<p style="font-size:13px; margin-top:8px;">Попробуйте изменить город в настройках</p>' : '') +
+               '</div>';
+    } else {
+        var grouped = {};
+        parkings.forEach(function(p) {
+            var key = (p.street || p.name || 'Без названия').trim();
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(p);
+        });
+        html = '<div class="list-container">';
+        for (var street in grouped) {
+            if (grouped.hasOwnProperty(street)) {
+                var items = grouped[street];
+                html += '<div class="group-header" onclick="toggleGroup(this)">' +
+                        '<span class="group-icon">▼</span>' +
+                        '<span>' + street + ' (' + items.length + ')</span>' +
+                        '</div>';
                 html += '<div class="group-items">';
-                items.forEach(p => {
-                    const free = p.totalSpots - (p.occupiedSpots || 0);
-                    const isAuthor = currentUser && currentUser.id === p.authorId;
-                    let subtitle = '';
+                items.forEach(function(p) {
+                    var free = p.totalSpots - (p.occupiedSpots || 0);
+                    var isAuthor = currentUser && currentUser.id === p.authorId;
+                    var subtitle = '';
                     if (userLocationForSearch && p.lat && p.lng) {
-                        const dist = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch
-                            .lng, p.lat, p.lng);
-                        subtitle = (dist < 1000) ? `${Math.round(dist)} м от вас` :
-                            `${(dist/1000).toFixed(1)} км от вас`;
+                        var dist = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch.lng, p.lat, p.lng);
+                        subtitle = (dist < 1000) ? Math.round(dist) + ' м от вас' : (dist/1000).toFixed(1) + ' км от вас';
                     } else {
-                        subtitle = p.address || `${p.lat?.toFixed(4)}, ${p.lng?.toFixed(4)}`;
+                        subtitle = p.address || (p.lat ? p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) : '');
                     }
-                    subtitle += ` · Свободно: ${free}/${p.totalSpots}`;
-                    html += `
-                <div class="swipe-container">
-                <div class="swipe-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                <span class="occupancy-dot" style="background: ${getOccupancyDotColor(free, p.totalSpots)};"></span>
-                <div class="list-info">
-                <div class="list-title">${p.name || 'Без названия'}</div>
-                <div class="list-subtitle">${subtitle}</div>
-                </div>
-                </div>
-                ${isAuthor ? `<div class="swipe-delete" onclick="deleteParking('${p.id}')">Удалить</div>` : ''}
-                </div>`;
+                    subtitle += ' · Свободно: ' + free + '/' + p.totalSpots;
+                    html += '<div class="swipe-container">' +
+                            '<div class="swipe-item" onclick="focusMap(' + p.lat + ', ' + p.lng + ', \'' + p.id + '\')">' +
+                            '<span class="occupancy-dot" style="background: ' + getOccupancyDotColor(free, p.totalSpots) + ';"></span>' +
+                            '<div class="list-info">' +
+                            '<div class="list-title">' + (p.name || 'Без названия') + '</div>' +
+                            '<div class="list-subtitle">' + subtitle + '</div>' +
+                            '</div>' +
+                            '</div>' +
+                            (isAuthor ? '<div class="swipe-delete" onclick="deleteParking(\'' + p.id + '\')">Удалить</div>' : '') +
+                            '</div>';
                 });
                 html += '</div>';
             }
-            html += '</div>';
         }
-        resultsContainer.innerHTML = html;
-        attachSwipeToContainers(resultsContainer);
+        html += '</div>';
     }
-
+    resultsContainer.innerHTML = html;
+    attachSwipeToContainers(resultsContainer);
+}
     function focusMap(lat, lng, parkingId) {
         closePanel();
         setTimeout(() => {
@@ -5530,13 +5534,14 @@ function renderSettingsInline() {
 
 // ---- Вспомогательные функции для настроек инлайн ----
 function updateCitySelectInSettingsInline() {
-    const region = document.getElementById('settingsRegionInline')?.value;
-    const citySelect = document.getElementById('settingsCityInline');
+    var regionSelect = document.getElementById('settingsRegionInline');
+    var region = regionSelect ? regionSelect.value : '';
+    var citySelect = document.getElementById('settingsCityInline');
     if (!citySelect) return;
     citySelect.innerHTML = '<option value="">Выберите город</option>';
     if (region && regionsData[region]) {
-        regionsData[region].forEach(city => {
-            const opt = document.createElement('option');
+        regionsData[region].forEach(function(city) {
+            var opt = document.createElement('option');
             opt.value = city;
             opt.textContent = city;
             if (city === userCityPrefs.city) opt.selected = true;
@@ -5544,27 +5549,28 @@ function updateCitySelectInSettingsInline() {
         });
     }
 }
-
 function saveCityFromSettingsInline() {
     if (!currentUser) return;
-    const region = document.getElementById('settingsRegionInline')?.value;
-    const city = document.getElementById('settingsCityInline')?.value;
+    var regionSelect = document.getElementById('settingsRegionInline');
+    var citySelect = document.getElementById('settingsCityInline');
+    var region = regionSelect ? regionSelect.value : '';
+    var city = citySelect ? citySelect.value : '';
     if (!region || !city) return;
     mapCity = null;
-    database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
-        .then(() => {
-            userCityPrefs = { region, city };
+    database.ref('users/' + currentUser.id + '/cityPreferences').set({ region: region, city: city })
+        .then(function() {
+            userCityPrefs = { region: region, city: city };
             updateCityDisplay();
             loadAllParkings();
-            if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
-                filterParkings();
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.selectionChanged();
             }
         })
-        .catch(err => alert('Ошибка: ' + err.message));
+        .catch(function(err) {
+            alert('Ошибка: ' + err.message);
+        });
 }
+
 
     // ===================== НАСТРОЙКИ =====================
 
@@ -5675,39 +5681,31 @@ function saveCityFromSettingsInline() {
     }
 
     function saveCityFromSettings() {
-        if (!currentUser) {
-            console.warn('Пользователь не авторизован');
-            return;
-        }
-
-        const region = document.getElementById('settingsRegion')?.value;
-        const city = document.getElementById('settingsCity')?.value;
-
-        if (!region || !city) {
-            return;
-        }
-
-        mapCity = null;
-
-        database.ref(`users/${currentUser.id}/cityPreferences`).set({ region, city })
-            .then(() => {
-                userCityPrefs = { region, city };
-                updateCityDisplay();
-                loadAllParkings();
-                if (document.getElementById('panelTitle')?.textContent === 'Поиск') {
-                    filterParkings();
-                }
-                if (window.Telegram?.WebApp?.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.selectionChanged();
-                }
-                console.log('✅ Город сохранён в профиле:', city);
-            })
-            .catch(err => {
-                console.error('❌ Ошибка сохранения города:', err);
-                alert('Не удалось сохранить город: ' + err.message);
-            });
+    if (!currentUser) {
+        console.warn('Пользователь не авторизован');
+        return;
     }
-
+    var regionSelect = document.getElementById('settingsRegion');
+    var citySelect = document.getElementById('settingsCity');
+    var region = regionSelect ? regionSelect.value : '';
+    var city = citySelect ? citySelect.value : '';
+    if (!region || !city) return;
+    mapCity = null;
+    database.ref('users/' + currentUser.id + '/cityPreferences').set({ region: region, city: city })
+        .then(function() {
+            userCityPrefs = { region: region, city: city };
+            updateCityDisplay();
+            loadAllParkings();
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+            console.log('✅ Город сохранён в профиле:', city);
+        })
+        .catch(function(err) {
+            console.error('❌ Ошибка сохранения города:', err);
+            alert('Не удалось сохранить город: ' + err.message);
+        });
+}
     function saveNickname(newNickname) {
         if (!currentUser) return;
         const nick = newNickname || (document.getElementById('settingsNickname')?.value?.trim());
