@@ -945,24 +945,25 @@
             cursor: pointer;
         }
         .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-secondary);
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-            z-index: 2500;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            max-height: 70vh;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 12px + env(safe-area-inset-bottom));
-        }
-        .bottom-sheet.active {
-            transform: translateY(0);
-        }
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    width: calc(100% - 32px);
+    max-width: 420px;
+    background: var(--bg-secondary);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 2500;
+    transition: transform 0.3s ease;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 12px + env(safe-area-inset-bottom));
+}
+.bottom-sheet.active {
+    transform: translateX(-50%) translateY(0);
+}
         .sheet-header {
             display: flex;
             justify-content: center;
@@ -3286,59 +3287,51 @@
     }
 
     function addMarkerToMap(id, data) {
-        console.log('Добавляю маркер:', id, data);
+    console.log('Добавляю маркер:', id, data);
 
-        if (mapMarkers[id]) {
-            map.geoObjects.remove(mapMarkers[id]);
-            delete mapMarkers[id];
-        }
-
-        if (!map) return;
-
-        var totalSpots = data.totalSpots || 0;
-        var occupiedSpots = data.occupiedSpots || 0;
-        var freeSpots = totalSpots - occupiedSpots;
-        var color = getOccupancyColor(occupiedSpots, totalSpots);
-
-        var placemark;
-
-        var balloonContent = `
-        <div style="padding: 10px; font-family: -apple-system, sans-serif; max-width: 220px;">
-            <strong style="font-size: 16px;">${data.name}</strong>
-            <div style="font-size: 13px; color: #666; margin-top: 4px;">📍 ${data.address || (data.lat && data.lng ? data.lat.toFixed(5)+', '+data.lng.toFixed(5) : '')}</div>
-            <div style="font-size: 13px; color: #333; margin-top: 6px;">🅿️ Свободно: <b>${freeSpots}</b> / ${totalSpots}</div>
-            <div style="font-size: 12px; color: #999; margin-top: 4px;">🕒 Обновлено: ${formatDateTime(data.lastUpdatedAt || data.timestamp)}</div>
-            <div style="font-size: 12px; color: #999;">👤 ${data.lastUpdatedBy || data.authorName || 'Неизвестно'}</div>
-            <button onclick="openOccupancyPanel('${id}')" style="width: 100%; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px;">✏️ Изменить</button>
-            <button onclick="buildRouteToParking('${id}')" style="width:100%; padding:6px 0; background:transparent; color:#007AFF; border:1px solid #007AFF; border-radius:8px; font-size:14px; cursor:pointer; margin-top:6px;">🧭 Построить маршрут</button>
-        </div>
-        `;
-
-        if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-            placemark = new ymaps.Polygon([data.coordinates], {
-                hintContent: data.name,
-                balloonContent: balloonContent
-            }, {
-                fillColor: color + '55',
-                strokeColor: color,
-                strokeWidth: 2
-            });
-        } else {
-            placemark = new ymaps.Placemark([data.lat, data.lng], {
-                hintContent: data.name,
-                balloonContent: balloonContent
-            }, {
-                preset: 'islands#blueParkingIcon'
-            });
-        }
-
-        placemark.events.add('click', function(e) {
-            openParkingSheet(id, data);
-        });
-
-        map.geoObjects.add(placemark);
-        mapMarkers[id] = placemark;
+    if (mapMarkers[id]) {
+        map.geoObjects.remove(mapMarkers[id]);
+        delete mapMarkers[id];
     }
+
+    if (!map) return;
+
+    var totalSpots = data.totalSpots || 0;
+    var occupiedSpots = data.occupiedSpots || 0;
+    var freeSpots = totalSpots - occupiedSpots;
+    var color = getOccupancyColor(occupiedSpots, totalSpots);
+
+    var placemark;
+
+    // Убираем balloonContent, отключаем балун
+    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+        placemark = new ymaps.Polygon([data.coordinates], {
+            hintContent: data.name // подсказка при наведении (опционально)
+        }, {
+            fillColor: color + '55',
+            strokeColor: color,
+            strokeWidth: 2,
+            balloon: { enabled: false } // отключаем балун
+        });
+    } else {
+        placemark = new ymaps.Placemark([data.lat, data.lng], {
+            hintContent: data.name
+        }, {
+            preset: 'islands#blueParkingIcon',
+            balloon: { enabled: false } // отключаем балун
+        });
+    }
+
+    // При клике открываем только нижнюю панель
+    placemark.events.add('click', function(e) {
+        openParkingSheet(id, data);
+        // Предотвращаем стандартное открытие балуна (на всякий случай)
+        if (map.balloon) map.balloon.close();
+    });
+
+    map.geoObjects.add(placemark);
+    mapMarkers[id] = placemark;
+}
 
     // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
     function initMap() {
