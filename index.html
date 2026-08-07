@@ -2431,23 +2431,28 @@
     const database = firebase.database();
 
     // ===== НОВЫЙ КОД: Восстановление темы =====
-    (function restoreTheme() {
-        const darkTheme = localStorage.getItem('darkTheme');
-        if (darkTheme === '1') {
-            document.body.classList.add('dark-theme');
-            const mapEl = document.getElementById('map');
-            if (mapEl) {
-                mapEl.style.filter =
-                    'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            }
-            if (window.Telegram?.WebApp) {
-                try {
-                    window.Telegram.WebApp.setHeaderColor('#1C1C1E');
-                    window.Telegram.WebApp.setBackgroundColor('#000000');
-                } catch (e) {}
-            }
+   (function restoreTheme() {
+    const darkTheme = localStorage.getItem('darkTheme');
+    const isDark = (darkTheme === '1');
+    if (isDark) {
+        document.body.classList.add('dark-theme');
+        const mapEl = document.getElementById('map');
+        if (mapEl) {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
         }
-    })();
+        if (window.Telegram && window.Telegram.WebApp) {
+            try {
+                window.Telegram.WebApp.setHeaderColor('#1C1C1E');
+                window.Telegram.WebApp.setBackgroundColor('#000000');
+            } catch(e) {}
+        }
+    }
+    // Синхронизируем все переключатели темы
+    var toggle1 = document.getElementById('settingsThemeToggle');
+    var toggle2 = document.getElementById('settingsThemeToggleInline');
+    if (toggle1) toggle1.checked = isDark;
+    if (toggle2) toggle2.checked = isDark;
+})();
 
     // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
     let map = null;
@@ -5512,7 +5517,7 @@ function renderSettingsInline() {
         <div class="settings-row">
             <span class="settings-label">Тёмная тема</span>
             <label class="theme-switch" style="width: 51px; height: 31px;">
-                <input type="checkbox" id="settingsThemeToggleInline" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+               <input type="checkbox" id="settingsThemeToggleInline" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
                 <span class="theme-slider"></span>
             </label>
         </div>
@@ -6280,42 +6285,47 @@ function saveCityFromSettingsInline() {
 
     // ===================== НАСТРОЙКИ =====================
     function toggleTheme() {
-        const isDark = document.body.classList.toggle('dark-theme');
-        localStorage.setItem('darkTheme', isDark ? '1' : '0');
+    var isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('darkTheme', isDark ? '1' : '0');
 
-        const mapEl = document.getElementById('map');
-        if (mapEl && map) {
-            const currentType = map.getType ? map.getType() : 'yandex#map';
-            if (isDark && currentType === 'yandex#map') {
-                mapEl.style.filter =
-                    'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            } else {
-                mapEl.style.filter = 'none';
-            }
-        }
-
-        const tabBar = document.querySelector('.tabBar');
-        if (tabBar) {
-            tabBar.style.background = '';
-        }
-
-        if (window.Telegram?.WebApp) {
-            try {
-                const tg = window.Telegram.WebApp;
-                if (isDark) {
-                    tg.setHeaderColor('#1C1C1E');
-                    tg.setBackgroundColor('#000000');
-                } else {
-                    tg.setHeaderColor('#F2F2F7');
-                    tg.setBackgroundColor('#FFFFFF');
-                }
-            } catch (e) {}
-        }
-
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    var mapEl = document.getElementById('map');
+    if (mapEl && map) {
+        var currentType = map.getType ? map.getType() : 'yandex#map';
+        if (isDark && currentType === 'yandex#map') {
+            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+        } else {
+            mapEl.style.filter = 'none';
         }
     }
+
+    var tabBar = document.querySelector('.tabBar');
+    if (tabBar) {
+        tabBar.style.background = '';
+    }
+
+    // Синхронизируем все переключатели темы
+    var toggle1 = document.getElementById('settingsThemeToggle');
+    var toggle2 = document.getElementById('settingsThemeToggleInline');
+    if (toggle1) toggle1.checked = isDark;
+    if (toggle2) toggle2.checked = isDark;
+
+    if (window.Telegram && window.Telegram.WebApp) {
+        try {
+            var tg = window.Telegram.WebApp;
+            if (isDark) {
+                tg.setHeaderColor('#1C1C1E');
+                tg.setBackgroundColor('#000000');
+            } else {
+                tg.setHeaderColor('#F2F2F7');
+                tg.setBackgroundColor('#FFFFFF');
+            }
+        } catch (e) {}
+    }
+
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+}
 
     function updateMapTheme() {
         const mapEl = document.getElementById('map');
