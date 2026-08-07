@@ -6321,17 +6321,31 @@ function saveCityFromSettingsInline() {
     showOnboarding();
 }
     function renderHomePanel(content) {
-    getUserLocation().then(coords => {
+    // Проверяем, загружены ли парковки
+    if (Object.keys(parkingDataCache).length === 0) {
+        // Показываем загрузку
+        content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
+        // Загружаем парковки и после загрузки перерисовываем
+        loadAllParkings().then(function() {
+            renderHomePanel(content); // рекурсивный вызов с уже заполненным кешем
+        }).catch(function() {
+            content.innerHTML = '<div class="empty-state"><p>Ошибка загрузки данных</p></div>';
+        });
+        return;
+    }
+
+    // Данные загружены – получаем геолокацию и рендерим содержимое
+    getUserLocation().then(function(coords) {
         userLocationForSearch = coords;
         renderHomeContent(content, coords);
-    }).catch(() => {
+    }).catch(function() {
         userLocationForSearch = null;
         renderHomeContent(content, null);
     });
 }
 
 function renderHomeContent(content, coords) {
-    let html = `
+    var html = `
         <div class="home-header">
             <div class="home-title">Парковка без забот</div>
             <div class="home-subtitle">найдите свободное место рядом с домом</div>
@@ -6353,10 +6367,16 @@ function renderHomeContent(content, coords) {
     `;
     content.innerHTML = html;
 
+    // Если координаты есть – показываем парковки рядом, иначе – все парковки (без сортировки по расстоянию)
     if (coords) {
         showNearbyParkings(coords, 5);
     } else {
-        document.getElementById('homeParkingList').innerHTML = '<div class="empty-state"><p>Не удалось определить местоположение</p></div>';
+        // Показываем все парковки (без учёта расстояния)
+        var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
+        var container = document.getElementById('homeParkingList');
+        if (container) {
+            renderParkingList(container, allParkings);
+        }
     }
 }
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
