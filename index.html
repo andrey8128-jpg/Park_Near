@@ -1813,11 +1813,25 @@
             display: flex;
             align-items: center;
         }
-        .bottom-sheet {
-    display: flex;
-    flex-direction: column;
+    .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 2500;
     transform: translateY(100%);
     transition: transform 0.3s ease;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    /* ОТСТУП СНИЗУ, ЧТОБЫ НЕ ПЕРЕКРЫВАТЬ ТАБ-БАР */
+    padding-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 12px + env(safe-area-inset-bottom));
+}
+.bottom-sheet.active {
+    transform: translateY(0);
 }
         .address-card {
             display: flex;
@@ -3255,22 +3269,10 @@ function tryYandexGeolocation(resolve, reject) {
 
     var placemark;
 
-    var balloonContent = `
-    <div style="padding: 10px; font-family: -apple-system, sans-serif; max-width: 220px;">
-        <strong style="font-size: 16px;">${data.name}</strong>
-        <div style="font-size: 13px; color: #666; margin-top: 4px;">📍 ${data.address || (data.lat && data.lng ? data.lat.toFixed(5)+', '+data.lng.toFixed(5) : '')}</div>
-        <div style="font-size: 13px; color: #333; margin-top: 6px;">🅿️ Свободно: <b>${freeSpots}</b> / ${totalSpots}</div>
-        <div style="font-size: 12px; color: #999; margin-top: 4px;">🕒 Обновлено: ${formatDateTime(data.lastUpdatedAt || data.timestamp)}</div>
-        <div style="font-size: 12px; color: #999;">👤 ${data.lastUpdatedBy || data.authorName || 'Неизвестно'}</div>
-        <button onclick="openOccupancyPanel('${id}')" style="width: 100%; padding: 6px 0; background: transparent; color: #007AFF; border: 1px solid #007AFF; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px;">✏️ Изменить</button>
-        <button onclick="buildRouteToParking('${id}')" style="width:100%; padding:6px 0; background:transparent; color:#007AFF; border:1px solid #007AFF; border-radius:8px; font-size:14px; cursor:pointer; margin-top:6px;">🧭 Построить маршрут</button>
-    </div>
-    `;
-
+    // Балун убран – теперь только нижний лист
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         placemark = new ymaps.Polygon([data.coordinates], {
-            hintContent: data.name,
-            balloonContent: balloonContent
+            hintContent: data.name // только подсказка при наведении
         }, {
             fillColor: color + '55',
             strokeColor: color,
@@ -3278,18 +3280,16 @@ function tryYandexGeolocation(resolve, reject) {
         });
     } else {
         placemark = new ymaps.Placemark([data.lat, data.lng], {
-            hintContent: data.name,
-            balloonContent: balloonContent
+            hintContent: data.name // только подсказка при наведении
         }, {
             preset: 'islands#blueParkingIcon'
         });
     }
 
+    // При клике открываем нижний лист
     placemark.events.add('click', function(e) {
-        // Одиночный клик – открываем информацию в нижнем листе
         openParkingSheet(id, data);
-        // Закрываем балун Яндекса, чтобы не мешал
-        map.balloon.close();
+        map.balloon.close(); // на всякий случай закрываем балун
     });
 
     map.geoObjects.add(placemark);
