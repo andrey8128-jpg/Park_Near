@@ -3051,7 +3051,6 @@
             currentUser = JSON.parse(saved);
             window.currentUser = currentUser;
             hideAuthScreen();
-            // Убираем вызов loadUserData() без аргументов – он не нужен здесь
             showPanel('home');
             return;
         } catch (e) {
@@ -4707,10 +4706,14 @@
         const now = Date.now();
         const needRefresh = (now - lastDataRefresh > REFRESH_INTERVAL_MS) || lastDataRefresh === 0;
         if (needRefresh) {
-            const savedSearch = document.getElementById('searchInput')?.value || '';
-            const savedSort = document.getElementById('sortSelect')?.value || 'name';
-            const savedRadius = document.getElementById('radiusSlider')?.value || '1';
-            const savedFreeOnly = document.getElementById('showWithFreeOnly')?.checked || false;
+            const searchInput = document.getElementById('searchInput');
+const savedSearch = searchInput ? searchInput.value : '';
+const sortSelect = document.getElementById('sortSelect');
+const savedSort = sortSelect ? sortSelect.value : 'name';
+const radiusSlider = document.getElementById('radiusSlider');
+const savedRadius = radiusSlider ? radiusSlider.value : '1';
+const freeOnlyCheck = document.getElementById('showWithFreeOnly');
+const savedFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
 
             content.innerHTML = `
             <div class="loading-state">
@@ -4939,9 +4942,8 @@
         const resultsContainer = document.getElementById('searchResults');
         if (!resultsContainer) return;
 
-        const filterRegion = (nearbySearchFilter?.region) || (mapCity ? mapCity.region : '') || userCityPrefs
-            .region || '';
-        const filterCity = (nearbySearchFilter?.city) || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
+        const filterRegion = (nearbySearchFilter ? nearbySearchFilter.region : '') || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
+const filterCity = (nearbySearchFilter ? nearbySearchFilter.city : '') || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
         let parkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
         const hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
         if (!hasNearbyFilter) {
@@ -4982,8 +4984,8 @@
             );
         }
 
-        if (nearbySearchFilter?.lat && nearbySearchFilter?.lng) {
-            const { lat, lng, radius } = nearbySearchFilter;
+        if (nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng) {
+    const { lat, lng, radius } = nearbySearchFilter;
             parkings = parkings.filter(p => {
                 const dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
                 return dist <= radius;
@@ -6345,8 +6347,6 @@ function saveCityFromSettingsInline() {
     }).catch(console.error);
 
     hideAuthScreen();
-    // Убираем loadUserData() – она вызывается внутри showPanel('home')
-    // через renderHomePanel, который не требует данных пользователя для отображения
     showPanel('home');
     showOnboarding();
 }
