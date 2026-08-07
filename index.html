@@ -5281,40 +5281,12 @@
                     </div>
                 `;
 
-                content.innerHTML = html;
+        content.innerHTML = html;
 
-                // ---- Загружаем настройки сразу ----
                 renderSettingsInline();
 
-                // ---- Флаги для загрузки (чтобы не дублировать) ----
                 window._historyLoaded = false;
                 window._favoritesLoaded = false;
-
-                // ---- Переопределяем toggleProfileSection, если она ещё не определена ----
-                        const contentEl = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}Content`);
-                        if (!contentEl) return;
-                        const isOpen = contentEl.classList.contains('open');
-                        if (isOpen) {
-                            contentEl.classList.remove('open');
-                        } else {
-                            contentEl.classList.add('open');
-                        }
-                        const header = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}`);
-                        if (header) {
-                            const arrow = header.querySelector('span:last-child');
-                            if (arrow) {
-                                arrow.textContent = isOpen ? '▶' : '▼';
-                            }
-                        }
-                        if (section === 'history' && !window._historyLoaded) {
-                            loadUserParkingHistory();
-                            window._historyLoaded = true;
-                        } else if (section === 'favorites' && !window._favoritesLoaded) {
-                            loadFavoritesInline();
-                            window._favoritesLoaded = true;
-                        }
-                    };
-                }
             });
         });
     });
