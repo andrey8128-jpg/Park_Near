@@ -2173,6 +2173,65 @@
             color: var(--text-secondary);
             margin-bottom: 4px;
         }
+        .parking-item {
+    display: flex;
+    align-items: stretch;
+    background: var(--bg-secondary);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: var(--card-shadow);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.parking-item:active {
+    transform: scale(0.97);
+}
+.parking-item .info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.parking-item .name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.parking-item .free-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    background: var(--green);
+    flex-shrink: 0;
+    margin-left: 8px;
+    transition: background 0.3s;
+}
+.parking-item .free-badge.low {
+    background: var(--orange);
+}
+.parking-item .free-badge.critical {
+    background: var(--red);
+}
+.parking-item .meta-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.parking-item .meta-row .dot {
+    color: var(--text-secondary);
+}
     </style>
     <link rel="manifest" href="/Park_Near/manifest.json">
     <link rel="icon" type="image/png" href="/Park_Near/logo.png">
@@ -4747,7 +4806,37 @@
         if (document.getElementById('sortSelect')) document.getElementById('sortSelect').value = 'name';
         filterParkings();
     }
+function renderParkingItem(parking, userCoords) {
+    const free = parking.totalSpots - (parking.occupiedSpots || 0);
+    const total = parking.totalSpots || 0;
+    const ratio = total > 0 ? free / total : 1;
+    let badgeClass = '';
+    if (ratio <= 0.2) badgeClass = 'critical';
+    else if (ratio <= 0.5) badgeClass = 'low';
+    let badgeText = free;
+    if (total === 0) badgeText = '?';
 
+    let distanceHtml = '';
+    if (userCoords && parking.lat && parking.lng) {
+        const dist = getDistanceInMeters(userCoords.lat, userCoords.lng, parking.lat, parking.lng);
+        const distStr = dist < 1000 ? Math.round(dist) + ' м' : (dist/1000).toFixed(1) + ' км';
+        const time = Math.round(dist / 500); // примерное время в минутах (скорость 30 км/ч)
+        const timeStr = time < 1 ? '<1 мин' : time + ' мин';
+        distanceHtml = `<div class="meta-row"><span>${distStr}</span><span class="dot">·</span><span>${timeStr}</span></div>`;
+    }
+
+    return `
+        <div class="parking-item" onclick="focusMap(${parking.lat}, ${parking.lng}, '${parking.id}')">
+            <div class="info">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div class="name">${parking.name || 'Без названия'}</div>
+                    <span class="free-badge ${badgeClass}">${badgeText}</span>
+                </div>
+                ${distanceHtml}
+            </div>
+        </div>
+    `;
+}
     function renderSearchPanel(content) {
         const now = Date.now();
         const needRefresh = (now - lastDataRefresh > REFRESH_INTERVAL_MS) || lastDataRefresh === 0;
@@ -6454,45 +6543,34 @@ function refreshParkingsInBackground() {
         }
     }
 
-    function showNearbyParkings(coords, limit) {
-        var container = document.getElementById('homeParkingList');
-        if (!container) return;
+   function showNearbyParkings(coords, limit) {
+    var container = document.getElementById('homeParkingList');
+    if (!container) return;
 
-        var radius = 1000;
-        var parkings = Object.entries(parkingDataCache)
-            .map(function(entry) {
-                var id = entry[0];
-                var data = entry[1];
-                var dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-                return { id: id, ...data, distance: dist };
-            })
-            .filter(function(p) { return p.lat && p.lng && p.distance <= radius; })
-            .sort(function(a, b) { return a.distance - b.distance; });
+    var radius = 1000;
+    var parkings = Object.entries(parkingDataCache)
+        .map(function(entry) {
+            var id = entry[0];
+            var data = entry[1];
+            var dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
+            return { id: id, ...data, distance: dist };
+        })
+        .filter(function(p) { return p.lat && p.lng && p.distance <= radius; })
+        .sort(function(a, b) { return a.distance - b.distance; });
 
-        if (parkings.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
-            return;
-        }
-
-        var show = parkings.slice(0, limit);
-        var html = '';
-        show.forEach(function(p) {
-            var free = p.totalSpots - (p.occupiedSpots || 0);
-            var distStr = p.distance < 1000 ? Math.round(p.distance) + ' м' : (p.distance / 1000).toFixed(1) + ' км';
-            html += `
-            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                <div class="info">
-                    <div class="name">${p.name || 'Без названия'}</div>
-                    <div class="addr">${p.address || ''}</div>
-                </div>
-                <div class="free">${free} мест</div>
-                <div class="distance">${distStr}</div>
-            </div>
-        `;
-        });
-        container.innerHTML = html;
-        window._nearbyParkings = parkings;
+    if (parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
+        return;
     }
+
+    var show = parkings.slice(0, limit);
+    var html = '';
+    show.forEach(function(p) {
+        html += renderParkingItem(p, coords);
+    });
+    container.innerHTML = html;
+    window._nearbyParkings = parkings;
+}
 
     function showAllNearby() {
         var coords = userLocationForSearch;
@@ -6516,53 +6594,44 @@ function refreshParkingsInBackground() {
     }
 
     function filterHomeParkings() {
-        var query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
-        var container = document.getElementById('homeParkingList');
-        if (!container) return;
+    var query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
+    var container = document.getElementById('homeParkingList');
+    if (!container) return;
 
-        if (!query) {
-            if (userLocationForSearch) {
-                showNearbyParkings(userLocationForSearch, 5);
-            } else {
-                var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
-                renderParkingList(container, allParkings);
-            }
-            return;
+    if (!query) {
+        if (userLocationForSearch) {
+            showNearbyParkings(userLocationForSearch, 5);
+        } else {
+            var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
+            renderParkingList(container, allParkings);
         }
-
-        var parkings = Object.entries(parkingDataCache)
-            .map(function(entry) {
-                var id = entry[0];
-                var data = entry[1];
-                return { id: id, ...data };
-            })
-            .filter(function(p) {
-                var name = (p.name || '').toLowerCase();
-                var addr = (p.address || '').toLowerCase();
-                return name.indexOf(query) !== -1 || addr.indexOf(query) !== -1;
-            });
-
-        if (parkings.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
-            return;
-        }
-
-        var html = '';
-        parkings.forEach(function(p) {
-            var free = p.totalSpots - (p.occupiedSpots || 0);
-            html += `
-            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                <div class="info">
-                    <div class="name">${p.name || 'Без названия'}</div>
-                    <div class="addr">${p.address || ''}</div>
-                </div>
-                <div class="free">${free} мест</div>
-            </div>
-        `;
-        });
-        container.innerHTML = html;
+        return;
     }
 
+    var parkings = Object.entries(parkingDataCache)
+        .map(function(entry) {
+            var id = entry[0];
+            var data = entry[1];
+            return { id: id, ...data };
+        })
+        .filter(function(p) {
+            var name = (p.name || '').toLowerCase();
+            var addr = (p.address || '').toLowerCase();
+            return name.indexOf(query) !== -1 || addr.indexOf(query) !== -1;
+        });
+
+    if (parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
+        return;
+    }
+
+    var html = '';
+    var userCoords = userLocationForSearch;
+    parkings.forEach(function(p) {
+        html += renderParkingItem(p, userCoords);
+    });
+    container.innerHTML = html;
+}
     function goHome() {
         if (!currentUser) {
             alert('Войдите, чтобы использовать домашний адрес');
@@ -6596,29 +6665,18 @@ function refreshParkingsInBackground() {
             })
             .catch(function(err) { alert('Ошибка: ' + err.message); });
     }
-
-    function renderParkingList(container, parkings) {
-        if (!parkings || parkings.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Нет парковок</p></div>';
-            return;
-        }
-        var html = '';
-        parkings.forEach(function(p) {
-            var free = p.totalSpots - (p.occupiedSpots || 0);
-            var address = p.address || (p.lat ? p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) : '');
-            html += `
-            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                <div class="info">
-                    <div class="name">${p.name || 'Без названия'}</div>
-                    <div class="addr">${address}</div>
-                </div>
-                <div class="free">🅿️ ${free} свободно</div>
-            </div>
-        `;
-        });
-        container.innerHTML = html;
+  function renderParkingList(container, parkings) {
+    if (!parkings || parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Нет парковок</p></div>';
+        return;
     }
-
+    var html = '';
+    var userCoords = userLocationForSearch;
+    parkings.forEach(function(p) {
+        html += renderParkingItem(p, userCoords);
+    });
+    container.innerHTML = html;
+}
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
     function initApp() {
         initAuth();
