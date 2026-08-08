@@ -3329,46 +3329,65 @@ function tryYandexGeolocation(resolve, reject) {
     }
 
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
-    function loadAllParkings() {
-        return new Promise((resolve, reject) => {
+    function loadAllParkings(force = false) {
+    // Если данные уже есть и не прошло 30 секунд – не перезагружаем
+    if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
+        return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+        if (map) {
             Object.keys(mapMarkers).forEach(id => {
                 if (mapMarkers[id]) {
                     map.geoObjects.remove(mapMarkers[id]);
                     delete mapMarkers[id];
                 }
             });
-            parkingDataCache = {};
-
-            database.ref('parkings').once('value').then(snapshot => {
-                const data = snapshot.val();
-                if (data) {
-                    const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
-                    Object.keys(data).forEach(key => {
-                        const p = data[key];
-                        if (p && p.lat && p.lng) {
-                            if (cityFilter) {
-                                const pCity = (p.city || '').toLowerCase();
-                                const pAddr = (p.address || '').toLowerCase();
-                                const pName = (p.name || '').toLowerCase();
-                                if (!pCity.includes(cityFilter) && !pAddr.includes(cityFilter) && !pName
-                                    .includes(cityFilter)) {
-                                    return;
-                                }
+        }
+        database.ref('parkings').once('value').then(snapshot => {
+            const data = snapshot.val();
+            const newCache = {};
+            if (data) {
+                const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
+                Object.keys(data).forEach(key => {
+                    const p = data[key];
+                    if (p && p.lat && p.lng) {
+                        if (cityFilter) {
+                            const pCity = (p.city || '').toLowerCase();
+                            const pAddr = (p.address || '').toLowerCase();
+                            const pName = (p.name || '').toLowerCase();
+                            if (!pCity.includes(cityFilter) && !pAddr.includes(cityFilter) && !pName.includes(cityFilter)) {
+                                return;
                             }
-                            parkingDataCache[key] = p;
-                            addMarkerToMap(key, p);
                         }
-                    });
-                }
-                lastDataRefresh = Date.now();
-                resolve();
-            }).catch(error => {
-                console.error("ОШИБКА ЗАГРУЗКИ ДАННЫХ:", error);
+                        newCache[key] = p;
+                        if (map) addMarkerToMap(key, p);
+                    }
+                });
+            }
+            parkingDataCache = newCache;
+            lastDataRefresh = Date.now();
+            // Сохраняем в localStorage для офлайн-доступа
+            try {
+                localStorage.setItem('parkingCache', JSON.stringify(newCache));
+            } catch(e) {}
+            resolve();
+        }).catch(error => {
+            // Если не удалось загрузить, пробуем взять из localStorage
+            const cached = localStorage.getItem('parkingCache');
+            if (cached) {
+                try {
+                    parkingDataCache = JSON.parse(cached);
+                    if (map) {
+                        Object.values(parkingDataCache).forEach(p => addMarkerToMap(p.id || p.key, p));
+                    }
+                    resolve();
+                } catch(e) { reject(error); }
+            } else {
                 reject(error);
-            });
+            }
         });
-    }
-
+    });
+}
     function refreshParkingMarker() {
         if (!currentParkingId) return;
         database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
@@ -6627,26 +6646,45 @@ function saveCityFromSettingsInline() {
     showOnboarding();
 }
     function renderHomePanel(content) {
-    // Проверяем, загружены ли парковки
-    if (Object.keys(parkingDataCache).length === 0) {
-        // Показываем загрузку
-        content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
-        // Загружаем парковки и после загрузки перерисовываем
-        loadAllParkings().then(function() {
-            renderHomePanel(content); // рекурсивный вызов с уже заполненным кешем
-        }).catch(function() {
-            content.innerHTML = '<div class="empty-state"><p>Ошибка загрузки данных</p></div>';
+    // Если есть кеш – показываем мгновенно
+    if (Object.keys(parkingDataCache).length > 0) {
+        getUserLocation().then(coords => {
+            userLocationForSearch = coords;
+            renderHomeContent(content, coords);
+        }).catch(() => {
+            userLocationForSearch = null;
+            renderHomeContent(content, null);
+        });
+        // Фоновое обновление
+        loadAllParkings().then(() => {
+            // Если панель всё ещё открыта – перерисовываем
+            const panel = document.getElementById('panel');
+            if (panel && panel.classList.contains('active')) {
+                const title = document.getElementById('panelTitle');
+                if (title && title.textContent === 'Главная') {
+                    getUserLocation().then(coords => {
+                        userLocationForSearch = coords;
+                        renderHomeContent(content, coords);
+                    }).catch(() => {
+                        userLocationForSearch = null;
+                        renderHomeContent(content, null);
+                    });
+                }
+            }
         });
         return;
     }
 
-    // Данные загружены – получаем геолокацию и рендерим содержимое
-    getUserLocation().then(function(coords) {
+    // Если кеша нет – показываем загрузку и грузим данные
+    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
+    Promise.all([
+        loadAllParkings(true),
+        getUserLocation().catch(() => null)
+    ]).then(([, coords]) => {
         userLocationForSearch = coords;
         renderHomeContent(content, coords);
-    }).catch(function() {
-        userLocationForSearch = null;
-        renderHomeContent(content, null);
+    }).catch(() => {
+        content.innerHTML = '<div class="empty-state"><p>Не удалось загрузить данные</p></div>';
     });
 }
 
@@ -6665,7 +6703,7 @@ function renderHomeContent(content, coords) {
         </div>
         <div class="section-header">
             <span>Рядом с вами</span>
-            <button class="see-all" onclick="showAllNearby()">См. все →</button>
+            <button class="see-all" onclick="showAllNearby()">См. все</button>
         </div>
         <div id="homeParkingList" class="parking-list">
             <div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>
@@ -6686,43 +6724,20 @@ function renderHomeContent(content, coords) {
     }
 }
 function showNearbyParkings(coords, limit) {
-    var container = document.getElementById('homeParkingList');
+    const container = document.getElementById('homeParkingList');
     if (!container) return;
-
-    var radius = 1000;
-    var parkings = Object.entries(parkingDataCache)
-        .map(function(entry) {
-            var id = entry[0];
-            var data = entry[1];
-            var dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-            return { id: id, ...data, distance: dist };
-        })
-        .filter(function(p) { return p.lat && p.lng && p.distance <= radius; })
-        .sort(function(a, b) { return a.distance - b.distance; });
+    const radius = 1000;
+    const parkings = Object.entries(parkingDataCache)
+        .map(([id, data]) => ({ id, ...data, distance: getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng) }))
+        .filter(p => p.lat && p.lng && p.distance <= radius)
+        .sort((a,b) => a.distance - b.distance);
 
     if (parkings.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
         return;
     }
-
-    var show = parkings.slice(0, limit);
-    var html = '';
-    show.forEach(function(p) {
-        var free = p.totalSpots - (p.occupiedSpots || 0);
-        var distStr = p.distance < 1000 ? Math.round(p.distance) + ' м' : (p.distance/1000).toFixed(1) + ' км';
-        html += `
-            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                <div class="info">
-                    <div class="name">${p.name || 'Без названия'}</div>
-                    <div class="addr">${p.address || ''}</div>
-                </div>
-                <div class="free">${free} мест</div>
-                <div class="distance">${distStr}</div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-    window._nearbyParkings = parkings;
+    const show = parkings.slice(0, limit);
+    container.innerHTML = show.map(p => renderParkingItem(p, coords)).join('');
 }
 
 function showAllNearby() {
@@ -6747,51 +6762,30 @@ function showAllNearby() {
 }
 
 function filterHomeParkings() {
-    var query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
-    var container = document.getElementById('homeParkingList');
+    const query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
+    const container = document.getElementById('homeParkingList');
     if (!container) return;
-
     if (!query) {
         if (userLocationForSearch) {
             showNearbyParkings(userLocationForSearch, 5);
         } else {
-            var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
-            renderParkingList(container, allParkings);
+            const all = Object.values(parkingDataCache).filter(p => p.lat && p.lng);
+            renderParkingList(container, all);
         }
         return;
     }
-
-    var parkings = Object.entries(parkingDataCache)
-        .map(function(entry) {
-            var id = entry[0];
-            var data = entry[1];
-            return { id: id, ...data };
-        })
-        .filter(function(p) {
-            var name = (p.name || '').toLowerCase();
-            var addr = (p.address || '').toLowerCase();
-            return name.indexOf(query) !== -1 || addr.indexOf(query) !== -1;
+    const filtered = Object.entries(parkingDataCache)
+        .map(([id, data]) => ({ id, ...data }))
+        .filter(p => {
+            const name = (p.name || '').toLowerCase();
+            const addr = (p.address || '').toLowerCase();
+            return name.includes(query) || addr.includes(query);
         });
-
-    if (parkings.length === 0) {
+    if (filtered.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
         return;
     }
-
-    var html = '';
-    parkings.forEach(function(p) {
-        var free = p.totalSpots - (p.occupiedSpots || 0);
-        html += `
-            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                <div class="info">
-                    <div class="name">${p.name || 'Без названия'}</div>
-                    <div class="addr">${p.address || ''}</div>
-                </div>
-                <div class="free">${free} мест</div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+    container.innerHTML = filtered.map(p => renderParkingItem(p, userLocationForSearch)).join('');
 }
 
 function goHome() {
@@ -6834,21 +6828,7 @@ function renderParkingList(container, parkings) {
         container.innerHTML = '<div class="empty-state"><p>Нет парковок</p></div>';
         return;
     }
-    var html = '';
-    parkings.forEach(function(p) {
-        var free = p.totalSpots - (p.occupiedSpots || 0);
-        var address = p.address || (p.lat ? p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) : '');
-        html += `
-            <div class="parking-item" onclick="focusMap(${p.lat}, ${p.lng}, '${p.id}')">
-                <div class="info">
-                    <div class="name">${p.name || 'Без названия'}</div>
-                    <div class="addr">${address}</div>
-                </div>
-                <div class="free">🅿️ ${free} свободно</div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+    container.innerHTML = parkings.map(p => renderParkingItem(p, userLocationForSearch)).join('');
 }
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
     function initApp() {
