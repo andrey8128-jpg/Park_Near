@@ -70,7 +70,7 @@
             left: 0;
             right: 0;
             height: 44px;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(226, 226, 224, 0.08);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             z-index: 1000;
@@ -82,14 +82,14 @@
             transition: background 0.3s ease;
         }
         body.dark-theme .app-header {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(14, 41, 49, 0.3);
             border-bottom-color: rgba(255, 255, 255, 0.08);
         }
         .app-title {
             font-size: 17px;
             font-weight: 700;
             letter-spacing: -0.3px;
-            color: #FFFFFF;
+            color: #E2E2E0;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
         }
         .app-title span {
@@ -207,7 +207,7 @@
             width: calc(100% - 32px);
             max-width: 420px;
             height: var(--tab-bar-height);
-            background: #3A3A3C;
+            background: #0E2931;
             border-radius: 32px;
             z-index: 2001;
             display: flex;
@@ -217,7 +217,7 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
         }
         body.dark-theme .tabBar {
-            background: #2C2C2E;
+            background: #12464C;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
         }
         .tab {
@@ -246,7 +246,7 @@
         .tab .icon svg {
             width: 24px;
             height: 24px;
-            fill: #8E8E93;
+            fill: #12464C;
             transition: fill 0.3s ease, transform 0.3s ease;
         }
         #historyContainer {
@@ -293,7 +293,7 @@
         }
         .tab .label {
             font-size: 10px;
-            color: #8E8E93;
+            color: #12464C;
             font-weight: 500;
             transition: color 0.3s ease;
             margin-top: 2px;
@@ -308,7 +308,7 @@
             transform: translateX(-50%);
             width: 32px;
             height: 4px;
-            background: #FFFFFF;
+            background: #E2E2E0;
             border-radius: 0 0 4px 4px;
             z-index: 3;
         }
@@ -321,27 +321,27 @@
             width: 60px;
             height: 50px;
             background: linear-gradient(180deg,
-                    rgba(255, 255, 255, 0.35) 0%,
-                    rgba(255, 255, 255, 0.15) 30%,
-                    rgba(255, 255, 255, 0.05) 60%,
+                    rgba(226, 226, 226, 0.35) 0%,
+                    rgba(226, 226, 226, 0.35) 30%,
+                    rgba(226, 226, 226, 0.35) 60%,
                     transparent 100%);
             clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
             z-index: 1;
             pointer-events: none;
         }
         .tab.active .icon svg {
-            fill: #FFFFFF;
+            	fill: #E2E2E0;
             transform: scale(1.1);
         }
         .tab.active .label {
-            color: #FFFFFF;
+            color: #E2E2E0;
             font-weight: 600;
         }
         .tab:active {
             transform: scale(0.92);
         }
         .tab:active .icon svg {
-            fill: #FFFFFF;
+            	fill: #E2E2E0;
         }
         .panel {
             position: fixed;
@@ -379,10 +379,10 @@
             cursor: pointer;
             margin-top: 8px;
             transition: background 0.2s;
-            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+            box-shadow: 0 2px 8px rgba(43, 117, 116, 0.3);
         }
         .btn-primary:active {
-            background: #0051D5;
+            background: #12464C;
         }
         .btn-primary:disabled {
             opacity: 0.6;
@@ -400,7 +400,7 @@
             margin-top: 24px;
         }
         .btn-danger:active {
-            background: rgba(255, 59, 48, 0.1);
+            background: rgba(134, 18, 17, 0.1);
         }
         .btn-secondary {
             width: 100%;
@@ -415,7 +415,7 @@
             margin-top: 8px;
         }
         .btn-secondary:active {
-            background: rgba(0, 122, 255, 0.1);
+            background: rgba(43, 117, 116, 0.1);
         }
         .telegram-btn,
         .guest-btn {
@@ -467,7 +467,7 @@
         }
         .input-field:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+            box-shadow: 0 0 0 3px rgba(43, 117, 116, 0.2);
         }
         select.input-field {
             appearance: none;
@@ -579,7 +579,7 @@
             top: 54px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(14, 41, 49, 0.9);
             color: #fff;
             padding: 10px 20px;
             border-radius: 20px;
@@ -712,16 +712,16 @@
             z-index: 900;
             display: flex;
             gap: 12px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(226, 226, 224, 0.8);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             padding: 12px 20px;
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(14, 41, 49, 0.1);
         }
         body.dark-theme .drawing-controls {
-            background: rgba(28, 28, 30, 0.8);
+            background: rgba(18, 70, 76, 0.8);
             border-color: rgba(255, 255, 255, 0.15);
         }
         .drawing-controls button {
@@ -779,7 +779,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #E5E5EA;
+            background-color: #12464C;
             transition: .3s;
             border-radius: 31px;
         }
@@ -790,7 +790,7 @@
             width: 27px;
             left: 2px;
             bottom: 2px;
-            background-color: white;
+            background-color: #E2E2E0;
             transition: .3s;
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -1259,7 +1259,7 @@
             margin-bottom: 20px;
         }
         .rep-level-badge {
-            background: linear-gradient(135deg, var(--accent), #5856D6);
+            background: linear-gradient(135deg, var(--accent), #12464C);
             color: #fff;
             border-radius: 12px;
             padding: 6px 14px;
@@ -1892,7 +1892,7 @@
             width: 36px;
             height: 36px;
             border-radius: 10px;
-            background: rgba(255, 59, 48, 0.1);
+            background: rgba(134,18,17,0.1);
             border: none;
             color: #861211;
             display: flex;
@@ -1904,7 +1904,7 @@
             margin-left: 12px;
         }
         .address-card-delete:active {
-            background: rgba(255, 59, 48, 0.25);
+            background: rgba(134,18,17,0.25);
             transform: scale(0.9);
         }
         .address-card-add {
@@ -1916,7 +1916,7 @@
             background: var(--bg-primary);
         }
         .address-card-add .address-card-icon {
-            background: rgba(0, 122, 255, 0.1);
+            background: rgba(43,117,116,0.1);
         }
         .address-card-add .address-card-label {
             color: var(--accent);
@@ -1938,13 +1938,13 @@
         #onboardingProgressFill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #2B7574, #5856D6);
+            background: linear-gradient(90deg, #2B7574, #12464C);
             transition: width 0.5s ease;
         }
         .onboarding-highlight {
             position: relative;
             z-index: 5001 !important;
-            box-shadow: 0 0 0 5px rgba(0, 122, 255, 0.4), 0 0 20px rgba(0, 122, 255, 0.6) !important;
+            box-shadow: 0 0 0 5px rgba(43, 117, 116 0.4), 0 0 20px rgba(0, 122, 255, 0.6) !important;
             border-radius: 16px !important;
             animation: pulse 1.5s infinite;
             cursor: pointer;
@@ -2027,10 +2027,10 @@
 .btn-home-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+    box-shadow: 0 2px 8px rgba(43,117,116,0.3);
 }
 .btn-home-primary:active {
-    background: #0051D5;
+    background: #12464C;
 }
 .btn-home-secondary {
     background: var(--bg-secondary);
@@ -2195,7 +2195,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(14, 41, 49, 0.5);
 }
 .center-sheet-box {
     position: relative;
@@ -2206,7 +2206,7 @@
     max-width: 400px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 40px rgba(14, 41, 49, 0.3);
     z-index: 3001;
 }
 .center-sheet-close {
@@ -2334,25 +2334,25 @@
     <link rel="apple-touch-icon" href="/Park_Near/logo.png">
 </head>
 <body>
-    <div id="toast" style="position:fixed; top:60px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:#fff; padding:12px 24px; border-radius:12px; font-size:15px; z-index:9999; opacity:0; transition: opacity 0.3s, transform 0.3s; pointer-events:none; text-align:center; max-width:90%;"></div>
-    <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.8s ease; background: #02060E; overflow:hidden;">
+    <div id="toast" style="position:fixed; top:60px; left:50%; transform:translateX(-50%); rgba(14,41,49,0.9) color:#fff; padding:12px 24px; border-radius:12px; font-size:15px; z-index:9999; opacity:0; transition: opacity 0.3s, transform 0.3s; pointer-events:none; text-align:center; max-width:90%;"></div>
+    <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.8s ease; background: #0E2931 overflow:hidden;">
         <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" style="position:absolute; width:100%; height:100%;">
             <defs>
                 <filter id="lavaBlur" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="50" />
                 </filter>
             </defs>
-            <circle cx="30%" cy="30%" r="90" fill="#0356C5" filter="url(#lavaBlur)" opacity="0.8">
+            <circle cx="30%" cy="30%" r="90" fill="#2B7574" filter="url(#lavaBlur)" opacity="0.8">
                 <animate attributeName="cx" values="30%;70%;40%;30%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
                 <animate attributeName="cy" values="30%;60%;20%;30%" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
                 <animate attributeName="r" values="90;120;80;90" dur="10s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             </circle>
-            <circle cx="70%" cy="70%" r="110" fill="#0356C5" filter="url(#lavaBlur)" opacity="0.7">
+            <circle cx="70%" cy="70%" r="110" fill="#2B7574" filter="url(#lavaBlur)" opacity="0.7">
                 <animate attributeName="cx" values="70%;20%;80%;70%" dur="20s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
                 <animate attributeName="cy" values="70%;40%;80%;70%" dur="16s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
                 <animate attributeName="r" values="110;90;130;110" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
             </circle>
-            <circle cx="50%" cy="50%" r="70" fill="#1E3A8A" filter="url(#lavaBlur)" opacity="0.6">
+            <circle cx="50%" cy="50%" r="70" fill="#12464C" filter="url(#lavaBlur)" opacity="0.6">
                 <animate attributeName="cx" values="50%;30%;90%;50%" dur="22s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
                 <animate attributeName="cy" values="50%;80%;10%;50%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
                 <animate attributeName="r" values="70;100;50;70" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
@@ -2405,7 +2405,7 @@
         </div>
         <div class="panel-content" id="panelContent"></div>
     </div>
-    <div id="addressPickerOverlay" style="display:none; position:fixed; top:0;left:0;right:0;bottom:0; z-index:3000; background:rgba(0,0,0,0.3);">
+    <div id="addressPickerOverlay" style="display:none; position:fixed; top:0;left:0;right:0;bottom:0; z-index:3000; background:rgba(14,41,49,0.4);">
         <div id="addressPickerContainer" style="position:absolute; top:5%; left:5%; right:5%; bottom:5%; background:var(--bg-secondary); border-radius:16px; overflow:hidden; display:flex; flex-direction:column;">
             <div style="padding:12px; background:var(--bg-secondary); border-bottom:0.5px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-weight:600;">Укажите дом на карте</span>
@@ -2562,7 +2562,7 @@
             <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
         </div>
     </div>
-    <div id="authOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:6000; align-items:center; justify-content:center; flex-direction:column;">
+    <div id="authOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; rgba(14,41,49,0.8) z-index:6000; align-items:center; justify-content:center; flex-direction:column;">
         <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative;">
             <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
             <div style="font-size:48px; margin-bottom:12px;">🚗</div>
@@ -2578,7 +2578,7 @@
         <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
     </div>
 </div>
-<div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:5000; align-items:center; justify-content:center; pointer-events:none;">
+<div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(14,41,49,0.7); z-index:5000; align-items:center; justify-content:center; pointer-events:none;">
     <div style="background:var(--bg-secondary); border-radius:24px; padding:24px 20px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative; pointer-events:auto;">
         <div id="onboardingProgress" style="width:100%; height:4px; background:var(--bg-primary); border-radius:2px; margin-bottom:16px; overflow:hidden;">
             <div id="onboardingProgressFill" style="height:100%; width:0%; background:linear-gradient(90deg, #2B7574, #5856D6); transition:width 0.5s ease;"></div>
@@ -3594,7 +3594,7 @@ function tryYandexGeolocation(resolve, reject) {
         document.getElementById('addBtn').textContent = '✕';
         drawingPolygon = new ymaps.Polygon([
             []
-        ], {}, { editorDrawingCursor: "crosshair", fillColor: '#007AFF22', strokeColor: '#2B7574',
+        ], {}, { editorDrawingCursor: "crosshair", fillColor: '#2B757433', strokeColor: '#2B7574',
             strokeWidth: 3, draggable: false });
         map.geoObjects.add(drawingPolygon);
         drawingPolygon.editor.startDrawing();
@@ -3720,7 +3720,7 @@ function tryYandexGeolocation(resolve, reject) {
         });
 
         const polygon = new ymaps.Polygon([coords], {}, {
-            fillColor: '#007AFF33',
+            fillColor: '#2B757433',
             strokeColor: '#2B7574',
             strokeWidth: 2
         });
@@ -5476,7 +5476,7 @@ function focusMap(lat, lng, parkingId) {
         if (marker) {
             const origFillColor = marker.options.get('fillColor');
             const origStrokeColor = marker.options.get('strokeColor');
-            marker.options.set({ fillColor: '#007AFF55', strokeColor: '#2B7574' });
+            marker.options.set({ fillColor: '#2B757466', strokeColor: '#2B7574' });
             let opacity = 0.3;
             let direction = 1;
             const interval = setInterval(() => {
@@ -5485,7 +5485,7 @@ function focusMap(lat, lng, parkingId) {
                     direction = -1; }
                 if (opacity <= 0.3) { opacity = 0.3;
                     direction = 1; }
-                marker.options.set({ fillColor: `rgba(0,122,255,${opacity.toFixed(1)})` });
+                marker.options.set({ fillColor: `rgba(43,117,116,${opacity.toFixed(1)})` });
             }, 150);
             setTimeout(() => {
                 clearInterval(interval);
