@@ -26,19 +26,19 @@
         }
         :root {
             /* Светлая тема */
-            --bg-primary: #E2E2E0;
+            --bg-primary: #010304;
             --bg-secondary: #E2E2E0;
             --text-primary: #0E2931;
-            --text-secondary: #12464C;
-            --border-color: #12464C;
+            --text-secondary: #0A282C;
+            --border-color: #0A282C;
             --input-bg: #E2E2E0;
-            --input-border: #12464C;
+            --input-border: #0A282C;
             --card-shadow: 0 1px 3px rgba(14, 41, 49, 0.1);
             --accent: #2B7574;
             --green: #2B7574;
             --red: #0E2931;
             --orange: #0E2931;
-            --gray: #12464C;
+            --gray: #0A282C;
             --tab-bg: #12464C;
             --tab-icon: #0E2931;
             --tab-label: #0E2931;
@@ -58,12 +58,12 @@
             --spinner-color: #0E2931;
         }
         body.dark-theme {
-            --bg-primary: #0E2931;
-            --bg-secondary: #12464C;
+            --bg-primary: #010304;
+            --bg-secondary: #0A282C;
             --text-primary: #E2E2E0;
             --text-secondary: #2B7574;
             --border-color: #2B7574;
-            --input-bg: #12464C;
+            --input-bg: #0A282C;
             --input-border: #2B7574;
             --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
             --accent: #2B7574;
@@ -225,7 +225,7 @@
             position: fixed;
             right: 20px;
             bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + env(safe-area-inset-bottom, 0px));
-            background: #12464C;
+            background: #0A282C;
             color: #E2E2E0;
         }
         #geoBtn {
@@ -235,7 +235,7 @@
             position: fixed;
             right: 20px;
             bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + var(--button-gap) + env(safe-area-inset-bottom, 0px));
-            background: #12464C;
+            background: #0A282C;
             color: #E2E2E0;
         }
         .tabBar {
@@ -286,7 +286,7 @@
         }
         .tab .label {
             font-size: 10px;
-            color: var(--tab-label);
+            color: #0A282C;
             font-weight: 500;
             transition: color 0.3s ease;
             margin-top: 2px;
@@ -769,7 +769,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #12464C;
+            background-color: #0A282C;
             transition: .3s;
             border-radius: 31px;
         }
@@ -780,7 +780,7 @@
             width: 27px;
             left: 2px;
             bottom: 2px;
-            background-color: #E2E2E0;
+            background-color: #0A282C;
             transition: .3s;
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -1249,7 +1249,7 @@
             margin-bottom: 20px;
         }
         .rep-level-badge {
-            background: linear-gradient(135deg, var(--accent), #12464C);
+            background: linear-gradient(135deg, var(--accent), #0A282C);
             color: #E2E2E0;
             border-radius: 12px;
             padding: 6px 14px;
@@ -1927,7 +1927,7 @@
         #onboardingProgressFill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #2B7574, #12464C);
+            background: linear-gradient(90deg, #2B7574, #0A282C);
             transition: width 0.5s ease;
         }
         .onboarding-highlight {
@@ -3058,7 +3058,7 @@
 
     // ===================== УТИЛИТЫ =====================
    function getOccupancyColor(occupied, total) {
-    if (total === 0) return '#12464C';
+    if (total === 0) return '#0A282C';
     const ratio = occupied / total;
     return (ratio < 0.5) ? '#2B7574' : (document.body.classList.contains('dark-theme') ? '#861211' : '#0E2931');
 }
