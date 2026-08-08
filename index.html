@@ -25,38 +25,37 @@
             -webkit-tap-highlight-color: transparent;
         }
         :root {
-            /* Светлая тема */
-            --bg-primary: #010304;
-            --bg-secondary: #E2E2E0;
-            --text-primary: #0E2931;
-            --text-secondary: #0A282C;
-            --border-color: #0A282C;
-            --input-bg: #E2E2E0;
-            --input-border: #0A282C;
-            --card-shadow: 0 1px 3px rgba(14, 41, 49, 0.1);
-            --accent: #2B7574;
-            --green: #2B7574;
-            --red: #0E2931;
-            --orange: #0E2931;
-            --gray: #0A282C;
-            --tab-bg: #12464C;
-            --tab-icon: #0E2931;
-            --tab-label: #0E2931;
-            --tab-active-bg: #E2E2E0;
-            --btn-primary-bg: #2B7574;
-            --btn-primary-active: #12464C;
-            --btn-secondary-border: #2B7574;
-            --btn-secondary-color: #2B7574;
-            --btn-danger-color: #0E2931;
-            --btn-danger-border: #0E2931;
-            --drawing-controls-bg: rgba(226, 226, 224, 0.8);
-            --drawing-border: rgba(14, 41, 49, 0.1);
-            --overlay-bg: rgba(14, 41, 49, 0.5);
-            --sheet-bg: #E2E2E0;
-            --toast-bg: rgba(14, 41, 49, 0.9);
-            --splash-bg: #0E2931;
-            --spinner-color: #0E2931;
-        }
+    --bg-primary: #E2E2E0;
+    --bg-secondary: #E2E2E0;
+    --text-primary: #0E2931;
+    --text-secondary: #12464C;
+    --border-color: #12464C;
+    --input-bg: #E2E2E0;
+    --input-border: #12464C;
+    --card-shadow: 0 1px 3px rgba(14, 41, 49, 0.1);
+    --accent: #2B7574;
+    --green: #2B7574;
+    --red: #0E2931;
+    --orange: #0E2931;
+    --gray: #12464C;
+    --tab-bg: #12464C;
+    --tab-icon: #0E2931;
+    --tab-label: #0E2931;
+    --tab-active-bg: #E2E2E0;
+    --btn-primary-bg: #12464C;
+    --btn-primary-active: #0A282C;
+    --btn-secondary-border: #12464C;
+    --btn-secondary-color: #12464C;
+    --btn-danger-color: #0E2931;
+    --btn-danger-border: #0E2931;
+    --drawing-controls-bg: rgba(226, 226, 224, 0.8);
+    --drawing-border: rgba(14, 41, 49, 0.1);
+    --overlay-bg: rgba(14, 41, 49, 0.5);
+    --sheet-bg: #E2E2E0;
+    --toast-bg: rgba(14, 41, 49, 0.9);
+    --splash-bg: #0E2931;
+    --spinner-color: #0E2931;
+}
         body.dark-theme {
             --bg-primary: #010304;
             --bg-secondary: #0A282C;
@@ -4107,12 +4106,11 @@ function renderForecastChart(data) {
     `;
 }
 function toggleFavoriteCenter() {
-    if (!currentParkingId) return;
+    if (!currentParkingId || !currentParkingData) return;
     const parkingId = currentParkingId;
     const data = currentParkingData;
-    toggleFavorite(parkingId);
-    closeCenterSheet();
-    setTimeout(() => openCenterSheet(parkingId, data), 100);
+    toggleFavorite(parkingId, data);
+    // Окно не закрываем – кнопка обновится внутри toggleFavorite
 }
 function buildRouteFromCenter() {
     if (!currentParkingId) return;
@@ -4565,30 +4563,39 @@ function editFromCenter() {
         });
     }
 
-    function toggleFavorite(parkingId) {
-        if (!currentUser || !parkingId) return;
-        const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
-        favRef.once('value').then(snap => {
-            if (snap.exists()) {
-                favRef.remove();
-                const btn = document.getElementById('favBtn');
-                if (btn) btn.innerHTML = '⭐ Добавить в избранное';
-                if (currentParkingData && currentParkingData.authorId) database.ref(
-                    `users/${currentParkingData.authorId}/stats/favorites`).transaction(c => Math.max(0, (c ||
-                    1) - 1));
-            } else {
-                const favData = { parkingId, name: currentParkingData ? currentParkingData.name : '',
-                    lat: currentParkingData ? currentParkingData.lat : 0,
-                    lng: currentParkingData ? currentParkingData.lng : 0, timestamp: Date.now() };
-                favRef.set(favData);
-                const btn = document.getElementById('favBtn');
-                if (btn) btn.innerHTML = '✅ В избранном';
-                if (currentParkingData && currentParkingData.authorId) database.ref(
-                    `users/${currentParkingData.authorId}/stats/favorites`).transaction(c => (c || 0) + 1);
-            }
-        });
-    }
+    function toggleFavorite(parkingId, parkingData) {
+    if (!currentUser || !parkingId) return;
+    const data = parkingData || parkingDataCache[parkingId] || null;
+    if (!data) return;
 
+    const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
+    favRef.once('value').then(snap => {
+        if (snap.exists()) {
+            favRef.remove();
+            // Обновляем текст кнопки в центральном окне
+            const btn = document.querySelector('.center-actions .btn-secondary:first-child');
+            if (btn) btn.innerHTML = '⭐ Избранное';
+            if (data.authorId) {
+                database.ref(`users/${data.authorId}/stats/favorites`).transaction(c => Math.max(0, (c || 1) - 1));
+            }
+        } else {
+            const favData = {
+                parkingId: parkingId,
+                name: data.name || data.address || data.street || 'Парковка',
+                lat: data.lat || 0,
+                lng: data.lng || 0,
+                address: data.address || '',
+                timestamp: Date.now()
+            };
+            favRef.set(favData);
+            const btn = document.querySelector('.center-actions .btn-secondary:first-child');
+            if (btn) btn.innerHTML = '✅ В избранном';
+            if (data.authorId) {
+                database.ref(`users/${data.authorId}/stats/favorites`).transaction(c => (c || 0) + 1);
+            }
+        }
+    });
+}
     // ===================== МАРШРУТ =====================
     function buildRouteToParking(parkingId) {
         closeCenterSheet();
