@@ -3943,9 +3943,7 @@ function tryYandexGeolocation(resolve, reject) {
         // Если геолокация недоступна – показываем без расстояния
         renderContent();
     });
-}
-
-    function closeParkingSheet() { document.getElementById('parkingSheet').classList.remove('active'); }
+} 
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
 
 function openCenterSheet(parkingId, data) {
@@ -5422,7 +5420,7 @@ function editFromCenter() {
     attachSwipeToContainers(resultsContainer);
 }
 function focusMap(lat, lng, parkingId) {
-    closePanel();
+    closeCenterSheet();
     setTimeout(function() {
         if (!map) return;
         map.setCenter([lat, lng], 18, { duration: 500 });
@@ -6275,7 +6273,7 @@ function saveCityFromSettingsInline() {
     function closePanel() {
         nearbySearchFilter = null;
         if (isAddressPickerOpen) cancelAddressPicker();
-        closeParkingSheet();
+        closeCenterSheet();
         closeRoute();
         document.getElementById('panel').classList.remove('active');
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
