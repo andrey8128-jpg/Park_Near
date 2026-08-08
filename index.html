@@ -4512,9 +4512,13 @@ function editFromCenter() {
                     `users/${currentParkingData.authorId}/stats/favorites`).transaction(c => Math.max(0, (c ||
                     1) - 1));
             } else {
-                const favData = { parkingId, name: currentParkingData ? currentParkingData.name : '',
-                    lat: currentParkingData ? currentParkingData.lat : 0,
-                    lng: currentParkingData ? currentParkingData.lng : 0, timestamp: Date.now() };
+                const favData = { 
+    parkingId, 
+    name: currentParkingData ? (currentParkingData.name || currentParkingData.address || 'Парковка') : '', 
+    lat: currentParkingData ? currentParkingData.lat : 0,
+    lng: currentParkingData ? currentParkingData.lng : 0, 
+    timestamp: Date.now() 
+};
                 favRef.set(favData);
                 const btn = document.getElementById('favBtn');
                 if (btn) btn.innerHTML = '✅ В избранном';
@@ -4526,7 +4530,7 @@ function editFromCenter() {
 
     // ===================== МАРШРУТ =====================
     function buildRouteToParking(parkingId) {
-        closeParkingSheet();
+        closeCenterSheet()
         const data = parkingDataCache[parkingId];
         if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
             alert('Ошибка: данные парковки не содержат координат');
