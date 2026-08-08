@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ParkNear">
     <title>ParkNear</title>
-    <meta name="theme-color" content="#007AFF">
+    <meta name="theme-color" content="#2B7574">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ParkNear">
@@ -24,31 +24,36 @@
             padding: 0;
             -webkit-tap-highlight-color: transparent;
         }
-        :root {
-            --bg-primary: #F2F2F7;
-            --bg-secondary: #FFFFFF;
-            --text-primary: #000000;
-            --text-secondary: #8E8E93;
-            --border-color: rgba(0, 0, 0, 0.1);
-            --input-bg: #FFFFFF;
-            --input-border: #C7C7CC;
-            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            --accent: #007AFF;
-            --green: #34C759;
-            --red: #FF3B30;
-            --orange: #FF9500;
-            --gray: #8E8E93;
-        }
+      :root {
+    --bg-primary: #E2E2E0;
+    --bg-secondary: #E2E2E0;          /* можно оставить #FFFFFF, если разрешён белый */
+    --text-primary: #0E2931;
+    --text-secondary: #12464C;
+    --border-color: #12464C;
+    --input-bg: #E2E2E0;
+    --input-border: #12464C;
+    --card-shadow: 0 1px 3px rgba(14, 41, 49, 0.1);
+    --accent: #2B7574;
+    --green: #2B7574;                 /* свободные места */
+    --red: #861211;                   /* занятые места */
+    --orange: #861211;                /* можно использовать для предупреждений */
+    --gray: #12464C;
+}
         body.dark-theme {
-            --bg-primary: #000000;
-            --bg-secondary: #1C1C1E;
-            --text-primary: #FFFFFF;
-            --text-secondary: #98989D;
-            --border-color: rgba(255, 255, 255, 0.15);
-            --input-bg: #2C2C2E;
-            --input-border: #3A3A3C;
-            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
+    --bg-primary: #0E2931;
+    --bg-secondary: #12464C;
+    --text-primary: #E2E2E0;
+    --text-secondary: #2B7574;
+    --border-color: #2B7574;
+    --input-bg: #12464C;
+    --input-border: #2B7574;
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --accent: #2B7574;
+    --green: #2B7574;
+    --red: #861211;
+    --orange: #861211;
+    --gray: #2B7574;
+}
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
             overflow: hidden;
@@ -88,7 +93,7 @@
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
         }
         .app-title span {
-            color: #4DA3FF;
+            color: #2B7574;
         }
         #map {
             position: fixed;
@@ -791,13 +796,13 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         #settingsThemeToggle:checked+.theme-slider {
-            background-color: #007AFF;
+            background-color: #2B7574;
         }
         #settingsThemeToggle:checked+.theme-slider:before {
             transform: translateX(20px);
         }
         #showWithFreeOnly:checked+.theme-slider {
-            background-color: #007AFF;
+            background-color: #2B7574;
         }
         #showWithFreeOnly:checked+.theme-slider:before {
             transform: translateX(20px);
@@ -1183,7 +1188,7 @@
             bottom: -32px;
             left: 50%;
             transform: translateX(-50%);
-            background: #007AFF;
+            background: #2B7574;
             color: #fff;
             padding: 4px 12px;
             border-radius: 20px;
@@ -1889,7 +1894,7 @@
             border-radius: 10px;
             background: rgba(255, 59, 48, 0.1);
             border: none;
-            color: #FF3B30;
+            color: #861211;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1933,7 +1938,7 @@
         #onboardingProgressFill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #007AFF, #5856D6);
+            background: linear-gradient(90deg, #2B7574, #5856D6);
             transition: width 0.5s ease;
         }
         .onboarding-highlight {
@@ -1950,7 +1955,7 @@
             bottom: -32px;
             left: 50%;
             transform: translateX(-50%);
-            background: #007AFF;
+            background: #2B7574;
             color: #fff;
             padding: 4px 12px;
             border-radius: 20px;
@@ -2355,7 +2360,7 @@
         </svg>
         <div style="position:relative; z-index:1; text-align:center;">
             <img src="logo.png" alt="Логотип" style="width: 120px; height: auto; margin-bottom: 20px; animation: logoPulse 3s ease-in-out infinite;" onerror="this.style.display='none'">
-            <div style="font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 1px;">Park<span style="color: #4DA3FF;">Near</span></div>
+            <div style="font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 1px;">Park<span style="color: #2B7574;">Near</span></div>
             <div style="margin-top: 20px;">
                 <div class="spinner" style="border-top-color: #fff;"></div>
             </div>
@@ -2576,7 +2581,7 @@
 <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:5000; align-items:center; justify-content:center; pointer-events:none;">
     <div style="background:var(--bg-secondary); border-radius:24px; padding:24px 20px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative; pointer-events:auto;">
         <div id="onboardingProgress" style="width:100%; height:4px; background:var(--bg-primary); border-radius:2px; margin-bottom:16px; overflow:hidden;">
-            <div id="onboardingProgressFill" style="height:100%; width:0%; background:linear-gradient(90deg, #007AFF, #5856D6); transition:width 0.5s ease;"></div>
+            <div id="onboardingProgressFill" style="height:100%; width:0%; background:linear-gradient(90deg, #2B7574, #5856D6); transition:width 0.5s ease;"></div>
         </div>
         <div id="onboardingSlide" style="min-height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center;"></div>
         <div style="display:flex; justify-content:center; gap:8px; margin-top:16px;" id="onboardingDots"></div>
@@ -3589,7 +3594,7 @@ function tryYandexGeolocation(resolve, reject) {
         document.getElementById('addBtn').textContent = '✕';
         drawingPolygon = new ymaps.Polygon([
             []
-        ], {}, { editorDrawingCursor: "crosshair", fillColor: '#007AFF22', strokeColor: '#007AFF',
+        ], {}, { editorDrawingCursor: "crosshair", fillColor: '#007AFF22', strokeColor: '#2B7574',
             strokeWidth: 3, draggable: false });
         map.geoObjects.add(drawingPolygon);
         drawingPolygon.editor.startDrawing();
@@ -3716,7 +3721,7 @@ function tryYandexGeolocation(resolve, reject) {
 
         const polygon = new ymaps.Polygon([coords], {}, {
             fillColor: '#007AFF33',
-            strokeColor: '#007AFF',
+            strokeColor: '#2B7574',
             strokeWidth: 2
         });
         miniMap.geoObjects.add(polygon);
@@ -4583,11 +4588,11 @@ function editFromCenter() {
                     results: 1
                 }
             }, {
-                routeStrokeColor: '#007AFF',
+                routeStrokeColor: '#2B7574',
                 routeStrokeWidth: 5,
                 routeStrokeOpacity: 0.8,
-                wayPointStartIconColor: '#34C759',
-                wayPointFinishIconColor: '#FF3B30',
+                wayPointStartIconColor: '#2B7574',
+                wayPointFinishIconColor: '#861211',
                 animation: false
             });
 
@@ -4659,7 +4664,7 @@ function editFromCenter() {
             currentRoute = null;
         }
         const line = new ymaps.Polyline([routeStartCoords, routeEndCoords], {}, {
-            strokeColor: '#007AFF',
+            strokeColor: '#2B7574',
             strokeWidth: 4,
             strokeOpacity: 0.8
         });
@@ -5471,7 +5476,7 @@ function focusMap(lat, lng, parkingId) {
         if (marker) {
             const origFillColor = marker.options.get('fillColor');
             const origStrokeColor = marker.options.get('strokeColor');
-            marker.options.set({ fillColor: '#007AFF55', strokeColor: '#007AFF' });
+            marker.options.set({ fillColor: '#007AFF55', strokeColor: '#2B7574' });
             let opacity = 0.3;
             let direction = 1;
             const interval = setInterval(() => {
@@ -6999,7 +7004,7 @@ function renderParkingList(container, parkings) {
                 referencePoints: [routeStartCoords, routeEndCoords],
                 params: { mode: mode, avoidTrafficJams: false, results: 1 }
             }, {
-                routeStrokeColor: '#007AFF',
+                routeStrokeColor: '#2B7574',
                 routeStrokeWidth: 5,
                 routeStrokeOpacity: 0.8,
                 animation: false
