@@ -2457,13 +2457,6 @@
             <button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
         </div>
     </div>
-    <div class="bottom-sheet" id="parkingSheet">
-        <div class="sheet-header">
-            <div class="sheet-handle" onclick="closeParkingSheet()"></div>
-            <button class="sheet-close" onclick="closeParkingSheet()">✕</button>
-        </div>
-        <div class="sheet-content" id="sheetContent"></div>
-    </div>
     <!-- Центральное модальное окно -->
 <div class="center-sheet" id="centerSheet">
     <div class="center-sheet-overlay" onclick="closeCenterSheet()"></div>
@@ -5391,20 +5384,20 @@ function editFromCenter() {
     resultsContainer.innerHTML = html;
     attachSwipeToContainers(resultsContainer);
 }
-    function focusMap(lat, lng, parkingId) {
+function focusMap(lat, lng, parkingId) {
     closePanel();
     setTimeout(function() {
         if (!map) return;
         map.setCenter([lat, lng], 18, { duration: 500 });
-        // Подсветка маркера (оставляем)
+        // Небольшая анимация маркера (опционально)
         var marker = mapMarkers[parkingId];
         if (marker) {
-            // ... код подсветки ...
+            // можно добавить подсветку
         }
-        // --- ДОБАВЛЯЕМ ОТКРЫТИЕ ЛИСТА ---
         var data = parkingDataCache[parkingId];
         if (data) {
-            openParkingSheet(parkingId, data);
+            // Вместо openParkingSheet вызываем центральное окно
+            openCenterSheet(parkingId, data);
         }
     }, 350);
 }
