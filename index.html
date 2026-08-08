@@ -130,14 +130,14 @@
             color: #2B7574;
         }
         #map {
-            position: fixed;
-            top: env(safe-area-inset-top, 0px);
-            left: 0;
-            right: 0;
-            bottom: env(safe-area-inset-bottom, 0px);
-            background: #E5E5EA;
-            transition: filter 0.5s ease;
-        }
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #E5E5EA;
+    transition: filter 0.5s ease;
+}
         body.dark-theme #map {
             filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
         }
