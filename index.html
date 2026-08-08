@@ -3058,11 +3058,10 @@
 
     // ===================== УТИЛИТЫ =====================
    function getOccupancyColor(occupied, total) {
-        if (total === 0) return '#12464C';
-        const ratio = occupied / total;
-        return (ratio < 0.5) ? '#2B7574' : (document.body.classList.contains('dark-theme') ? '#861211' : '#0E2931');
-    }
-
+    if (total === 0) return '#12464C';
+    const ratio = occupied / total;
+    return (ratio < 0.5) ? '#2B7574' : (document.body.classList.contains('dark-theme') ? '#861211' : '#0E2931');
+}
     function escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -3609,7 +3608,7 @@ function tryYandexGeolocation(resolve, reject) {
         document.getElementById('addBtn').textContent = '✕';
         drawingPolygon = new ymaps.Polygon([
             []
-        ], {}, { editorDrawingCursor: "crosshair", fillColor: '#007AFF22', strokeColor: '#007AFF',
+        ], {}, { editorDrawingCursor: "crosshair", fillColor: '#2B757433', strokeColor: '#2B7574',
             strokeWidth: 3, draggable: false });
         map.geoObjects.add(drawingPolygon);
         drawingPolygon.editor.startDrawing();
@@ -3735,8 +3734,8 @@ function tryYandexGeolocation(resolve, reject) {
         });
 
         const polygon = new ymaps.Polygon([coords], {}, {
-            fillColor: '#007AFF33',
-            strokeColor: '#007AFF',
+            fillColor: '#2B757433',
+            strokeColor: '#2B7574',
             strokeWidth: 2
         });
         miniMap.geoObjects.add(polygon);
@@ -4599,11 +4598,11 @@ function editFromCenter() {
                     results: 1
                 }
             }, {
-                routeStrokeColor: '#007AFF',
+                routeStrokeColor: '#2B7574',
                 routeStrokeWidth: 5,
                 routeStrokeOpacity: 0.8,
-                wayPointStartIconColor: '#34C759',
-                wayPointFinishIconColor: '#FF3B30',
+                wayPointStartIconColor: '#2B7574',
+                wayPointFinishIconColor: '#861211',
                 animation: false
             });
 
@@ -4675,7 +4674,7 @@ function editFromCenter() {
             currentRoute = null;
         }
         const line = new ymaps.Polyline([routeStartCoords, routeEndCoords], {}, {
-            strokeColor: '#007AFF',
+            strokeColor: '#2B7574',
             strokeWidth: 4,
             strokeOpacity: 0.8
         });
@@ -5487,7 +5486,7 @@ function focusMap(lat, lng, parkingId) {
         if (marker) {
             const origFillColor = marker.options.get('fillColor');
             const origStrokeColor = marker.options.get('strokeColor');
-            marker.options.set({ fillColor: '#007AFF55', strokeColor: '#007AFF' });
+            marker.options.set({ fillColor: '#2B757466', strokeColor: '#2B7574' });
             let opacity = 0.3;
             let direction = 1;
             const interval = setInterval(() => {
@@ -5496,7 +5495,7 @@ function focusMap(lat, lng, parkingId) {
                     direction = -1; }
                 if (opacity <= 0.3) { opacity = 0.3;
                     direction = 1; }
-                marker.options.set({ fillColor: `rgba(0,122,255,${opacity.toFixed(1)})` });
+                marker.options.set({ fillColor: `rgba(43,117,116,${opacity.toFixed(1)})` });
             }, 150);
             setTimeout(() => {
                 clearInterval(interval);
@@ -7015,7 +7014,7 @@ function renderParkingList(container, parkings) {
                 referencePoints: [routeStartCoords, routeEndCoords],
                 params: { mode: mode, avoidTrafficJams: false, results: 1 }
             }, {
-                routeStrokeColor: '#007AFF',
+                routeStrokeColor: '#2B7574',
                 routeStrokeWidth: 5,
                 routeStrokeOpacity: 0.8,
                 animation: false
