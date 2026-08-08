@@ -2298,6 +2298,31 @@
     padding: 10px;
     font-size: 14px;
 }
+.parking-item .free-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    background: var(--green);
+    flex-shrink: 0;
+    margin-left: 8px;
+    transition: background 0.3s;
+}
+.parking-item .free-badge.low { background: var(--orange); }
+.parking-item .free-badge.critical { background: var(--red); }
+.parking-item .meta-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.parking-item .meta-row .dot { color: var(--text-secondary); }
     </style>
     <link rel="manifest" href="/Park_Near/manifest.json">
     <link rel="icon" type="image/png" href="/Park_Near/logo.png">
@@ -3042,6 +3067,37 @@
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }
+    function renderParkingItem(parking, userCoords) {
+    const free = parking.totalSpots - (parking.occupiedSpots || 0);
+    const total = parking.totalSpots || 0;
+    const ratio = total > 0 ? free / total : 1;
+    let badgeClass = '';
+    if (ratio <= 0.2) badgeClass = 'critical';
+    else if (ratio <= 0.5) badgeClass = 'low';
+    let badgeText = free;
+    if (total === 0) badgeText = '?';
+
+    let distanceHtml = '';
+    if (userCoords && parking.lat && parking.lng) {
+        const dist = getDistanceInMeters(userCoords.lat, userCoords.lng, parking.lat, parking.lng);
+        const distStr = dist < 1000 ? Math.round(dist) + ' м' : (dist/1000).toFixed(1) + ' км';
+        const time = Math.round(dist / 500); // 30 км/ч
+        const timeStr = time < 1 ? '<1 мин' : time + ' мин';
+        distanceHtml = `<div class="meta-row"><span>${distStr}</span><span class="dot">·</span><span>${timeStr}</span></div>`;
+    }
+
+    return `
+        <div class="parking-item" onclick="focusMap(${parking.lat}, ${parking.lng}, '${parking.id}')">
+            <div class="info">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div class="name">${parking.name || 'Без названия'}</div>
+                    <span class="free-badge ${badgeClass}">${badgeText}</span>
+                </div>
+                ${distanceHtml}
+            </div>
+        </div>
+    `;
+}
 
     function formatDateTime(timestamp) {
         if (!timestamp) return 'Неизвестно';
@@ -3290,44 +3346,6 @@ function tryYandexGeolocation(resolve, reject) {
             reject(new Error('Геолокация не поддерживается'));
         }
     }
-
-    function tryBrowserGeolocation(resolve, reject) {
-        if (typeof ymaps !== 'undefined') {
-            ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
-                .then(function(result) {
-                    const coords = result.geoObjects.get(0).geometry.getCoordinates();
-                    const location = { lat: coords[0], lng: coords[1] };
-                    lastKnownLocation = location;
-                    console.log('✅ Геолокация получена через Яндекс:', location);
-                    resolve(location);
-                })
-                .catch(function() {
-                    fallbackToNavigator(resolve, reject);
-                });
-        } else {
-            fallbackToNavigator(resolve, reject);
-        }
-    }
-
-    function fallbackToNavigator(resolve, reject) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    lastKnownLocation = coords;
-                    console.log('✅ Геолокация получена через navigator.geolocation:', coords);
-                    resolve(coords);
-                },
-                function(err) {
-                    console.error('❌ Ошибка геолокации:', err);
-                    reject(err);
-                }, { enableHighAccuracy: true, timeout: 10000 }
-            );
-        } else {
-            reject(new Error('Геолокация не поддерживается браузером'));
-        }
-    }
-
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
     function loadAllParkings(force = false) {
     // Если данные уже есть и не прошло 30 секунд – не перезагружаем
