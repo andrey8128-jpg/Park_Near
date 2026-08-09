@@ -2662,6 +2662,7 @@
     let drawingPolygon = null;
     let isDrawingMode = false;
     let currentParkingId = null;
+    let parkingSubscription = null;
     let currentParkingData = null;
     let originalPolyCoords = null;
     let editingParkingId = null;
@@ -3972,7 +3973,7 @@ function tryYandexGeolocation(resolve, reject) {
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
 
 function openCenterSheet(parkingId, data) {
-    const sheet = document.getElementById('centerSheet');
+   const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
     if (!sheet || !content) return;
 
@@ -3987,9 +3988,8 @@ function openCenterSheet(parkingId, data) {
 
     const now = new Date();
     const forecastText = generateForecastText(free, now);
-    const forecastData = generateForecastData(now, free);
-    const forecastChartHtml = renderForecastChart(forecastData);
 
+    // Сначала показываем заглушку "Загрузка прогноза..."
     let html = `
         <div class="center-sheet-title">${data.name || 'Парковка'}</div>
         <div class="center-stats">
@@ -4009,7 +4009,10 @@ function openCenterSheet(parkingId, data) {
         <div class="center-forecast">
             <div class="center-forecast-title">📊 Прогноз</div>
             <div class="center-forecast-text">${forecastText}</div>
-            ${forecastChartHtml}
+            <div id="forecastChartPlaceholder" style="text-align:center; padding:10px; color:var(--text-secondary);">
+                <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
+                <p>Загрузка прогноза...</p>
+            </div>
         </div>
         <div class="center-actions">
             <button class="btn-secondary" onclick="toggleFavoriteCenter()">⭐ Избранное</button>
@@ -4020,13 +4023,37 @@ function openCenterSheet(parkingId, data) {
 
     content.innerHTML = html;
     sheet.classList.add('active');
+
+    // Асинхронно загружаем прогноз и обновляем контейнер
+    try {
+        const forecastData = await generateForecastData(now, free, parkingId);
+        const forecastChartHtml = renderForecastChart(forecastData);
+        const placeholder = document.getElementById('forecastChartPlaceholder');
+        if (placeholder) {
+            // Заменяем placeholder на готовый график
+            const container = document.createElement('div');
+            container.innerHTML = forecastChartHtml;
+            placeholder.parentNode.replaceChild(container.firstElementChild, placeholder);
+        }
+    } catch (e) {
+        console.warn('Ошибка загрузки прогноза:', e);
+        const placeholder = document.getElementById('forecastChartPlaceholder');
+        if (placeholder) {
+            placeholder.innerHTML = '<div style="color:var(--text-secondary);">Прогноз временно недоступен</div>';
+        }
+    }
 }
 function closeCenterSheet() {
+ // Отписываемся от изменений парковки
+    if (parkingSubscription) {
+        parkingSubscription.off();
+        parkingSubscription = null;
+    }
+    
     document.getElementById('centerSheet').classList.remove('active');
     currentParkingId = null;
     currentParkingData = null;
 }
-
 function generateForecastText(freeNow, now) {
     const hour = now.getHours();
     const min = now.getMinutes();
@@ -4038,19 +4065,83 @@ function generateForecastText(freeNow, now) {
     return `Ожидается примерно <b>${low}-${high}</b> свободных мест к <b>${timeStr}</b>`;
 }
 // Генерация данных прогноза на 5 часов
-function generateForecastData(now, currentFree) {
-    const data = [];
-    for (let i = 1; i <= 5; i++) {
-        const future = new Date(now.getTime() + i * 60 * 60 * 1000);
-        const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        // Моделируем изменение: к вечеру места освобождаются с небольшим шумом
-        const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
-        const value = Math.max(0, Math.round(base));
-        data.push({ time: timeStr, value });
-    }
-    return data;
-}
+function generateForecastData(now, currentFree, parkingId) {
+    // Если есть parkingId – пытаемся загрузить историю
+    return new Promise((resolve) => {
+        if (!parkingId) {
+            // fallback: старый алгоритм
+            const data = [];
+            for (let i = 1; i <= 5; i++) {
+                const future = new Date(now.getTime() + i * 60 * 60 * 1000);
+                const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
+                const value = Math.max(0, Math.round(base));
+                data.push({ time: timeStr, value });
+            }
+            resolve(data);
+            return;
+        }
 
+        // Загружаем историю парковки
+        database.ref(`parkings/${parkingId}/history`)
+            .orderByChild('timestamp')
+            .limitToLast(50)
+            .once('value')
+            .then(snapshot => {
+                const history = snapshot.val();
+                if (!history) {
+                    // fallback
+                    const data = [];
+                    for (let i = 1; i <= 5; i++) {
+                        const future = new Date(now.getTime() + i * 60 * 60 * 1000);
+                        const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                        const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
+                        const value = Math.max(0, Math.round(base));
+                        data.push({ time: timeStr, value });
+                    }
+                    resolve(data);
+                    return;
+                }
+
+                // Анализируем изменения по часам
+                const hourlyChanges = {};
+                Object.values(history).forEach(entry => {
+                    const hour = new Date(entry.timestamp).getHours();
+                    if (!hourlyChanges[hour]) hourlyChanges[hour] = [];
+                    hourlyChanges[hour].push(entry.newOccupied || entry.occupiedSpots || 0);
+                });
+
+                const forecast = [];
+                for (let i = 1; i <= 5; i++) {
+                    const futureHour = (now.getHours() + i) % 24;
+                    const values = hourlyChanges[futureHour] || [];
+                    let avg = values.length > 0
+                        ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+                        : Math.round(currentFree + i * 0.5); // fallback
+                    // Корректируем, чтобы не выходить за пределы
+                    const total = parkingDataCache[parkingId]?.totalSpots || 20;
+                    avg = Math.max(0, Math.min(total, avg));
+                    forecast.push({
+                        time: new Date(now.getTime() + i * 3600000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+                        value: avg
+                    });
+                }
+                resolve(forecast);
+            })
+            .catch(() => {
+                // fallback
+                const data = [];
+                for (let i = 1; i <= 5; i++) {
+                    const future = new Date(now.getTime() + i * 60 * 60 * 1000);
+                    const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                    const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
+                    const value = Math.max(0, Math.round(base));
+                    data.push({ time: timeStr, value });
+                }
+                resolve(data);
+            });
+    });
+}
 // Отрисовка линейного графика в SVG
 function renderForecastChart(data) {
     if (!data || data.length === 0) return '';
