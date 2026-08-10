@@ -3077,13 +3077,12 @@
     const ratio = occupied / total;
     return (ratio < 0.5) ? '#2B7574' : (document.body.classList.contains('dark-theme') ? '#861211' : '#0E2931');
 }
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
+   function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
     function getOccupancyDotColor(free, total) {
         if (total === 0) return 'var(--gray)';
         const ratio = free / total;
@@ -3091,7 +3090,6 @@
         if (ratio >= 0.2) return 'var(--orange)';
         return 'var(--red)';
     }
-
     function getDistanceInMeters(lat1, lng1, lat2, lng2) {
         const R = 6371000;
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -3997,7 +3995,7 @@ if (coordinates && coordinates.length > 0) {
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
 
 async function openCenterSheet(parkingId, data) {
-   const sheet = document.getElementById('centerSheet');
+    const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
     if (!sheet || !content) return;
 
@@ -4015,7 +4013,7 @@ async function openCenterSheet(parkingId, data) {
 
     // Сначала показываем заглушку "Загрузка прогноза..."
     let html = `
-        <div class="center-sheet-title">${data.name || 'Парковка'}</div>
+        <div class="center-sheet-title">${escapeHtml(data.name || 'Парковка')}</div>
         <div class="center-stats">
             <div class="center-stat">
                 <div class="center-stat-value green">${free}</div>
@@ -4032,7 +4030,7 @@ async function openCenterSheet(parkingId, data) {
         </div>
         <div class="center-forecast">
             <div class="center-forecast-title">📊 Прогноз</div>
-            <div class="center-forecast-text">${forecastText}</div>
+            <div class="center-forecast-text">${escapeHtml(forecastText)}</div>
             <div id="forecastChartPlaceholder" style="text-align:center; padding:10px; color:var(--text-secondary);">
                 <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
                 <p>Загрузка прогноза...</p>
@@ -4088,83 +4086,99 @@ function generateForecastText(freeNow, now) {
     const high = Math.min(freeNow + 5, 20);
     return `Ожидается примерно <b>${low}-${high}</b> свободных мест к <b>${timeStr}</b>`;
 }
-// Генерация данных прогноза на 5 часов
-function generateForecastData(now, currentFree, parkingId) {
-    // Если есть parkingId – пытаемся загрузить историю
-    return new Promise((resolve) => {
-        if (!parkingId) {
-            // fallback: старый алгоритм
-            const data = [];
-            for (let i = 1; i <= 5; i++) {
-                const future = new Date(now.getTime() + i * 60 * 60 * 1000);
-                const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
-                const value = Math.max(0, Math.round(base));
-                data.push({ time: timeStr, value });
-            }
-            resolve(data);
-            return;
+// Генерация прогноза на основе истории за 7 дней
+async function generateForecastData(now, currentFree, parkingId) {
+    // Если parkingId не указан, возвращаем заглушку
+    if (!parkingId) {
+        const data = [];
+        for (let i = 1; i <= 5; i++) {
+            const future = new Date(now.getTime() + i * 60 * 60 * 1000);
+            const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
+            const value = Math.max(0, Math.round(base));
+            data.push({ time: timeStr, value });
         }
+        return data;
+    }
 
-        // Загружаем историю парковки
-        database.ref(`parkings/${parkingId}/history`)
-            .orderByChild('timestamp')
-            .limitToLast(50)
-            .once('value')
-            .then(snapshot => {
-                const history = snapshot.val();
-                if (!history) {
-                    // fallback
-                    const data = [];
-                    for (let i = 1; i <= 5; i++) {
-                        const future = new Date(now.getTime() + i * 60 * 60 * 1000);
-                        const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                        const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
-                        const value = Math.max(0, Math.round(base));
-                        data.push({ time: timeStr, value });
-                    }
-                    resolve(data);
-                    return;
-                }
+    // Загружаем историю за последние 7 дней (максимум 200 записей)
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const snapshot = await database.ref(`parkings/${parkingId}/history`)
+        .orderByChild('timestamp')
+        .startAt(sevenDaysAgo)
+        .limitToLast(200)
+        .once('value');
+    const history = snapshot.val();
 
-                // Анализируем изменения по часам
-                const hourlyChanges = {};
-                Object.values(history).forEach(entry => {
-                    const hour = new Date(entry.timestamp).getHours();
-                    if (!hourlyChanges[hour]) hourlyChanges[hour] = [];
-                    hourlyChanges[hour].push(entry.newOccupied || entry.occupiedSpots || 0);
-                });
+    // Если истории нет или она пуста, используем простой тренд
+    if (!history) {
+        const data = [];
+        for (let i = 1; i <= 5; i++) {
+            const future = new Date(now.getTime() + i * 60 * 60 * 1000);
+            const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const base = currentFree - i * 0.5 + Math.random() * 1.5;
+            const value = Math.max(0, Math.round(base));
+            data.push({ time: timeStr, value });
+        }
+        return data;
+    }
 
-                const forecast = [];
-                for (let i = 1; i <= 5; i++) {
-                    const futureHour = (now.getHours() + i) % 24;
-                    const values = hourlyChanges[futureHour] || [];
-                    let avg = values.length > 0
-                        ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-                        : Math.round(currentFree + i * 0.5); // fallback
-                    // Корректируем, чтобы не выходить за пределы
-                    const total = parkingDataCache[parkingId]?.totalSpots || 20;
-                    avg = Math.max(0, Math.min(total, avg));
-                    forecast.push({
-                        time: new Date(now.getTime() + i * 3600000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-                        value: avg
-                    });
-                }
-                resolve(forecast);
-            })
-            .catch(() => {
-                // fallback
-                const data = [];
-                for (let i = 1; i <= 5; i++) {
-                    const future = new Date(now.getTime() + i * 60 * 60 * 1000);
-                    const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                    const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
-                    const value = Math.max(0, Math.round(base));
-                    data.push({ time: timeStr, value });
-                }
-                resolve(data);
-            });
+    // Группируем записи по часам (0-23)
+    const hourlyData = {};
+    const entries = Object.values(history);
+    entries.forEach(entry => {
+        const dt = new Date(entry.timestamp);
+        const hour = dt.getHours();
+        if (!hourlyData[hour]) hourlyData[hour] = [];
+        hourlyData[hour].push(entry.newOccupied || entry.occupiedSpots || 0);
     });
+
+    // Вычисляем среднее для каждого часа
+    const hourlyAvg = {};
+    Object.keys(hourlyData).forEach(hour => {
+        const values = hourlyData[hour];
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        hourlyAvg[hour] = Math.round(avg);
+    });
+
+    // Получаем общее количество мест
+    const totalSpots = parkingDataCache[parkingId]?.totalSpots || 20;
+
+    // Строим прогноз на 5 часов вперёд
+    const forecast = [];
+    for (let i = 1; i <= 5; i++) {
+        const future = new Date(now.getTime() + i * 60 * 60 * 1000);
+        const hour = future.getHours();
+        const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        let value;
+        if (hourlyAvg[hour] !== undefined) {
+            // Используем среднее за этот час
+            value = hourlyAvg[hour];
+        } else {
+            // Если данных для этого часа нет, используем ближайший существующий час
+            const hours = Object.keys(hourlyAvg).map(Number).sort((a, b) => a - b);
+            let closest = hours[0];
+            let minDiff = 24;
+            hours.forEach(h => {
+                const diff = Math.abs(h - hour);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = h;
+                }
+            });
+            if (closest !== undefined) {
+                value = hourlyAvg[closest];
+            } else {
+                // Совсем нет данных – тренд
+                value = Math.max(0, Math.round(currentFree - i * 0.5));
+            }
+        }
+        // Корректируем, чтобы не выходить за пределы
+        value = Math.max(0, Math.min(totalSpots, value));
+        forecast.push({ time: timeStr, value });
+    }
+
+    return forecast;
 }
 // Отрисовка линейного графика в SVG
 function renderForecastChart(data) {
