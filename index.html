@@ -4009,9 +4009,10 @@ async function openCenterSheet(parkingId, data) {
     const percent = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
     const now = new Date();
-    const forecastText = generateForecastText(free, now);
 
-    // Сначала показываем заглушку "Загрузка прогноза..."
+    // Заглушка
+    let forecastText = 'Загрузка прогноза...';
+
     let html = `
         <div class="center-sheet-title">${escapeHtml(data.name || 'Парковка')}</div>
         <div class="center-stats">
@@ -4046,13 +4047,16 @@ async function openCenterSheet(parkingId, data) {
     content.innerHTML = html;
     sheet.classList.add('active');
 
-    // Асинхронно загружаем прогноз и обновляем контейнер
     try {
         const forecastData = await generateForecastData(now, free, parkingId);
         const forecastChartHtml = renderForecastChart(forecastData);
+        // Обновляем текстовый прогноз
+        forecastText = generateForecastText(forecastData, now);
+        const textContainer = document.querySelector('.center-forecast-text');
+        if (textContainer) textContainer.innerHTML = forecastText;
+
         const placeholder = document.getElementById('forecastChartPlaceholder');
         if (placeholder) {
-            // Заменяем placeholder на готовый график
             const container = document.createElement('div');
             container.innerHTML = forecastChartHtml;
             placeholder.parentNode.replaceChild(container.firstElementChild, placeholder);
@@ -4063,6 +4067,8 @@ async function openCenterSheet(parkingId, data) {
         if (placeholder) {
             placeholder.innerHTML = '<div style="color:var(--text-secondary);">Прогноз временно недоступен</div>';
         }
+        const textContainer = document.querySelector('.center-forecast-text');
+        if (textContainer) textContainer.innerHTML = 'Прогноз временно недоступен';
     }
 }
 function closeCenterSheet() {
@@ -4076,15 +4082,18 @@ function closeCenterSheet() {
     currentParkingId = null;
     currentParkingData = null;
 }
-function generateForecastText(freeNow, now) {
-    const hour = now.getHours();
-    const min = now.getMinutes();
-    const futureHour = (hour + 2) % 24;
-    const futureMin = (min + 30) % 60;
-    const timeStr = `${String(futureHour).padStart(2,'0')}:${String(futureMin).padStart(2,'0')}`;
-    const low = Math.max(0, freeNow - Math.floor(Math.random() * 5));
-    const high = Math.min(freeNow + 5, 20);
-    return `Ожидается примерно <b>${low}-${high}</b> свободных мест к <b>${timeStr}</b>`;
+function generateForecastText(forecastData, now) {
+    if (!forecastData || forecastData.length === 0) {
+        return 'Прогноз недоступен';
+    }
+    // Берём прогноз на 2-й час (индекс 1) – можно настроить
+    const index = Math.min(1, forecastData.length - 1);
+    const forecast = forecastData[index];
+    const timeStr = forecast.time;
+    const value = forecast.value;
+    // Добавляем окончание для слова "мест"
+    const places = value % 10 === 1 && value % 100 !== 11 ? 'место' : (value % 10 >= 2 && value % 10 <= 4 && (value % 100 < 10 || value % 100 >= 20) ? 'места' : 'мест');
+    return `Ожидается примерно <b>${value}</b> ${places} к <b>${timeStr}</b>`;
 }
 // Генерация прогноза на основе истории за 7 дней
 async function generateForecastData(now, currentFree, parkingId) {
