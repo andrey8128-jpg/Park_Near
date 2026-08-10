@@ -4267,7 +4267,7 @@ function editFromCenter() {
         });
     }
 
-    function renderEditPanel(data, isFavorite) {
+   function renderEditPanel(data, isFavorite) {
     const totalSpots = data.totalSpots || 0;
     const occupiedSpots = data.occupiedSpots || 0;
     const freeSpots = totalSpots - occupiedSpots;
@@ -4308,127 +4308,195 @@ function editFromCenter() {
             <button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
         </div>
     </div>
+
+    <!-- ===== ИСТОРИЯ ИЗМЕНЕНИЙ (ВСЕГДА ОТКРЫТА) ===== -->
+    <div id="historyContainer" style="margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-weight:600; font-size:16px;">📋 История изменений</span>
+            <span style="font-size:12px; color:var(--text-secondary);" id="historyCount"></span>
+            <button id="showAllHistoryBtn" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; display:none;">См. все</button>
+        </div>
+        <div id="historyList" style="max-height:200px; overflow-y:auto;"></div>
+        <div id="historyFullList" style="display:none; max-height:200px; overflow-y:auto; margin-top:8px;"></div>
+        <button id="hideAllHistoryBtn" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:4px;">Скрыть всё</button>
+    </div>
     `;
 
-    // ---- БЛОК ИСТОРИИ (перенесён сюда) ----
-    if (currentUser) {
-        html += `
-        <div id="historyContainer">
-            <div id="historyToggle">
-                <span style="font-weight:600; font-size:16px;">📋 История изменений</span>
-                <span style="font-size:12px; color:var(--text-secondary);" id="historyCount"></span>
-                <span id="historyArrow">▶</span>
-            </div>
-            <div id="historyListWrapper">
-                <div id="historyList"></div>
-                <button id="loadMoreHistory" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; margin-top:8px;">Показать все</button>
-            </div>
-        </div>
-        `;
-    }
+    // ===== ТРИ КНОПКИ В РЯД =====
+    html += `
+    <div style="display:flex; gap:8px; margin-top:16px;">
+        <button class="btn-secondary" style="flex:1; margin:0;" onclick="toggleParkingEditor()">✏️ Изменить</button>
+        <button class="btn-secondary" style="flex:1; margin:0;" onclick="buildRouteToParking('${currentParkingId}')">🧭 Маршрут</button>
+        <button class="btn-danger" style="flex:1; margin:0; padding:10px;" onclick="deleteParkingWithConfirm('${currentParkingId}')">🗑️ Удалить</button>
+    </div>
+    `;
 
-    // ---- БЛОК РЕДАКТИРОВАНИЯ (только для автора) ----
-    if (currentUser) {
+    // ===== ПАНЕЛЬ РЕДАКТИРОВАНИЯ (СКРЫТА ПО УМОЛЧАНИЮ) =====
+    if (currentUser && isAuthor) {
         const currentStreet = data.street || '';
         const streetType = currentStreet.split(' ')[0] || '';
         const streetName = extractStreetName(currentStreet);
 
         html += `
-        <div class="parking-editor">
-            <div class="parking-summary" onclick="toggleParkingEditor()">
-                <div class="summary-info">
-                    <div class="summary-address" id="summaryAddress">${escapeHtml(addressDisplay)}</div>
-                    <div class="summary-spots" id="summarySpots">🅿️ ${totalSpots} мест</div>
-                </div>
-                <button class="edit-toggle-btn" id="editToggleBtn">✏️</button>
+        <div id="editPanel" style="display:none; margin-top:16px; background:var(--bg-secondary); border-radius:16px; padding:16px; box-shadow:var(--card-shadow);">
+            <div class="form-group">
+                <label>Название / улица</label>
+                <select id="editStreetType" class="input-field" style="margin-bottom:8px;">
+                    <option value="">-- выберите --</option>
+                    <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
+                    <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
+                    <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
+                    <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
+                    <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
+                    <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
+                    <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
+                    <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
+                    <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
+                </select>
+                <input type="text" id="editStreetName" class="input-field" value="${escapeHtml(streetName)}" placeholder="Название улицы">
             </div>
-            <div class="editor-fields" id="editorFields">
-                <div class="form-group" style="margin-top:12px;">
-                    <label>Тип улицы</label>
-                    <select id="editStreetType" class="input-field">
-                        <option value="">-- выберите --</option>
-                        <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
-                        <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
-                        <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
-                        <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
-                        <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
-                        <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
-                        <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
-                        <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
-                        <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Название улицы</label>
-                    <input type="text" id="editStreetName" class="input-field" value="${escapeHtml(streetName)}" placeholder="Ленина">
-                </div>
-                <div class="form-group">
-                    <label>Номер дома</label>
-                    <input type="text" id="editHouseNumber" class="input-field" value="${escapeHtml(data.houseNumber || '')}" placeholder="15">
-                </div>
-                <div class="form-group">
-                    <label>Количество мест</label>
-                    <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1">
-                </div>
-                <!-- Кнопка сохранения убрана отсюда – она будет внизу -->
+            <div class="form-group">
+                <label>Номер дома</label>
+                <input type="text" id="editHouseNumber" class="input-field" value="${escapeHtml(data.houseNumber || '')}" placeholder="15">
             </div>
-            <button class="btn-danger" onclick="deleteParking('${currentParkingId}')" style="margin-top:12px;">🗑️ Удалить парковку</button>
+            <div class="form-group">
+                <label>Количество мест</label>
+                <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1" max="500">
+            </div>
+            <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить</button>
+            <button class="btn-secondary" style="margin-top:8px;" onclick="toggleParkingEditor()">Отмена</button>
         </div>
         `;
-    } else {
-        // Для неавторизованных – только статус
-        html += `
-        <div style="text-align:center;margin:10px 0;font-size:15px;">Статус: <strong>${statusText}</strong></div>
-        <button class="btn-secondary" style="margin-top:10px;" onclick="confirmParking('${currentParkingId}')">👍 Подтвердить актуальность</button>
-        `;
+    } else if (!isAuthor && currentUser) {
+        html += `<div style="text-align:center; margin-top:16px; font-size:14px; color:var(--text-secondary);">Вы не можете редактировать эту парковку</div>`;
     }
-
-    // ---- ДВЕ КНОПКИ В ОДНУ СТРОКУ ----
-    html += `
-    <div style="display:flex; gap:8px; margin-top:16px;">
-        <button class="btn-primary" style="flex:1; margin:0;" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-        <button class="btn-secondary" style="flex:1; margin:0;" onclick="buildRouteToParking('${currentParkingId}')">🧭 Маршрут</button>
-    </div>
-    `;
 
     document.getElementById('panelContent').innerHTML = html;
 
-    // ---- ОБРАБОТЧИКИ (инициализация истории и т.д.) ----
-    const historyToggle = document.getElementById('historyToggle');
-    const historyWrapper = document.getElementById('historyListWrapper');
-    const historyArrow = document.getElementById('historyArrow');
-    let historyLoaded = false;
-
-    if (historyToggle) {
-        historyToggle.addEventListener('click', function() {
-            const isOpen = historyWrapper.classList.contains('open');
-            if (isOpen) {
-                historyWrapper.classList.remove('open');
-                if (historyArrow) historyArrow.textContent = '▶';
-            } else {
-                historyWrapper.classList.add('open');
-                if (historyArrow) historyArrow.textContent = '▼';
-                if (!historyLoaded && currentUser) {
-                    loadHistory(currentParkingId, 10, 3);
-                    historyLoaded = true;
-                }
-            }
-        });
+    // ===== ЗАГРУЗКА ИСТОРИИ (ВСЕГДА) =====
+    if (currentUser && currentParkingId) {
+        loadHistoryPreview(currentParkingId);
     }
 
+    // ===== ОБРАБОТЧИК ДЛЯ КНОПКИ "СМ. ВСЕ" =====
+    window.showAllHistory = function() {
+        document.getElementById('historyList').style.display = 'none';
+        document.getElementById('historyFullList').style.display = 'block';
+        document.getElementById('showAllHistoryBtn').style.display = 'none';
+        document.getElementById('hideAllHistoryBtn').style.display = 'inline-block';
+    };
+
+    window.hideAllHistory = function() {
+        document.getElementById('historyFullList').style.display = 'none';
+        document.getElementById('historyList').style.display = 'block';
+        document.getElementById('showAllHistoryBtn').style.display = 'inline-block';
+        document.getElementById('hideAllHistoryBtn').style.display = 'none';
+    };
+
+    // ===== ПЕРЕКЛЮЧЕНИЕ ПАНЕЛИ РЕДАКТИРОВАНИЯ =====
     window.toggleParkingEditor = function() {
-        const fields = document.getElementById('editorFields');
-        const btn = document.getElementById('editToggleBtn');
-        if (fields) {
-            fields.classList.toggle('open');
-            if (btn) {
-                btn.classList.toggle('active');
-                btn.textContent = fields.classList.contains('open') ? '✕' : '✏️';
-            }
+        const panel = document.getElementById('editPanel');
+        if (panel) {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+    };
+
+    // ===== УДАЛЕНИЕ С ПОДТВЕРЖДЕНИЕМ =====
+    window.deleteParkingWithConfirm = function(parkingId) {
+        if (confirm('Вы уверены, что хотите удалить эту парковку? Это действие необратимо!')) {
+            deleteParking(parkingId);
         }
     };
 }
+    // Загрузка истории для предпросмотра (первые 3 записи + кнопка "См. все")
+function loadHistoryPreview(parkingId) {
+    const container = document.getElementById('historyList');
+    const fullContainer = document.getElementById('historyFullList');
+    const countEl = document.getElementById('historyCount');
+    const showAllBtn = document.getElementById('showAllHistoryBtn');
+    const hideAllBtn = document.getElementById('hideAllHistoryBtn');
 
+    if (!container || !currentParkingId) return;
+
+    database.ref(`parkings/${parkingId}/history`)
+        .orderByChild('timestamp')
+        .limitToLast(100)
+        .once('value')
+        .then(snapshot => {
+            const history = snapshot.val();
+            if (!history) {
+                container.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">История пуста</div>';
+                if (countEl) countEl.textContent = '';
+                return;
+            }
+
+            const entries = Object.entries(history)
+                .map(([key, val]) => ({ key, ...val }))
+                .sort((a, b) => b.timestamp - a.timestamp);
+
+            if (countEl) countEl.textContent = `(${entries.length})`;
+
+            const renderEntry = (entry) => {
+                const date = new Date(entry.timestamp);
+                const timeStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const action = entry.action === 'occupied' ? '🚗 Занял' : '🚗 Освободил';
+                const username = entry.username || 'Неизвестный';
+                const car = entry.car || {};
+                let carStr = '';
+                if (car.brand || car.model) {
+                    carStr = `${car.brand} ${car.model}`;
+                    if (car.plate) carStr += ` (${car.plate})`;
+                } else {
+                    carStr = 'машина не указана';
+                }
+                return `
+                    <div style="padding:8px 12px; background:var(--bg-primary); border-radius:8px; margin-bottom:4px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+                        <div><span style="font-weight:500;">${action}</span> (${entry.previousOccupied} → ${entry.newOccupied})</div>
+                        <div style="color:var(--text-secondary); font-size:12px;">${escapeHtml(username)} • ${escapeHtml(carStr)}</div>
+                        <div style="color:var(--text-secondary); font-size:11px;">${timeStr}</div>
+                    </div>
+                `;
+            };
+
+            // Показываем первые 3 в основном контейнере
+            const showCount = 3;
+            const previewEntries = entries.slice(0, showCount);
+            const remainingEntries = entries.slice(showCount);
+
+            container.innerHTML = previewEntries.map(renderEntry).join('');
+
+            if (remainingEntries.length > 0) {
+                showAllBtn.style.display = 'inline-block';
+                // Полный список рендерим и скрываем
+                fullContainer.innerHTML = remainingEntries.map(renderEntry).join('');
+                fullContainer.style.display = 'none';
+                hideAllBtn.style.display = 'none';
+            } else {
+                showAllBtn.style.display = 'none';
+                fullContainer.style.display = 'none';
+                hideAllBtn.style.display = 'none';
+            }
+
+            // Обработчики кнопок
+            showAllBtn.onclick = function() {
+                container.style.display = 'none';
+                fullContainer.style.display = 'block';
+                showAllBtn.style.display = 'none';
+                hideAllBtn.style.display = 'inline-block';
+            };
+
+            hideAllBtn.onclick = function() {
+                fullContainer.style.display = 'none';
+                container.style.display = 'block';
+                showAllBtn.style.display = 'inline-block';
+                hideAllBtn.style.display = 'none';
+            };
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки истории:', err);
+            container.innerHTML = '<div style="color:var(--red);">Ошибка загрузки</div>';
+        });
+}
     function loadHistory(parkingId, limit = 10, days = 3) {
         const container = document.getElementById('historyList');
         const countEl = document.getElementById('historyCount');
