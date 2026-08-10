@@ -4303,10 +4303,10 @@ function editFromCenter() {
     <div class="occupancy-control" style="margin-bottom:15px;">
         <label>Изменить количество занятых мест:</label>
         <div class="counter-row">
-            <button class="counter-btn minus" onclick="changeOccupancy(-1)">−</button>
-            <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-            <button class="counter-btn plus" onclick="changeOccupancy(1)">+</button>
-        </div>
+    <button class="counter-btn minus" onclick="changeOccupancy(-1, '${currentParkingId}')">−</button>
+    <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
+    <button class="counter-btn plus" onclick="changeOccupancy(1, '${currentParkingId}')">+</button>
+       </div>
     </div>
 
     <!-- ===== ИСТОРИЯ ИЗМЕНЕНИЙ (ВСЕГДА ОТКРЫТА) ===== -->
@@ -4654,73 +4654,81 @@ function loadHistoryPreview(parkingId) {
         currentParkingData.occupiedSpots = newOccupied;
     }
 
-    function changeOccupancy(delta) {
-        if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-        if (!currentParkingId || !currentParkingData) {
-            console.warn('changeOccupancy: нет currentParkingId');
-            return;
-        }
-        const total = currentParkingData.totalSpots || 0,
-            cur = currentParkingData.occupiedSpots || 0,
-            newOcc = cur + delta;
-
-        if (newOcc < 0 || newOcc > total) {
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-            }
-            return;
-        }
-
-        const now = Date.now();
-        const car = currentUser.car || {};
-
-        database.ref(`parkings/${currentParkingId}`).update({
-            occupiedSpots: newOcc,
-            lastUpdatedAt: now,
-            lastUpdatedBy: currentUser.nickname || currentUser.firstName
-        })
-        .then(() => {
-            return database.ref(`parkings/${currentParkingId}/history`).push({
-                action: delta < 0 ? 'freed' : 'occupied',
-                timestamp: now,
-                userId: currentUser.id,
-                username: currentUser.username || currentUser.nickname || 'Гость',
-                previousOccupied: cur,
-                newOccupied: newOcc,
-                car: {
-                    brand: car.brand || '',
-                    model: car.model || '',
-                    plate: car.plate || '',
-                    color: car.color || ''
-                }
-            });
-        })
-        .then(() => {
-            updateOccupancyDisplay(newOcc);
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
-            return database.ref(`parkings/${currentParkingId}`).once('value');
-        })
-        .then(snapshot => {
-            const data = snapshot.val();
-            if (mapMarkers[currentParkingId]) {
-                map.geoObjects.remove(mapMarkers[currentParkingId]);
-                delete mapMarkers[currentParkingId];
-            }
-            parkingDataCache[currentParkingId] = data;
-            addMarkerToMap(currentParkingId, data);
-
-            if (document.getElementById('historyList')) {
-                loadHistory(currentParkingId, 10, 3);
-            }
-        })
-        .catch(err => {
-            console.error("Ошибка обновления занятости:", err);
-            alert('Ошибка обновления: ' + err.message);
-        });
+   function changeOccupancy(delta, parkingId) {
+    if (!currentUser) {
+        alert('Необходимо авторизоваться');
+        return;
     }
 
+    // Определяем ID и данные
+    const id = parkingId || currentParkingId;
+    const data = (id === currentParkingId) ? currentParkingData : parkingDataCache[id];
+
+    if (!id || !data) {
+        console.warn('changeOccupancy: нет parkingId или данных');
+        return;
+    }
+
+    const total = data.totalSpots || 0;
+    const cur = data.occupiedSpots || 0;
+    const newOcc = cur + delta;
+
+    if (newOcc < 0 || newOcc > total) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+        }
+        return;
+    }
+
+    const now = Date.now();
+    const car = currentUser.car || {};
+
+    database.ref(`parkings/${id}`).update({
+        occupiedSpots: newOcc,
+        lastUpdatedAt: now,
+        lastUpdatedBy: currentUser.nickname || currentUser.firstName
+    })
+    .then(() => {
+        return database.ref(`parkings/${id}/history`).push({
+            action: delta < 0 ? 'freed' : 'occupied',
+            timestamp: now,
+            userId: currentUser.id,
+            username: currentUser.username || currentUser.nickname || 'Гость',
+            previousOccupied: cur,
+            newOccupied: newOcc,
+            car: {
+                brand: car.brand || '',
+                model: car.model || '',
+                plate: car.plate || '',
+                color: car.color || ''
+            }
+        });
+    })
+    .then(() => {
+        // Обновляем данные в кеше
+        if (parkingDataCache[id]) {
+            parkingDataCache[id].occupiedSpots = newOcc;
+        }
+        if (id === currentParkingId && currentParkingData) {
+            currentParkingData.occupiedSpots = newOcc;
+        }
+        // Обновляем интерфейс
+        updateOccupancyDisplay(newOcc);
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+        // Обновляем маркер на карте
+        refreshParkingMarker();
+        // Если открыта история – обновить её
+        if (document.getElementById('historyList')) {
+            loadHistoryPreview(id);
+        }
+    })
+    .catch(err => {
+        console.error("Ошибка обновления занятости:", err);
+        alert('Ошибка обновления: ' + err.message);
+    });
+}
     function deleteParking(parkingId) {
         if (!currentUser) { alert('Необходимо авторизоваться'); return; }
         if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
