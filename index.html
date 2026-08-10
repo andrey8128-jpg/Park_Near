@@ -4655,6 +4655,8 @@ function loadHistoryPreview(parkingId) {
     }
 
    function changeOccupancy(delta, parkingId) {
+    console.log('changeOccupancy called with delta=', delta, 'parkingId=', parkingId);
+
     if (!currentUser) {
         alert('Необходимо авторизоваться');
         return;
@@ -4662,10 +4664,37 @@ function loadHistoryPreview(parkingId) {
 
     // Определяем ID и данные
     const id = parkingId || currentParkingId;
-    const data = (id === currentParkingId) ? currentParkingData : parkingDataCache[id];
+    console.log('Using id:', id);
 
-    if (!id || !data) {
-        console.warn('changeOccupancy: нет parkingId или данных');
+    if (!id) {
+        console.error('changeOccupancy: нет parkingId');
+        alert('Ошибка: ID парковки не найден');
+        return;
+    }
+
+    // Берём данные из кеша или глобальной переменной
+    let data = (id === currentParkingId) ? currentParkingData : parkingDataCache[id];
+    if (!data) {
+        // Пробуем загрузить из Firebase на лету
+        console.warn('Данных в кеше нет, загружаем из Firebase...');
+        try {
+            const result = await database.ref(`parkings/${id}`).once('value');
+            data = result.val();
+            if (data) {
+                parkingDataCache[id] = data;
+                if (id === currentParkingId) currentParkingData = data;
+                console.log('Данные загружены из Firebase:', data);
+            }
+        } catch (err) {
+            console.error('Не удалось загрузить данные парковки:', err);
+            alert('Не удалось загрузить данные парковки');
+            return;
+        }
+    }
+
+    if (!data) {
+        console.error('Данные парковки не найдены для id:', id);
+        alert('Данные парковки не найдены');
         return;
     }
 
@@ -4674,6 +4703,7 @@ function loadHistoryPreview(parkingId) {
     const newOcc = cur + delta;
 
     if (newOcc < 0 || newOcc > total) {
+        console.warn('Недопустимое значение:', newOcc, 'при total=', total);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
         }
@@ -4689,6 +4719,7 @@ function loadHistoryPreview(parkingId) {
         lastUpdatedBy: currentUser.nickname || currentUser.firstName
     })
     .then(() => {
+        console.log('Обновление занятости успешно сохранено в Firebase');
         return database.ref(`parkings/${id}/history`).push({
             action: delta < 0 ? 'freed' : 'occupied',
             timestamp: now,
@@ -4705,28 +4736,33 @@ function loadHistoryPreview(parkingId) {
         });
     })
     .then(() => {
-        // Обновляем данные в кеше
+        // Обновляем кеш
         if (parkingDataCache[id]) {
             parkingDataCache[id].occupiedSpots = newOcc;
         }
         if (id === currentParkingId && currentParkingData) {
             currentParkingData.occupiedSpots = newOcc;
         }
+
         // Обновляем интерфейс
         updateOccupancyDisplay(newOcc);
+        console.log('Интерфейс обновлён, новое значение:', newOcc);
+
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
+
         // Обновляем маркер на карте
         refreshParkingMarker();
-        // Если открыта история – обновить её
+
+        // Обновляем историю, если она открыта
         if (document.getElementById('historyList')) {
             loadHistoryPreview(id);
         }
     })
     .catch(err => {
         console.error("Ошибка обновления занятости:", err);
-        alert('Ошибка обновления: ' + err.message);
+        alert('Ошибка обновления: ' + (err.message || 'Неизвестная ошибка'));
     });
 }
     function deleteParking(parkingId) {
