@@ -4072,12 +4072,7 @@ async function openCenterSheet(parkingId, data) {
     }
 }
 function closeCenterSheet() {
- // Отписываемся от изменений парковки
-    if (parkingSubscription) {
-        parkingSubscription.off();
-        parkingSubscription = null;
-    }
-    
+    // Подписка отсутствует – просто закрываем окно
     document.getElementById('centerSheet').classList.remove('active');
     currentParkingId = null;
     currentParkingData = null;
@@ -6549,30 +6544,79 @@ function saveCityFromSettingsInline() {
         }
     }
 
-    function showPanel(type, keepFilter = false) {
-    if (type === 'search' && !keepFilter) {
-        nearbySearchFilter = null;
-    }
-    document.getElementById('panel').classList.add('active');
-    document.getElementById('panelTitle').textContent =
-        type === 'profile' ? 'Профиль' :
-        type === 'favorites' ? 'Избранное' :
-        'Главная';
-    const content = document.getElementById('panelContent');
-    if (type === 'profile') renderProfile(content);
-    else if (type === 'favorites') {
-        content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
-        loadUserData('favorites', content);
-    } else if (type === 'home') {
-        renderHomePanel(content);
-    } else if (type === 'search') {
-        // Если используется renderSearchPanel, можно оставить, но мы её убрали
-        // renderSearchPanel(content);
-    }
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    const tabMap = { 'home': 0, 'favorites': 2, 'profile': 3 };
-    const index = tabMap[type] !== undefined ? tabMap[type] : 0;
-    document.querySelectorAll('.tab')[index].classList.add('active');
+   function openCenterSheet(parkingId, data) {
+    const sheet = document.getElementById('centerSheet');
+    const content = document.getElementById('centerSheetContent');
+    if (!sheet || !content) return;
+
+    currentParkingId = parkingId;
+    currentParkingData = data;
+    parkingDataCache[parkingId] = data;
+
+    const total = data.totalSpots || 0;
+    const occupied = data.occupiedSpots || 0;
+    const free = total - occupied;
+    const percent = total > 0 ? Math.round((occupied / total) * 100) : 0;
+
+    const now = new Date();
+    let forecastText = 'Загрузка прогноза...';
+
+    let html = `
+        <div class="center-sheet-title">${escapeHtml(data.name || 'Парковка')}</div>
+        <div class="center-stats">
+            <div class="center-stat">
+                <div class="center-stat-value green">${free}</div>
+                <div class="center-stat-label">Свободно</div>
+            </div>
+            <div class="center-stat">
+                <div class="center-stat-value blue">${total}</div>
+                <div class="center-stat-label">Всего мест</div>
+            </div>
+            <div class="center-stat">
+                <div class="center-stat-value ${percent > 70 ? 'red' : percent > 40 ? 'orange' : 'green'}">${percent}%</div>
+                <div class="center-stat-label">Загруженность</div>
+            </div>
+        </div>
+        <div class="center-forecast">
+            <div class="center-forecast-title">📊 Прогноз</div>
+            <div class="center-forecast-text">${escapeHtml(forecastText)}</div>
+            <div id="forecastChartPlaceholder" style="text-align:center; padding:10px; color:var(--text-secondary);">
+                <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
+                <p>Загрузка прогноза...</p>
+            </div>
+        </div>
+        <div class="center-actions">
+            <button class="btn-secondary" onclick="toggleFavoriteCenter()">⭐ Избранное</button>
+            <button class="btn-secondary" onclick="buildRouteFromCenter()">🧭 Маршрут</button>
+            <button class="btn-secondary" onclick="editFromCenter()">✏️ Изменить</button>
+        </div>
+    `;
+
+    content.innerHTML = html;
+    sheet.classList.add('active');
+
+    // Генерация прогноза (без изменений)
+    generateForecastData(now, free, parkingId)
+        .then(forecastData => {
+            const chartHtml = renderForecastChart(forecastData);
+            const text = generateForecastText(forecastData, now);
+            const textContainer = document.querySelector('.center-forecast-text');
+            if (textContainer) textContainer.innerHTML = text;
+            const placeholder = document.getElementById('forecastChartPlaceholder');
+            if (placeholder) {
+                const container = document.createElement('div');
+                container.innerHTML = chartHtml;
+                placeholder.parentNode.replaceChild(container.firstElementChild, placeholder);
+            }
+        })
+        .catch(() => {
+            const placeholder = document.getElementById('forecastChartPlaceholder');
+            if (placeholder) {
+                placeholder.innerHTML = '<div style="color:var(--text-secondary);">Прогноз временно недоступен</div>';
+            }
+            const textContainer = document.querySelector('.center-forecast-text');
+            if (textContainer) textContainer.innerHTML = 'Прогноз временно недоступен';
+        });
 }
     function closePanel() {
         nearbySearchFilter = null;
