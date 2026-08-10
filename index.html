@@ -3725,6 +3725,22 @@ function tryYandexGeolocation(resolve, reject) {
 
         setTimeout(() => {
             initMiniMap(coordinates);
+            // Автозаполнение адреса по координатам
+if (coordinates && coordinates.length > 0) {
+    const center = coordinates[0]; // берём первую точку как центр
+    ymaps.geocode(center, { results: 1 }).then(res => {
+        const geo = res.geoObjects.get(0);
+        if (geo) {
+            const address = geo.getAddressLine();
+            const parsed = parseAddress(address);
+            // Заполняем поля, если они уже есть в DOM
+            const streetInput = document.getElementById('parkStreetName');
+            const houseInput = document.getElementById('parkHouseNumber');
+            if (streetInput) streetInput.value = parsed.street || '';
+            if (houseInput) houseInput.value = parsed.houseNumber || '';
+        }
+    }).catch(err => console.warn('Геокодирование не удалось:', err));
+}
         }, 50);
     }
 
