@@ -3972,7 +3972,7 @@ function tryYandexGeolocation(resolve, reject) {
 } 
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
 
-function openCenterSheet(parkingId, data) {
+async function openCenterSheet(parkingId, data) {
    const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
     if (!sheet || !content) return;
