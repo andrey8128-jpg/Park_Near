@@ -7372,6 +7372,15 @@ function renderParkingList(container, parkings) {
         }
     })();
     console.log('✅ ParkNear загружен. Код исправлен.');
+
+    // Принудительное скрытие splash через 5 секунд (на случай, если карта не загрузилась)
+    setTimeout(function() {
+        var splash = document.getElementById('splashScreen');
+        if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(function() { splash.remove(); }, 300);
+        }
+    }, 5000);
 </script>
 </body>
 </html>
