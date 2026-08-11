@@ -4338,17 +4338,17 @@ function showPanel(type, keepFilter = false) {
             toast.style.transform = 'translateX(-50%) translateY(-20px)';
         }, duration);
     }
-   function onTelegramAuth(user) {
-    currentUser = {
-        id: 'tg_' + user.id,
-        username: user.username || 'tg_user',
-        firstName: user.first_name || 'Пользователь',
-        photoUrl: user.photo_url || '',
-        isGuest: false
+  function loginAsGuest() {
+    const userId = 'guest_' + Date.now();
+    const user = {
+        id: userId,
+        username: 'guest',
+        firstName: 'Гость',
+        photoUrl: '',
+        isGuest: true
     };
-    window.currentUser = currentUser;
-    localStorage.setItem('tgUser', JSON.stringify(currentUser));
-
+    currentUser = user;
+    localStorage.setItem('tgUser', JSON.stringify(user));
     const userRef = database.ref('users/' + currentUser.id);
     userRef.update({
         username: currentUser.username,
