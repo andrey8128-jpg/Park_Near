@@ -106,6 +106,21 @@
             transition: background 0.4s ease, color 0.4s ease;
             -webkit-font-smoothing: antialiased;
         }
+        #splashScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: opacity 0.8s ease;
+    background: #0E2931;
+    overflow: hidden;
+}
         .app-header {
             position: fixed;
             top: env(safe-area-inset-top, 0px);
@@ -3590,12 +3605,12 @@ function tryYandexGeolocation(resolve, reject) {
             }).catch(() => console.log('Автогеолокация не удалась'));
         }, 1000);
         setTimeout(() => {
-            const splash = document.getElementById('splashScreen');
-            if (splash) {
-                splash.style.opacity = '0';
-                setTimeout(() => splash.remove(), 300);
-            }
-        }, 5000);
+    const splash = document.getElementById('splashScreen');
+    if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 300);
+    }
+}, 5000);
     }
 
     // ===================== СЛОИ КАРТЫ =====================
@@ -6582,81 +6597,7 @@ function showPanel(type, keepFilter = false) {
             header.classList.toggle('collapsed');
         }
     }
-
-   function openCenterSheet(parkingId, data) {
-    const sheet = document.getElementById('centerSheet');
-    const content = document.getElementById('centerSheetContent');
-    if (!sheet || !content) return;
-
-    currentParkingId = parkingId;
-    currentParkingData = data;
-    parkingDataCache[parkingId] = data;
-
-    const total = data.totalSpots || 0;
-    const occupied = data.occupiedSpots || 0;
-    const free = total - occupied;
-    const percent = total > 0 ? Math.round((occupied / total) * 100) : 0;
-
-    const now = new Date();
-    let forecastText = 'Загрузка прогноза...';
-
-    let html = `
-        <div class="center-sheet-title">${escapeHtml(data.name || 'Парковка')}</div>
-        <div class="center-stats">
-            <div class="center-stat">
-                <div class="center-stat-value green">${free}</div>
-                <div class="center-stat-label">Свободно</div>
-            </div>
-            <div class="center-stat">
-                <div class="center-stat-value blue">${total}</div>
-                <div class="center-stat-label">Всего мест</div>
-            </div>
-            <div class="center-stat">
-                <div class="center-stat-value ${percent > 70 ? 'red' : percent > 40 ? 'orange' : 'green'}">${percent}%</div>
-                <div class="center-stat-label">Загруженность</div>
-            </div>
-        </div>
-        <div class="center-forecast">
-            <div class="center-forecast-title">📊 Прогноз</div>
-            <div class="center-forecast-text">${escapeHtml(forecastText)}</div>
-            <div id="forecastChartPlaceholder" style="text-align:center; padding:10px; color:var(--text-secondary);">
-                <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
-                <p>Загрузка прогноза...</p>
-            </div>
-        </div>
-        <div class="center-actions">
-            <button class="btn-secondary" onclick="toggleFavoriteCenter()">⭐ Избранное</button>
-            <button class="btn-secondary" onclick="buildRouteFromCenter()">🧭 Маршрут</button>
-            <button class="btn-secondary" onclick="editFromCenter()">✏️ Изменить</button>
-        </div>
-    `;
-
-    content.innerHTML = html;
-    sheet.classList.add('active');
-
-    // Генерация прогноза (без изменений)
-    generateForecastData(now, free, parkingId)
-        .then(forecastData => {
-            const chartHtml = renderForecastChart(forecastData);
-            const text = generateForecastText(forecastData, now);
-            const textContainer = document.querySelector('.center-forecast-text');
-            if (textContainer) textContainer.innerHTML = text;
-            const placeholder = document.getElementById('forecastChartPlaceholder');
-            if (placeholder) {
-                const container = document.createElement('div');
-                container.innerHTML = chartHtml;
-                placeholder.parentNode.replaceChild(container.firstElementChild, placeholder);
-            }
-        })
-        .catch(() => {
-            const placeholder = document.getElementById('forecastChartPlaceholder');
-            if (placeholder) {
-                placeholder.innerHTML = '<div style="color:var(--text-secondary);">Прогноз временно недоступен</div>';
-            }
-            const textContainer = document.querySelector('.center-forecast-text');
-            if (textContainer) textContainer.innerHTML = 'Прогноз временно недоступен';
-        });
-}
+    
     function closePanel() {
         nearbySearchFilter = null;
         if (isAddressPickerOpen) cancelAddressPicker();
