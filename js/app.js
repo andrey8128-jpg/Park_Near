@@ -3353,6 +3353,7 @@ function toggleProfileSection(section) {
 }
 
 // ---- Загрузка истории парковок пользователя ----
+// ---- Загрузка истории парковок пользователя (только последние 10) ----
 function loadUserParkingHistory() {
     const container = document.getElementById('historyListContainer');
     if (!container) return;
@@ -3362,29 +3363,22 @@ function loadUserParkingHistory() {
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    // Собираем все парковки и проходим по их истории
     database.ref('parkings').once('value').then(snapshot => {
         const parkings = snapshot.val() || {};
         let allEntries = [];
 
-        // Проходим по всем парковкам
-        const promises = [];
         Object.keys(parkings).forEach(parkingId => {
             const parking = parkings[parkingId];
             if (!parking.history) return;
-            // Проверяем каждую запись в истории
             const history = parking.history;
             Object.keys(history).forEach(entryKey => {
                 const entry = history[entryKey];
                 if (entry.userId === userId) {
-                    // Если запись старше недели - удаляем (через отдельный запрос)
-                    // Но лучше удалить все старые записи для этого пользователя, чтобы не засорять
+                    // Удаляем записи старше 7 дней
                     if (entry.timestamp < weekAgo) {
-                        // Удаляем запись
                         database.ref(`parkings/${parkingId}/history/${entryKey}`).remove();
-                        return; // не добавляем в список
+                        return;
                     }
-                    // Добавляем в список
                     allEntries.push({
                         parkingId: parkingId,
                         parkingName: parking.name || 'Без названия',
@@ -3399,7 +3393,6 @@ function loadUserParkingHistory() {
             });
         });
 
-        // Сортируем по времени (новые сверху)
         allEntries.sort((a, b) => b.timestamp - a.timestamp);
 
         if (allEntries.length === 0) {
@@ -3407,34 +3400,81 @@ function loadUserParkingHistory() {
             return;
         }
 
+        // Ограничиваем показ до 10 записей
+        const showCount = 10;
+        const previewEntries = allEntries.slice(0, showCount);
+        const remainingEntries = allEntries.slice(showCount);
+
         let html = '';
-        allEntries.forEach(entry => {
-            const date = new Date(entry.timestamp);
-            const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            const actionText = entry.action === 'occupied' ? '🚗 Занял' : '🚗 Освободил';
-            const carStr = entry.car.brand ? `${entry.car.brand} ${entry.car.model || ''}` : 'без авто';
-            const plateStr = entry.car.plate ? `(${entry.car.plate})` : '';
-            html += `
-                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border-color); font-size: 14px;">
-                    <div>
-                        <div style="font-weight: 500;">${entry.parkingName}</div>
-                        <div style="color: var(--text-secondary); font-size: 12px;">${entry.address}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div>${actionText}</div>
-                        <div style="color: var(--text-secondary); font-size: 12px;">${carStr} ${plateStr}</div>
-                        <div style="color: var(--text-secondary); font-size: 11px;">${dateStr}</div>
-                    </div>
-                </div>
-            `;
+
+        // Основной список (первые 10)
+        html += '<div id="historyPreviewList">';
+        previewEntries.forEach(entry => {
+            html += renderHistoryEntry(entry);
         });
+        html += '</div>';
+
+        // Полный список (скрыт) и кнопки
+        if (remainingEntries.length > 0) {
+            html += '<div id="historyFullList" style="display:none;">';
+            remainingEntries.forEach(entry => {
+                html += renderHistoryEntry(entry);
+            });
+            html += '</div>';
+            html += `<button id="showAllHistoryBtnProfile" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:8px;">См. все (${remainingEntries.length})</button>`;
+            html += `<button id="hideAllHistoryBtnProfile" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:8px;">Скрыть всё</button>`;
+        }
+
         container.innerHTML = html;
+
+        // Обработчики кнопок
+        const showAllBtn = document.getElementById('showAllHistoryBtnProfile');
+        const hideAllBtn = document.getElementById('hideAllHistoryBtnProfile');
+        const previewList = document.getElementById('historyPreviewList');
+        const fullList = document.getElementById('historyFullList');
+
+        if (showAllBtn) {
+            showAllBtn.onclick = function() {
+                previewList.style.display = 'none';
+                fullList.style.display = 'block';
+                showAllBtn.style.display = 'none';
+                hideAllBtn.style.display = 'inline-block';
+            };
+        }
+        if (hideAllBtn) {
+            hideAllBtn.onclick = function() {
+                fullList.style.display = 'none';
+                previewList.style.display = 'block';
+                showAllBtn.style.display = 'inline-block';
+                hideAllBtn.style.display = 'none';
+            };
+        }
     }).catch(err => {
         console.error('Ошибка загрузки истории:', err);
         container.innerHTML = '<div style="text-align:center; color:var(--red);">Ошибка загрузки</div>';
     });
 }
-
+// ---- Вспомогательная функция для отрисовки одной записи истории ----
+function renderHistoryEntry(entry) {
+    const date = new Date(entry.timestamp);
+    const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const actionText = entry.action === 'occupied' ? '🚗 Занял' : '🚗 Освободил';
+    const carStr = entry.car.brand ? `${entry.car.brand} ${entry.car.model || ''}` : 'без авто';
+    const plateStr = entry.car.plate ? `(${entry.car.plate})` : '';
+    return `
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border-color); font-size: 14px;">
+            <div>
+                <div style="font-weight: 500;">${escapeHtml(entry.parkingName)}</div>
+                <div style="color: var(--text-secondary); font-size: 12px;">${escapeHtml(entry.address)}</div>
+            </div>
+            <div style="text-align: right;">
+                <div>${actionText}</div>
+                <div style="color: var(--text-secondary); font-size: 12px;">${carStr} ${plateStr}</div>
+                <div style="color: var(--text-secondary); font-size: 11px;">${dateStr}</div>
+            </div>
+        </div>
+    `;
+}
 // ---- Загрузка избранного (для инлайн отображения) ----
 function loadFavoritesInline() {
     const container = document.getElementById('favoritesListContainer');
