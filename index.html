@@ -2670,7 +2670,6 @@
     let drawingPolygon = null;
     let isDrawingMode = false;
     let currentParkingId = null;
-    let parkingSubscription = null;
     let currentParkingData = null;
     let originalPolyCoords = null;
     let editingParkingId = null;
@@ -4009,8 +4008,6 @@ async function openCenterSheet(parkingId, data) {
     const percent = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
     const now = new Date();
-
-    // Заглушка
     let forecastText = 'Загрузка прогноза...';
 
     let html = `
@@ -4049,16 +4046,14 @@ async function openCenterSheet(parkingId, data) {
 
     try {
         const forecastData = await generateForecastData(now, free, parkingId);
-        const forecastChartHtml = renderForecastChart(forecastData);
-        // Обновляем текстовый прогноз
-        forecastText = generateForecastText(forecastData, now);
+        const chartHtml = renderForecastChart(forecastData);
+        const text = generateForecastText(forecastData, now);
         const textContainer = document.querySelector('.center-forecast-text');
-        if (textContainer) textContainer.innerHTML = forecastText;
-
+        if (textContainer) textContainer.innerHTML = text;
         const placeholder = document.getElementById('forecastChartPlaceholder');
         if (placeholder) {
             const container = document.createElement('div');
-            container.innerHTML = forecastChartHtml;
+            container.innerHTML = chartHtml;
             placeholder.parentNode.replaceChild(container.firstElementChild, placeholder);
         }
     } catch (e) {
@@ -4072,7 +4067,6 @@ async function openCenterSheet(parkingId, data) {
     }
 }
 function closeCenterSheet() {
-    // Подписка отсутствует – просто закрываем окно
     document.getElementById('centerSheet').classList.remove('active');
     currentParkingId = null;
     currentParkingData = null;
@@ -6535,7 +6529,52 @@ function saveCityFromSettingsInline() {
             }
         });
     }
+function showPanel(type, keepFilter = false) {
+    if (type === 'search' && !keepFilter) {
+        nearbySearchFilter = null;
+    }
+    document.getElementById('panel').classList.add('active');
+    const content = document.getElementById('panelContent');
+    
+    const titles = {
+        profile: 'Профиль',
+        favorites: 'Избранное',
+        search: 'Поиск',
+        home: 'Главная',
+        mycar: 'Моя машина'
+    };
+    document.getElementById('panelTitle').textContent = titles[type] || 'Главная';
 
+    // Рендерим нужный контент
+    switch (type) {
+        case 'profile':
+            renderProfile(content);
+            break;
+        case 'favorites':
+            content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
+            loadUserData('favorites', content);
+            break;
+        case 'search':
+            renderSearchPanel(content);
+            break;
+        case 'mycar':
+            if (typeof renderMyCarPanel === 'function') {
+                renderMyCarPanel(content);
+            } else {
+                content.innerHTML = '<div class="empty-state"><p>Функция "Моя машина" ещё не добавлена</p></div>';
+            }
+            break;
+        default: // home
+            renderHomePanel(content);
+    }
+
+    // Обновляем активную вкладку в нижнем меню
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    const tabIndex = { home: 0, search: 1, favorites: 2, profile: 3, mycar: 1 };
+    const idx = tabIndex[type] !== undefined ? tabIndex[type] : 0;
+    const tabs = document.querySelectorAll('.tab');
+    if (tabs[idx]) tabs[idx].classList.add('active');
+}
     function toggleGroup(header) {
         const items = header.nextElementSibling;
         if (items) {
@@ -7220,53 +7259,26 @@ function renderParkingList(container, parkings) {
     // АВТОМАТИЧЕСКИЙ ВХОД ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
     // ============================================
     (function autoLogin() {
-        const savedUser = localStorage.getItem('tgUser');
-        if (savedUser) {
-            try {
-                const user = JSON.parse(savedUser);
+    const savedUser = localStorage.getItem('tgUser');
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser);
+            if (!currentUser || currentUser.id !== user.id) {
                 currentUser = user;
                 window.currentUser = user;
                 hideAuthScreen();
-                if (document.getElementById('panelTitle').textContent === 'Профиль') {
+                // Если панель закрыта – откроем главную
+                const panel = document.getElementById('panel');
+                if (!panel.classList.contains('active')) {
                     showPanel('home');
                 }
-                console.log('👤 Восстановлен пользователь из localStorage:', user.firstName);
-            } catch (e) {
-                localStorage.removeItem('tgUser');
+                console.log('✅ Вход восстановлен из localStorage');
             }
-            return;
+        } catch (e) {
+            localStorage.removeItem('tgUser');
         }
-
-        if (window.Telegram && window.Telegram.WebApp) {
-            const webApp = window.Telegram.WebApp;
-            if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-                const user = webApp.initDataUnsafe.user;
-                console.log('🔄 Автоматический вход через Telegram:', user.first_name);
-                onTelegramAuth({
-                    id: user.id,
-                    first_name: user.first_name,
-                    last_name: user.last_name || '',
-                    username: user.username || '',
-                    photo_url: user.photo_url || '',
-                    auth_date: Math.floor(Date.now() / 1000),
-                    hash: webApp.initDataUnsafe.hash || ''
-                });
-            }
-        }
-    })();
-
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof ymaps !== 'undefined') {
-            initApp();
-            setTimeout(function() { initPullToRefresh(); }, 500);
-        } else {
-            window.addEventListener('load', function() {
-                ymaps.ready(function() {
-                    initApp();
-                });
-            });
-        }
-    });
+    }
+})();
     function openTelegramBot() {
         console.log('openTelegramBot вызвана');
 
