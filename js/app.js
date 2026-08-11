@@ -1,5 +1,4 @@
-<script>
-    // ===================== FIREBASE =====================
+  // ===================== FIREBASE =====================
     const firebaseConfig = {
         apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
         authDomain: "parknear-bef41.firebaseapp.com",
