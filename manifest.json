@@ -1,20 +1,13 @@
 {
   "name": "ParkNear",
   "short_name": "ParkNear",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#02060E",
-  "theme_color": "#007AFF",
   "icons": [
     {
-      "src": "logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "512x512",
+      "src": "assets/images/icon-180.png",
+      "sizes": "180x180",
       "type": "image/png"
     }
-  ]
+  ],
+  "start_url": "/",
+  "display": "standalone"
 }
