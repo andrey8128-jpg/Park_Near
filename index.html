@@ -7227,7 +7227,7 @@ function renderParkingList(container, parkings) {
         });
     };
     ymaps.ready(() => { initMap(); });
-}}
+}
    
     function openTelegramBot() {
         console.log('openTelegramBot вызвана');
@@ -7269,12 +7269,12 @@ function renderParkingList(container, parkings) {
     }
 
     document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            if (!currentUser && localStorage.getItem('tgUser')) {
-                autoLogin();
-            }
+    if (!document.hidden) {
+        if (!currentUser && localStorage.getItem('tgUser')) {
+            initAuth();   // ✅ Правильно
         }
-    });
+    }
+});
     function rebuildRoute() {
         if (!routeStartCoords || !routeEndCoords) {
             alert('Сначала постройте маршрут');
