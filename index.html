@@ -7381,6 +7381,23 @@ function renderParkingList(container, parkings) {
             setTimeout(function() { splash.remove(); }, 300);
         }
     }, 5000);
+    // Диагностика загрузки карты
+(function checkMapLoading() {
+    console.log('🔍 Проверка загрузки Яндекс.Карт...');
+    if (typeof ymaps === 'undefined') {
+        console.error('❌ ymaps не определён. Скрипт Яндекс.Карт не загрузился.');
+        document.getElementById('map').innerHTML = '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
+        return;
+    }
+    ymaps.ready(function() {
+        console.log('✅ ymaps.ready сработал');
+        if (typeof initMap === 'function') {
+            initMap();
+        } else {
+            console.error('❌ Функция initMap не определена');
+        }
+    });
+})();
 </script>
 </body>
 </html>
