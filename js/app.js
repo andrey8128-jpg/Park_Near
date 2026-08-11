@@ -4759,4 +4759,3 @@ function renderParkingList(container, parkings) {
         initApp(); // <- вызываем именно initApp, а не initMap
     });
 })();
-</script>
