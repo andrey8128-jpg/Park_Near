@@ -294,16 +294,19 @@
             <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
             <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
 
-            <!-- Кнопка-ссылка на бота (работает всегда, в том числе в PWA) -->
-            <a href="https://t.me/parknear_bot?start=login" target="_blank"
-               style="display:block; width:100%; padding:16px; background:#0088cc; color:#fff; border-radius:14px; text-align:center; text-decoration:none; font-weight:600; font-size:16px;">
-                Войти через Telegram
-            </a>
+            <!-- Telegram Login Widget (редиректный режим) -->
+        <script async src="https://telegram.org/js/telegram-widget.js?24"
+                data-telegram-login="parknear_bot"
+                data-size="large"
+                data-onauth="onTelegramAuth(user)"
+                data-request-access="write"
+                data-redirect-uri="https://andrey8128-jpg.github.io/Park_Near/">
+        </script>
 
-            <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
-            <button class="guest-btn" onclick="continueAsGuest()" style="width:100%; padding:16px; border-radius:14px; border:1px solid var(--accent); font-size:16px; font-weight:600; cursor:pointer; background:var(--bg-secondary); color:var(--accent);">Продолжить как гость</button>
-        </div>
+        <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
+        <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
     </div>
+</div>
 
     <!-- Onboarding Overlay -->
     <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); z-index:5000; align-items:center; justify-content:center; pointer-events:none;">
