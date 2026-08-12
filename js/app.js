@@ -4650,6 +4650,7 @@ function checkTelegramAuthFromUrl() {
             const userData = JSON.parse(decodeURIComponent(authData));
             if (userData.id) {
                 onTelegramAuth(userData);
+                // Очищаем URL от параметров
                 window.history.replaceState({}, document.title, window.location.pathname);
                 return true;
             }
@@ -4658,10 +4659,10 @@ function checkTelegramAuthFromUrl() {
         }
     }
     return false;
-}// ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
+}
+// ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 function onTelegramAuth(user) {
     try {
-        // Сохраняем пользователя
         currentUser = {
             id: 'tg_' + user.id,
             username: user.username || 'tg_user',
@@ -4669,7 +4670,7 @@ function onTelegramAuth(user) {
             photoUrl: user.photo_url || '',
             isGuest: false
         };
-        window.currentUser = currentUser;
+        // Сохраняем в localStorage
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
         // Сохраняем в Firebase
@@ -4680,7 +4681,6 @@ function onTelegramAuth(user) {
             photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
-
         userRef.child('stats').set({
             registeredAt: Date.now(),
             lastActive: Date.now(),
@@ -4692,16 +4692,13 @@ function onTelegramAuth(user) {
             activeDates: [new Date().toISOString().split('T')[0]]
         }).catch(console.error);
 
-        // Закрываем окно входа и показываем главную
         hideAuthScreen();
         showPanel('home');
         showOnboarding();
-
         console.log('✅ Пользователь авторизован:', user.first_name);
     } catch (e) {
         console.error('❌ Ошибка в onTelegramAuth:', e);
-        // Если ошибка – пробуем войти как гость
-        alert('Ошибка входа через Telegram. Попробуйте войти как гость.');
+        // Запасной вариант – гость
         continueAsGuest();
     }
 }
