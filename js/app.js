@@ -10,17 +10,24 @@
     };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-
-    // ===== Восстановление темы =====
+    // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
     (function restoreTheme() {
         const darkTheme = localStorage.getItem('darkTheme');
         const isDark = (darkTheme === '1');
         if (isDark) {
             document.body.classList.add('dark-theme');
-            const mapEl = document.getElementById('map');
-            if (mapEl) {
-                mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-            }
+            
+            // Накладываем фильтр только на тайлы карты, чтобы не инвертировать цвета маркеров
+            const mapStyle = document.createElement('style');
+            mapStyle.id = 'dark-map-style';
+            mapStyle.innerHTML = `
+                .dark-theme #map .ymaps-2-1-game-layer,
+                .dark-theme #map [class*="ymaps-2-1-17-events-pane"] {
+                    filter: invert(0.9) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.8) !important;
+                }
+            `;
+            document.head.appendChild(mapStyle);
+
             if (window.Telegram && window.Telegram.WebApp) {
                 try {
                     window.Telegram.WebApp.setHeaderColor('#1C1C1E');
@@ -28,13 +35,11 @@
                 } catch(e) {}
             }
         }
-        // Синхронизируем все переключатели темы
         var toggle1 = document.getElementById('settingsThemeToggle');
         var toggle2 = document.getElementById('settingsThemeToggleInline');
         if (toggle1) toggle1.checked = isDark;
         if (toggle2) toggle2.checked = isDark;
     })();
-
     // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
     let map = null;
     let currentUser = null;
@@ -2220,7 +2225,7 @@ function loadHistoryPreview(parkingId) {
         }
     });
 }
-    // ===================== МАРШРУТ =====================
+   // ===================== МАРШРУТ =====================
     function buildRouteToParking(parkingId) {
         closeCenterSheet();
         const data = parkingDataCache[parkingId];
@@ -2252,60 +2257,63 @@ function loadHistoryPreview(parkingId) {
             currentRoute = null;
         }
         if (!routeStartCoords || !routeEndCoords) {
-            alert('Ошибка: координаты не определены');
+            alert('Не удалось определить точки маршрута');
             return;
         }
 
-        document.getElementById('routeInfo').innerHTML = `
-        <div style="text-align:center; padding:10px;">
-            <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
-            <p>Строим маршрут...</p>
-        </div>
-    `;
-        document.getElementById('routeCard').classList.add('active');
-
-        var mode = document.getElementById('routeTypeSelect')?.value || 'driving';
+        const mode = document.getElementById('routeModeSelect')?.value || 'auto';
 
         try {
+            // Создаем маршрут Яндекс.Карт
             currentRoute = new ymaps.multiRouter.MultiRoute({
                 referencePoints: [routeStartCoords, routeEndCoords],
                 params: {
-                    mode: mode,
-                    avoidTrafficJams: false,
-                    results: 1
+                    routingMode: mode === 'walking' ? 'pedestrian' : 'auto',
+                    avoidTrafficJams: true
                 }
             }, {
-                routeStrokeColor: '#2B7574',
-                routeStrokeWidth: 5,
-                routeStrokeOpacity: 0.8,
-                wayPointStartIconColor: '#2B7574',
-                wayPointFinishIconColor: '#861211',
-                animation: false
+                boundsAutoApply: true,
+                wayPointVisible: true
+            });
+
+            // Подписываемся на успешное построение маршрута
+            currentRoute.model.events.add('requestsuccess', function () {
+                const activeRoute = currentRoute.getActiveRoute();
+                if (activeRoute) {
+                    const distance = activeRoute.properties.get("distance").text;
+                    const duration = activeRoute.properties.get("duration").text;
+
+                    const infoEl = document.getElementById('routeInfo');
+                    if (infoEl) {
+                        infoEl.innerHTML = `
+                            <div class="route-summary">
+                                📍 До объекта: <strong>${distance}</strong> (${duration})
+                            </div>
+                        `;
+                    }
+                }
+            });
+
+            // Обработка ошибки построения
+            currentRoute.model.events.add('requestfail', function (event) {
+                console.error('Ошибка построения маршрута:', event.get('error'));
+                const infoEl = document.getElementById('routeInfo');
+                if (infoEl) {
+                    infoEl.innerHTML = '<div class="route-error">Не удалось проложить маршрут.</div>';
+                }
             });
 
             map.geoObjects.add(currentRoute);
 
-            var isUpdated = false;
-            currentRoute.model.events.add('update', function() {
-                if (!isUpdated) {
-                    isUpdated = true;
-                    setTimeout(function() {
-                        updateRouteInfoFromMultiRoute(currentRoute);
-                        map.setBounds(currentRoute.getBounds(), { duration: 300 });
-                    }, 100);
-                }
-            });
+            // Показываем плашку маршрута, если она есть в DOM
+            const routePanel = document.getElementById('routePanel');
+            if (routePanel) routePanel.classList.add('active');
 
-            currentRoute.events.add('error', function() {
-                console.warn('Не удалось построить маршрут, показываем прямую линию');
-                showDirectLine();
-            });
         } catch (e) {
-            console.error('Ошибка построения маршрута:', e);
-            showDirectLine();
+            console.error('Ошибка при вызове MultiRoute:', e);
+            alert('Не удалось построить маршрут');
         }
     }
-
     function updateRouteInfoFromMultiRoute(route) {
         route.model.events.add('update', function() {
             var activeRoute = route.getActiveRoute();
