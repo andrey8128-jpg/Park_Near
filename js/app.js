@@ -708,36 +708,27 @@
 })();
     // ===================== ГЕОЛОКАЦИЯ =====================
     function getUserLocation() {
-    // Если уже есть кешированные координаты – возвращаем их сразу
-    if (lastKnownLocation) {
-        console.log('📍 Используем кешированную геолокацию');
-        return Promise.resolve(lastKnownLocation);
-    }
-
-    return new Promise(function(resolve, reject) {
-        // Сначала пытаемся через нативный navigator.geolocation (работает в HTTPS)
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    var coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    lastKnownLocation = coords;
-                    console.log('✅ Геолокация получена через navigator.geolocation:', coords);
-                    resolve(coords);
-                },
-                function(err) {
-                    console.warn('❌ navigator.geolocation не удался:', err.message);
-                    // Если нативный не сработал – пробуем через Яндекс (если карта готова)
-                    tryYandexGeolocation(resolve, reject);
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        } else {
-            // navigator.geolocation недоступен – пробуем Яндекс
-            tryYandexGeolocation(resolve, reject);
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            return reject(new Error('Геолокация не поддерживается вашим устройством'));
         }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                resolve({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+            },
+            (error) => reject(error),
+            {
+                enableHighAccuracy: true,
+                timeout: 7000,      // Ждем максимум 7 секунд
+                maximumAge: 60000   // Кэшируем позицию на 1 минуту
+            }
+        );
     });
 }
-
 function tryYandexGeolocation(resolve, reject) {
     if (typeof ymaps !== 'undefined' && ymaps.geolocation) {
         ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
