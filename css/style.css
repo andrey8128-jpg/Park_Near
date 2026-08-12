@@ -36,6 +36,8 @@
     --toast-bg: rgba(14, 41, 49, 0.9);
     --splash-bg: #0E2931;
     --spinner-color: #0E2931;
+    --history-occupied: #FF3B30;
+    --history-freed: #34C759;
 }
         body.dark-theme {
             --bg-primary: #010304;
@@ -68,6 +70,8 @@
             --toast-bg: rgba(14, 41, 49, 0.9);
             --splash-bg: #0E2931;
             --spinner-color: #E2E2E0;
+            --history-occupied: #FF453A;
+            --history-freed: #30D158;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
@@ -814,35 +818,41 @@ html, body {
             width: 0;
             height: 0;
         }
-        .theme-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #0A282C;
-            transition: .3s;
-            border-radius: 31px;
-        }
-        .theme-slider:before {
-            position: absolute;
-            content: "";
-            height: 27px;
-            width: 27px;
-            left: 2px;
-            bottom: 2px;
-            background-color: #0A282C;
-            transition: .3s;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        #settingsThemeToggle:checked+.theme-slider {
-            background-color: #2B7574;
-        }
-        #settingsThemeToggle:checked+.theme-slider:before {
-            transform: translateX(20px);
-        }
+     .theme-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #C7C7CC;
+    transition: .3s;
+    border-radius: 31px;
+}
+.theme-slider:before {
+    position: absolute;
+    content: "";
+    height: 27px;
+    width: 27px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #FFFFFF;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+#settingsThemeToggle:checked + .theme-slider {
+    background-color: #2B7574;
+}
+#settingsThemeToggle:checked + .theme-slider:before {
+    transform: translateX(20px);
+}
+body.dark-theme .theme-slider {
+    background-color: #3A3A3C;
+}
+body.dark-theme .theme-slider:before {
+    background-color: #E2E2E0;
+}
         #showWithFreeOnly:checked+.theme-slider {
             background-color: #2B7574;
         }
