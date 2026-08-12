@@ -1,31 +1,10 @@
  <style>
         * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent; /* Убирает серое выделение при нажатии */
-}
-
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    height: 100dvh; /* Динамическая высота под мобильные браузеры */
-    overflow: hidden;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', Roboto, Helvetica, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    overscroll-behavior: none; /* Запрещает "резиновый" сдвиг страницы на iOS */
-}
-
-/* Запрещаем выделение текста на интерактивных элементах */
-button, .tab, .list-item, .parking-item, .sheet-handle, .layer-switcher {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
         :root {
     /* --- Палитра: Светлая тема --- */
     --bg-primary: #F0F4F5;
@@ -220,11 +199,13 @@ html, body {
         .app-title span {
             color: #2B7574;
         }
-.dark-theme #map .ymaps-2-1-game-layer,
-.dark-theme #map [class*="ymaps-2-1-79-events-pane"],
-.dark-theme #map [class*="ymaps-2-1-79-ground-pane"] {
-    filter: invert(0.9) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.8) !important;
-}
+        body.dark-theme #map {
+            filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
+        }
+        body.dark-theme #map .ymaps-2-1-79-map-pane img,
+        body.dark-theme #map .ymaps-2-1-79-ground-pane img {
+            filter: invert(1) hue-rotate(180deg);
+        }
         .layer-switcher {
             position: fixed;
             top: calc(12px + env(safe-area-inset-top, 0px));
@@ -276,61 +257,66 @@ html, body {
             color: var(--accent);
             font-weight: 600;
         }
-   #addBtn {
-    width: 56px;
-    height: 56px;
-    font-size: 28px;
-    position: fixed;
-    right: 16px;
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-    background: var(--accent);
-    color: #E2E2E0;
-    z-index: 900;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-    transition: transform 0.15s ease;
-}
+        #geoBtn,
+        #refreshBtn,
+        #addBtn {
+            position: fixed;
+            right: 20px;
+            z-index: 900;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: var(--bg-secondary);
+        }
         :root {
             --tab-bar-height: 64px;
             --tab-bar-bottom: 16px;
             --button-offset-from-tab: 20px;
             --button-gap: 75px;
         }
-    
-     #geoBtn {
-    width: 48px;
-    height: 48px;
-    font-size: 22px;
+        #addBtn {
+            width: 64px;
+            height: 64px;
+            font-size: 32px;
+            position: fixed;
+            right: 20px;
+            bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + env(safe-area-inset-bottom, 0px));
+            background: #0A282C;
+            color: #E2E2E0;
+        }
+        #geoBtn {
+            width: 45px;
+            height: 45px;
+            font-size: 24px;
+            position: fixed;
+            right: 20px;
+            bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + var(--button-gap) + env(safe-area-inset-bottom, 0px));
+            background: #0A282C;
+            color: #E2E2E0;
+        }
+        .tabBar {
     position: fixed;
-    right: 16px;
-    bottom: calc(146px + env(safe-area-inset-bottom, 0px));
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    z-index: 900;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: transform 0.15s ease;
-}
-#addBtn:active, #geoBtn:active {
-    transform: scale(0.92);
-}
-       .tabBar {
-    position: fixed;
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--tab-bar-bottom) + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 24px);
+    width: calc(100% - 32px);
     max-width: 420px;
-    height: 60px;
-    background: rgba(18, 70, 76, 0.75);
-    backdrop-filter: blur(25px) saturate(190%);
-    -webkit-backdrop-filter: blur(25px) saturate(190%);
-    border-radius: 28px;
+    height: var(--tab-bar-height);
+    background: rgba(18, 70, 76, 0.55);  /* ← полупрозрачный оттенок #12464C */
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 32px;
     z-index: 2001;
     display: flex;
     align-items: center;
     justify-content: space-around;
-    padding: 0 6px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    border: 0.5px solid rgba(255, 255, 255, 0.12);
+    padding: 0 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 0.5px solid rgba(255, 255, 255, 0.08); /* лёгкая обводка для стекла */
 }
         .tab {
             flex: 1;
@@ -523,18 +509,18 @@ html, body {
             margin-bottom: 6px;
             font-weight: 500;
         }
-        .input-field, .home-search input, select.input-field {
-    width: 100%;
-    min-height: 48px;
-    padding: 12px 16px;
-    border-radius: 14px;
-    border: 1px solid var(--input-border);
-    background: var(--input-bg);
-    color: var(--text-primary);
-    font-size: 16px !important; /* Строго 16px — предотвращает автозум экрана на iOS */
-    outline: none;
-    -webkit-appearance: none;
-}
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
         .input-field:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(43, 117, 116, 0.2);
@@ -1025,22 +1011,22 @@ body.dark-theme .theme-slider:before {
             border-radius: 0 16px 16px 0;
             cursor: pointer;
         }
-.bottom-sheet {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-secondary);
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-    z-index: 3000;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    max-height: 85dvh;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-}
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 2500;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
         .bottom-sheet.active {
             transform: translateY(0);
         }
@@ -1881,6 +1867,25 @@ body.dark-theme .theme-slider:before {
             padding: 0 4px;
             display: flex;
             align-items: center;
+        }
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 2500;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 12px + env(safe-area-inset-bottom));
+        }
+        .bottom-sheet.active {
+            transform: translateY(0);
         }
         .address-card {
             display: flex;
