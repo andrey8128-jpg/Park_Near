@@ -4650,7 +4650,6 @@ function checkTelegramAuthFromUrl() {
             const userData = JSON.parse(decodeURIComponent(authData));
             if (userData.id) {
                 onTelegramAuth(userData);
-                // Очищаем URL от параметров
                 window.history.replaceState({}, document.title, window.location.pathname);
                 return true;
             }
