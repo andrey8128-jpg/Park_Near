@@ -103,13 +103,29 @@
     height: 100%;
     display: block;
 }
+/* Глобальные сбросы для полноэкранного режима */
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
-    background: #0E2931;  /* Ваш основной цвет фона */
     overflow: hidden;
+    background: #0E2931; /* ваш основной цвет */
+}
+
+/* Карта – на весь экран */
+#map {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh; /* динамическая высота для iPhone */
+    background: #E5E5EA;
+    z-index: 1;
+    transition: filter 0.5s ease;
+    margin: 0;
+    padding: 0;
+    border: none;
 }
 /* Контент по центру поверх SVG */
 #splashScreen > div {
@@ -172,19 +188,6 @@ html, body {
         .app-title span {
             color: #2B7574;
         }
-       #map {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh; /* для современных браузеров */
-    background: #E5E5EA;
-    z-index: 1;
-    transition: filter 0.5s ease;
-}
         body.dark-theme #map {
             filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
         }
