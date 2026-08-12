@@ -3458,9 +3458,14 @@ function loadUserParkingHistory() {
 function renderHistoryEntry(entry) {
     const date = new Date(entry.timestamp);
     const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const actionText = entry.action === 'occupied' ? '🚗 Занял' : '🚗 Освободил';
+    
+    // Текст действия с цветом
+    const actionText = entry.action === 'occupied' ? 'Занял' : 'Освободил';
+    const actionColor = entry.action === 'occupied' ? 'var(--red)' : 'var(--green)';
+    
+    // Информация об автомобиле без госномера
     const carStr = entry.car.brand ? `${entry.car.brand} ${entry.car.model || ''}` : 'без авто';
-    const plateStr = entry.car.plate ? `(${entry.car.plate})` : '';
+    
     return `
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border-color); font-size: 14px;">
             <div>
@@ -3468,8 +3473,8 @@ function renderHistoryEntry(entry) {
                 <div style="color: var(--text-secondary); font-size: 12px;">${escapeHtml(entry.address)}</div>
             </div>
             <div style="text-align: right;">
-                <div>${actionText}</div>
-                <div style="color: var(--text-secondary); font-size: 12px;">${carStr} ${plateStr}</div>
+                <div style="color: ${actionColor}; font-weight: 600;">${actionText}</div>
+                <div style="color: var(--text-secondary); font-size: 12px;">${carStr}</div>
                 <div style="color: var(--text-secondary); font-size: 11px;">${dateStr}</div>
             </div>
         </div>
