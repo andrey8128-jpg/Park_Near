@@ -135,29 +135,24 @@ button, .tab, .list-item, .parking-item, .sheet-handle, .layer-switcher {
     height: 100%;
     display: block;
 }
-/* Глобальные сбросы для полноэкранного режима */
-html, body {
-    margin: 0;
-    padding: 0;
+html, body, #app, .page {
+    margin: 0 !important;
+    padding: 0 !important;
     width: 100%;
-    height: 100%;
+    height: 100dvh;
     overflow: hidden;
-    background: #0E2931; /* ваш основной цвет */
+    position: relative;
 }
-
 /* Карта – на весь экран */
 #map {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    height: 100dvh; /* динамическая высота для iPhone */
-    background: #E5E5EA;
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100% !important;
+    height: 100% !important;
     z-index: 1;
-    transition: filter 0.5s ease;
-    margin: 0;
-    padding: 0;
-    border: none;
 }
 /* Контент по центру поверх SVG */
 #splashScreen > div {
@@ -276,18 +271,15 @@ html, body {
             color: var(--accent);
             font-weight: 600;
         }
-   #addBtn {
-    width: 56px;
-    height: 56px;
-    font-size: 28px;
+   .tabBar {
     position: fixed;
-    right: 16px;
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-    background: var(--accent);
-    color: #E2E2E0;
-    z-index: 900;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-    transition: transform 0.15s ease;
+    bottom: max(6px, env(safe-area-inset-bottom)); /* Прижимаем ниже с учетом безопасной зоны iPhone */
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-width: 420px;
+    height: 60px;
+    z-index: 2001;
 }
         :root {
             --tab-bar-height: 64px;
@@ -297,40 +289,20 @@ html, body {
         }
     
      #geoBtn {
-    width: 48px;
-    height: 48px;
-    font-size: 22px;
-    position: fixed;
-    right: 16px;
-    bottom: calc(146px + env(safe-area-inset-bottom, 0px));
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    z-index: 900;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: transform 0.15s ease;
+    bottom: calc(136px + env(safe-area-inset-bottom, 0px)) !important;
 }
 #addBtn:active, #geoBtn:active {
     transform: scale(0.92);
 }
-       .tabBar {
+      .tabBar {
     position: fixed;
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    bottom: max(6px, env(safe-area-inset-bottom)); /* Прижимаем ниже с учетом безопасной зоны iPhone */
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 24px);
     max-width: 420px;
     height: 60px;
-    background: rgba(18, 70, 76, 0.75);
-    backdrop-filter: blur(25px) saturate(190%);
-    -webkit-backdrop-filter: blur(25px) saturate(190%);
-    border-radius: 28px;
     z-index: 2001;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 6px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    border: 0.5px solid rgba(255, 255, 255, 0.12);
 }
         .tab {
             flex: 1;
