@@ -4147,16 +4147,65 @@ function showPanel(type, keepFilter = false) {
     let isOnboardingActive = false;
     let clickHandlerForHighlight = null;
 
-    function showAuthScreen() {
-        const overlay = document.getElementById('authOverlay');
-        if (overlay) overlay.style.display = 'flex';
+   function showAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        // Сбрасываем анимацию, если она была
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+    } else {
+        console.error('Элемент #authOverlay не найден в DOM');
+        // Создаём оверлей на лету (запасной вариант)
+        createAuthScreenFallback();
     }
-
-    function hideAuthScreen() {
-        const overlay = document.getElementById('authOverlay');
-        if (overlay) overlay.style.display = 'none';
+}
+// Скрывает экран входа
+function hideAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
     }
+}
+function createAuthScreenFallback() {
+    // Удаляем старый, если есть
+    const old = document.getElementById('authOverlay');
+    if (old) old.remove();
 
+    const overlay = document.createElement('div');
+    overlay.id = 'authOverlay';
+    overlay.style.cssText = `
+        display: flex;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: var(--overlay-bg, rgba(14,41,49,0.8));
+        z-index: 6000;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 20px;
+    `;
+
+    overlay.innerHTML = `
+        <div style="background: var(--bg-secondary, #fff); border-radius: 24px; padding: 30px 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative;">
+            <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary, #888); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
+            <div style="font-size:48px; margin-bottom:12px;">🚗</div>
+            <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
+            <p style="color:var(--text-secondary, #666); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
+            <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
+                data-telegram-login="parknear_bot"
+                data-size="large"
+                data-onauth="onTelegramAuth(user)"
+                data-request-access="write">
+            <\/script>
+            <div style="margin:12px 0; color:var(--text-secondary, #666); font-size:14px;">— или —</div>
+            <button class="guest-btn" onclick="continueAsGuest()" style="width:100%; padding:16px; border-radius:14px; border:none; font-size:16px; font-weight:600; cursor:pointer; background:var(--bg-secondary, #fff); color:var(--accent, #007AFF); border:1px solid var(--accent, #007AFF);">Продолжить как гость</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.getElementById('authOverlay').style.display = 'flex';
+}
     function showOnboarding() {
         if (localStorage.getItem('onboardingSeen') === 'true') return;
         isOnboardingActive = true;
