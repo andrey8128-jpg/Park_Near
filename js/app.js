@@ -4658,6 +4658,52 @@ function checkTelegramAuthFromUrl() {
         }
     }
     return false;
+}// ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
+function onTelegramAuth(user) {
+    try {
+        // Сохраняем пользователя
+        currentUser = {
+            id: 'tg_' + user.id,
+            username: user.username || 'tg_user',
+            firstName: user.first_name || 'Пользователь',
+            photoUrl: user.photo_url || '',
+            isGuest: false
+        };
+        window.currentUser = currentUser;
+        localStorage.setItem('tgUser', JSON.stringify(currentUser));
+
+        // Сохраняем в Firebase
+        const userRef = database.ref('users/' + currentUser.id);
+        userRef.update({
+            username: currentUser.username,
+            firstName: currentUser.firstName,
+            photoUrl: currentUser.photoUrl,
+            lastActive: Date.now()
+        }).catch(console.error);
+
+        userRef.child('stats').set({
+            registeredAt: Date.now(),
+            lastActive: Date.now(),
+            parkingsCreated: 0,
+            parkingsUpdated: 0,
+            confirmations: 0,
+            views: 0,
+            favorites: 0,
+            activeDates: [new Date().toISOString().split('T')[0]]
+        }).catch(console.error);
+
+        // Закрываем окно входа и показываем главную
+        hideAuthScreen();
+        showPanel('home');
+        showOnboarding();
+
+        console.log('✅ Пользователь авторизован:', user.first_name);
+    } catch (e) {
+        console.error('❌ Ошибка в onTelegramAuth:', e);
+        // Если ошибка – пробуем войти как гость
+        alert('Ошибка входа через Telegram. Попробуйте войти как гость.');
+        continueAsGuest();
+    }
 }
   function initApp() {
     // 1. Проверяем, не вернулись ли с авторизации через Telegram (редирект)
