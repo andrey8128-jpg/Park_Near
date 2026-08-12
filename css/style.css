@@ -6,38 +6,45 @@
             -webkit-tap-highlight-color: transparent;
         }
         :root {
-    --bg-primary: #E2E2E0;
-    --bg-secondary: #E2E2E0;
+    /* --- Палитра: Светлая тема --- */
+    --bg-primary: #F0F4F5;
+    --bg-secondary: #FFFFFF;
+    --bg-elevated: #F8FAFA;
     --text-primary: #0E2931;
-    --text-secondary: #12464C;
-    --border-color: #12464C;
-    --input-bg: #E2E2E0;
-    --input-border: #12464C;
-    --card-shadow: 0 1px 3px rgba(14, 41, 49, 0.1);
-    --accent: #2B7574;
-    --green: #2B7574;
-    --red: #0E2931;
-    --orange: #0E2931;
-    --gray: #12464C;
-    --tab-bg: #12464C;
-    --tab-icon: #0E2931;
-    --tab-label: #0E2931;
-    --tab-active-bg: #E2E2E0;
-    --btn-primary-bg: #12464C;
-    --btn-primary-active: #0A282C;
-    --btn-secondary-border: #12464C;
-    --btn-secondary-color: #12464C;
-    --btn-danger-color: #0E2931;
-    --btn-danger-border: #0E2931;
-    --drawing-controls-bg: rgba(226, 226, 224, 0.8);
-    --drawing-border: rgba(14, 41, 49, 0.1);
-    --overlay-bg: rgba(14, 41, 49, 0.5);
-    --sheet-bg: #E2E2E0;
+    --text-secondary: #5A787F;
+    --text-tertiary: #8DA7AE;
+    --accent: #12464C;
+    --accent-rgb: 18, 70, 76;
+    --accent-hover: #1A5E66;
+    
+    /* Статусные цвета (Исправлены корректные оттенки для светлой темы) */
+    --green: #2E7D32;
+    --orange: #ED6C02;
+    --red: #D32F2F;
+    --gray: #757575;
+
+    /* Фоновые цвета статусов */
+    --status-free-bg: #E8F5E9;
+    --status-occupied-bg: #FFEBEE;
+    --status-unknown-bg: #F5F5F5;
+
+    /* Границы и тени */
+    --card-border: #D1E0E3;
+    --input-border: #BCD0D4;
+    --input-bg: #F8FAFA;
+    --card-shadow: 0 4px 16px rgba(14, 41, 49, 0.08);
+
+    /* Элементы интерфейса */
+    --overlay-bg: rgba(14, 41, 49, 0.4);
     --toast-bg: rgba(14, 41, 49, 0.9);
-    --splash-bg: #0E2931;
-    --spinner-color: #0E2931;
-    --history-occupied: #FF3B30;
-    --history-freed: #34C759;
+    --history-occupied: #D32F2F;
+    --history-freed: #2E7D32;
+
+    /* --- Размеры и отступы интерфейса --- */
+    --tab-bar-height: 60px;
+    --tab-bar-bottom: 20px;
+    --button-gap: 12px;
+    --floating-btn-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-gap));
 }
         body.dark-theme {
             --bg-primary: #010304;
