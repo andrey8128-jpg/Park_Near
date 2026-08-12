@@ -2377,4 +2377,41 @@ html, body {
     fill: var(--accent);
     fill-opacity: 0.15;
 }
+/* ===== ПОИСК НА ГЛАВНОЙ – НА ВСЮ ШИРИНУ ===== */
+.home-search {
+    width: 100%;
+    padding: 0;
+    margin: 16px 0 12px;
+}
+.home-search input {
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box; /* важно */
+}
+.home-search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(43, 117, 116, 0.2);
+}
+
+/* На маленьких экранах уменьшаем отступы */
+@media screen and (max-width: 420px) {
+    .home-search input {
+        padding: 12px 14px;
+        font-size: 15px;
+    }
+}
+
+@media screen and (max-width: 360px) {
+    .home-search input {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+}
     </style>
