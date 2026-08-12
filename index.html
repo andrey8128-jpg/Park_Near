@@ -81,19 +81,22 @@
         <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
     </div>
 
-    <svg width="0" height="0" style="position:absolute;">
-        <defs>
-            <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#4a9eff"/>
-                <stop offset="40%" stop-color="#1a6dd4"/>
-                <stop offset="100%" stop-color="#0a3d8f"/>
-            </linearGradient>
-        </defs>
-    </svg>
-
+   <svg width="0" height="0" style="position:absolute;">
+    <defs>
+        <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#4a9eff"/>
+            <stop offset="40%" stop-color="#1a6dd4"/>
+            <stop offset="100%" stop-color="#0a3d8f"/>
+        </linearGradient>
+        <!-- ДОБАВЛЯЕМ ГРАДИЕНТ ДЛЯ КРУГА РЕПУТАЦИИ -->
+        <linearGradient id="repGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2B7574"/>
+            <stop offset="100%" stop-color="#4DA3FF"/>
+        </linearGradient>
+    </defs>
+</svg>
     <button id="geoBtn" title="Моё местоположение">📍</button>
     <button id="addBtn" title="Добавить парковку">+</button>
-
     <!-- Панель -->
     <div class="panel" id="panel">
         <div class="panel-header">
