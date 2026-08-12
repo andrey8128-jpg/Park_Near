@@ -3183,7 +3183,7 @@ function focusMap(lat, lng, parkingId) {
     }
 
     // ===================== ПРОФИЛЬ =====================
-    function renderProfile(content) {
+ function renderProfile(content) {
     if (!currentUser) {
         content.innerHTML = `
             <div class="profile-header">
@@ -3207,7 +3207,7 @@ function focusMap(lat, lng, parkingId) {
                 const prefs = prefSnap.val() || { region: '', city: '' };
                 userCityPrefs = prefs;
 
-                // ---- Репутация: только уровень ----
+                // ---- Расчёт XP и уровня ----
                 const created = stats.parkingsCreated || 0;
                 const updated = stats.parkingsUpdated || 0;
                 const confirmations = stats.confirmations || 0;
@@ -3230,15 +3230,25 @@ function focusMap(lat, lng, parkingId) {
                     { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
                     { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
                 ];
-                let levelName = "Пешеход";
+
+                let currentLevel = levels[0];
+                let nextLevel = levels[1];
                 for (let i = levels.length - 1; i >= 0; i--) {
                     if (score >= levels[i].xp) {
-                        levelName = levels[i].name;
+                        currentLevel = levels[i];
+                        nextLevel = levels[i + 1] || levels[i];
                         break;
                     }
                 }
 
-                // ---- Шапка профиля (фото + имя + уровень) ----
+                const xpForCurrent = currentLevel.xp;
+                const xpForNext = nextLevel.xp;
+                const xpProgress = xpForNext > xpForCurrent ? (score - xpForCurrent) / (xpForNext - xpForCurrent) : 1;
+                const progressPercent = Math.min(100, Math.round(xpProgress * 100));
+                const circumference = 2 * Math.PI * 45;
+                const strokeDashoffset = circumference * (1 - progressPercent / 100);
+
+                // ---- Шапка профиля с круговым индикатором ----
                 let html = `
                     <div style="display: flex; align-items: center; padding: 20px 0 16px; gap: 16px;">
                         <div style="font-size: 64px; flex-shrink: 0;">
@@ -3247,8 +3257,28 @@ function focusMap(lat, lng, parkingId) {
                         <div style="flex: 1;">
                             <div style="font-size: 20px; font-weight: 700;">${currentUser.firstName}</div>
                             <div style="font-size: 15px; color: var(--text-secondary);">@${currentUser.nickname || currentUser.username}</div>
-                            <div style="font-size: 14px; color: var(--accent); margin-top: 4px;">🏆 ${levelName}</div>
-                            ${isGuest ? '<span class="badge" style="font-size: 12px;">Гость</span>' : ''}
+                            <!-- Плашка с уровнем репутации -->
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                                <span style="font-size: 14px; background: var(--accent); color: #E2E2E0; padding: 2px 12px; border-radius: 12px; font-weight: 600;">
+                                    ${currentLevel.emoji} ${currentLevel.name}
+                                </span>
+                                ${isGuest ? '<span class="badge" style="font-size: 12px;">Гость</span>' : ''}
+                            </div>
+                        </div>
+                        <!-- Круговой индикатор XP -->
+                        <div style="position: relative; width: 64px; height: 64px; flex-shrink: 0;">
+                            <svg viewBox="0 0 100 100" style="transform: rotate(-90deg); width: 64px; height: 64px;">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--bg-primary)" stroke-width="8"/>
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="url(#repGradient)" stroke-width="8"
+                                        stroke-linecap="round"
+                                        stroke-dasharray="${circumference}"
+                                        stroke-dashoffset="${strokeDashoffset}"
+                                        style="transition: stroke-dashoffset 0.8s ease;"/>
+                            </svg>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; font-size: 11px; font-weight: 600; color: var(--text-primary); line-height: 1.2;">
+                                ${score}<br>
+                                <span style="font-size: 8px; color: var(--text-secondary);">XP</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -3313,10 +3343,8 @@ function focusMap(lat, lng, parkingId) {
                     </div>
                 `;
 
-        content.innerHTML = html;
-
+                content.innerHTML = html;
                 renderSettingsInline();
-
                 window._historyLoaded = false;
                 window._favoritesLoaded = false;
             });
