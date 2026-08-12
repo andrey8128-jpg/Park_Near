@@ -1824,6 +1824,7 @@ function editFromCenter() {
     };
 }
     // Загрузка истории для предпросмотра (первые 3 записи + кнопка "См. все")
+// Загрузка истории для предпросмотра (первые 3 записи + кнопка "См. все")
 function loadHistoryPreview(parkingId) {
     const container = document.getElementById('historyList');
     const fullContainer = document.getElementById('historyFullList');
@@ -1851,22 +1852,23 @@ function loadHistoryPreview(parkingId) {
 
             if (countEl) countEl.textContent = `(${entries.length})`;
 
+            // Функция рендеринга одной записи (без чисел и госномера)
             const renderEntry = (entry) => {
                 const date = new Date(entry.timestamp);
                 const timeStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                const action = entry.action === 'occupied' ? '🚗 Занял' : '🚗 Освободил';
+                const action = entry.action === 'occupied' ? 'Занял' : 'Освободил';
+                const actionColor = entry.action === 'occupied' ? 'var(--history-occupied)' : 'var(--history-freed)';
                 const username = entry.username || 'Неизвестный';
                 const car = entry.car || {};
                 let carStr = '';
                 if (car.brand || car.model) {
                     carStr = `${car.brand} ${car.model}`;
-                    if (car.plate) carStr += ` (${car.plate})`;
                 } else {
-                    carStr = 'машина не указана';
+                    carStr = 'без авто';
                 }
                 return `
                     <div style="padding:8px 12px; background:var(--bg-primary); border-radius:8px; margin-bottom:4px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
-                        <div><span style="font-weight:500;">${action}</span> (${entry.previousOccupied} → ${entry.newOccupied})</div>
+                        <div><span style="font-weight:500; color:${actionColor};">${action}</span></div>
                         <div style="color:var(--text-secondary); font-size:12px;">${escapeHtml(username)} • ${escapeHtml(carStr)}</div>
                         <div style="color:var(--text-secondary); font-size:11px;">${timeStr}</div>
                     </div>
@@ -1882,7 +1884,6 @@ function loadHistoryPreview(parkingId) {
 
             if (remainingEntries.length > 0) {
                 showAllBtn.style.display = 'inline-block';
-                // Полный список рендерим и скрываем
                 fullContainer.innerHTML = remainingEntries.map(renderEntry).join('');
                 fullContainer.style.display = 'none';
                 hideAllBtn.style.display = 'none';
@@ -1899,7 +1900,6 @@ function loadHistoryPreview(parkingId) {
                 showAllBtn.style.display = 'none';
                 hideAllBtn.style.display = 'inline-block';
             };
-
             hideAllBtn.onclick = function() {
                 fullContainer.style.display = 'none';
                 container.style.display = 'block';
@@ -3257,7 +3257,7 @@ function focusMap(lat, lng, parkingId) {
                 html += `
                     <div class="profile-section" id="profileSectionCar">
                         <div class="profile-section-header" onclick="toggleProfileSection('car')">
-                            <span>🚗 Мой автомобиль</span>
+                            <span>Мой автомобиль</span>
                             <span>${car.brand ? '✅' : '➕'}</span>
                         </div>
                         <div class="profile-section-content" id="profileSectionCarContent">
@@ -3280,7 +3280,7 @@ function focusMap(lat, lng, parkingId) {
 
                     <div class="profile-section" id="profileSectionHistory">
                         <div class="profile-section-header" onclick="toggleProfileSection('history')">
-                            <span>📋 История парковок</span>
+                            <span>История парковок</span>
                             <span>▶</span>
                         </div>
                         <div class="profile-section-content" id="profileSectionHistoryContent">
@@ -3292,7 +3292,7 @@ function focusMap(lat, lng, parkingId) {
 
                     <div class="profile-section" id="profileSectionFavorites">
                         <div class="profile-section-header" onclick="toggleProfileSection('favorites')">
-                            <span>⭐ Избранные парковки</span>
+                            <span>Избранные парковки</span>
                             <span>▶</span>
                         </div>
                         <div class="profile-section-content" id="profileSectionFavoritesContent">
@@ -3304,7 +3304,7 @@ function focusMap(lat, lng, parkingId) {
 
                     <div class="profile-section" id="profileSectionSettings">
                         <div class="profile-section-header" onclick="toggleProfileSection('settings')">
-                            <span>⚙️ Настройки</span>
+                            <span>Настройки</span>
                             <span>▶</span>
                         </div>
                         <div class="profile-section-content" id="profileSectionSettingsContent">
@@ -3458,14 +3458,9 @@ function loadUserParkingHistory() {
 function renderHistoryEntry(entry) {
     const date = new Date(entry.timestamp);
     const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    
-    // Текст действия с цветом
     const actionText = entry.action === 'occupied' ? 'Занял' : 'Освободил';
-    const actionColor = entry.action === 'occupied' ? 'var(--red)' : 'var(--green)';
-    
-    // Информация об автомобиле без госномера
+    const actionColor = entry.action === 'occupied' ? 'var(--history-occupied)' : 'var(--history-freed)';
     const carStr = entry.car.brand ? `${entry.car.brand} ${entry.car.model || ''}` : 'без авто';
-    
     return `
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border-color); font-size: 14px;">
             <div>
@@ -3556,18 +3551,6 @@ function renderSettingsInline() {
                 </div>
             </div>
         `;
-
-        // Никнейм
-        html += `
-            <div class="settings-row">
-                <span class="settings-label">Никнейм</span>
-                <span class="settings-value">
-                    ${currentUser.nickname || 'Не указан'}
-                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editNickname()">✏️</button>
-                </span>
-            </div>
-        `;
-
         // Удалить аккаунт
         html += `
             <div class="settings-row" style="border-bottom: none;">
