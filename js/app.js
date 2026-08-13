@@ -3285,19 +3285,25 @@ function focusMap(lat, lng, parkingId) {
                 // ---- Секции (аккордеон) ----
                 html += `
                     <div class="profile-section-header" onclick="toggleProfileSection('car')">
-                      <span>🚗 Мой автомобиль</span>
+                      <span>Мой автомобиль</span>
                          <span style="font-size:12px; color:var(--text-secondary);">${car.brand ? '✅ Добавлен' : '➕ Не добавлен'}</span>
                            </div>
                         <div class="profile-section-content" id="profileSectionCarContent">
-                            ${car.brand ? `
-                                <div style="padding: 4px 0;">
-                                    <div><strong>${car.brand} ${car.model || ''}</strong></div>
-                                    <div style="color: var(--text-secondary); font-size: 14px;">${car.plate || 'без номера'}</div>
-                                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                                        <button class="btn-secondary" style="flex:1;" onclick="editCarDataFromSettings()">✏️ Редактировать</button>
-                                    </div>
-                                </div>
-                            ` : `
+${car.brand ? `
+    <div style="padding: 4px 0;">
+        <div><strong>${car.brand} ${car.model || ''}</strong></div>
+        <div style="color: var(--text-secondary); font-size: 14px;">${car.plate || 'без номера'}</div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button class="btn-secondary" style="flex:1;" onclick="editCarDataFromSettings()">Редактировать</button>
+            <button class="btn-danger" style="flex:1; padding:10px; margin:0;" onclick="removeCar()">🗑️ Удалить</button>
+        </div>
+    </div>
+` : `
+    <div style="padding: 4px 0; color: var(--text-secondary);">
+        Автомобиль не добавлен
+        <button class="btn-secondary" style="width:100%; margin-top:8px;" onclick="editCarDataFromSettings()">➕ Добавить</button>
+    </div>
+`}
                                 <div style="padding: 4px 0; color: var(--text-secondary);">
                                     Автомобиль не добавлен
                                     <button class="btn-secondary" style="width:100%; margin-top:8px;" onclick="editCarDataFromSettings()">➕ Добавить</button>
@@ -3804,6 +3810,15 @@ function saveCityFromSettingsInline() {
             plate: plate || null
         }).then(() => {
             closeCarEditor();
+            // Перерисовываем профиль, если он открыт
+const panel = document.getElementById('panel');
+if (panel && panel.classList.contains('active')) {
+    const title = document.getElementById('panelTitle');
+    if (title && title.textContent === 'Профиль') {
+        const content = document.getElementById('panelContent');
+        renderProfile(content);
+    }
+}
             if (document.getElementById('settingsOverlay')?.style?.display === 'flex') {
                 renderSettings();
             }
@@ -3814,7 +3829,37 @@ function saveCityFromSettingsInline() {
             alert('Ошибка сохранения: ' + err.message);
         });
     }
-
+function removeCar() {
+    if (!currentUser) {
+        alert('Необходимо авторизоваться');
+        return;
+    }
+    if (!confirm('Удалить данные об автомобиле?')) return;
+    database.ref(`users/${currentUser.id}/car`).remove()
+        .then(() => {
+            // Обновляем объект пользователя
+            if (currentUser) {
+                currentUser.car = {};
+            }
+            // Перерисовываем профиль, если он открыт
+            const panel = document.getElementById('panel');
+            if (panel && panel.classList.contains('active')) {
+                const title = document.getElementById('panelTitle');
+                if (title && title.textContent === 'Профиль') {
+                    const content = document.getElementById('panelContent');
+                    renderProfile(content);
+                }
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+            showToast('🚗 Автомобиль удалён');
+        })
+        .catch(err => {
+            console.error('Ошибка удаления автомобиля:', err);
+            alert('Не удалось удалить автомобиль: ' + err.message);
+        });
+}
     // ===================== ИЗБРАННОЕ =====================
     function loadUserData(type, content) {
         if (!currentUser) {
