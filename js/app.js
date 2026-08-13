@@ -908,13 +908,34 @@ function tryYandexGeolocation(resolve, reject) {
     // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
     function initMap() {
     console.log('▶️ initMap вызвана');
-        map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'],
-            type: 'yandex#map' });
-        console.log('Карта инициализирована');
-        document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('home');
-            else if (isDrawingMode) cancelDrawing();
-            else startDrawingMode(); };
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('❌ Элемент #map не найден в DOM');
+        return;
+    }
 
+    try {
+        // Создаём карту
+        map = new ymaps.Map("map", {
+            center: [55.7558, 37.6173],
+            zoom: 14,
+            controls: ['zoomControl'],
+            type: 'yandex#map'
+        });
+        console.log('✅ Карта инициализирована');
+
+        // ===== Обработчик кнопки «+» (добавление парковки) =====
+        document.getElementById('addBtn').onclick = () => {
+            if (!currentUser) {
+                showPanel('home');
+            } else if (isDrawingMode) {
+                cancelDrawing();
+            } else {
+                startDrawingMode();
+            }
+        };
+
+        // ===== Обработчик кнопки слоёв (долгое нажатие / короткое нажатие) =====
         const layerBtn = document.getElementById('layerSwitcher');
         let pressTimer = null;
 
@@ -968,51 +989,81 @@ function tryYandexGeolocation(resolve, reject) {
             }
         });
 
+        // ===== Обработчик кнопки геолокации =====
         document.getElementById('geoBtn').onclick = () => {
             if (!map) return;
             const btn = document.getElementById('geoBtn');
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-            getUserLocation().then(coords => {
-                btn.innerHTML = originalContent;
-                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь',
-                    balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-                myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                map.geoObjects.add(myLocationPlacemark);
-                map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback
-                    .notificationOccurred('success');
-            }).catch(err => {
-                btn.innerHTML = originalContent;
-                console.error("Ошибка геолокации:", err);
-                let message = 'Не удалось определить местоположение.';
-                if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-                if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message);
-                else alert(message);
-            });
+            getUserLocation()
+                .then(coords => {
+                    btn.innerHTML = originalContent;
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                        hintContent: 'Вы здесь',
+                        balloonContent: '<strong>Ваше местоположение</strong>'
+                    }, {
+                        preset: 'islands#blueCircleDotIconWithCaption'
+                    });
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    map.geoObjects.add(myLocationPlacemark);
+                    map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                })
+                .catch(err => {
+                    btn.innerHTML = originalContent;
+                    console.error('Ошибка геолокации:', err);
+                    let message = 'Не удалось определить местоположение.';
+                    if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
+                    if (window.Telegram?.WebApp?.showAlert) {
+                        window.Telegram.WebApp.showAlert(message);
+                    } else {
+                        alert(message);
+                    }
+                });
         };
 
-        loadAllParkings();
+        // ===== Загрузка парковок с обработкой ошибок =====
+        loadAllParkings().catch(err => {
+            console.warn('Не удалось загрузить парковки:', err);
+        });
 
+        // ===== Автоматическое определение местоположения через 1 секунду =====
         setTimeout(() => {
-            getUserLocation().then(coords => {
-                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-                myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                map.geoObjects.add(myLocationPlacemark);
-                map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
-            }).catch(() => console.log('Автогеолокация не удалась'));
+            getUserLocation()
+                .then(coords => {
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                        hintContent: 'Вы здесь'
+                    }, {
+                        preset: 'islands#blueCircleDotIconWithCaption'
+                    });
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    map.geoObjects.add(myLocationPlacemark);
+                    map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
+                })
+                .catch(() => console.log('Автогеолокация не удалась'));
         }, 1000);
-        setTimeout(() => {
-    const splash = document.getElementById('splashScreen');
-    if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(() => splash.remove(), 300);
-    }
-}, 5000);
-    }
 
+        // ===== Скрываем splash-экран через 5 секунд =====
+        setTimeout(() => {
+            const splash = document.getElementById('splashScreen');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.remove(), 300);
+            }
+        }, 5000);
+
+    } catch (e) {
+        console.error('❌ Ошибка инициализации карты:', e);
+        const container = document.getElementById('map');
+        if (container) {
+            container.innerHTML = '<div style="color:var(--red); text-align:center; padding:20px;">⚠️ Не удалось загрузить карту. Проверьте подключение к интернету и API-ключ Яндекс.Карт.</div>';
+        }
+    }
+}
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
 
@@ -4780,14 +4831,17 @@ function onTelegramAuth(user) {
     }
 }
   function initApp() {
+    console.log('▶️ initApp вызвана');
+
     // 1. Проверяем, не вернулись ли с авторизации через Telegram (редирект)
     if (checkTelegramAuthFromUrl()) {
-        // Если авторизация уже выполнена, показываем главную и выходим
         showPanel('home');
         return;
     }
+
     // 2. Инициализация авторизации (показывает окно входа, если нет сохранённого пользователя)
     initAuth();
+
     // 3. Обработчик кнопки «+» (добавить парковку)
     document.getElementById('addBtn').onclick = () => {
         if (!currentUser) {
@@ -4798,6 +4852,7 @@ function onTelegramAuth(user) {
             startDrawingMode();
         }
     };
+
     // 4. Обработчик кнопки геолокации
     document.getElementById('geoBtn').onclick = () => {
         if (!map) return;
@@ -4833,16 +4888,18 @@ function onTelegramAuth(user) {
                 }
             });
     };
-    // 5. Инициализация карты (если ещё не инициализирована)
+
+    // 5. Инициализация карты (прямой вызов – мы уже внутри ymaps.ready)
     if (!map) {
-        ymaps.ready(() => {
-            initMap();
-        });
+        initMap();
     }
-    // 6. Загружаем парковки
-    loadAllParkings();
+
+    // 6. Загружаем парковки (ещё раз – но loadAllParkings уже вызывается в initMap, оставляем для надёжности)
+    loadAllParkings().catch(err => console.warn('Ошибка загрузки парковок:', err));
+
     // 7. Pull-to-refresh
     initPullToRefresh();
+
     // 8. Если пользователь уже залогинен, показываем домашнюю панель
     if (currentUser) {
         showPanel('home');
