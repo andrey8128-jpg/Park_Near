@@ -5054,26 +5054,31 @@ function onTelegramAuth(user) {
             });
         }
     })();
-    console.log('✅ ParkNear загружен. Код исправлен.');
+    console.log('✅ ParkNear загружен.');
 
-    // Принудительное скрытие splash через 5 секунд (на случай, если карта не загрузилась)
-    setTimeout(function() {
-        var splash = document.getElementById('splashScreen');
-        if (splash) {
-            splash.style.opacity = '0';
-            setTimeout(function() { splash.remove(); }, 300);
-        }
-    }, 5000);
-    // Диагностика загрузки карты
-(function checkMapLoading() {
-    console.log('🔍 Проверка загрузки Яндекс.Карт...');
-    if (typeof ymaps === 'undefined') {
-        console.error('❌ ymaps не определён. Скрипт Яндекс.Карт не загрузился.');
-        document.getElementById('map').innerHTML = '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
-        return;
-    }
+// ===== ЗАПУСК ПРИЛОЖЕНИЯ ПОСЛЕ ЗАГРУЗКИ ЯНДЕКС.КАРТ =====
+if (typeof ymaps !== 'undefined') {
     ymaps.ready(function() {
-        console.log('✅ ymaps.ready сработал');
-        initApp(); // <- вызываем именно initApp, а не initMap
+        console.log('✅ Яндекс.Карты готовы, запускаем приложение');
+        initApp();
     });
-})();
+} else {
+    console.error('❌ Яндекс.Карты не загружены. Проверьте API-ключ.');
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+        mapContainer.innerHTML = 
+            '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
+    }
+}
+
+// ===== ЗАЩИТА: ЕСЛИ ЧЕРЕЗ 5 СЕКУНД КАРТЫ НЕТ – ПОКАЗЫВАЕМ ОШИБКУ =====
+setTimeout(function() {
+    if (!map) {
+        console.warn('⚠️ Карта не создана через 5 секунд после загрузки');
+        const mapContainer = document.getElementById('map');
+        if (mapContainer && !mapContainer.innerHTML) {
+            mapContainer.innerHTML = 
+                '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте интернет и API-ключ.</div>';
+        }
+    }
+}, 5000);
