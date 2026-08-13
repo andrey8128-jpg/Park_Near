@@ -1,81 +1,83 @@
   // ===================== FIREBASE =====================
-const firebaseConfig = {
-    apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
-    authDomain: "parknear-bef41.firebaseapp.com",
-    databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "parknear-bef41",
-    storageBucket: "parknear-bef41.firebasestorage.app",
-    messagingSenderId: "1066552333578",
-    appId: "1:1066552333578:web:e60e333cf877852eba16f3"
-};
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+    const firebaseConfig = {
+        apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
+        authDomain: "parknear-bef41.firebaseapp.com",
+        databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "parknear-bef41",
+        storageBucket: "parknear-bef41.firebasestorage.app",
+        messagingSenderId: "1066552333578",
+        appId: "1:1066552333578:web:e60e333cf877852eba16f3"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
+    (function restoreTheme() {
+        const darkTheme = localStorage.getItem('darkTheme');
+        const isDark = (darkTheme === '1');
+        if (isDark) {
+            document.body.classList.add('dark-theme');
+            
+            // Накладываем фильтр только на тайлы карты, чтобы не инвертировать цвета маркеров
+            const mapStyle = document.createElement('style');
+            mapStyle.id = 'dark-map-style';
+            mapStyle.innerHTML = `
+                .dark-theme #map .ymaps-2-1-game-layer,
+                .dark-theme #map [class*="ymaps-2-1-17-events-pane"] {
+                    filter: invert(0.9) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.8) !important;
+                }
+            `;
+            document.head.appendChild(mapStyle);
 
-// ===== Восстановление темы =====
-(function restoreTheme() {
-    const darkTheme = localStorage.getItem('darkTheme');
-    const isDark = (darkTheme === '1');
-    if (isDark) {
-        document.body.classList.add('dark-theme');
-        const mapStyle = document.createElement('style');
-        mapStyle.id = 'dark-map-style';
-        mapStyle.innerHTML = `
-            .dark-theme #map .ymaps-2-1-game-layer,
-            .dark-theme #map [class*="ymaps-2-1-17-events-pane"] {
-                filter: invert(0.9) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.8) !important;
+            if (window.Telegram && window.Telegram.WebApp) {
+                try {
+                    window.Telegram.WebApp.setHeaderColor('#1C1C1E');
+                    window.Telegram.WebApp.setBackgroundColor('#000000');
+                } catch(e) {}
             }
-        `;
-        document.head.appendChild(mapStyle);
-        if (window.Telegram && window.Telegram.WebApp) {
-            try {
-                window.Telegram.WebApp.setHeaderColor('#1C1C1E');
-                window.Telegram.WebApp.setBackgroundColor('#000000');
-            } catch(e) {}
         }
-    }
-    var toggle1 = document.getElementById('settingsThemeToggle');
-    var toggle2 = document.getElementById('settingsThemeToggleInline');
-    if (toggle1) toggle1.checked = isDark;
-    if (toggle2) toggle2.checked = isDark;
-})();
+        var toggle1 = document.getElementById('settingsThemeToggle');
+        var toggle2 = document.getElementById('settingsThemeToggleInline');
+        if (toggle1) toggle1.checked = isDark;
+        if (toggle2) toggle2.checked = isDark;
+    })();
+    // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
+    let map = null;
+    let currentUser = null;
+    let lastKnownLocation = null;
+    let mapMarkers = {};
+    let myLocationPlacemark = null;
+    let addressPreviewMarker = null;
+    let drawingPolygon = null;
+    let isDrawingMode = false;
+    let currentParkingId = null;
+    let currentParkingData = null;
+    let originalPolyCoords = null;
+    let editingParkingId = null;
+    let editingPolygon = null;
+    let mapCity = null;
+    let parkingDataCache = {};
+    let highlightedParkings = {};
+    let lastClickTime = 0;
+    let lastDataRefresh = 0;
+    const REFRESH_INTERVAL_MS = 60000;
+    let lastClickParkingId = null;
+    let clickTimeout = null;
+    const MAX_ZONE_WIDTH = 100;
+    const MAX_ZONE_LENGTH = 100;
+    let addressPickerMap = null;
+    let addressPickerPlacemark = null;
+    let addressPickerCoords = null;
+    let isAddressPickerOpen = false;
+    let currentRoute = null;
+    let routeStartCoords = null;
+    let routeEndCoords = null;
+    let routeParkingData = null;
+    let userCityPrefs = { region: '', city: '' };
+    let nearbySearchFilter = null;
+    let userLocationForSearch = null;
+    let pendingAddressData = null;
+    let newParkingCoords = null;
 
-// ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
-let map = null;
-let currentUser = null;
-let lastKnownLocation = null;
-let mapMarkers = {};
-let myLocationPlacemark = null;
-let addressPreviewMarker = null;
-let drawingPolygon = null;
-let isDrawingMode = false;
-let currentParkingId = null;
-let currentParkingData = null;
-let originalPolyCoords = null;
-let editingParkingId = null;
-let editingPolygon = null;
-let mapCity = null;
-let parkingDataCache = {};
-let highlightedParkings = {};
-let lastClickTime = 0;
-let lastDataRefresh = 0;
-const REFRESH_INTERVAL_MS = 60000;
-let lastClickParkingId = null;
-let clickTimeout = null;
-const MAX_ZONE_WIDTH = 100;
-const MAX_ZONE_LENGTH = 100;
-let addressPickerMap = null;
-let addressPickerPlacemark = null;
-let addressPickerCoords = null;
-let isAddressPickerOpen = false;
-let currentRoute = null;
-let routeStartCoords = null;
-let routeEndCoords = null;
-let routeParkingData = null;
-let userCityPrefs = { region: '', city: '' };
-let nearbySearchFilter = null;
-let userLocationForSearch = null;
-let pendingAddressData = null;
-let newParkingCoords = null;
     // ===================== КОНСТАНТЫ =====================
     const carBrands = {
         'Lada': ['Vesta', 'Vesta Cross', 'Vesta SW', 'Vesta SW Cross', 'Granta', 'Granta Cross', 'Niva Legend',
@@ -669,36 +671,20 @@ let newParkingCoords = null;
             if (!currentUser || currentUser.id !== user.id) {
                 currentUser = user;
                 window.currentUser = user;
-                // Если фото нет в сохранённых данных – пробуем загрузить из Firebase
-                if (!user.photoUrl) {
-                    database.ref(`users/${user.id}/photoUrl`).once('value').then(snap => {
-                        if (snap.exists()) {
-                            user.photoUrl = snap.val();
-                            localStorage.setItem('tgUser', JSON.stringify(user));
-                            // Если профиль открыт – обновляем его
-                            const panel = document.getElementById('panel');
-                            if (panel && panel.classList.contains('active')) {
-                                const title = document.getElementById('panelTitle');
-                                if (title && title.textContent === 'Профиль') {
-                                    const content = document.getElementById('panelContent');
-                                    renderProfile(content);
-                                }
-                            }
-                        }
-                    }).catch(() => {});
-                }
                 hideAuthScreen();
+                // Если панель не активна, открываем главную
                 const panel = document.getElementById('panel');
                 if (!panel.classList.contains('active')) {
                     showPanel('home');
                 }
                 console.log('✅ Пользователь восстановлен в initAuth()');
             }
-            return;
+            return; // если пользователь уже есть, ничего не делаем
         } catch (e) {
             localStorage.removeItem('tgUser');
         }
     }
+    // Если пользователь не найден – показываем экран входа
     showAuthScreen();
 }
 // Немедленное восстановление сессии (выполняется до загрузки карт)
@@ -903,41 +889,30 @@ function tryYandexGeolocation(resolve, reject) {
     mapMarkers[id] = placemark;
 }
 
-   // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ (ИСПРАВЛЕНА) =====================
-function initMap() {
-    console.log('▶️ initMap вызвана');
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer) {
-        console.error('❌ Элемент #map не найден в DOM');
-        return;
-    }
-
-    try {
-        // ⚠️ ВАЖНО: замените API-ключ в index.html на свой рабочий!
-        map = new ymaps.Map("map", {
-            center: [55.7558, 37.6173],
-            zoom: 14,
-            controls: ['zoomControl'],
-            type: 'yandex#map'
-        });
-        console.log('✅ Карта инициализирована');
-
-        // --- Обработчики кнопок (как были) ---
-        document.getElementById('addBtn').onclick = () => {
-            if (!currentUser) showPanel('home');
+    // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
+    function initMap() {
+        console.log('Инициализация карты...');
+        map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'],
+            type: 'yandex#map' });
+        console.log('Карта инициализирована');
+        document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('home');
             else if (isDrawingMode) cancelDrawing();
-            else startDrawingMode();
-        };
+            else startDrawingMode(); };
 
-        // --- Слои (долгое нажатие) ---
         const layerBtn = document.getElementById('layerSwitcher');
         let pressTimer = null;
+
         function showLayerMenu() {
             document.getElementById('layerMenu').classList.add('active');
         }
+
         layerBtn.addEventListener('mousedown', function(e) {
-            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
+            pressTimer = setTimeout(() => {
+                showLayerMenu();
+                pressTimer = null;
+            }, 500);
         });
+
         layerBtn.addEventListener('mouseup', function(e) {
             if (pressTimer) {
                 clearTimeout(pressTimer);
@@ -953,9 +928,14 @@ function initMap() {
                 updateMapTheme();
             }
         });
+
         layerBtn.addEventListener('touchstart', function(e) {
-            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
+            pressTimer = setTimeout(() => {
+                showLayerMenu();
+                pressTimer = null;
+            }, 500);
         });
+
         layerBtn.addEventListener('touchend', function(e) {
             if (pressTimer) {
                 clearTimeout(pressTimer);
@@ -972,103 +952,51 @@ function initMap() {
             }
         });
 
-        // --- Геолокация ---
         document.getElementById('geoBtn').onclick = () => {
             if (!map) return;
             const btn = document.getElementById('geoBtn');
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-            getUserLocation()
-                .then(coords => {
-                    btn.innerHTML = originalContent;
-                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                        hintContent: 'Вы здесь',
-                        balloonContent: '<strong>Ваше местоположение</strong>'
-                    }, {
-                        preset: 'islands#blueCircleDotIconWithCaption'
-                    });
-                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                    map.geoObjects.add(myLocationPlacemark);
-                    map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                })
-                .catch(err => {
-                    btn.innerHTML = originalContent;
-                    console.error('Ошибка геолокации:', err);
-                    let message = 'Не удалось определить местоположение.';
-                    if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-                    if (window.Telegram?.WebApp?.showAlert) {
-                        window.Telegram.WebApp.showAlert(message);
-                    } else {
-                        alert(message);
-                    }
-                });
+            getUserLocation().then(coords => {
+                btn.innerHTML = originalContent;
+                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь',
+                    balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
+                myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                map.geoObjects.add(myLocationPlacemark);
+                map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback
+                    .notificationOccurred('success');
+            }).catch(err => {
+                btn.innerHTML = originalContent;
+                console.error("Ошибка геолокации:", err);
+                let message = 'Не удалось определить местоположение.';
+                if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
+                if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message);
+                else alert(message);
+            });
         };
 
-        // --- Загрузка парковок ---
-        loadAllParkings().catch(err => {
-            console.warn('Не удалось загрузить парковки:', err);
-        });
+        loadAllParkings();
 
-        // --- Автогеолокация ---
         setTimeout(() => {
-            getUserLocation()
-                .then(coords => {
-                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                        hintContent: 'Вы здесь'
-                    }, {
-                        preset: 'islands#blueCircleDotIconWithCaption'
-                    });
-                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                    map.geoObjects.add(myLocationPlacemark);
-                    map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
-                })
-                .catch(() => console.log('Автогеолокация не удалась'));
+            getUserLocation().then(coords => {
+                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь' }, { preset: 'islands#blueCircleDotIconWithCaption' });
+                myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                map.geoObjects.add(myLocationPlacemark);
+                map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
+            }).catch(() => console.log('Автогеолокация не удалась'));
         }, 1000);
-
-        // --- Скрыть splash ---
         setTimeout(() => {
-            const splash = document.getElementById('splashScreen');
-            if (splash) {
-                splash.style.opacity = '0';
-                setTimeout(() => splash.remove(), 300);
-            }
-        }, 5000);
-
-    } catch (e) {
-        console.error('❌ Ошибка инициализации карты:', e);
-        const container = document.getElementById('map');
-        if (container) {
-            container.innerHTML = `
-                <div style="color:var(--red); text-align:center; padding:20px;">
-                    ⚠️ Не удалось загрузить карту.<br>
-                    Проверьте API-ключ Яндекс.Карт в index.html.<br>
-                    <small>Ошибка: ${e.message}</small>
-                </div>
-            `;
-        }
-        // Повторная попытка через 2 секунды (на случай, если ключ поменяют)
-        setTimeout(() => {
-            if (!map) {
-                try {
-                    map = new ymaps.Map("map", {
-                        center: [55.7558, 37.6173],
-                        zoom: 14,
-                        controls: ['zoomControl'],
-                        type: 'yandex#map'
-                    });
-                    console.log('✅ Карта создана повторно (возможно, ключ обновился)');
-                } catch (e2) {
-                    console.error('Повторная попытка не удалась:', e2);
-                }
-            }
-        }, 3000);
+    const splash = document.getElementById('splashScreen');
+    if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 300);
     }
-}
+}, 5000);
+    }
+
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
 
@@ -2314,94 +2242,107 @@ function loadHistoryPreview(parkingId) {
             });
     }
 
-   function buildAndShowRoute() {
-    if (currentRoute) {
-        map.geoObjects.remove(currentRoute);
-        currentRoute = null;
-    }
-    if (!routeStartCoords || !routeEndCoords) {
-        alert('Не удалось определить точки маршрута');
-        return;
-    }
+    function buildAndShowRoute() {
+        if (currentRoute) {
+            map.geoObjects.remove(currentRoute);
+            currentRoute = null;
+        }
+        if (!routeStartCoords || !routeEndCoords) {
+            alert('Не удалось определить точки маршрута');
+            return;
+        }
 
-    const mode = document.getElementById('routeTypeSelect')?.value || 'auto';
+        const mode = document.getElementById('routeTypeSelect')?.value || 'auto';
 
-    try {
-        currentRoute = new ymaps.multiRouter.MultiRoute({
-            referencePoints: [routeStartCoords, routeEndCoords],
-            params: {
-                routingMode: mode === 'walking' ? 'pedestrian' : 'auto',
-                avoidTrafficJams: true
-            }
-        }, {
-            boundsAutoApply: true,
-            wayPointVisible: true
-        });
+        try {
+            // Создаем маршрут Яндекс.Карт
+            currentRoute = new ymaps.multiRouter.MultiRoute({
+                referencePoints: [routeStartCoords, routeEndCoords],
+                params: {
+                    routingMode: mode === 'walking' ? 'pedestrian' : 'auto',
+                    avoidTrafficJams: true
+                }
+            }, {
+                boundsAutoApply: true,
+                wayPointVisible: true
+            });
 
-        currentRoute.model.events.add('requestsuccess', function () {
-            const activeRoute = currentRoute.getActiveRoute();
-            if (activeRoute) {
-                const distance = activeRoute.properties.get("distance").text;
-                const duration = activeRoute.properties.get("duration").text;
+            // Подписываемся на успешное построение маршрута
+            currentRoute.model.events.add('requestsuccess', function () {
+                const activeRoute = currentRoute.getActiveRoute();
+                if (activeRoute) {
+                    const distance = activeRoute.properties.get("distance").text;
+                    const duration = activeRoute.properties.get("duration").text;
+
+                    const infoEl = document.getElementById('routeInfo');
+                    if (infoEl) {
+                        infoEl.innerHTML = `
+                            <div class="route-summary">
+                                📍 До объекта: <strong>${distance}</strong> (${duration})
+                            </div>
+                        `;
+                    }
+                }
+            });
+
+            // Обработка ошибки построения
+            currentRoute.model.events.add('requestfail', function (event) {
+                console.error('Ошибка построения маршрута:', event.get('error'));
                 const infoEl = document.getElementById('routeInfo');
                 if (infoEl) {
-                    infoEl.innerHTML = `
-                        <div class="route-summary">
-                            📍 До объекта: <strong>${distance}</strong> (${duration})
-                        </div>
-                    `;
+                    infoEl.innerHTML = '<div class="route-error">Не удалось проложить маршрут.</div>';
                 }
-            }
-        });
+            });
 
-        currentRoute.model.events.add('requestfail', function (event) {
-            console.error('Ошибка построения маршрута:', event.get('error'));
-            const infoEl = document.getElementById('routeInfo');
-            if (infoEl) {
-                infoEl.innerHTML = '<div class="route-error">Не удалось проложить маршрут.</div>';
-            }
-        });
+            map.geoObjects.add(currentRoute);
 
-        map.geoObjects.add(currentRoute);
+            // Показываем плашку маршрута, если она есть в DOM
+            const routePanel = document.getElementById('routePanel');
+            if (routePanel) routePanel.classList.add('active');
 
-        // (удалён код с routePanel, так как элемента нет)
-        // Показываем карточку маршрута (она есть #routeCard)
-        document.getElementById('routeCard').classList.add('active');
-
-    } catch (e) {
-        console.error('Ошибка при вызове MultiRoute:', e);
-        alert('Не удалось построить маршрут');
-    }
-}
-
-// ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
-console.log('✅ ParkNear загружен.');
-
-if (typeof ymaps !== 'undefined') {
-    ymaps.ready(function() {
-        console.log('✅ Яндекс.Карты готовы, запускаем приложение');
-        initApp();
-    });
-} else {
-    console.error('❌ Яндекс.Карты не загружены. Проверьте API-ключ.');
-    const mapContainer = document.getElementById('map');
-    if (mapContainer) {
-        mapContainer.innerHTML = 
-            '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
-    }
-}
-
-// Защитный таймаут (увеличен до 8 секунд)
-setTimeout(function() {
-    if (!map) {
-        console.warn('⚠️ Карта не создана через 8 секунд после загрузки');
-        const mapContainer = document.getElementById('map');
-        if (mapContainer && !mapContainer.innerHTML) {
-            mapContainer.innerHTML = 
-                '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте интернет и API-ключ.</div>';
+        } catch (e) {
+            console.error('Ошибка при вызове MultiRoute:', e);
+            alert('Не удалось построить маршрут');
         }
     }
-}, 8000);
+    function updateRouteInfoFromMultiRoute(route) {
+        route.model.events.add('update', function() {
+            var activeRoute = route.getActiveRoute();
+            if (!activeRoute) return;
+
+            var distance = activeRoute.getLength();
+            var time = activeRoute.getTime();
+
+            var distKm = (distance / 1000).toFixed(1);
+            var timeMin = Math.round(time / 60);
+
+            var instructions = activeRoute.getWayPoints();
+            var stepsHtml = '';
+            instructions.forEach(function(item, index) {
+                if (index > 0 && index < 10) {
+                    stepsHtml +=
+                        `<div style="font-size:12px; color:var(--text-secondary);">${item.getName()}</div>`;
+                }
+            });
+
+            var free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
+
+            document.getElementById('routeInfo').innerHTML = `
+            <div style="margin-bottom:8px;">
+                <div style="font-weight:600; font-size:18px;">🚗 До парковки</div>
+                <div>📏 Расстояние: <b>${distKm}</b> км</div>
+                <div>⏱ Время в пути: <b>${timeMin}</b> мин</div>
+                <div>🅿️ Свободных мест: <b>${free}</b> / ${routeParkingData.totalSpots}</div>
+                <div style="font-size:12px; color:var(--text-secondary);">Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+            </div>
+            <div style="margin-top:8px; border-top:0.5px solid var(--border-color); padding-top:8px; max-height:120px; overflow-y:auto;">
+                <div style="font-size:13px; font-weight:500;">📋 Основные точки маршрута:</div>
+                ${stepsHtml || '<div style="font-size:12px; color:var(--text-secondary);">Инструкции не доступны</div>'}
+            </div>
+        `;
+        });
+    }
+
     function showDirectLine() {
         if (!routeStartCoords || !routeEndCoords) return;
         if (currentRoute) {
@@ -3310,14 +3251,8 @@ function renderProfile(content) {
                 let html = `
                     <div style="display: flex; align-items: center; padding: 20px 0 16px; gap: 16px;">
                         <div style="font-size: 64px; flex-shrink: 0;">
-    ${currentUser.photoUrl ? `
-        <img src="${currentUser.photoUrl}" 
-             style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--bg-primary);"
-             onerror="this.style.display='none'; this.parentElement.innerHTML='👤';"
-             crossorigin="anonymous"
-        >
-    ` : '👤'}
-</div>
+                            ${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">` : '👤'}
+                        </div>
                         <div style="flex: 1;">
                             <div style="font-size: 20px; font-weight: 700;">${currentUser.firstName}</div>
                             <div style="font-size: 15px; color: var(--text-secondary);">@${currentUser.nickname || currentUser.username}</div>
@@ -4250,13 +4185,15 @@ function showPanel(type, keepFilter = false) {
             highlightSelector: '#addBtn', requiredAction: true },
         { icon: '📍', title: 'Шаг 2: Ваше местоположение', text: 'Нажмите на кнопку с эмодзи 📍, чтобы карта переместилась к вам. Это поможет искать парковки рядом.',
             highlightSelector: '#geoBtn', requiredAction: true },
-        { icon: '🗺️', title: 'Шаг 3: Слои карты', text: 'Нажмите на иконку 🗺️ в правом верхнем углу, чтобы переключать вид: схема, спутник или гибрид.',
+        { icon: '🔄', title: 'Шаг 3: Обновление данных', text: 'Кнопка с круглой стрелкой 🔄 загружает свежие данные о парковках. Используйте, если сомневаетесь в актуальности.',
+            highlightSelector: '#refreshBtn', requiredAction: true },
+        { icon: '🗺️', title: 'Шаг 4: Слои карты', text: 'Нажмите на иконку 🗺️ в правом верхнем углу, чтобы переключать вид: схема, спутник или гибрид.',
             highlightSelector: '.layer-switcher', requiredAction: true },
-        { icon: '🔍', title: 'Шаг 4: Поиск парковок', text: 'Нажмите на вкладку «Поиск» внизу. Здесь можно искать по адресу, фильтровать по расстоянию и видеть только свободные места.',
+        { icon: '🔍', title: 'Шаг 5: Поиск парковок', text: 'Нажмите на вкладку «Поиск» внизу. Здесь можно искать по адресу, фильтровать по расстоянию и видеть только свободные места.',
             highlightSelector: '.tab:nth-child(2)', requiredAction: true },
-        { icon: '⭐', title: 'Шаг 5: Избранное и адреса', text: 'Вкладка «Избранное» хранит ваши любимые парковки и домашние адреса. Свайпом влево можно удалить.',
+        { icon: '⭐', title: 'Шаг 6: Избранное и адреса', text: 'Вкладка «Избранное» хранит ваши любимые парковки и домашние адреса. Свайпом влево можно удалить.',
             highlightSelector: '.tab:nth-child(3)', requiredAction: true },
-        { icon: '⚙️', title: 'Шаг 6: Настройки профиля', text: 'В профиле (вкладка «Профиль») можно задать город, добавить автомобиль и включить тёмную тему. Нажмите на вкладку, чтобы заглянуть.',
+        { icon: '⚙️', title: 'Шаг 7: Настройки профиля', text: 'В профиле (вкладка «Профиль») можно задать город, добавить автомобиль и включить тёмную тему. Нажмите на вкладку, чтобы заглянуть.',
             highlightSelector: '.tab:nth-child(4)', requiredAction: true },
         { icon: '🎉', title: 'Вы готовы!', text: 'Теперь вы знаете все основные фишки. Начните с поиска парковки или добавьте свою — удачи на дорогах!',
             highlightSelector: null, requiredAction: false }
@@ -4782,16 +4719,17 @@ function checkTelegramAuthFromUrl() {
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 function onTelegramAuth(user) {
     try {
-        const photoUrl = user.photo_url || '';
         currentUser = {
             id: 'tg_' + user.id,
             username: user.username || 'tg_user',
             firstName: user.first_name || 'Пользователь',
-            photoUrl: photoUrl,
+            photoUrl: user.photo_url || '',
             isGuest: false
         };
+        // Сохраняем в localStorage
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
+        // Сохраняем в Firebase
         const userRef = database.ref('users/' + currentUser.id);
         userRef.update({
             username: currentUser.username,
@@ -4799,7 +4737,6 @@ function onTelegramAuth(user) {
             photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
-
         userRef.child('stats').set({
             registeredAt: Date.now(),
             lastActive: Date.now(),
@@ -4817,21 +4754,19 @@ function onTelegramAuth(user) {
         console.log('✅ Пользователь авторизован:', user.first_name);
     } catch (e) {
         console.error('❌ Ошибка в onTelegramAuth:', e);
+        // Запасной вариант – гость
         continueAsGuest();
     }
 }
   function initApp() {
-    console.log('▶️ initApp вызвана');
-
     // 1. Проверяем, не вернулись ли с авторизации через Telegram (редирект)
     if (checkTelegramAuthFromUrl()) {
+        // Если авторизация уже выполнена, показываем главную и выходим
         showPanel('home');
         return;
     }
-
     // 2. Инициализация авторизации (показывает окно входа, если нет сохранённого пользователя)
     initAuth();
-
     // 3. Обработчик кнопки «+» (добавить парковку)
     document.getElementById('addBtn').onclick = () => {
         if (!currentUser) {
@@ -4842,7 +4777,6 @@ function onTelegramAuth(user) {
             startDrawingMode();
         }
     };
-
     // 4. Обработчик кнопки геолокации
     document.getElementById('geoBtn').onclick = () => {
         if (!map) return;
@@ -4878,18 +4812,16 @@ function onTelegramAuth(user) {
                 }
             });
     };
-
-    // 5. Инициализация карты (прямой вызов – мы уже внутри ymaps.ready)
+    // 5. Инициализация карты (если ещё не инициализирована)
     if (!map) {
-        initMap();
+        ymaps.ready(() => {
+            initMap();
+        });
     }
-
-    // 6. Загружаем парковки (ещё раз – но loadAllParkings уже вызывается в initMap, оставляем для надёжности)
-    loadAllParkings().catch(err => console.warn('Ошибка загрузки парковок:', err));
-
+    // 6. Загружаем парковки
+    loadAllParkings();
     // 7. Pull-to-refresh
     initPullToRefresh();
-
     // 8. Если пользователь уже залогинен, показываем домашнюю панель
     if (currentUser) {
         showPanel('home');
@@ -5044,31 +4976,26 @@ function onTelegramAuth(user) {
             });
         }
     })();
-    console.log('✅ ParkNear загружен.');
+    console.log('✅ ParkNear загружен. Код исправлен.');
 
-// ===== ЗАПУСК ПРИЛОЖЕНИЯ ПОСЛЕ ЗАГРУЗКИ ЯНДЕКС.КАРТ =====
-if (typeof ymaps !== 'undefined') {
-    ymaps.ready(function() {
-        console.log('✅ Яндекс.Карты готовы, запускаем приложение');
-        initApp();
-    });
-} else {
-    console.error('❌ Яндекс.Карты не загружены. Проверьте API-ключ.');
-    const mapContainer = document.getElementById('map');
-    if (mapContainer) {
-        mapContainer.innerHTML = 
-            '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
-    }
-}
-
-// ===== ЗАЩИТА: ЕСЛИ ЧЕРЕЗ 5 СЕКУНД КАРТЫ НЕТ – ПОКАЗЫВАЕМ ОШИБКУ =====
-setTimeout(function() {
-    if (!map) {
-        console.warn('⚠️ Карта не создана через 5 секунд после загрузки');
-        const mapContainer = document.getElementById('map');
-        if (mapContainer && !mapContainer.innerHTML) {
-            mapContainer.innerHTML = 
-                '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте интернет и API-ключ.</div>';
+    // Принудительное скрытие splash через 5 секунд (на случай, если карта не загрузилась)
+    setTimeout(function() {
+        var splash = document.getElementById('splashScreen');
+        if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(function() { splash.remove(); }, 300);
         }
+    }, 5000);
+    // Диагностика загрузки карты
+(function checkMapLoading() {
+    console.log('🔍 Проверка загрузки Яндекс.Карт...');
+    if (typeof ymaps === 'undefined') {
+        console.error('❌ ymaps не определён. Скрипт Яндекс.Карт не загрузился.');
+        document.getElementById('map').innerHTML = '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
+        return;
     }
-}, 5000);
+    ymaps.ready(function() {
+        console.log('✅ ymaps.ready сработал');
+        initApp(); // <- вызываем именно initApp, а не initMap
+    });
+})();
