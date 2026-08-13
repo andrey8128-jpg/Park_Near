@@ -1446,16 +1446,10 @@ body.dark-theme .theme-slider:before {
             }
         }
         @keyframes logoPulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-            100% {
-                transform: scale(1);
-            }
-        }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
         .occupancy-dot {
             width: 12px;
             height: 12px;
