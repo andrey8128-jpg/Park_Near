@@ -2363,10 +2363,6 @@ function loadHistoryPreview(parkingId) {
 
             map.geoObjects.add(currentRoute);
 
-            // Показываем плашку маршрута, если она есть в DOM
-            const routePanel = document.getElementById('routePanel');
-            if (routePanel) routePanel.classList.add('active');
-
         } catch (e) {
             console.error('Ошибка при вызове MultiRoute:', e);
             alert('Не удалось построить маршрут');
@@ -4258,15 +4254,13 @@ function showPanel(type, keepFilter = false) {
             highlightSelector: '#addBtn', requiredAction: true },
         { icon: '📍', title: 'Шаг 2: Ваше местоположение', text: 'Нажмите на кнопку с эмодзи 📍, чтобы карта переместилась к вам. Это поможет искать парковки рядом.',
             highlightSelector: '#geoBtn', requiredAction: true },
-        { icon: '🔄', title: 'Шаг 3: Обновление данных', text: 'Кнопка с круглой стрелкой 🔄 загружает свежие данные о парковках. Используйте, если сомневаетесь в актуальности.',
-            highlightSelector: '#refreshBtn', requiredAction: true },
-        { icon: '🗺️', title: 'Шаг 4: Слои карты', text: 'Нажмите на иконку 🗺️ в правом верхнем углу, чтобы переключать вид: схема, спутник или гибрид.',
+        { icon: '🗺️', title: 'Шаг 3: Слои карты', text: 'Нажмите на иконку 🗺️ в правом верхнем углу, чтобы переключать вид: схема, спутник или гибрид.',
             highlightSelector: '.layer-switcher', requiredAction: true },
-        { icon: '🔍', title: 'Шаг 5: Поиск парковок', text: 'Нажмите на вкладку «Поиск» внизу. Здесь можно искать по адресу, фильтровать по расстоянию и видеть только свободные места.',
+        { icon: '🔍', title: 'Шаг 4: Поиск парковок', text: 'Нажмите на вкладку «Поиск» внизу. Здесь можно искать по адресу, фильтровать по расстоянию и видеть только свободные места.',
             highlightSelector: '.tab:nth-child(2)', requiredAction: true },
-        { icon: '⭐', title: 'Шаг 6: Избранное и адреса', text: 'Вкладка «Избранное» хранит ваши любимые парковки и домашние адреса. Свайпом влево можно удалить.',
+        { icon: '⭐', title: 'Шаг 5: Избранное и адреса', text: 'Вкладка «Избранное» хранит ваши любимые парковки и домашние адреса. Свайпом влево можно удалить.',
             highlightSelector: '.tab:nth-child(3)', requiredAction: true },
-        { icon: '⚙️', title: 'Шаг 7: Настройки профиля', text: 'В профиле (вкладка «Профиль») можно задать город, добавить автомобиль и включить тёмную тему. Нажмите на вкладку, чтобы заглянуть.',
+        { icon: '⚙️', title: 'Шаг 6: Настройки профиля', text: 'В профиле (вкладка «Профиль») можно задать город, добавить автомобиль и включить тёмную тему. Нажмите на вкладку, чтобы заглянуть.',
             highlightSelector: '.tab:nth-child(4)', requiredAction: true },
         { icon: '🎉', title: 'Вы готовы!', text: 'Теперь вы знаете все основные фишки. Начните с поиска парковки или добавьте свою — удачи на дорогах!',
             highlightSelector: null, requiredAction: false }
