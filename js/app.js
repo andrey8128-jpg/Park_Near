@@ -3285,10 +3285,9 @@ function focusMap(lat, lng, parkingId) {
                 // ---- Секции (аккордеон) ----
                 html += `
                     <div class="profile-section" id="profileSectionCar">
-                        <div class="profile-section-header" onclick="toggleProfileSection('car')">
-                            <span>Мой автомобиль</span>
-                            <span>${car.brand ? '✅' : '➕'}</span>
-                        </div>
+                       <div class="profile-section-header" onclick="toggleProfileSection('car')">
+                          <span>🚗 Мой автомобиль</span>
+                             </div>
                         <div class="profile-section-content" id="profileSectionCarContent">
                             ${car.brand ? `
                                 <div style="padding: 4px 0;">
