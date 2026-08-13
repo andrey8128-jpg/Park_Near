@@ -907,7 +907,7 @@ function tryYandexGeolocation(resolve, reject) {
 
     // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
     function initMap() {
-        console.log('Инициализация карты...');
+    console.log('▶️ initMap вызвана');
         map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'],
             type: 'yandex#map' });
         console.log('Карта инициализирована');
