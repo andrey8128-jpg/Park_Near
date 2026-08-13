@@ -671,20 +671,36 @@
             if (!currentUser || currentUser.id !== user.id) {
                 currentUser = user;
                 window.currentUser = user;
+                // Если фото нет в сохранённых данных – пробуем загрузить из Firebase
+                if (!user.photoUrl) {
+                    database.ref(`users/${user.id}/photoUrl`).once('value').then(snap => {
+                        if (snap.exists()) {
+                            user.photoUrl = snap.val();
+                            localStorage.setItem('tgUser', JSON.stringify(user));
+                            // Если профиль открыт – обновляем его
+                            const panel = document.getElementById('panel');
+                            if (panel && panel.classList.contains('active')) {
+                                const title = document.getElementById('panelTitle');
+                                if (title && title.textContent === 'Профиль') {
+                                    const content = document.getElementById('panelContent');
+                                    renderProfile(content);
+                                }
+                            }
+                        }
+                    }).catch(() => {});
+                }
                 hideAuthScreen();
-                // Если панель не активна, открываем главную
                 const panel = document.getElementById('panel');
                 if (!panel.classList.contains('active')) {
                     showPanel('home');
                 }
                 console.log('✅ Пользователь восстановлен в initAuth()');
             }
-            return; // если пользователь уже есть, ничего не делаем
+            return;
         } catch (e) {
             localStorage.removeItem('tgUser');
         }
     }
-    // Если пользователь не найден – показываем экран входа
     showAuthScreen();
 }
 // Немедленное восстановление сессии (выполняется до загрузки карт)
@@ -3251,8 +3267,14 @@ function renderProfile(content) {
                 let html = `
                     <div style="display: flex; align-items: center; padding: 20px 0 16px; gap: 16px;">
                         <div style="font-size: 64px; flex-shrink: 0;">
-                            ${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">` : '👤'}
-                        </div>
+    ${currentUser.photoUrl ? `
+        <img src="${currentUser.photoUrl}" 
+             style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--bg-primary);"
+             onerror="this.style.display='none'; this.parentElement.innerHTML='👤';"
+             crossorigin="anonymous"
+        >
+    ` : '👤'}
+</div>
                         <div style="flex: 1;">
                             <div style="font-size: 20px; font-weight: 700;">${currentUser.firstName}</div>
                             <div style="font-size: 15px; color: var(--text-secondary);">@${currentUser.nickname || currentUser.username}</div>
@@ -4718,14 +4740,15 @@ function checkTelegramAuthFromUrl() {
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 function onTelegramAuth(user) {
-    try {
-        currentUser = {
-            id: 'tg_' + user.id,
-            username: user.username || 'tg_user',
-            firstName: user.first_name || 'Пользователь',
-            photoUrl: user.photo_url || '',
-            isGuest: false
-        };
+    // Принудительно запрашиваем photo_url из объекта user
+    const photoUrl = user.photo_url || '';
+    currentUser = {
+        id: 'tg_' + user.id,
+        username: user.username || 'tg_user',
+        firstName: user.first_name || 'Пользователь',
+        photoUrl: photoUrl,
+        isGuest: false
+    };
         // Сохраняем в localStorage
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
