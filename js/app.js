@@ -2252,7 +2252,7 @@ function loadHistoryPreview(parkingId) {
             return;
         }
 
-        const mode = document.getElementById('routeModeSelect')?.value || 'auto';
+        const mode = document.getElementById('routeTypeSelect')?.value || 'auto';
 
         try {
             // Создаем маршрут Яндекс.Карт
@@ -3282,11 +3282,11 @@ function renderProfile(content) {
 
                 // ---- Секция "Мой автомобиль" (исправлена: убрано дублирование) ----
                 html += `
-                    <div class="profile-section" id="profileSectionCar">
-                        <div class="profile-section-header" onclick="toggleProfileSection('car')">
-                            <span>Мой автомобиль</span>
-                            <span style="font-size:12px; color:var(--text-secondary);">${car.brand ? '✅ Добавлен' : '➕ Не добавлен'}</span>
-                        </div>
+                    <div class="profile-section-header" onclick="toggleProfileSection('car')">
+                      <span>Мой автомобиль</span>
+                       <span style="font-size:12px; color:var(--text-secondary);">${car.brand ? '✅ Добавлен' : '➕ Не добавлен'}</span>
+                         <span class="arrow-span">▶</span>
+                            </div>
                         <div class="profile-section-content" id="profileSectionCarContent">
                             ${car.brand ? `
                                 <div style="padding: 4px 0;">
@@ -3365,10 +3365,10 @@ function toggleProfileSection(section) {
     // Обновляем стрелку
     const header = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}`);
     if (header) {
-        const arrow = header.querySelector('span:last-child');
-        if (arrow) {
-            arrow.textContent = isOpen ? '▶' : '▼';
-        }
+        const arrow = header.querySelector('.arrow-span');
+if (arrow) {
+    arrow.textContent = isOpen ? '▶' : '▼';
+}
     }
 
     // Загружаем данные, если секция открыта
