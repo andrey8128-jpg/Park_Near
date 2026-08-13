@@ -3182,7 +3182,7 @@ function focusMap(lat, lng, parkingId) {
     }
 
     // ===================== ПРОФИЛЬ =====================
- function renderProfile(content) {
+function renderProfile(content) {
     if (!currentUser) {
         content.innerHTML = `
             <div class="profile-header">
@@ -3256,7 +3256,6 @@ function focusMap(lat, lng, parkingId) {
                         <div style="flex: 1;">
                             <div style="font-size: 20px; font-weight: 700;">${currentUser.firstName}</div>
                             <div style="font-size: 15px; color: var(--text-secondary);">@${currentUser.nickname || currentUser.username}</div>
-                            <!-- Плашка с уровнем репутации -->
                             <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
                                 <span style="font-size: 14px; background: var(--accent); color: #E2E2E0; padding: 2px 12px; border-radius: 12px; font-weight: 600;">
                                     ${currentLevel.emoji} ${currentLevel.name}
@@ -3264,7 +3263,6 @@ function focusMap(lat, lng, parkingId) {
                                 ${isGuest ? '<span class="badge" style="font-size: 12px;">Гость</span>' : ''}
                             </div>
                         </div>
-                        <!-- Круговой индикатор XP -->
                         <div style="position: relative; width: 64px; height: 64px; flex-shrink: 0;">
                             <svg viewBox="0 0 100 100" style="transform: rotate(-90deg); width: 64px; height: 64px;">
                                 <circle cx="50" cy="50" r="45" fill="none" stroke="var(--bg-primary)" stroke-width="8"/>
@@ -3282,28 +3280,24 @@ function focusMap(lat, lng, parkingId) {
                     </div>
                 `;
 
-                // ---- Секции (аккордеон) ----
+                // ---- Секция "Мой автомобиль" (исправлена: убрано дублирование) ----
                 html += `
-                    <div class="profile-section-header" onclick="toggleProfileSection('car')">
-                      <span>Мой автомобиль</span>
-                         <span style="font-size:12px; color:var(--text-secondary);">${car.brand ? '✅ Добавлен' : '➕ Не добавлен'}</span>
-                           </div>
+                    <div class="profile-section" id="profileSectionCar">
+                        <div class="profile-section-header" onclick="toggleProfileSection('car')">
+                            <span>Мой автомобиль</span>
+                            <span style="font-size:12px; color:var(--text-secondary);">${car.brand ? '✅ Добавлен' : '➕ Не добавлен'}</span>
+                        </div>
                         <div class="profile-section-content" id="profileSectionCarContent">
-${car.brand ? `
-    <div style="padding: 4px 0;">
-        <div><strong>${car.brand} ${car.model || ''}</strong></div>
-        <div style="color: var(--text-secondary); font-size: 14px;">${car.plate || 'без номера'}</div>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button class="btn-secondary" style="flex:1;" onclick="editCarDataFromSettings()">Редактировать</button>
-            <button class="btn-danger" style="flex:1; padding:10px; margin:0;" onclick="removeCar()">🗑️ Удалить</button>
-        </div>
-    </div>
-` : `
-    <div style="padding: 4px 0; color: var(--text-secondary);">
-        Автомобиль не добавлен
-        <button class="btn-secondary" style="width:100%; margin-top:8px;" onclick="editCarDataFromSettings()">➕ Добавить</button>
-    </div>
-`}
+                            ${car.brand ? `
+                                <div style="padding: 4px 0;">
+                                    <div><strong>${car.brand} ${car.model || ''}</strong></div>
+                                    <div style="color: var(--text-secondary); font-size: 14px;">${car.plate || 'без номера'}</div>
+                                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                        <button class="btn-secondary" style="flex:1;" onclick="editCarDataFromSettings()">Редактировать</button>
+                                        <button class="btn-danger" style="flex:1; padding:10px; margin:0;" onclick="removeCar()">🗑️ Удалить</button>
+                                    </div>
+                                </div>
+                            ` : `
                                 <div style="padding: 4px 0; color: var(--text-secondary);">
                                     Автомобиль не добавлен
                                     <button class="btn-secondary" style="width:100%; margin-top:8px;" onclick="editCarDataFromSettings()">➕ Добавить</button>
@@ -3311,7 +3305,10 @@ ${car.brand ? `
                             `}
                         </div>
                     </div>
+                `;
 
+                // ---- Остальные секции ----
+                html += `
                     <div class="profile-section" id="profileSectionHistory">
                         <div class="profile-section-header" onclick="toggleProfileSection('history')">
                             <span>История парковок</span>
