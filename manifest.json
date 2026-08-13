@@ -1,7 +1,7 @@
 {
   "name": "ParkNear",
   "short_name": "ParkNear",
-  "start_url": "."
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#2B7574",
   "theme_color": "#2B7574",
