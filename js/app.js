@@ -1,83 +1,81 @@
   // ===================== FIREBASE =====================
-    const firebaseConfig = {
-        apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
-        authDomain: "parknear-bef41.firebaseapp.com",
-        databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "parknear-bef41",
-        storageBucket: "parknear-bef41.firebasestorage.app",
-        messagingSenderId: "1066552333578",
-        appId: "1:1066552333578:web:e60e333cf877852eba16f3"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
-    (function restoreTheme() {
-        const darkTheme = localStorage.getItem('darkTheme');
-        const isDark = (darkTheme === '1');
-        if (isDark) {
-            document.body.classList.add('dark-theme');
-            
-            // Накладываем фильтр только на тайлы карты, чтобы не инвертировать цвета маркеров
-            const mapStyle = document.createElement('style');
-            mapStyle.id = 'dark-map-style';
-            mapStyle.innerHTML = `
-                .dark-theme #map .ymaps-2-1-game-layer,
-                .dark-theme #map [class*="ymaps-2-1-17-events-pane"] {
-                    filter: invert(0.9) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.8) !important;
-                }
-            `;
-            document.head.appendChild(mapStyle);
+const firebaseConfig = {
+    apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
+    authDomain: "parknear-bef41.firebaseapp.com",
+    databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "parknear-bef41",
+    storageBucket: "parknear-bef41.firebasestorage.app",
+    messagingSenderId: "1066552333578",
+    appId: "1:1066552333578:web:e60e333cf877852eba16f3"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
-            if (window.Telegram && window.Telegram.WebApp) {
-                try {
-                    window.Telegram.WebApp.setHeaderColor('#1C1C1E');
-                    window.Telegram.WebApp.setBackgroundColor('#000000');
-                } catch(e) {}
+// ===== Восстановление темы =====
+(function restoreTheme() {
+    const darkTheme = localStorage.getItem('darkTheme');
+    const isDark = (darkTheme === '1');
+    if (isDark) {
+        document.body.classList.add('dark-theme');
+        const mapStyle = document.createElement('style');
+        mapStyle.id = 'dark-map-style';
+        mapStyle.innerHTML = `
+            .dark-theme #map .ymaps-2-1-game-layer,
+            .dark-theme #map [class*="ymaps-2-1-17-events-pane"] {
+                filter: invert(0.9) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.8) !important;
             }
+        `;
+        document.head.appendChild(mapStyle);
+        if (window.Telegram && window.Telegram.WebApp) {
+            try {
+                window.Telegram.WebApp.setHeaderColor('#1C1C1E');
+                window.Telegram.WebApp.setBackgroundColor('#000000');
+            } catch(e) {}
         }
-        var toggle1 = document.getElementById('settingsThemeToggle');
-        var toggle2 = document.getElementById('settingsThemeToggleInline');
-        if (toggle1) toggle1.checked = isDark;
-        if (toggle2) toggle2.checked = isDark;
-    })();
-    // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
-    let map = null;
-    let currentUser = null;
-    let lastKnownLocation = null;
-    let mapMarkers = {};
-    let myLocationPlacemark = null;
-    let addressPreviewMarker = null;
-    let drawingPolygon = null;
-    let isDrawingMode = false;
-    let currentParkingId = null;
-    let currentParkingData = null;
-    let originalPolyCoords = null;
-    let editingParkingId = null;
-    let editingPolygon = null;
-    let mapCity = null;
-    let parkingDataCache = {};
-    let highlightedParkings = {};
-    let lastClickTime = 0;
-    let lastDataRefresh = 0;
-    const REFRESH_INTERVAL_MS = 60000;
-    let lastClickParkingId = null;
-    let clickTimeout = null;
-    const MAX_ZONE_WIDTH = 100;
-    const MAX_ZONE_LENGTH = 100;
-    let addressPickerMap = null;
-    let addressPickerPlacemark = null;
-    let addressPickerCoords = null;
-    let isAddressPickerOpen = false;
-    let currentRoute = null;
-    let routeStartCoords = null;
-    let routeEndCoords = null;
-    let routeParkingData = null;
-    let userCityPrefs = { region: '', city: '' };
-    let nearbySearchFilter = null;
-    let userLocationForSearch = null;
-    let pendingAddressData = null;
-    let newParkingCoords = null;
+    }
+    var toggle1 = document.getElementById('settingsThemeToggle');
+    var toggle2 = document.getElementById('settingsThemeToggleInline');
+    if (toggle1) toggle1.checked = isDark;
+    if (toggle2) toggle2.checked = isDark;
+})();
 
+// ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
+let map = null;
+let currentUser = null;
+let lastKnownLocation = null;
+let mapMarkers = {};
+let myLocationPlacemark = null;
+let addressPreviewMarker = null;
+let drawingPolygon = null;
+let isDrawingMode = false;
+let currentParkingId = null;
+let currentParkingData = null;
+let originalPolyCoords = null;
+let editingParkingId = null;
+let editingPolygon = null;
+let mapCity = null;
+let parkingDataCache = {};
+let highlightedParkings = {};
+let lastClickTime = 0;
+let lastDataRefresh = 0;
+const REFRESH_INTERVAL_MS = 60000;
+let lastClickParkingId = null;
+let clickTimeout = null;
+const MAX_ZONE_WIDTH = 100;
+const MAX_ZONE_LENGTH = 100;
+let addressPickerMap = null;
+let addressPickerPlacemark = null;
+let addressPickerCoords = null;
+let isAddressPickerOpen = false;
+let currentRoute = null;
+let routeStartCoords = null;
+let routeEndCoords = null;
+let routeParkingData = null;
+let userCityPrefs = { region: '', city: '' };
+let nearbySearchFilter = null;
+let userLocationForSearch = null;
+let pendingAddressData = null;
+let newParkingCoords = null;
     // ===================== КОНСТАНТЫ =====================
     const carBrands = {
         'Lada': ['Vesta', 'Vesta Cross', 'Vesta SW', 'Vesta SW Cross', 'Granta', 'Granta Cross', 'Niva Legend',
@@ -905,8 +903,8 @@ function tryYandexGeolocation(resolve, reject) {
     mapMarkers[id] = placemark;
 }
 
-    // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
-    function initMap() {
+   // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ (ИСПРАВЛЕНА) =====================
+function initMap() {
     console.log('▶️ initMap вызвана');
     const mapContainer = document.getElementById('map');
     if (!mapContainer) {
@@ -915,7 +913,7 @@ function tryYandexGeolocation(resolve, reject) {
     }
 
     try {
-        // Создаём карту
+        // ⚠️ ВАЖНО: замените API-ключ в index.html на свой рабочий!
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
             zoom: 14,
@@ -924,32 +922,22 @@ function tryYandexGeolocation(resolve, reject) {
         });
         console.log('✅ Карта инициализирована');
 
-        // ===== Обработчик кнопки «+» (добавление парковки) =====
+        // --- Обработчики кнопок (как были) ---
         document.getElementById('addBtn').onclick = () => {
-            if (!currentUser) {
-                showPanel('home');
-            } else if (isDrawingMode) {
-                cancelDrawing();
-            } else {
-                startDrawingMode();
-            }
+            if (!currentUser) showPanel('home');
+            else if (isDrawingMode) cancelDrawing();
+            else startDrawingMode();
         };
 
-        // ===== Обработчик кнопки слоёв (долгое нажатие / короткое нажатие) =====
+        // --- Слои (долгое нажатие) ---
         const layerBtn = document.getElementById('layerSwitcher');
         let pressTimer = null;
-
         function showLayerMenu() {
             document.getElementById('layerMenu').classList.add('active');
         }
-
         layerBtn.addEventListener('mousedown', function(e) {
-            pressTimer = setTimeout(() => {
-                showLayerMenu();
-                pressTimer = null;
-            }, 500);
+            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
         });
-
         layerBtn.addEventListener('mouseup', function(e) {
             if (pressTimer) {
                 clearTimeout(pressTimer);
@@ -965,14 +953,9 @@ function tryYandexGeolocation(resolve, reject) {
                 updateMapTheme();
             }
         });
-
         layerBtn.addEventListener('touchstart', function(e) {
-            pressTimer = setTimeout(() => {
-                showLayerMenu();
-                pressTimer = null;
-            }, 500);
+            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
         });
-
         layerBtn.addEventListener('touchend', function(e) {
             if (pressTimer) {
                 clearTimeout(pressTimer);
@@ -989,7 +972,7 @@ function tryYandexGeolocation(resolve, reject) {
             }
         });
 
-        // ===== Обработчик кнопки геолокации =====
+        // --- Геолокация ---
         document.getElementById('geoBtn').onclick = () => {
             if (!map) return;
             const btn = document.getElementById('geoBtn');
@@ -1025,12 +1008,12 @@ function tryYandexGeolocation(resolve, reject) {
                 });
         };
 
-        // ===== Загрузка парковок с обработкой ошибок =====
+        // --- Загрузка парковок ---
         loadAllParkings().catch(err => {
             console.warn('Не удалось загрузить парковки:', err);
         });
 
-        // ===== Автоматическое определение местоположения через 1 секунду =====
+        // --- Автогеолокация ---
         setTimeout(() => {
             getUserLocation()
                 .then(coords => {
@@ -1047,7 +1030,7 @@ function tryYandexGeolocation(resolve, reject) {
                 .catch(() => console.log('Автогеолокация не удалась'));
         }, 1000);
 
-        // ===== Скрываем splash-экран через 5 секунд =====
+        // --- Скрыть splash ---
         setTimeout(() => {
             const splash = document.getElementById('splashScreen');
             if (splash) {
@@ -1060,8 +1043,30 @@ function tryYandexGeolocation(resolve, reject) {
         console.error('❌ Ошибка инициализации карты:', e);
         const container = document.getElementById('map');
         if (container) {
-            container.innerHTML = '<div style="color:var(--red); text-align:center; padding:20px;">⚠️ Не удалось загрузить карту. Проверьте подключение к интернету и API-ключ Яндекс.Карт.</div>';
+            container.innerHTML = `
+                <div style="color:var(--red); text-align:center; padding:20px;">
+                    ⚠️ Не удалось загрузить карту.<br>
+                    Проверьте API-ключ Яндекс.Карт в index.html.<br>
+                    <small>Ошибка: ${e.message}</small>
+                </div>
+            `;
         }
+        // Повторная попытка через 2 секунды (на случай, если ключ поменяют)
+        setTimeout(() => {
+            if (!map) {
+                try {
+                    map = new ymaps.Map("map", {
+                        center: [55.7558, 37.6173],
+                        zoom: 14,
+                        controls: ['zoomControl'],
+                        type: 'yandex#map'
+                    });
+                    console.log('✅ Карта создана повторно (возможно, ключ обновился)');
+                } catch (e2) {
+                    console.error('Повторная попытка не удалась:', e2);
+                }
+            }
+        }, 3000);
     }
 }
     // ===================== СЛОИ КАРТЫ =====================
@@ -2309,103 +2314,94 @@ function loadHistoryPreview(parkingId) {
             });
     }
 
-    function buildAndShowRoute() {
-        if (currentRoute) {
-            map.geoObjects.remove(currentRoute);
-            currentRoute = null;
-        }
-        if (!routeStartCoords || !routeEndCoords) {
-            alert('Не удалось определить точки маршрута');
-            return;
-        }
+   function buildAndShowRoute() {
+    if (currentRoute) {
+        map.geoObjects.remove(currentRoute);
+        currentRoute = null;
+    }
+    if (!routeStartCoords || !routeEndCoords) {
+        alert('Не удалось определить точки маршрута');
+        return;
+    }
 
-        const mode = document.getElementById('routeTypeSelect')?.value || 'auto';
+    const mode = document.getElementById('routeTypeSelect')?.value || 'auto';
 
-        try {
-            // Создаем маршрут Яндекс.Карт
-            currentRoute = new ymaps.multiRouter.MultiRoute({
-                referencePoints: [routeStartCoords, routeEndCoords],
-                params: {
-                    routingMode: mode === 'walking' ? 'pedestrian' : 'auto',
-                    avoidTrafficJams: true
-                }
-            }, {
-                boundsAutoApply: true,
-                wayPointVisible: true
-            });
+    try {
+        currentRoute = new ymaps.multiRouter.MultiRoute({
+            referencePoints: [routeStartCoords, routeEndCoords],
+            params: {
+                routingMode: mode === 'walking' ? 'pedestrian' : 'auto',
+                avoidTrafficJams: true
+            }
+        }, {
+            boundsAutoApply: true,
+            wayPointVisible: true
+        });
 
-            // Подписываемся на успешное построение маршрута
-            currentRoute.model.events.add('requestsuccess', function () {
-                const activeRoute = currentRoute.getActiveRoute();
-                if (activeRoute) {
-                    const distance = activeRoute.properties.get("distance").text;
-                    const duration = activeRoute.properties.get("duration").text;
-
-                    const infoEl = document.getElementById('routeInfo');
-                    if (infoEl) {
-                        infoEl.innerHTML = `
-                            <div class="route-summary">
-                                📍 До объекта: <strong>${distance}</strong> (${duration})
-                            </div>
-                        `;
-                    }
-                }
-            });
-
-            // Обработка ошибки построения
-            currentRoute.model.events.add('requestfail', function (event) {
-                console.error('Ошибка построения маршрута:', event.get('error'));
+        currentRoute.model.events.add('requestsuccess', function () {
+            const activeRoute = currentRoute.getActiveRoute();
+            if (activeRoute) {
+                const distance = activeRoute.properties.get("distance").text;
+                const duration = activeRoute.properties.get("duration").text;
                 const infoEl = document.getElementById('routeInfo');
                 if (infoEl) {
-                    infoEl.innerHTML = '<div class="route-error">Не удалось проложить маршрут.</div>';
+                    infoEl.innerHTML = `
+                        <div class="route-summary">
+                            📍 До объекта: <strong>${distance}</strong> (${duration})
+                        </div>
+                    `;
                 }
-            });
+            }
+        });
 
-            map.geoObjects.add(currentRoute);
+        currentRoute.model.events.add('requestfail', function (event) {
+            console.error('Ошибка построения маршрута:', event.get('error'));
+            const infoEl = document.getElementById('routeInfo');
+            if (infoEl) {
+                infoEl.innerHTML = '<div class="route-error">Не удалось проложить маршрут.</div>';
+            }
+        });
 
-        } catch (e) {
-            console.error('Ошибка при вызове MultiRoute:', e);
-            alert('Не удалось построить маршрут');
+        map.geoObjects.add(currentRoute);
+
+        // (удалён код с routePanel, так как элемента нет)
+        // Показываем карточку маршрута (она есть #routeCard)
+        document.getElementById('routeCard').classList.add('active');
+
+    } catch (e) {
+        console.error('Ошибка при вызове MultiRoute:', e);
+        alert('Не удалось построить маршрут');
+    }
+}
+
+// ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
+console.log('✅ ParkNear загружен.');
+
+if (typeof ymaps !== 'undefined') {
+    ymaps.ready(function() {
+        console.log('✅ Яндекс.Карты готовы, запускаем приложение');
+        initApp();
+    });
+} else {
+    console.error('❌ Яндекс.Карты не загружены. Проверьте API-ключ.');
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+        mapContainer.innerHTML = 
+            '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
+    }
+}
+
+// Защитный таймаут (увеличен до 8 секунд)
+setTimeout(function() {
+    if (!map) {
+        console.warn('⚠️ Карта не создана через 8 секунд после загрузки');
+        const mapContainer = document.getElementById('map');
+        if (mapContainer && !mapContainer.innerHTML) {
+            mapContainer.innerHTML = 
+                '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте интернет и API-ключ.</div>';
         }
     }
-    function updateRouteInfoFromMultiRoute(route) {
-        route.model.events.add('update', function() {
-            var activeRoute = route.getActiveRoute();
-            if (!activeRoute) return;
-
-            var distance = activeRoute.getLength();
-            var time = activeRoute.getTime();
-
-            var distKm = (distance / 1000).toFixed(1);
-            var timeMin = Math.round(time / 60);
-
-            var instructions = activeRoute.getWayPoints();
-            var stepsHtml = '';
-            instructions.forEach(function(item, index) {
-                if (index > 0 && index < 10) {
-                    stepsHtml +=
-                        `<div style="font-size:12px; color:var(--text-secondary);">${item.getName()}</div>`;
-                }
-            });
-
-            var free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-
-            document.getElementById('routeInfo').innerHTML = `
-            <div style="margin-bottom:8px;">
-                <div style="font-weight:600; font-size:18px;">🚗 До парковки</div>
-                <div>📏 Расстояние: <b>${distKm}</b> км</div>
-                <div>⏱ Время в пути: <b>${timeMin}</b> мин</div>
-                <div>🅿️ Свободных мест: <b>${free}</b> / ${routeParkingData.totalSpots}</div>
-                <div style="font-size:12px; color:var(--text-secondary);">Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
-            </div>
-            <div style="margin-top:8px; border-top:0.5px solid var(--border-color); padding-top:8px; max-height:120px; overflow-y:auto;">
-                <div style="font-size:13px; font-weight:500;">📋 Основные точки маршрута:</div>
-                ${stepsHtml || '<div style="font-size:12px; color:var(--text-secondary);">Инструкции не доступны</div>'}
-            </div>
-        `;
-        });
-    }
-
+}, 8000);
     function showDirectLine() {
         if (!routeStartCoords || !routeEndCoords) return;
         if (currentRoute) {
