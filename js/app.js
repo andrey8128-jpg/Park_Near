@@ -4740,19 +4740,17 @@ function checkTelegramAuthFromUrl() {
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 function onTelegramAuth(user) {
-    // Принудительно запрашиваем photo_url из объекта user
-    const photoUrl = user.photo_url || '';
-    currentUser = {
-        id: 'tg_' + user.id,
-        username: user.username || 'tg_user',
-        firstName: user.first_name || 'Пользователь',
-        photoUrl: photoUrl,
-        isGuest: false
-    };
-        // Сохраняем в localStorage
+    try {
+        const photoUrl = user.photo_url || '';
+        currentUser = {
+            id: 'tg_' + user.id,
+            username: user.username || 'tg_user',
+            firstName: user.first_name || 'Пользователь',
+            photoUrl: photoUrl,
+            isGuest: false
+        };
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
-        // Сохраняем в Firebase
         const userRef = database.ref('users/' + currentUser.id);
         userRef.update({
             username: currentUser.username,
@@ -4760,6 +4758,7 @@ function onTelegramAuth(user) {
             photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
+
         userRef.child('stats').set({
             registeredAt: Date.now(),
             lastActive: Date.now(),
@@ -4777,7 +4776,6 @@ function onTelegramAuth(user) {
         console.log('✅ Пользователь авторизован:', user.first_name);
     } catch (e) {
         console.error('❌ Ошибка в onTelegramAuth:', e);
-        // Запасной вариант – гость
         continueAsGuest();
     }
 }
