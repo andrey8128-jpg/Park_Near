@@ -55,6 +55,7 @@
     let editingParkingId = null;
     let editingPolygon = null;
     let mapCity = null;
+    let currentUserId = null;
     let parkingDataCache = {};
     let highlightedParkings = {};
     let lastClickTime = 0;
@@ -4126,6 +4127,14 @@ function showPanel(type, keepFilter = false) {
     }
 
     // ===================== АУТЕНТИФИКАЦИЯ =====================
+function getGuestId() {
+    let guestId = localStorage.getItem('parknear_guest_id');
+    if (!guestId) {
+        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('parknear_guest_id', guestId);
+    }
+    return guestId;
+}
     function continueAsGuest() {
         hideAuthScreen();
         currentUser = {
