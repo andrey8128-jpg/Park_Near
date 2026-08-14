@@ -1158,10 +1158,12 @@ function tryYandexGeolocation(resolve, reject) {
         </div>
 
         <div class="form-group">
-            <label>Количество парковочных мест *</label>
-            <input type="number" id="parkSpots" class="input-field" placeholder="${spotsPlaceholder}" min="1" max="500">
-            ${suggestedSpots > 0 ? `<small style="color:var(--text-secondary); font-size:12px; display:block; margin-top:4px;">Примерно ${suggestedSpots} мест по площади (можно изменить)</small>` : ''}
-        </div>
+    <label>Количество парковочных мест *</label>
+    <input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500">
+    <small style="color:var(--text-secondary); font-size:12px; display:block; margin-top:4px;">
+        Автоматически рассчитано по площади зоны (можно изменить)
+    </small>
+</div>
         <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
         <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
     `;
