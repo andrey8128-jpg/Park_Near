@@ -531,6 +531,36 @@
             error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` };
         return { valid: true, width: widthM, length: lengthM };
     }
+    // ===================== РАСЧЁТ ПЛОЩАДИ И МЕСТ =====================
+function calculateParkingSpots(coordinates) {
+    if (!coordinates || coordinates.length < 3) return 0;
+
+    // Переводим координаты в метры относительно первой точки
+    const firstLat = coordinates[0][0];
+    const firstLng = coordinates[0][1];
+    const pointsInMeters = coordinates.map(([lat, lng]) => {
+        // 1 градус широты ≈ 111320 м
+        const dy = (lat - firstLat) * 111320;
+        // 1 градус долготы зависит от широты: cos(lat) * 111320
+        const dx = (lng - firstLng) * 111320 * Math.cos(firstLat * Math.PI / 180);
+        return { x: dx, y: dy };
+    });
+
+    // Вычисляем площадь по формуле шнурка (Shoelace formula)
+    let area = 0;
+    const n = pointsInMeters.length;
+    for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n;
+        area += pointsInMeters[i].x * pointsInMeters[j].y;
+        area -= pointsInMeters[j].x * pointsInMeters[i].y;
+    }
+    area = Math.abs(area) / 2; // площадь в м²
+
+    // Средняя площадь одного машино-места с учётом проездов (≈15 м²)
+    const avgSpotArea = 15;
+    const spots = Math.floor(area / avgSpotArea);
+    return Math.max(0, spots);
+}
 
     function parseAddress(fullAddress) {
         if (!fullAddress) return { region: '', city: '', street: '', houseNumber: '' };
@@ -1089,10 +1119,14 @@ function tryYandexGeolocation(resolve, reject) {
     }
 
     function openAddPanelWithPolygon(coordinates, sizeCheck) {
-        document.getElementById('panel').classList.add('active');
-        document.getElementById('panelTitle').textContent = 'Новая парковка';
+    document.getElementById('panel').classList.add('active');
+    document.getElementById('panelTitle').textContent = 'Новая парковка';
 
-        document.getElementById('panelContent').innerHTML = `
+    // Вычисляем примерное количество мест до рендера HTML
+    const suggestedSpots = calculateParkingSpots(coordinates);
+    const spotsPlaceholder = suggestedSpots > 0 ? `Например: ${suggestedSpots}` : 'Например: 10';
+
+    document.getElementById('panelContent').innerHTML = `
         <div class="form-group">
             <label>Область парковки</label>
             <div id="miniMapContainer" style="width:100%; height:200px; border-radius:12px; overflow:hidden; margin-top:8px; box-shadow: var(--card-shadow);"></div>
@@ -1123,31 +1157,33 @@ function tryYandexGeolocation(resolve, reject) {
             <input type="text" id="parkHouseNumber" class="input-field" placeholder="15">
         </div>
 
-        <div class="form-group"><label>Количество парковочных мест *</label><input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500"></div>
+        <div class="form-group">
+            <label>Количество парковочных мест *</label>
+            <input type="number" id="parkSpots" class="input-field" placeholder="${spotsPlaceholder}" min="1" max="500">
+            ${suggestedSpots > 0 ? `<small style="color:var(--text-secondary); font-size:12px; display:block; margin-top:4px;">Примерно ${suggestedSpots} мест по площади (можно изменить)</small>` : ''}
+        </div>
         <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
         <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
     `;
-
-        setTimeout(() => {
-            initMiniMap(coordinates);
-            // Автозаполнение адреса по координатам
-if (coordinates && coordinates.length > 0) {
-    const center = coordinates[0]; // берём первую точку как центр
-    ymaps.geocode(center, { results: 1 }).then(res => {
-        const geo = res.geoObjects.get(0);
-        if (geo) {
-            const address = geo.getAddressLine();
-            const parsed = parseAddress(address);
-            // Заполняем поля, если они уже есть в DOM
-            const streetInput = document.getElementById('parkStreetName');
-            const houseInput = document.getElementById('parkHouseNumber');
-            if (streetInput) streetInput.value = parsed.street || '';
-            if (houseInput) houseInput.value = parsed.houseNumber || '';
+    setTimeout(() => {
+        initMiniMap(coordinates);
+        // Автозаполнение адреса по координатам
+        if (coordinates && coordinates.length > 0) {
+            const center = coordinates[0];
+            ymaps.geocode(center, { results: 1 }).then(res => {
+                const geo = res.geoObjects.get(0);
+                if (geo) {
+                    const address = geo.getAddressLine();
+                    const parsed = parseAddress(address);
+                    const streetInput = document.getElementById('parkStreetName');
+                    const houseInput = document.getElementById('parkHouseNumber');
+                    if (streetInput) streetInput.value = parsed.street || '';
+                    if (houseInput) houseInput.value = parsed.houseNumber || '';
+                }
+            }).catch(err => console.warn('Геокодирование не удалось:', err));
         }
-    }).catch(err => console.warn('Геокодирование не удалось:', err));
+    }, 50);
 }
-        }, 50);
-    }
 
     function initMiniMap(coords) {
         if (!coords || coords.length < 3) return;
