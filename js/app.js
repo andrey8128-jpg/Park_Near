@@ -1064,7 +1064,7 @@ function tryYandexGeolocation(resolve, reject) {
         if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
 
- function finishDrawing() {
+function finishDrawing() {
     if (!drawingPolygon) return;
     drawingPolygon.editor.stopDrawing();
     const coordinates = drawingPolygon.geometry.getCoordinates()[0];
@@ -1073,13 +1073,22 @@ function tryYandexGeolocation(resolve, reject) {
     const sizeCheck = checkPolygonSize(newParkingCoords);
     if (!sizeCheck.valid) { alert(sizeCheck.error); cancelDrawing(); return; }
 
-    // === НОВЫЙ КОД: расчёт и показ тоста ===
-    const spots = calculateParkingSpots(newParkingCoords);
-    if (spots > 0) {
-        showToast(`🚗 Примерно ${spots} машино-мест в этой зоне`, 4000);
-    } else {
-        showToast('⚠️ Зона слишком мала для парковки', 3000);
+    // === КНОПКИ НЕ УДАЛЯЕМ, А МЕНЯЕМ ИХ ФУНКЦИОНАЛ ===
+    const controls = document.getElementById('drawingControls');
+    if (controls) {
+        controls.innerHTML = `
+            <button class="btn-finish" onclick="submitParkingWithPolygon()">💾 Сохранить</button>
+            <button class="btn-cancel" onclick="cancelDrawing()">✕ Отменить</button>
+        `;
     }
+
+    document.getElementById('addBtn').classList.remove('drawing');
+    document.getElementById('addBtn').textContent = '✕'; // показывает, что режим рисования завершён
+    isDrawingMode = false;
+
+    // Открываем панель с формой
+    openAddPanelWithPolygon(newParkingCoords, sizeCheck);
+}
     // ========================================
 
     const controls = document.getElementById('drawingControls');
