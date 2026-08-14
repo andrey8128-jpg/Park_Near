@@ -1089,17 +1089,6 @@ function finishDrawing() {
     // Открываем панель с формой
     openAddPanelWithPolygon(newParkingCoords, sizeCheck);
 }
-    // ========================================
-
-    const controls = document.getElementById('drawingControls');
-    if (controls) controls.remove();
-    document.getElementById('addBtn').classList.remove('drawing');
-    document.getElementById('addBtn').textContent = '+';
-    isDrawingMode = false;
-
-    if (currentParkingId && editingPolygon) { saveEditedPolygon(newParkingCoords); return; }
-    openAddPanelWithPolygon(newParkingCoords, sizeCheck);
-}
 
     function cancelDrawing() {
         if (editingPolygon) {
