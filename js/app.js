@@ -1064,25 +1064,33 @@ function tryYandexGeolocation(resolve, reject) {
         if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
 
-    function finishDrawing() {
-        if (!drawingPolygon) return;
-        drawingPolygon.editor.stopDrawing();
-        const coordinates = drawingPolygon.geometry.getCoordinates()[0];
-        newParkingCoords = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+ function finishDrawing() {
+    if (!drawingPolygon) return;
+    drawingPolygon.editor.stopDrawing();
+    const coordinates = drawingPolygon.geometry.getCoordinates()[0];
+    newParkingCoords = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
 
-        const sizeCheck = checkPolygonSize(newParkingCoords);
-        if (!sizeCheck.valid) { alert(sizeCheck.error);
-            cancelDrawing(); return; }
+    const sizeCheck = checkPolygonSize(newParkingCoords);
+    if (!sizeCheck.valid) { alert(sizeCheck.error); cancelDrawing(); return; }
 
-        const controls = document.getElementById('drawingControls');
-        if (controls) controls.remove();
-        document.getElementById('addBtn').classList.remove('drawing');
-        document.getElementById('addBtn').textContent = '+';
-        isDrawingMode = false;
-
-        if (currentParkingId && editingPolygon) { saveEditedPolygon(newParkingCoords); return; }
-        openAddPanelWithPolygon(newParkingCoords, sizeCheck);
+    // === НОВЫЙ КОД: расчёт и показ тоста ===
+    const spots = calculateParkingSpots(newParkingCoords);
+    if (spots > 0) {
+        showToast(`🚗 Примерно ${spots} машино-мест в этой зоне`, 4000);
+    } else {
+        showToast('⚠️ Зона слишком мала для парковки', 3000);
     }
+    // ========================================
+
+    const controls = document.getElementById('drawingControls');
+    if (controls) controls.remove();
+    document.getElementById('addBtn').classList.remove('drawing');
+    document.getElementById('addBtn').textContent = '+';
+    isDrawingMode = false;
+
+    if (currentParkingId && editingPolygon) { saveEditedPolygon(newParkingCoords); return; }
+    openAddPanelWithPolygon(newParkingCoords, sizeCheck);
+}
 
     function cancelDrawing() {
         if (editingPolygon) {
