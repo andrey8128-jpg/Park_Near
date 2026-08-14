@@ -3565,6 +3565,26 @@ function renderSettingsInline() {
     `;
 
     if (!isGuest) {
+      // Добавьте в html настроек
+html += `
+  <div class="settings-row">
+    <span class="settings-label">🔔 Уведомления о парковках</span>
+    <label class="theme-switch" style="width: 51px; height: 31px;">
+      <input type="checkbox" id="pushToggle" ${Notification.permission === 'granted' ? 'checked' : ''} onchange="togglePushNotifications()">
+      <span class="theme-slider"></span>
+    </label>
+  </div>
+`;
+
+// Функция для переключения
+window.togglePushNotifications = async function() {
+  const isChecked = document.getElementById('pushToggle').checked;
+  if (isChecked) {
+    await initPushNotifications();
+  } else {
+    await unsubscribePush();
+  }
+};
         // Город
         html += `
             <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 6px;">
@@ -3593,6 +3613,7 @@ function renderSettingsInline() {
 
     container.innerHTML = html;
 }
+
 
 // ---- Вспомогательные функции для настроек инлайн ----
 function updateCitySelectInSettingsInline() {
