@@ -1150,15 +1150,8 @@ function openParkingForm() {
         showToast('Сначала нарисуйте зону парковки', 2000);
         return;
     }
-    const panel = document.getElementById('panel');
-    if (panel.classList.contains('active')) {
-        closePanel();
-        setTimeout(() => {
-            openAddPanelWithPolygon(_parkingFormCoords, _parkingFormSizeCheck);
-        }, 300);
-    } else {
-        openAddPanelWithPolygon(_parkingFormCoords, _parkingFormSizeCheck);
-    }
+    // Просто открываем панель с формой – без лишних задержек
+    openAddPanelWithPolygon(_parkingFormCoords, _parkingFormSizeCheck);
 }
     function cancelDrawing() {
     if (editingPolygon) {
@@ -1200,76 +1193,91 @@ function openParkingForm() {
         document.body.appendChild(hint);
         setTimeout(() => hint.remove(), 3000);
     }
-
-    function openAddPanelWithPolygon(coordinates, sizeCheck) {
-    document.getElementById('panel').classList.add('active');
-    document.getElementById('panelTitle').textContent = 'Новая парковка';
-
-    // Вычисляем примерное количество мест до рендера HTML
-    const suggestedSpots = calculateParkingSpots(coordinates);
-    const spotsPlaceholder = suggestedSpots > 0 ? `Например: ${suggestedSpots}` : 'Например: 10';
-
-    document.getElementById('panelContent').innerHTML = `
-        <div class="form-group">
-            <label>Область парковки</label>
-            <div id="miniMapContainer" style="width:100%; height:200px; border-radius:12px; overflow:hidden; margin-top:8px; box-shadow: var(--card-shadow);"></div>
-            <p style="font-size:12px; color:var(--text-secondary); margin-top:6px;">Выделенная зона отображается на карте</p>
-        </div>
-
-        <div class="form-group">
-            <label>Тип улицы</label>
-            <select id="parkStreetType" class="input-field">
-                <option value="">-- выберите --</option>
-                <option value="ул.">улица</option>
-                <option value="пер.">переулок</option>
-                <option value="бульв.">бульвар</option>
-                <option value="просп.">проспект</option>
-                <option value="пр-д">проезд</option>
-                <option value="ш.">шоссе</option>
-                <option value="наб.">набережная</option>
-                <option value="алл.">аллея</option>
-                <option value="тракт">тракт</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Название улицы</label>
-            <input type="text" id="parkStreetName" class="input-field" placeholder="Ленина">
-        </div>
-        <div class="form-group">
-            <label>Номер дома</label>
-            <input type="text" id="parkHouseNumber" class="input-field" placeholder="15">
-        </div>
-
-        <div class="form-group">
-    <label>Количество парковочных мест *</label>
-    <input type="number" id="parkSpots" class="input-field" placeholder="Например: 10" min="1" max="500">
-    <small style="color:var(--text-secondary); font-size:12px; display:block; margin-top:4px;">
-        Автоматически рассчитано по площади зоны (можно изменить)
-    </small>
-</div>
-        <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
-        <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
-    `;
-    setTimeout(() => {
-        initMiniMap(coordinates);
-        // Автозаполнение адреса по координатам
-        if (coordinates && coordinates.length > 0) {
-            const center = coordinates[0];
-            ymaps.geocode(center, { results: 1 }).then(res => {
-                const geo = res.geoObjects.get(0);
-                if (geo) {
-                    const address = geo.getAddressLine();
-                    const parsed = parseAddress(address);
-                    const streetInput = document.getElementById('parkStreetName');
-                    const houseInput = document.getElementById('parkHouseNumber');
-                    if (streetInput) streetInput.value = parsed.street || '';
-                    if (houseInput) houseInput.value = parsed.houseNumber || '';
-                }
-            }).catch(err => console.warn('Геокодирование не удалось:', err));
+function openAddPanelWithPolygon(coordinates, sizeCheck) {
+    try {
+        console.log('openAddPanelWithPolygon вызвана');
+        const panel = document.getElementById('panel');
+        const panelContent = document.getElementById('panelContent');
+        if (!panel || !panelContent) {
+            console.error('Элементы панели не найдены');
+            return;
         }
-    }, 50);
-}
 
+        panel.classList.add('active');
+        document.getElementById('panelTitle').textContent = 'Новая парковка';
+
+        // Вычисляем примерное количество мест
+        const suggestedSpots = calculateParkingSpots(coordinates);
+        const spotsPlaceholder = suggestedSpots > 0 ? `Например: ${suggestedSpots}` : 'Например: 10';
+
+        panelContent.innerHTML = `
+            <div class="form-group">
+                <label>Область парковки</label>
+                <div id="miniMapContainer" style="width:100%; height:200px; border-radius:12px; overflow:hidden; margin-top:8px; box-shadow: var(--card-shadow);"></div>
+                <p style="font-size:12px; color:var(--text-secondary); margin-top:6px;">Выделенная зона отображается на карте</p>
+            </div>
+
+            <div class="form-group">
+                <label>Тип улицы</label>
+                <select id="parkStreetType" class="input-field">
+                    <option value="">-- выберите --</option>
+                    <option value="ул.">улица</option>
+                    <option value="пер.">переулок</option>
+                    <option value="бульв.">бульвар</option>
+                    <option value="просп.">проспект</option>
+                    <option value="пр-д">проезд</option>
+                    <option value="ш.">шоссе</option>
+                    <option value="наб.">набережная</option>
+                    <option value="алл.">аллея</option>
+                    <option value="тракт">тракт</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Название улицы</label>
+                <input type="text" id="parkStreetName" class="input-field" placeholder="Ленина">
+            </div>
+            <div class="form-group">
+                <label>Номер дома</label>
+                <input type="text" id="parkHouseNumber" class="input-field" placeholder="15">
+            </div>
+
+            <div class="form-group">
+                <label>Количество парковочных мест *</label>
+                <input type="number" id="parkSpots" class="input-field" placeholder="${spotsPlaceholder}" min="1" max="500">
+                <small style="color:var(--text-secondary); font-size:12px; display:block; margin-top:4px;">
+                    Автоматически рассчитано по площади зоны (можно изменить)
+                </small>
+            </div>
+            <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
+            <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
+        `;
+
+        // Инициализация мини-карты
+        setTimeout(() => {
+            initMiniMap(coordinates);
+            // Автозаполнение адреса
+            if (coordinates && coordinates.length > 0) {
+                const center = coordinates[0];
+                ymaps.geocode(center, { results: 1 })
+                    .then(res => {
+                        const geo = res.geoObjects.get(0);
+                        if (geo) {
+                            const address = geo.getAddressLine();
+                            const parsed = parseAddress(address);
+                            const streetInput = document.getElementById('parkStreetName');
+                            const houseInput = document.getElementById('parkHouseNumber');
+                            if (streetInput) streetInput.value = parsed.street || '';
+                            if (houseInput) houseInput.value = parsed.houseNumber || '';
+                        }
+                    })
+                    .catch(err => console.warn('Геокодирование не удалось:', err));
+            }
+        }, 100);
+    } catch (e) {
+        console.error('Ошибка в openAddPanelWithPolygon:', e);
+        showToast('Ошибка при открытии формы', 2000);
+    }
+}
     function initMiniMap(coords) {
         if (!coords || coords.length < 3) return;
 
