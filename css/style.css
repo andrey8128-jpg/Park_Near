@@ -296,7 +296,7 @@ html, body {
         }
         .tabBar {
     position: fixed;
-    bottom: 0;
+    bottom: calc(var(--tab-bar-bottom) + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
