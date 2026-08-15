@@ -2421,37 +2421,4 @@ body.dark-theme .theme-slider:before {
         font-size: 14px;
     }
 }
-/* ===== УБИРАЕМ ЛЮБОЙ ФОН, КОТОРЫЙ МОЖЕТ ПРОСВЕЧИВАТЬ ПОД ТАББАРОМ ===== */
-html, body {
-    background: transparent !important;
-}
-#map {
-    background: #E5E5EA !important;
-    bottom: 0 !important;
-    height: 100% !important;
-    position: fixed !important;
-}
-.tabBar {
-    background: rgba(18, 70, 76, 0.55) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-}
-/* Если вдруг какой-то элемент всё ещё имеет зелёный фон – принудительно убираем */
-* {
-    background: transparent !important;
-}
-/* Но карте нужен фон для отображения тайлов, поэтому возвращаем для неё */
-#map {
-    background: #E5E5EA !important;
-}
-/* И таббар должен остаться полупрозрачным */
-.tabBar {
-    background: rgba(18, 70, 76, 0.55) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-}
-#splashScreen {
-    display: none !important;
-}
     </style>
