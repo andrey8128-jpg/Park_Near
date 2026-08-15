@@ -1106,6 +1106,7 @@ function startDrawingMode() {
     }
 }
 function finishDrawing() {
+    console.log('finishDrawing() вызвана');
     if (!drawingPolygon) return;
     drawingPolygon.editor.stopDrawing();
     const coordinates = drawingPolygon.geometry.getCoordinates()[0];
@@ -1118,24 +1119,23 @@ function finishDrawing() {
         return; 
     }
 
-    // Сохраняем черновик
     _parkingFormCoords = newParkingCoords;
     _parkingFormSizeCheck = sizeCheck;
+    console.log('Сохранены координаты:', _parkingFormCoords);
 
-    // Меняем кнопки: "Готова" (открывает форму) и "Отменить"
     const controls = document.getElementById('drawingControls');
     if (controls) {
         controls.innerHTML = `
             <button class="btn-finish" onclick="openParkingForm()">✅ Готова</button>
             <button class="btn-cancel" onclick="cancelDrawing()">✕ Отменить</button>
         `;
+        console.log('Кнопки заменены на "Готова" и "Отменить"');
     }
 
     document.getElementById('addBtn').classList.remove('drawing');
     document.getElementById('addBtn').textContent = '✕';
     isDrawingMode = false;
 
-    // Показываем тост с подсказкой о количестве мест
     const spots = calculateParkingSpots(newParkingCoords);
     if (spots > 0) {
         showToast(`🚗 Примерно ${spots} машино-мест в этой зоне`, 3000);
