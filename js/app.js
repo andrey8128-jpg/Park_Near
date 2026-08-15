@@ -1144,6 +1144,8 @@ function finishDrawing() {
     }
 }
 function openParkingForm() {
+    console.log('✅ openParkingForm вызвана');
+    console.log('Координаты:', _parkingFormCoords);
     if (!_parkingFormCoords) {
         showToast('Сначала нарисуйте зону парковки', 2000);
         return;
