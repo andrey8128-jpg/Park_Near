@@ -563,7 +563,7 @@ function calculateParkingSpots(coordinates) {
 }
 
 function getUserParkingSettings() {
-    const spotArea = 12.5; // вместо settings.spotArea || 13.5
+    const defaults = { spotArea: 12.5 }; // ← объявляем defaults
     if (currentUser && currentUser.parkingSettings) {
         const s = currentUser.parkingSettings;
         return { spotArea: s.spotArea || defaults.spotArea };
