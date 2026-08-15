@@ -533,35 +533,57 @@
             error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH}м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)}м` };
         return { valid: true, width: widthM, length: lengthM };
     }
-    // ===================== РАСЧЁТ ПЛОЩАДИ И МЕСТ =====================
-function calculateParkingSpots(coordinates) {
-    if (!coordinates || coordinates.length < 3) return 0;
-
-    // Переводим координаты в метры относительно первой точки
+   // ===================== ТОЧНЫЙ РАСЧЁТ ПАРКОВОЧНЫХ МЕСТ =====================
+function calculatePolygonArea(coordinates) {
     const firstLat = coordinates[0][0];
     const firstLng = coordinates[0][1];
-    const pointsInMeters = coordinates.map(([lat, lng]) => {
-        // 1 градус широты ≈ 111320 м
+    const points = coordinates.map(([lat, lng]) => {
         const dy = (lat - firstLat) * 111320;
-        // 1 градус долготы зависит от широты: cos(lat) * 111320
         const dx = (lng - firstLng) * 111320 * Math.cos(firstLat * Math.PI / 180);
         return { x: dx, y: dy };
     });
 
-    // Вычисляем площадь по формуле шнурка (Shoelace formula)
     let area = 0;
-    const n = pointsInMeters.length;
+    const n = points.length;
     for (let i = 0; i < n; i++) {
         const j = (i + 1) % n;
-        area += pointsInMeters[i].x * pointsInMeters[j].y;
-        area -= pointsInMeters[j].x * pointsInMeters[i].y;
+        area += points[i].x * points[j].y;
+        area -= points[j].x * points[i].y;
     }
-    area = Math.abs(area) / 2; // площадь в м²
+    return Math.abs(area) / 2;
+}
 
-    // Средняя площадь одного машино-места с учётом проездов (≈15 м²)
-    const avgSpotArea = 15;
-    const spots = Math.floor(area / avgSpotArea);
+function calculateParkingSpots(coordinates) {
+    if (!coordinates || coordinates.length < 3) return 0;
+    const settings = getUserParkingSettings();
+    const spotArea = settings.spotArea || 13.5;
+    const area = calculatePolygonArea(coordinates);
+    let spots = Math.floor(area / spotArea);
     return Math.max(0, spots);
+}
+
+function getUserParkingSettings() {
+    const defaults = { spotArea: 13.5 };
+    if (currentUser && currentUser.parkingSettings) {
+        const s = currentUser.parkingSettings;
+        return { spotArea: s.spotArea || defaults.spotArea };
+    }
+    const saved = localStorage.getItem('parkingSettings');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            return { spotArea: parsed.spotArea || defaults.spotArea };
+        } catch (e) {}
+    }
+    return defaults;
+}
+
+function saveParkingSettings(settings) {
+    if (currentUser) {
+        database.ref(`users/${currentUser.id}/parkingSettings`).set(settings);
+        currentUser.parkingSettings = settings;
+    }
+    localStorage.setItem('parkingSettings', JSON.stringify(settings));
 }
 
     function parseAddress(fullAddress) {
