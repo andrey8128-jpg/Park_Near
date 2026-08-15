@@ -95,7 +95,7 @@
     right: 0;
     bottom: 0;
     background: #0E2931;
-    display: flex;
+    display: none !important;
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -296,7 +296,7 @@ html, body {
         }
         .tabBar {
     position: fixed;
-    bottom: calc(var(--tab-bar-bottom) + env(safe-area-inset-bottom, 0px));
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
