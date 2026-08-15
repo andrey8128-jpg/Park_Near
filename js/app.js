@@ -47,6 +47,8 @@
     let mapMarkers = {};
     let myLocationPlacemark = null;
     let addressPreviewMarker = null;
+    let _parkingFormCoords = null;
+    let _parkingFormSizeCheck = null;
     let drawingPolygon = null;
     let isDrawingMode = false;
     let currentParkingId = null;
@@ -1041,29 +1043,46 @@ function tryYandexGeolocation(resolve, reject) {
     }
 
     // ===================== РИСОВАНИЕ ЗОНЫ =====================
-    function startDrawingMode() {
-        if (!map || !currentUser) return;
-        if (drawingPolygon) { map.geoObjects.remove(drawingPolygon);
-            drawingPolygon = null; }
-        isDrawingMode = true;
-        document.getElementById('addBtn').classList.add('drawing');
-        document.getElementById('addBtn').textContent = '✕';
-        drawingPolygon = new ymaps.Polygon([
-            []
-        ], {}, { editorDrawingCursor: "crosshair", fillColor: '#2B757433', strokeColor: '#2B7574',
-            strokeWidth: 3, draggable: false });
-        map.geoObjects.add(drawingPolygon);
-        drawingPolygon.editor.startDrawing();
-        showMapHint('Нажимайте на карту для рисования зоны');
-        const controls = document.createElement('div');
-        controls.className = 'drawing-controls';
-        controls.id = 'drawingControls';
-        controls.innerHTML =
-            `<button class="btn-finish" onclick="finishDrawing()">✓ Готово</button><button class="btn-cancel" onclick="cancelDrawing()">✕ Отменить</button>`;
-        document.body.appendChild(controls);
-        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-    }
+function startDrawingMode() {
+    // Удаляем старые кнопки, если они есть
+    const oldControls = document.getElementById('drawingControls');
+    if (oldControls) oldControls.remove();
 
+    if (!map || !currentUser) return;
+    if (drawingPolygon) { 
+        map.geoObjects.remove(drawingPolygon);
+        drawingPolygon = null; 
+    }
+    isDrawingMode = true;
+    document.getElementById('addBtn').classList.add('drawing');
+    document.getElementById('addBtn').textContent = '✕';
+
+    drawingPolygon = new ymaps.Polygon([[]], {}, {
+        editorDrawingCursor: "crosshair",
+        fillColor: '#2B757433',
+        strokeColor: '#2B7574',
+        strokeWidth: 3,
+        draggable: false
+    });
+    map.geoObjects.add(drawingPolygon);
+    drawingPolygon.editor.startDrawing();
+
+    showMapHint('Нажимайте на карту для рисования зоны');
+
+    // Создаём кнопки управления над таббаром
+    const controls = document.createElement('div');
+    controls.className = 'drawing-controls';
+    controls.id = 'drawingControls';
+    controls.innerHTML = `
+        <button class="btn-finish" onclick="finishDrawing()">✅ Готово</button>
+        <button class="btn-cancel" onclick="cancelDrawing()">✕ Отменить</button>
+    `;
+    document.body.appendChild(controls);
+
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    }
+}
 function finishDrawing() {
     if (!drawingPolygon) return;
     drawingPolygon.editor.stopDrawing();
@@ -1071,50 +1090,84 @@ function finishDrawing() {
     newParkingCoords = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
 
     const sizeCheck = checkPolygonSize(newParkingCoords);
-    if (!sizeCheck.valid) { alert(sizeCheck.error); cancelDrawing(); return; }
+    if (!sizeCheck.valid) { 
+        alert(sizeCheck.error); 
+        cancelDrawing(); 
+        return; 
+    }
 
-    // === КНОПКИ НЕ УДАЛЯЕМ, А МЕНЯЕМ ИХ ФУНКЦИОНАЛ ===
+    // Сохраняем черновик
+    _parkingFormCoords = newParkingCoords;
+    _parkingFormSizeCheck = sizeCheck;
+
+    // Меняем кнопки: "Готова" (открывает форму) и "Отменить"
     const controls = document.getElementById('drawingControls');
     if (controls) {
         controls.innerHTML = `
-            <button class="btn-finish" onclick="submitParkingWithPolygon()">💾 Сохранить</button>
+            <button class="btn-finish" onclick="openParkingForm()">✅ Готова</button>
             <button class="btn-cancel" onclick="cancelDrawing()">✕ Отменить</button>
         `;
     }
 
     document.getElementById('addBtn').classList.remove('drawing');
-    document.getElementById('addBtn').textContent = '✕'; // показывает, что режим рисования завершён
+    document.getElementById('addBtn').textContent = '✕';
     isDrawingMode = false;
 
-    // Открываем панель с формой
-    openAddPanelWithPolygon(newParkingCoords, sizeCheck);
+    // Показываем тост с подсказкой о количестве мест
+    const spots = calculateParkingSpots(newParkingCoords);
+    if (spots > 0) {
+        showToast(`🚗 Примерно ${spots} машино-мест в этой зоне`, 3000);
+    } else {
+        showToast('⚠️ Зона слишком мала для парковки', 2000);
+    }
 }
-
+function openParkingForm() {
+    if (!_parkingFormCoords) {
+        showToast('Сначала нарисуйте зону парковки', 2000);
+        return;
+    }
+    const panel = document.getElementById('panel');
+    if (panel.classList.contains('active')) {
+        closePanel();
+        setTimeout(() => {
+            openAddPanelWithPolygon(_parkingFormCoords, _parkingFormSizeCheck);
+        }, 300);
+    } else {
+        openAddPanelWithPolygon(_parkingFormCoords, _parkingFormSizeCheck);
+    }
+}
     function cancelDrawing() {
-        if (editingPolygon) {
-            map.geoObjects.remove(editingPolygon);
-            editingPolygon = null;
-            if (originalPolyCoords && currentParkingId) addMarkerToMap(currentParkingId, { ...currentParkingData,
-                coordinates: originalPolyCoords });
-            const controls = document.getElementById('drawingControls');
-            if (controls) controls.remove();
-            document.getElementById('addBtn').classList.remove('drawing');
-            document.getElementById('addBtn').textContent = '+';
-            isDrawingMode = false;
-            currentParkingId = null;
-            currentParkingData = null;
-            originalPolyCoords = null;
-            closePanel();
-            return;
+    if (editingPolygon) {
+        map.geoObjects.remove(editingPolygon);
+        editingPolygon = null;
+        if (originalPolyCoords && currentParkingId) {
+            addMarkerToMap(currentParkingId, { ...currentParkingData, coordinates: originalPolyCoords });
         }
-        if (drawingPolygon) { map.geoObjects.remove(drawingPolygon);
-            drawingPolygon = null; }
-        isDrawingMode = false;
-        document.getElementById('addBtn').classList.remove('drawing');
-        document.getElementById('addBtn').textContent = '+';
         const controls = document.getElementById('drawingControls');
         if (controls) controls.remove();
+        document.getElementById('addBtn').classList.remove('drawing');
+        document.getElementById('addBtn').textContent = '+';
+        isDrawingMode = false;
+        currentParkingId = null;
+        currentParkingData = null;
+        originalPolyCoords = null;
+        _parkingFormCoords = null;
+        _parkingFormSizeCheck = null;
+        closePanel();
+        return;
     }
+    if (drawingPolygon) {
+        map.geoObjects.remove(drawingPolygon);
+        drawingPolygon = null;
+    }
+    isDrawingMode = false;
+    document.getElementById('addBtn').classList.remove('drawing');
+    document.getElementById('addBtn').textContent = '+';
+    const controls = document.getElementById('drawingControls');
+    if (controls) controls.remove();
+    _parkingFormCoords = null;
+    _parkingFormSizeCheck = null;
+}
 
     function showMapHint(text) {
         const hint = document.createElement('div');
@@ -4149,28 +4202,38 @@ function showPanel(type, keepFilter = false) {
     }
     
     function closePanel() {
-        nearbySearchFilter = null;
-        if (isAddressPickerOpen) cancelAddressPicker();
-        closeCenterSheet();
-        closeRoute();
-        document.getElementById('panel').classList.remove('active');
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelector('.tab:first-child').classList.add('active');
-        currentParkingId = null;
-        currentParkingData = null;
-        if (editingPolygon) { map.geoObjects.remove(editingPolygon);
-            editingPolygon = null;
-            document.getElementById('addBtn').classList.remove('drawing');
-            document.getElementById('addBtn').textContent = '+';
-            isDrawingMode = false;
-            const c = document.getElementById('drawingControls');
-            if (c) c.remove(); }
-        if (clickTimeout) { clearTimeout(clickTimeout);
-            clickTimeout = null; }
-        lastClickParkingId = null;
-        lastClickTime = 0;
-        resetHighlightedParkings();
+    nearbySearchFilter = null;
+    if (isAddressPickerOpen) cancelAddressPicker();
+    closeCenterSheet();
+    closeRoute();
+    document.getElementById('panel').classList.remove('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.tab:first-child').classList.add('active');
+    currentParkingId = null;
+    currentParkingData = null;
+
+    // Если мы редактируем полигон существующей парковки – сбрасываем
+    if (editingPolygon) {
+        map.geoObjects.remove(editingPolygon);
+        editingPolygon = null;
+        document.getElementById('addBtn').classList.remove('drawing');
+        document.getElementById('addBtn').textContent = '+';
+        isDrawingMode = false;
+        const c = document.getElementById('drawingControls');
+        if (c) c.remove();
     }
+
+    // ⚠️ НЕ УДАЛЯЕМ drawingControls для нового рисования
+    // Они остаются на карте, чтобы пользователь мог продолжить
+
+    if (clickTimeout) {
+        clearTimeout(clickTimeout);
+        clickTimeout = null;
+    }
+    lastClickParkingId = null;
+    lastClickTime = 0;
+    resetHighlightedParkings();
+}
 
    function showMap() {
     closePanel();
