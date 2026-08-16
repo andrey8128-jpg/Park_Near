@@ -1033,30 +1033,66 @@ function initMap() {
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
+     // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
+clusterer = new ymaps.Clusterer({
+    // Расстояние между маркерами, при котором они объединяются
+    gridSize: 120,
 
-        // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
-        clusterer = new ymaps.Clusterer({
-            gridSize: 120, // чем больше число, тем сильнее объединение при отдалении
-            preset: 'islands#blueClusterIcons',
-            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
-                '{{ properties.freeSpots || "0" }}' +
-                '</div>'
-            ),
-            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="max-height: 200px; overflow-y: auto;">' +
-                '{% for geoObject in properties.geoObjects %}' +
-                '<div style="padding: 8px 0; border-bottom: 1px solid #eee;">' +
-                '<strong>{{ geoObject.properties.name }}</strong><br>' +
-                'Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
-                '</div>' +
-                '{% endfor %}' +
-                '</div>'
-            ),
-            clusterBalloonPanelMaxMapArea: 0,
-            clusterBalloonItemContentLayout: null
-        });
+    // Полностью свой внешний вид кластера
+    clusterIconLayout: ymaps.templateLayoutFactory.createClass(
+        '<div style="' +
+            'width: 48px;' +
+            'height: 48px;' +
+            'border-radius: 50%;' +
+            'background: #12464C;' +
+            'border: 3px solid rgba(255,255,255,0.9);' +
+            'box-shadow: 0 3px 10px rgba(0,0,0,0.30);' +
+            'display: flex;' +
+            'align-items: center;' +
+            'justify-content: center;' +
+            'box-sizing: border-box;' +
+            'color: #FFFFFF;' +
+            'font-size: 15px;' +
+            'font-weight: 700;' +
+            'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;' +
+            '">' +
+            '{{ properties.clusterCount }}' +
+        '</div>'
+    ),
 
+    clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
+        '<div style="max-height: 200px; overflow-y: auto;">' +
+        '{% for geoObject in properties.geoObjects %}' +
+        '<div style="padding: 8px 0; border-bottom: 1px solid #eee;">' +
+        '<strong>{{ geoObject.properties.name }}</strong><br>' +
+        'Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
+        '</div>' +
+        '{% endfor %}' +
+        '</div>'
+    ),
+
+    clusterBalloonPanelMaxMapArea: 0,
+    clusterBalloonItemContentLayout: null
+});
+
+
+// ===== ПЕРЕСЧЁТ КОЛИЧЕСТВА ПАРКОВОК В КЛАСТЕРЕ =====
+clusterer.events.add('clusterize', function(e) {
+    var clusters = e.get('clusters');
+
+    clusters.forEach(function(cluster) {
+        var geoObjects = cluster.getGeoObjects();
+
+        // Именно количество парковок, а не количество свободных мест
+        var clusterCount = geoObjects.length;
+
+        cluster.properties.set('clusterCount', clusterCount);
+    });
+
+    clusterer.reload();
+});
+
+map.geoObjects.add(clusterer);
         // При кластеризации вычисляем сумму свободных мест для каждого кластера
         clusterer.events.add('clusterize', function(e) {
             var clusters = e.get('clusters');
