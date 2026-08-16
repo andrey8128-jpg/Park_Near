@@ -1393,159 +1393,160 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
     }
 
     function submitParkingWithPolygon() {
-        const streetType = document.getElementById('parkStreetType').value;
-        const streetName = document.getElementById('parkStreetName').value.trim();
-        const houseNumber = document.getElementById('parkHouseNumber').value.trim();
-        const totalSpots = parseInt(document.getElementById('parkSpots').value);
+    const streetType = document.getElementById('parkStreetType').value;
+    const streetName = document.getElementById('parkStreetName').value.trim();
+    const houseNumber = document.getElementById('parkHouseNumber').value.trim();
+    const totalSpots = parseInt(document.getElementById('parkSpots').value);
 
-        if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
-        if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
-        if (!streetType && !streetName && !houseNumber) {
-            alert('Введите хотя бы улицу или номер дома');
-            return;
-        }
+    if (!currentUser) { alert('Ошибка: пользователь не авторизован'); return; }
+    if (!totalSpots || totalSpots < 1) { alert('Пожалуйста, укажите количество парковочных мест'); return; }
+    if (!streetType && !streetName && !houseNumber) {
+        alert('Введите хотя бы улицу или номер дома');
+        return;
+    }
 
-        let coordsToSave = window.newParkingCoords;
-        if (!coordsToSave && drawingPolygon && drawingPolygon.geometry) {
-            const raw = drawingPolygon.geometry.getCoordinates()[0];
-            coordsToSave = raw.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
-        }
-        if (!coordsToSave || coordsToSave.length < 3) {
-            alert('Ошибка: координаты зоны не найдены. Нарисуйте заново.');
-            return;
-        }
+    let coordsToSave = window.newParkingCoords;
+    if (!coordsToSave && drawingPolygon && drawingPolygon.geometry) {
+        const raw = drawingPolygon.geometry.getCoordinates()[0];
+        coordsToSave = raw.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+    }
+    if (!coordsToSave || coordsToSave.length < 3) {
+        alert('Ошибка: координаты зоны не найдены. Нарисуйте заново.');
+        return;
+    }
 
-        const btn = document.getElementById('saveParkBtn');
-        btn.textContent = 'Сохранение...';
-        btn.disabled = true;
+    const btn = document.getElementById('saveParkBtn');
+    btn.textContent = 'Сохранение...';
+    btn.disabled = true;
+    const saveBtn = btn; // сохраняем ссылку для восстановления
 
-        const centerLat = coordsToSave.reduce((s, c) => s + c[0], 0) / coordsToSave.length;
-        const centerLng = coordsToSave.reduce((s, c) => s + c[1], 0) / coordsToSave.length;
+    const centerLat = coordsToSave.reduce((s, c) => s + c[0], 0) / coordsToSave.length;
+    const centerLng = coordsToSave.reduce((s, c) => s + c[1], 0) / coordsToSave.length;
 
-        const fullStreet = streetType && streetName ? `${streetType} ${streetName}` : (streetName || '');
-        let name = fullStreet;
-        if (houseNumber) {
-            name = name ? `${name}, ${houseNumber}` : houseNumber;
-        }
-        if (!name) {
-            name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
-        }
+    const fullStreet = streetType && streetName ? `${streetType} ${streetName}` : (streetName || '');
+    let name = fullStreet;
+    if (houseNumber) {
+        name = name ? `${name}, ${houseNumber}` : houseNumber;
+    }
+    if (!name) {
+        name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
+    }
 
-        ymaps.geocode([centerLat, centerLng], { kind: 'locality', results: 1 })
-            .then(res => {
-                const geo = res.geoObjects.get(0);
-                let address = geo ? geo.getAddressLine() : '';
-                if (address.length > 80) address = address.substring(0, 77) + '...';
-                const parsed = parseAddress(address);
-                if (fullStreet) parsed.street = fullStreet;
-                if (houseNumber) parsed.houseNumber = houseNumber;
-                if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
-                    parsed.region = userCityPrefs.region;
-                    parsed.city = userCityPrefs.city;
+    ymaps.geocode([centerLat, centerLng], { kind: 'locality', results: 1 })
+        .then(res => {
+            const geo = res.geoObjects.get(0);
+            let address = geo ? geo.getAddressLine() : '';
+            if (address.length > 80) address = address.substring(0, 77) + '...';
+            const parsed = parseAddress(address);
+            if (fullStreet) parsed.street = fullStreet;
+            if (houseNumber) parsed.houseNumber = houseNumber;
+            if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
+                parsed.region = userCityPrefs.region;
+                parsed.city = userCityPrefs.city;
+            }
+
+            const parkingData = {
+                lat: centerLat,
+                lng: centerLng,
+                coordinates: coordsToSave,
+                totalSpots,
+                occupiedSpots: 0,
+                name,
+                isPaid: false,
+                address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+                region: parsed.region,
+                city: parsed.city,
+                street: parsed.street,
+                houseNumber: parsed.houseNumber,
+                authorId: currentUser.id,
+                authorName: currentUser.firstName,
+                authorUsername: currentUser.username,
+                lastUpdatedAt: Date.now(),
+                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
+                timestamp: Date.now(),
+                status: 'unknown'
+            };
+
+            const newRef = database.ref('parkings').push();
+            return newRef.set(parkingData).then(() => {
+                database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
+                    .transaction(count => (count || 0) + 1);
+                database.ref(`parkings/${newRef.key}/history`).push({
+                    action: 'created',
+                    timestamp: Date.now(),
+                    userId: currentUser.id,
+                    username: currentUser.username
+                });
+                addMarkerToMap(newRef.key, parkingData);
+                if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+                window.newParkingCoords = null;
+
+                if (document.getElementById('searchResults')) {
+                    filterParkings();
                 }
 
-                const parkingData = {
-                    lat: centerLat,
-                    lng: centerLng,
-                    coordinates: coordsToSave,
-                    totalSpots,
-                    occupiedSpots: 0,
-                    name,
-                    isPaid: false,
-                    address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-                    region: parsed.region,
-                    city: parsed.city,
-                    street: parsed.street,
-                    houseNumber: parsed.houseNumber,
-                    authorId: currentUser.id,
-                    authorName: currentUser.firstName,
-                    authorUsername: currentUser.username,
-                    lastUpdatedAt: Date.now(),
-                    lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-                    timestamp: Date.now(),
-                    status: 'unknown'
-                };
-
-                const newRef = database.ref('parkings').push();
-                return newRef.set(parkingData).then(() => {
-                    database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-                        .transaction(count => (count || 0) + 1);
-                    database.ref(`parkings/${newRef.key}/history`).push({
-                        action: 'created',
-                        timestamp: Date.now(),
-                        userId: currentUser.id,
-                        username: currentUser.username
-                    });
-                    addMarkerToMap(newRef.key, parkingData);
-                    if (drawingPolygon) { map.geoObjects.remove(drawingPolygon);
-                        drawingPolygon = null; }
-                    window.newParkingCoords = null;
-
-                    if (document.getElementById('searchResults')) {
-                        filterParkings();
-                    }
-
-                    closePanel();
-                    showMap();
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                });
-            })
-            .catch(() => {
-                const parkingData = {
-                    lat: centerLat,
-                    lng: centerLng,
-                    coordinates: coordsToSave,
-                    totalSpots,
-                    occupiedSpots: 0,
-                    name,
-                    isPaid: false,
-                    address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-                    region: userCityPrefs.region || '',
-                    city: userCityPrefs.city || '',
-                    street: fullStreet,
-                    houseNumber: houseNumber,
-                    authorId: currentUser.id,
-                    authorName: currentUser.firstName,
-                    authorUsername: currentUser.username,
-                    lastUpdatedAt: Date.now(),
-                    lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-                    timestamp: Date.now(),
-                    status: 'unknown'
-                };
-                const newRef = database.ref('parkings').push();
-                return newRef.set(parkingData).then(() => {
-                    database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-                        .transaction(count => (count || 0) + 1);
-                    database.ref(`parkings/${newRef.key}/history`).push({
-                        action: 'created',
-                        timestamp: Date.now(),
-                        userId: currentUser.id,
-                        username: currentUser.username
-                    });
-                    addMarkerToMap(newRef.key, parkingData);
-                    if (drawingPolygon) { map.geoObjects.remove(drawingPolygon);
-                        drawingPolygon = null; }
-                    window.newParkingCoords = null;
-
-                    if (document.getElementById('searchResults')) {
-                        filterParkings();
-                    }
-
-                    closePanel();
-                    showMap();
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                });
-            })
-            .finally(() => {
-                const currentBtn = document.getElementById('saveParkBtn');
-                if (currentBtn) { currentBtn.textContent = 'Сохранить парковку';
-                    currentBtn.disabled = false; }
+                closePanel();
+                showMap();
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
             });
-    }
+        })
+        .catch(() => {
+            const parkingData = {
+                lat: centerLat,
+                lng: centerLng,
+                coordinates: coordsToSave,
+                totalSpots,
+                occupiedSpots: 0,
+                name,
+                isPaid: false,
+                address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+                region: userCityPrefs.region || '',
+                city: userCityPrefs.city || '',
+                street: fullStreet,
+                houseNumber: houseNumber,
+                authorId: currentUser.id,
+                authorName: currentUser.firstName,
+                authorUsername: currentUser.username,
+                lastUpdatedAt: Date.now(),
+                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
+                timestamp: Date.now(),
+                status: 'unknown'
+            };
+            const newRef = database.ref('parkings').push();
+            return newRef.set(parkingData).then(() => {
+                database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
+                    .transaction(count => (count || 0) + 1);
+                database.ref(`parkings/${newRef.key}/history`).push({
+                    action: 'created',
+                    timestamp: Date.now(),
+                    userId: currentUser.id,
+                    username: currentUser.username
+                });
+                addMarkerToMap(newRef.key, parkingData);
+                if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
+                window.newParkingCoords = null;
+
+                if (document.getElementById('searchResults')) {
+                    filterParkings();
+                }
+
+                closePanel();
+                showMap();
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            });
+        })
+        .then(() => {
+            // === Аналог finally – выполняется всегда ===
+            if (saveBtn) {
+                saveBtn.textContent = 'Сохранить парковку';
+                saveBtn.disabled = false;
+            }
+        });
+}
 
     function saveEditedPolygon(newCoords) {
         if (!currentParkingId) return;
