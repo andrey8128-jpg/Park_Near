@@ -88,14 +88,14 @@
             transition: background 0.4s ease, color 0.4s ease;
             -webkit-font-smoothing: antialiased;
         }
-   #splashScreen {
+  #splashScreen {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     background: #0E2931;
-    display: none !important;
+    display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -104,7 +104,6 @@
     margin: 0;
     padding: 0;
 }
-
 /* SVG-фон (анимация) растягивается на весь экран */
 #splashScreen svg {
     position: absolute;
