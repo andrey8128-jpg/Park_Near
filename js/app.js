@@ -834,8 +834,7 @@ function tryYandexGeolocation(resolve, reject) {
         }
     }
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
-  function loadAllParkings(force = false) {
-    // Если данные уже есть и не прошло 30 секунд – пропускаем
+function loadAllParkings(force = false) {
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
         return Promise.resolve();
     }
@@ -850,10 +849,13 @@ function tryYandexGeolocation(resolve, reject) {
                 lastDataRefresh = Date.now();
                 cacheLoaded = true;
 
-                if (map && clusterer) {
-                    clusterer.removeAll();
-                    Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                    // === ИСПРАВЛЕНО: передаём правильный ключ ===
+                if (map) {
+                    // Удаляем все старые маркеры с карты
+                    Object.values(mapMarkers).forEach(marker => {
+                        map.geoObjects.remove(marker);
+                    });
+                    mapMarkers = {};
+                    // Добавляем новые из кеша
                     Object.entries(data).forEach(([key, p]) => {
                         if (p.lat && p.lng) {
                             addMarkerToMap(key, p);
@@ -896,10 +898,13 @@ function tryYandexGeolocation(resolve, reject) {
                 localStorage.setItem('parkingCache', JSON.stringify(newCache));
             } catch (e) {}
 
-            if (map && clusterer) {
-                clusterer.removeAll();
-                Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                // === ИСПРАВЛЕНО: передаём правильный ключ ===
+            if (map) {
+                // Удаляем старые маркеры
+                Object.values(mapMarkers).forEach(marker => {
+                    map.geoObjects.remove(marker);
+                });
+                mapMarkers = {};
+                // Добавляем свежие данные
                 Object.entries(newCache).forEach(([key, p]) => {
                     if (p.lat && p.lng) {
                         addMarkerToMap(key, p);
@@ -907,7 +912,7 @@ function tryYandexGeolocation(resolve, reject) {
                 });
                 console.log('✅ Маркеры обновлены из Firebase, всего парковок:', Object.keys(newCache).length);
             } else {
-                console.log('⏳ Карта или кластеризатор ещё не готовы, маркеры будут добавлены позже');
+                console.log('⏳ Карта ещё не готова, маркеры будут добавлены позже');
             }
 
             resolve();
@@ -921,10 +926,11 @@ function tryYandexGeolocation(resolve, reject) {
                     try {
                         parkingDataCache = JSON.parse(fallback);
                         lastDataRefresh = Date.now();
-                        if (map && clusterer) {
-                            clusterer.removeAll();
-                            Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                            // === ИСПРАВЛЕНО: передаём правильный ключ ===
+                        if (map) {
+                            Object.values(mapMarkers).forEach(marker => {
+                                map.geoObjects.remove(marker);
+                            });
+                            mapMarkers = {};
                             Object.entries(parkingDataCache).forEach(([key, p]) => {
                                 if (p.lat && p.lng) {
                                     addMarkerToMap(key, p);
@@ -946,8 +952,8 @@ function tryYandexGeolocation(resolve, reject) {
         const data = snapshot.val();
         if (data) {
             if (mapMarkers[currentParkingId]) {
-                clusterer.remove(mapMarkers[currentParkingId]);
-                delete mapMarkers[currentParkingId];
+            map.geoObjects.remove(mapMarkers[currentParkingId]);
+            delete mapMarkers[currentParkingId];
             }
             parkingDataCache[currentParkingId] = data;
             addMarkerToMap(currentParkingId, data);
@@ -955,11 +961,12 @@ function tryYandexGeolocation(resolve, reject) {
     });
 }
 function addMarkerToMap(id, data) {
+    // Если маркер уже существует – удаляем его
     if (mapMarkers[id]) {
-        clusterer.remove(mapMarkers[id]);
+        map.geoObjects.remove(mapMarkers[id]);
         delete mapMarkers[id];
     }
-    if (!map || !clusterer) return;
+    if (!map) return;
 
     var totalSpots = data.totalSpots || 0;
     var occupiedSpots = data.occupiedSpots || 0;
@@ -977,11 +984,11 @@ function addMarkerToMap(id, data) {
         centerLng = lngSum / coords.length;
     }
 
-    // Создаём полигон (если есть координаты)
+    // Создаём полигон (если есть координаты) – он будет виден при клике
     var polygon = null;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         polygon = new ymaps.Polygon([data.coordinates], {}, {
-            fillColor: color + '33',  // полупрозрачный
+            fillColor: color + '33',
             strokeColor: color,
             strokeWidth: 2,
             visible: false, // скрыт по умолчанию
@@ -997,7 +1004,7 @@ function addMarkerToMap(id, data) {
         totalSpots: totalSpots,
         parkingId: id,
         iconContent: String(freeSpots),
-        polygon: polygon // сохраняем полигон
+        polygon: polygon
     }, {
         preset: 'islands#blueStretchyIcon',
         iconColor: color,
@@ -1023,7 +1030,7 @@ function addMarkerToMap(id, data) {
         if (map.balloon) map.balloon.close();
     });
 
-    clusterer.add(placemark);
+    map.geoObjects.add(placemark);
     mapMarkers[id] = placemark;
 }
   // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
@@ -1044,52 +1051,6 @@ function initMap() {
         });
         console.log('✅ Карта инициализирована');
 
-        // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
-    clusterer = new ymaps.Clusterer({
-    preset: 'islands#blueClusterIcons',
-    clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
-        '{{ properties.freeSpots || 0 }}' +
-        '</div>'
-    ),
-    clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="max-height: 200px; overflow-y: auto;">' +
-        '{% for geoObject in properties.geoObjects %}' +
-        '<div style="padding: 8px 0; border-bottom: 1px solid #eee;">' +
-        '<strong>{{ geoObject.properties.name }}</strong><br>' +
-        'Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
-        '</div>' +
-        '{% endfor %}' +
-        '</div>'
-    ),
-    clusterBalloonPanelMaxMapArea: 0,
-    clusterBalloonItemContentLayout: null
-});
-        // При кластеризации вычисляем сумму свободных мест для каждого кластера
-   clusterer.events.add('clusterize', function(e) {
-    var clusters = e.get('clusters');
-    if (!clusters || clusters.length === 0) return;
-
-    clusters.forEach(function(cluster) {
-        var freeSum = 0;
-        var geoObjects = cluster.getGeoObjects();
-        if (!geoObjects || geoObjects.length === 0) return;
-
-        geoObjects.forEach(function(obj) {
-            var spots = obj.properties.get('freeSpots');
-            if (typeof spots === 'number') {
-                freeSum += spots;
-            }
-        });
-        cluster.properties.set('freeSpots', freeSum);
-    });
-
-    // Принудительно перерисовываем кластеры, чтобы обновить числа
-    clusterer.reload();
-});
-
-        map.geoObjects.add(clusterer);
-
         // ===== Обработчик клика по карте для показа адреса =====
         map.events.add('click', function(e) {
             var coords = e.get('coords');
@@ -1109,7 +1070,7 @@ function initMap() {
             });
         });
 
-        // Обработчики кнопок и прочие настройки (оставляем как было)
+        // Обработчики кнопок и прочие настройки
         document.getElementById('addBtn').onclick = () => {
             if (!currentUser) showPanel('home');
             else if (isDrawingMode) cancelDrawing();
