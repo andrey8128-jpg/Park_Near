@@ -1045,38 +1045,48 @@ function initMap() {
         console.log('✅ Карта инициализирована');
 
         // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
-        clusterer = new ymaps.Clusterer({
-            preset: 'islands#blueClusterIcons',
-            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="background: var(--accent); color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
-                '{{ properties.freeSpots || 0 }}' +
-                '</div>'
-            ),
-            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="max-height: 200px; overflow-y: auto;">' +
-                '{% for geoObject in properties.geoObjects %}' +
-                '<div style="padding: 8px 0; border-bottom: 1px solid #eee;">' +
-                '<strong>{{ geoObject.properties.name }}</strong><br>' +
-                'Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
-                '</div>' +
-                '{% endfor %}' +
-                '</div>'
-            ),
-            clusterBalloonPanelMaxMapArea: 0,
-            clusterBalloonItemContentLayout: null
-        });
-
+    clusterer = new ymaps.Clusterer({
+    preset: 'islands#blueClusterIcons',
+    clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
+        '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
+        '{{ properties.freeSpots || 0 }}' +
+        '</div>'
+    ),
+    clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
+        '<div style="max-height: 200px; overflow-y: auto;">' +
+        '{% for geoObject in properties.geoObjects %}' +
+        '<div style="padding: 8px 0; border-bottom: 1px solid #eee;">' +
+        '<strong>{{ geoObject.properties.name }}</strong><br>' +
+        'Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
+        '</div>' +
+        '{% endfor %}' +
+        '</div>'
+    ),
+    clusterBalloonPanelMaxMapArea: 0,
+    clusterBalloonItemContentLayout: null
+});
         // При кластеризации вычисляем сумму свободных мест для каждого кластера
-        clusterer.events.add('clusterize', function(e) {
-            var clusters = e.get('clusters');
-            clusters.forEach(function(cluster) {
-                var freeSum = 0;
-                cluster.getGeoObjects().forEach(function(obj) {
-                    freeSum += obj.properties.get('freeSpots') || 0;
-                });
-                cluster.properties.set('freeSpots', freeSum);
-            });
+   clusterer.events.add('clusterize', function(e) {
+    var clusters = e.get('clusters');
+    if (!clusters || clusters.length === 0) return;
+
+    clusters.forEach(function(cluster) {
+        var freeSum = 0;
+        var geoObjects = cluster.getGeoObjects();
+        if (!geoObjects || geoObjects.length === 0) return;
+
+        geoObjects.forEach(function(obj) {
+            var spots = obj.properties.get('freeSpots');
+            if (typeof spots === 'number') {
+                freeSum += spots;
+            }
         });
+        cluster.properties.set('freeSpots', freeSum);
+    });
+
+    // Принудительно перерисовываем кластеры, чтобы обновить числа
+    clusterer.reload();
+});
 
         map.geoObjects.add(clusterer);
 
