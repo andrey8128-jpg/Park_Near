@@ -1,6 +1,6 @@
 // js/push-notifications.js
 const PUSH_CONFIG = {
-  vapidKey: 'ВАШ_VAPID_КЛЮЧ', // Получить в консоли Firebase → Project Settings → Cloud Messaging → Web push certificates
+  vapidKey: 'BJ_JmNo-zXnnE-N0Gl1SGiVUHAAoqNdCP0MTihuMwTHXM-oPeRPujAWAkX7Zvhl2NmIfDgeJT7v1Jd43c5A6o_Y', // Получить в консоли Firebase → Project Settings → Cloud Messaging → Web push certificates
   firebaseMessagingSenderId: firebaseConfig.messagingSenderId
 };
 
