@@ -833,18 +833,46 @@ function tryYandexGeolocation(resolve, reject) {
         }
     }
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
-    function loadAllParkings(force = false) {
+  function loadAllParkings(force = false) {
+    // Если данные уже есть и не прошло 30 секунд – возвращаем зарезолвленный промис
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
         return Promise.resolve();
     }
-    return new Promise((resolve, reject) => {
-        if (clusterer) {
-            clusterer.removeAll();
-        }
-        Object.keys(mapMarkers).forEach(id => {
-            delete mapMarkers[id];
-        });
 
+    // 1. Мгновенная загрузка из localStorage (если есть)
+    const cached = localStorage.getItem('parkingCache');
+    let cacheLoaded = false;
+    if (!force && cached) {
+        try {
+            const data = JSON.parse(cached);
+            if (data && Object.keys(data).length > 0) {
+                parkingDataCache = data;
+                lastDataRefresh = Date.now();
+                cacheLoaded = true;
+
+                // Если карта и кластеризатор уже созданы – добавляем маркеры из кеша
+                if (map && clusterer) {
+                    clusterer.removeAll();
+                    Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
+                    Object.values(data).forEach(p => {
+                        // добавляем маркер, если есть координаты
+                        if (p.lat && p.lng) {
+                            addMarkerToMap(p.id || p.key, p);
+                        }
+                    });
+                }
+                console.log('✅ Загружено из localStorage, количество парковок:', Object.keys(data).length);
+            }
+        } catch (e) {
+            console.warn('Ошибка парсинга localStorage:', e);
+        }
+    }
+
+    // 2. Всегда загружаем свежие данные из Firebase (если force или нет кеша, или кеш устарел)
+    // Но если force=true, то игнорируем кеш и загружаем принудительно
+    return new Promise((resolve, reject) => {
+        // Если force или нет кеша – показываем индикатор (опционально)
+        // Здесь мы просто загружаем данные
         database.ref('parkings').once('value').then(snapshot => {
             const data = snapshot.val();
             const newCache = {};
@@ -862,30 +890,63 @@ function tryYandexGeolocation(resolve, reject) {
                             }
                         }
                         newCache[key] = p;
-                        if (map && clusterer) {
-                            addMarkerToMap(key, p);
-                        }
                     }
                 });
             }
+
+            // Обновляем кеш и переменные
             parkingDataCache = newCache;
             lastDataRefresh = Date.now();
+
+            // Сохраняем в localStorage для будущих запусков
             try {
                 localStorage.setItem('parkingCache', JSON.stringify(newCache));
-            } catch(e) {}
+            } catch (e) {}
+
+            // Добавляем маркеры на карту (если карта и кластеризатор готовы)
+            if (map && clusterer) {
+                // Очищаем старые маркеры и кластеры
+                clusterer.removeAll();
+                Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
+
+                // Добавляем все парковки из свежих данных
+                Object.values(newCache).forEach(p => {
+                    if (p.lat && p.lng) {
+                        addMarkerToMap(p.id || p.key, p);
+                    }
+                });
+                console.log('✅ Маркеры обновлены из Firebase, всего парковок:', Object.keys(newCache).length);
+            } else {
+                console.log('⏳ Карта или кластеризатор ещё не готовы, маркеры будут добавлены позже');
+            }
+
             resolve();
         }).catch(error => {
-            const cached = localStorage.getItem('parkingCache');
-            if (cached) {
-                try {
-                    parkingDataCache = JSON.parse(cached);
-                    if (map && clusterer) {
-                        Object.values(parkingDataCache).forEach(p => addMarkerToMap(p.id || p.key, p));
-                    }
-                    resolve();
-                } catch(e) { reject(error); }
+            console.error('❌ Ошибка загрузки из Firebase:', error);
+            // Если не удалось загрузить из Firebase, но есть кеш – разрешаем промис с кешем
+            if (cacheLoaded) {
+                resolve();
             } else {
-                reject(error);
+                // Пробуем загрузить из localStorage ещё раз (если не было)
+                const fallback = localStorage.getItem('parkingCache');
+                if (fallback) {
+                    try {
+                        parkingDataCache = JSON.parse(fallback);
+                        lastDataRefresh = Date.now();
+                        if (map && clusterer) {
+                            clusterer.removeAll();
+                            Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
+                            Object.values(parkingDataCache).forEach(p => {
+                                if (p.lat && p.lng) {
+                                    addMarkerToMap(p.id || p.key, p);
+                                }
+                            });
+                        }
+                        resolve();
+                    } catch (e) { reject(error); }
+                } else {
+                    reject(error);
+                }
             }
         });
     });
@@ -4847,45 +4908,58 @@ function createAuthScreenFallback() {
     showOnboarding();
 }
     function renderHomePanel(content) {
-    // Если есть кеш – показываем мгновенно
-    if (Object.keys(parkingDataCache).length > 0) {
-        getUserLocation().then(coords => {
-            userLocationForSearch = coords;
-            renderHomeContent(content, coords);
-        }).catch(() => {
-            userLocationForSearch = null;
+    // 1. Мгновенно показываем сохранённый кеш (если есть)
+    const cached = localStorage.getItem('parkingCache');
+    let cacheData = null;
+    if (cached) {
+        try {
+            cacheData = JSON.parse(cached);
+            parkingDataCache = cacheData;
+            // Отображаем контент без геолокации (пока без расстояния)
             renderHomeContent(content, null);
-        });
-        // Фоновое обновление
-        loadAllParkings().then(() => {
-            // Если панель всё ещё открыта – перерисовываем
-            const panel = document.getElementById('panel');
-            if (panel && panel.classList.contains('active')) {
-                const title = document.getElementById('panelTitle');
-                if (title && title.textContent === 'Главная') {
-                    getUserLocation().then(coords => {
-                        userLocationForSearch = coords;
-                        renderHomeContent(content, coords);
-                    }).catch(() => {
-                        userLocationForSearch = null;
-                        renderHomeContent(content, null);
-                    });
-                }
+            // Добавляем индикатор обновления в фоне
+            const list = document.getElementById('homeParkingList');
+            if (list) {
+                list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;">🔄 Обновление данных...</div>');
             }
-        });
-        return;
+        } catch (e) { /* игнорируем */ }
+    } else {
+        // Если кеша нет – показываем заглушку
+        content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
     }
-    // Если кеша нет – показываем загрузку и грузим данные
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
-    Promise.all([
-        loadAllParkings(true),
-        getUserLocation().catch(() => null)
-    ]).then(([, coords]) => {
-        userLocationForSearch = coords;
-        renderHomeContent(content, coords);
-    }).catch(() => {
-        content.innerHTML = '<div class="empty-state"><p>Не удалось загрузить данные</p></div>';
-    });
+
+    // 2. Фоновое обновление из Firebase (если прошло больше 30 сек или нет кеша)
+    const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
+    if (needRefresh) {
+        // Загружаем данные и геолокацию параллельно
+        Promise.all([
+            loadAllParkings(true),
+            getUserLocation().catch(() => null)
+        ]).then(([, coords]) => {
+            userLocationForSearch = coords;
+            // Перерисовываем с актуальными данными и расстояниями
+            renderHomeContent(content, coords);
+            // Убираем индикатор обновления
+            const indicator = document.querySelector('.loading-indicator');
+            if (indicator) indicator.remove();
+        }).catch(() => {
+            // Если обновление не удалось, но кеш был – ничего страшного
+            const indicator = document.querySelector('.loading-indicator');
+            if (indicator) indicator.textContent = '⚠️ Не удалось обновить данные';
+            setTimeout(() => { if (indicator) indicator.remove(); }, 3000);
+        });
+    } else {
+        // Если обновление не требуется, всё равно пытаемся получить геолокацию для расстояний
+        getUserLocation()
+            .then(coords => {
+                userLocationForSearch = coords;
+                // Перерисовываем с расстояниями (без повторной загрузки данных)
+                renderHomeContent(content, coords);
+            })
+            .catch(() => {
+                // Если геолокация не удалась, оставляем как есть
+            });
+    }
 }
 function renderHomeContent(content, coords) {
     var html = `
