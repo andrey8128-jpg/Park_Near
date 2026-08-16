@@ -1057,7 +1057,7 @@ clusterer = new ymaps.Clusterer({
             'font-weight: 700;' +
             'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;' +
             '">' +
-            '{{ properties.freeSpots || "0" }}' +
+            '{{ properties.freeSpots }}' +
         '</div>'
     ),
 
