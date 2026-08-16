@@ -51,6 +51,7 @@
     let _parkingFormSizeCheck = null;
     let drawingPolygon = null;
     let clusterer = null;
+    let activePolygon = null; 
     let isDrawingMode = false;
     let currentParkingId = null;
     let currentParkingData = null;
