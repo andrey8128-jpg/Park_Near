@@ -835,12 +835,11 @@ function tryYandexGeolocation(resolve, reject) {
     }
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
   function loadAllParkings(force = false) {
-    // Если данные уже есть и не прошло 30 секунд – возвращаем зарезолвленный промис
+    // Если данные уже есть и не прошло 30 секунд – пропускаем
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
         return Promise.resolve();
     }
 
-    // 1. Мгновенная загрузка из localStorage (если есть)
     const cached = localStorage.getItem('parkingCache');
     let cacheLoaded = false;
     if (!force && cached) {
@@ -851,14 +850,13 @@ function tryYandexGeolocation(resolve, reject) {
                 lastDataRefresh = Date.now();
                 cacheLoaded = true;
 
-                // Если карта и кластеризатор уже созданы – добавляем маркеры из кеша
                 if (map && clusterer) {
                     clusterer.removeAll();
                     Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                    Object.values(data).forEach(p => {
-                        // добавляем маркер, если есть координаты
+                    // === ИСПРАВЛЕНО: передаём правильный ключ ===
+                    Object.entries(data).forEach(([key, p]) => {
                         if (p.lat && p.lng) {
-                            addMarkerToMap(p.id || p.key, p);
+                            addMarkerToMap(key, p);
                         }
                     });
                 }
@@ -869,11 +867,7 @@ function tryYandexGeolocation(resolve, reject) {
         }
     }
 
-    // 2. Всегда загружаем свежие данные из Firebase (если force или нет кеша, или кеш устарел)
-    // Но если force=true, то игнорируем кеш и загружаем принудительно
     return new Promise((resolve, reject) => {
-        // Если force или нет кеша – показываем индикатор (опционально)
-        // Здесь мы просто загружаем данные
         database.ref('parkings').once('value').then(snapshot => {
             const data = snapshot.val();
             const newCache = {};
@@ -895,25 +889,20 @@ function tryYandexGeolocation(resolve, reject) {
                 });
             }
 
-            // Обновляем кеш и переменные
             parkingDataCache = newCache;
             lastDataRefresh = Date.now();
 
-            // Сохраняем в localStorage для будущих запусков
             try {
                 localStorage.setItem('parkingCache', JSON.stringify(newCache));
             } catch (e) {}
 
-            // Добавляем маркеры на карту (если карта и кластеризатор готовы)
             if (map && clusterer) {
-                // Очищаем старые маркеры и кластеры
                 clusterer.removeAll();
                 Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-
-                // Добавляем все парковки из свежих данных
-                Object.values(newCache).forEach(p => {
+                // === ИСПРАВЛЕНО: передаём правильный ключ ===
+                Object.entries(newCache).forEach(([key, p]) => {
                     if (p.lat && p.lng) {
-                        addMarkerToMap(p.id || p.key, p);
+                        addMarkerToMap(key, p);
                     }
                 });
                 console.log('✅ Маркеры обновлены из Firebase, всего парковок:', Object.keys(newCache).length);
@@ -924,11 +913,9 @@ function tryYandexGeolocation(resolve, reject) {
             resolve();
         }).catch(error => {
             console.error('❌ Ошибка загрузки из Firebase:', error);
-            // Если не удалось загрузить из Firebase, но есть кеш – разрешаем промис с кешем
             if (cacheLoaded) {
                 resolve();
             } else {
-                // Пробуем загрузить из localStorage ещё раз (если не было)
                 const fallback = localStorage.getItem('parkingCache');
                 if (fallback) {
                     try {
@@ -937,9 +924,10 @@ function tryYandexGeolocation(resolve, reject) {
                         if (map && clusterer) {
                             clusterer.removeAll();
                             Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                            Object.values(parkingDataCache).forEach(p => {
+                            // === ИСПРАВЛЕНО: передаём правильный ключ ===
+                            Object.entries(parkingDataCache).forEach(([key, p]) => {
                                 if (p.lat && p.lng) {
-                                    addMarkerToMap(p.id || p.key, p);
+                                    addMarkerToMap(key, p);
                                 }
                             });
                         }
