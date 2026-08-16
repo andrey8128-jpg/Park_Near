@@ -849,13 +849,9 @@ function loadAllParkings(force = false) {
                 lastDataRefresh = Date.now();
                 cacheLoaded = true;
 
-                if (map) {
-                    // Удаляем все старые маркеры с карты
-                    Object.values(mapMarkers).forEach(marker => {
-                        map.geoObjects.remove(marker);
-                    });
-                    mapMarkers = {};
-                    // Добавляем новые из кеша
+                if (map && clusterer) {
+                    clusterer.removeAll();
+                    Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
                     Object.entries(data).forEach(([key, p]) => {
                         if (p.lat && p.lng) {
                             addMarkerToMap(key, p);
@@ -898,13 +894,9 @@ function loadAllParkings(force = false) {
                 localStorage.setItem('parkingCache', JSON.stringify(newCache));
             } catch (e) {}
 
-            if (map) {
-                // Удаляем старые маркеры
-                Object.values(mapMarkers).forEach(marker => {
-                    map.geoObjects.remove(marker);
-                });
-                mapMarkers = {};
-                // Добавляем свежие данные
+            if (map && clusterer) {
+                clusterer.removeAll();
+                Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
                 Object.entries(newCache).forEach(([key, p]) => {
                     if (p.lat && p.lng) {
                         addMarkerToMap(key, p);
@@ -912,7 +904,7 @@ function loadAllParkings(force = false) {
                 });
                 console.log('✅ Маркеры обновлены из Firebase, всего парковок:', Object.keys(newCache).length);
             } else {
-                console.log('⏳ Карта ещё не готова, маркеры будут добавлены позже');
+                console.log('⏳ Карта или кластеризатор ещё не готовы, маркеры будут добавлены позже');
             }
 
             resolve();
@@ -926,11 +918,9 @@ function loadAllParkings(force = false) {
                     try {
                         parkingDataCache = JSON.parse(fallback);
                         lastDataRefresh = Date.now();
-                        if (map) {
-                            Object.values(mapMarkers).forEach(marker => {
-                                map.geoObjects.remove(marker);
-                            });
-                            mapMarkers = {};
+                        if (map && clusterer) {
+                            clusterer.removeAll();
+                            Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
                             Object.entries(parkingDataCache).forEach(([key, p]) => {
                                 if (p.lat && p.lng) {
                                     addMarkerToMap(key, p);
@@ -952,8 +942,8 @@ function loadAllParkings(force = false) {
         const data = snapshot.val();
         if (data) {
             if (mapMarkers[currentParkingId]) {
-            map.geoObjects.remove(mapMarkers[currentParkingId]);
-            delete mapMarkers[currentParkingId];
+                clusterer.remove(mapMarkers[currentParkingId]);
+                delete mapMarkers[currentParkingId];
             }
             parkingDataCache[currentParkingId] = data;
             addMarkerToMap(currentParkingId, data);
@@ -961,19 +951,17 @@ function loadAllParkings(force = false) {
     });
 }
 function addMarkerToMap(id, data) {
-    // Если маркер уже существует – удаляем его
     if (mapMarkers[id]) {
-        map.geoObjects.remove(mapMarkers[id]);
+        clusterer.remove(mapMarkers[id]);
         delete mapMarkers[id];
     }
-    if (!map) return;
+    if (!map || !clusterer) return;
 
     var totalSpots = data.totalSpots || 0;
     var occupiedSpots = data.occupiedSpots || 0;
     var freeSpots = totalSpots - occupiedSpots;
     var color = getOccupancyColor(occupiedSpots, totalSpots);
 
-    // Центр парковки
     var centerLat = data.lat;
     var centerLng = data.lng;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length > 0) {
@@ -984,14 +972,13 @@ function addMarkerToMap(id, data) {
         centerLng = lngSum / coords.length;
     }
 
-    // Создаём полигон (если есть координаты) – он будет виден при клике
     var polygon = null;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         polygon = new ymaps.Polygon([data.coordinates], {}, {
             fillColor: color + '33',
             strokeColor: color,
             strokeWidth: 2,
-            visible: false, // скрыт по умолчанию
+            visible: false,
             zIndex: 5
         });
         map.geoObjects.add(polygon);
@@ -1012,25 +999,21 @@ function addMarkerToMap(id, data) {
         iconContentOffset: [0, 0]
     });
 
-    // Обработчик клика по маркеру
     placemark.events.add('click', function(e) {
-        // Скрываем предыдущий полигон
         if (activePolygon) {
             activePolygon.options.set('visible', false);
             activePolygon = null;
         }
-        // Показываем полигон текущей парковки
         var poly = placemark.properties.get('polygon');
         if (poly) {
             poly.options.set('visible', true);
             activePolygon = poly;
         }
-        // Открываем карточку
         openCenterSheet(id, data);
         if (map.balloon) map.balloon.close();
     });
 
-    map.geoObjects.add(placemark);
+    clusterer.add(placemark);
     mapMarkers[id] = placemark;
 }
   // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
@@ -1050,6 +1033,55 @@ function initMap() {
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
+
+        // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
+        clusterer = new ymaps.Clusterer({
+            // Увеличиваем радиус объединения (в пикселях) – чем больше, тем сильнее группировка
+            gridSize: 200, // по умолчанию 60, увеличиваем до 120
+            preset: 'islands#blueClusterIcons',
+            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
+                '{{ properties.freeSpots || 0 }}' +
+                '</div>'
+            ),
+            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="max-height: 200px; overflow-y: auto;">' +
+                '{% for geoObject in properties.geoObjects %}' +
+                '<div style="padding: 8px 0; border-bottom: 1px solid #eee;">' +
+                '<strong>{{ geoObject.properties.name }}</strong><br>' +
+                'Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
+                '</div>' +
+                '{% endfor %}' +
+                '</div>'
+            ),
+            clusterBalloonPanelMaxMapArea: 0,
+            clusterBalloonItemContentLayout: null
+        });
+
+        // При кластеризации вычисляем сумму свободных мест для каждого кластера
+        clusterer.events.add('clusterize', function(e) {
+            var clusters = e.get('clusters');
+            if (!clusters || clusters.length === 0) return;
+
+            clusters.forEach(function(cluster) {
+                var freeSum = 0;
+                var geoObjects = cluster.getGeoObjects();
+                if (!geoObjects || geoObjects.length === 0) return;
+
+                geoObjects.forEach(function(obj) {
+                    var spots = obj.properties.get('freeSpots');
+                    if (typeof spots === 'number') {
+                        freeSum += spots;
+                    }
+                });
+                cluster.properties.set('freeSpots', freeSum);
+            });
+
+            // Принудительно перерисовываем кластеры
+            clusterer.reload();
+        });
+
+        map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
         map.events.add('click', function(e) {
