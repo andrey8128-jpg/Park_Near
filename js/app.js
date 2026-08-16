@@ -904,7 +904,7 @@ function tryYandexGeolocation(resolve, reject) {
         }
     });
 }
- function addMarkerToMap(id, data) {
+function addMarkerToMap(id, data) {
     // Удаляем старый маркер, если он есть
     if (mapMarkers[id]) {
         clusterer.remove(mapMarkers[id]);
@@ -917,7 +917,7 @@ function tryYandexGeolocation(resolve, reject) {
     var freeSpots = totalSpots - occupiedSpots;
     var color = getOccupancyColor(occupiedSpots, totalSpots);
 
-    // Вычисляем центр (для полигонов используем среднюю точку)
+    // Вычисляем центр (для полигонов – средняя точка)
     var centerLat = data.lat;
     var centerLng = data.lng;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length > 0) {
@@ -928,12 +928,15 @@ function tryYandexGeolocation(resolve, reject) {
         centerLng = lngSum / coords.length;
     }
 
+    // Создаём маркер с числом свободных мест внутри иконки
     var placemark = new ymaps.Placemark([centerLat, centerLng], {
         hintContent: data.name,
         name: data.name,
         freeSpots: freeSpots,
         totalSpots: totalSpots,
         parkingId: id,
+        // Текст, который отобразится внутри иконки
+        iconContent: String(freeSpots),
         balloonContent: `
             <div style="padding: 8px;">
                 <strong>${escapeHtml(data.name || 'Без названия')}</strong><br>
@@ -942,15 +945,22 @@ function tryYandexGeolocation(resolve, reject) {
             </div>
         `
     }, {
-        preset: 'islands#blueCircleDotIcon',
-        iconColor: color
+        // Пресет с растягиваемой иконкой, внутри которой можно разместить текст
+        preset: 'islands#blueStretchyIcon',
+        // Цвет иконки – можно использовать цвет занятости
+        iconColor: color,
+        // Размер текста внутри иконки
+        iconContentSize: [20, 20],
+        iconContentOffset: [0, 0]
     });
 
+    // Открываем карточку парковки при клике на маркер
     placemark.events.add('click', function(e) {
         openCenterSheet(id, data);
         if (map.balloon) map.balloon.close();
     });
 
+    // Добавляем маркер в кластеризатор
     clusterer.add(placemark);
     mapMarkers[id] = placemark;
 }
