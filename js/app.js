@@ -1033,12 +1033,13 @@ function initMap() {
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
-     // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
+    // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
 clusterer = new ymaps.Clusterer({
-    // Расстояние между маркерами, при котором они объединяются
+    // Чем больше значение, тем раньше парковки объединяются
     gridSize: 120,
 
-    // Полностью свой внешний вид кластера
+    // Полностью убираем стандартный значок кластера Яндекса
+    // и используем только наш круг
     clusterIconLayout: ymaps.templateLayoutFactory.createClass(
         '<div style="' +
             'width: 48px;' +
@@ -1056,7 +1057,7 @@ clusterer = new ymaps.Clusterer({
             'font-weight: 700;' +
             'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;' +
             '">' +
-            '{{ properties.clusterCount }}' +
+            '{{ properties.freeSpots || "0" }}' +
         '</div>'
     ),
 
@@ -1076,17 +1077,22 @@ clusterer = new ymaps.Clusterer({
 });
 
 
-// ===== ПЕРЕСЧЁТ КОЛИЧЕСТВА ПАРКОВОК В КЛАСТЕРЕ =====
+// ===== СУММА СВОБОДНЫХ МЕСТ В КЛАСТЕРЕ =====
 clusterer.events.add('clusterize', function(e) {
     var clusters = e.get('clusters');
 
     clusters.forEach(function(cluster) {
-        var geoObjects = cluster.getGeoObjects();
+        var freeSum = 0;
 
-        // Именно количество парковок, а не количество свободных мест
-        var clusterCount = geoObjects.length;
+        cluster.getGeoObjects().forEach(function(obj) {
+            freeSum += Number(
+                obj.properties.get('freeSpots') || 0
+            );
+        });
 
-        cluster.properties.set('clusterCount', clusterCount);
+        // Записываем сумму свободных мест
+        // именно в свойство кластера
+        cluster.properties.set('freeSpots', freeSum);
     });
 
     clusterer.reload();
