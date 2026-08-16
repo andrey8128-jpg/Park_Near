@@ -50,6 +50,7 @@
     let _parkingFormCoords = null;
     let _parkingFormSizeCheck = null;
     let drawingPolygon = null;
+    let clusterer = null;
     let isDrawingMode = false;
     let currentParkingId = null;
     let currentParkingData = null;
@@ -833,19 +834,17 @@ function tryYandexGeolocation(resolve, reject) {
     }
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
     function loadAllParkings(force = false) {
-    // Если данные уже есть и не прошло 30 секунд – не перезагружаем
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
         return Promise.resolve();
     }
     return new Promise((resolve, reject) => {
-        if (map) {
-            Object.keys(mapMarkers).forEach(id => {
-                if (mapMarkers[id]) {
-                    map.geoObjects.remove(mapMarkers[id]);
-                    delete mapMarkers[id];
-                }
-            });
+        if (clusterer) {
+            clusterer.removeAll();
         }
+        Object.keys(mapMarkers).forEach(id => {
+            delete mapMarkers[id];
+        });
+
         database.ref('parkings').once('value').then(snapshot => {
             const data = snapshot.val();
             const newCache = {};
@@ -863,24 +862,24 @@ function tryYandexGeolocation(resolve, reject) {
                             }
                         }
                         newCache[key] = p;
-                        if (map) addMarkerToMap(key, p);
+                        if (map && clusterer) {
+                            addMarkerToMap(key, p);
+                        }
                     }
                 });
             }
             parkingDataCache = newCache;
             lastDataRefresh = Date.now();
-            // Сохраняем в localStorage для офлайн-доступа
             try {
                 localStorage.setItem('parkingCache', JSON.stringify(newCache));
             } catch(e) {}
             resolve();
         }).catch(error => {
-            // Если не удалось загрузить, пробуем взять из localStorage
             const cached = localStorage.getItem('parkingCache');
             if (cached) {
                 try {
                     parkingDataCache = JSON.parse(cached);
-                    if (map) {
+                    if (map && clusterer) {
                         Object.values(parkingDataCache).forEach(p => addMarkerToMap(p.id || p.key, p));
                     }
                     resolve();
@@ -892,82 +891,157 @@ function tryYandexGeolocation(resolve, reject) {
     });
 }
     function refreshParkingMarker() {
-        if (!currentParkingId) return;
-        database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
-            const data = snapshot.val();
+    if (!currentParkingId) return;
+    database.ref(`parkings/${currentParkingId}`).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (data) {
             if (mapMarkers[currentParkingId]) {
-                map.geoObjects.remove(mapMarkers[currentParkingId]);
+                clusterer.remove(mapMarkers[currentParkingId]);
                 delete mapMarkers[currentParkingId];
             }
             parkingDataCache[currentParkingId] = data;
             addMarkerToMap(currentParkingId, data);
-        });
-    }
-
-    function addMarkerToMap(id, data) {
+        }
+    });
+}
+ function addMarkerToMap(id, data) {
+    // Удаляем старый маркер, если он есть
     if (mapMarkers[id]) {
-        map.geoObjects.remove(mapMarkers[id]);
+        clusterer.remove(mapMarkers[id]);
         delete mapMarkers[id];
     }
-    if (!map) return;
+    if (!map || !clusterer) return;
 
     var totalSpots = data.totalSpots || 0;
     var occupiedSpots = data.occupiedSpots || 0;
     var freeSpots = totalSpots - occupiedSpots;
     var color = getOccupancyColor(occupiedSpots, totalSpots);
 
-    var placemark;
-    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-        placemark = new ymaps.Polygon([data.coordinates], {
-            hintContent: data.name
-        }, {
-            fillColor: color + '55',
-            strokeColor: color,
-            strokeWidth: 2,
-            balloon: { enabled: false }
-        });
-    } else {
-        placemark = new ymaps.Placemark([data.lat, data.lng], {
-            hintContent: data.name
-        }, {
-            preset: 'islands#blueParkingIcon',
-            balloon: { enabled: false }
-        });
+    // Вычисляем центр (для полигонов используем среднюю точку)
+    var centerLat = data.lat;
+    var centerLng = data.lng;
+    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length > 0) {
+        var coords = data.coordinates;
+        var latSum = coords.reduce((sum, c) => sum + c[0], 0);
+        var lngSum = coords.reduce((sum, c) => sum + c[1], 0);
+        centerLat = latSum / coords.length;
+        centerLng = lngSum / coords.length;
     }
+
+    var placemark = new ymaps.Placemark([centerLat, centerLng], {
+        hintContent: data.name,
+        name: data.name,
+        freeSpots: freeSpots,
+        totalSpots: totalSpots,
+        parkingId: id,
+        balloonContent: `
+            <div style="padding: 8px;">
+                <strong>${escapeHtml(data.name || 'Без названия')}</strong><br>
+                Свободно: ${freeSpots} / ${totalSpots}<br>
+                <button class="btn-secondary" style="margin-top: 8px; padding: 4px 12px; border-radius: 8px; font-size: 14px;" onclick="openCenterSheet('${id}', parkingDataCache['${id}'])">Подробнее</button>
+            </div>
+        `
+    }, {
+        preset: 'islands#blueCircleDotIcon',
+        iconColor: color
+    });
 
     placemark.events.add('click', function(e) {
         openCenterSheet(id, data);
         if (map.balloon) map.balloon.close();
     });
 
-    map.geoObjects.add(placemark);
+    clusterer.add(placemark);
     mapMarkers[id] = placemark;
 }
+  // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
+function initMap() {
+    console.log('▶️ initMap вызвана');
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('❌ Элемент #map не найден в DOM');
+        return;
+    }
 
-    // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
-    function initMap() {
-        console.log('Инициализация карты...');
-        map = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 14, controls: ['zoomControl'],
-            type: 'yandex#map' });
-        console.log('Карта инициализирована');
-        document.getElementById('addBtn').onclick = () => { if (!currentUser) showPanel('home');
+    try {
+        map = new ymaps.Map("map", {
+            center: [55.7558, 37.6173],
+            zoom: 14,
+            controls: ['zoomControl'],
+            type: 'yandex#map'
+        });
+        console.log('✅ Карта инициализирована');
+
+        // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
+        clusterer = new ymaps.Clusterer({
+            preset: 'islands#blueClusterIcons',
+            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="background: var(--accent); color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
+                '{{ properties.freeSpots || 0 }}' +
+                '</div>'
+            ),
+            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="max-height: 200px; overflow-y: auto;">' +
+                '{% for geoObject in properties.geoObjects %}' +
+                '<div style="padding: 8px 0; border-bottom: 1px solid #eee;">' +
+                '<strong>{{ geoObject.properties.name }}</strong><br>' +
+                'Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
+                '</div>' +
+                '{% endfor %}' +
+                '</div>'
+            ),
+            clusterBalloonPanelMaxMapArea: 0,
+            clusterBalloonItemContentLayout: null
+        });
+
+        // При кластеризации вычисляем сумму свободных мест для каждого кластера
+        clusterer.events.add('clusterize', function(e) {
+            var clusters = e.get('clusters');
+            clusters.forEach(function(cluster) {
+                var freeSum = 0;
+                cluster.getGeoObjects().forEach(function(obj) {
+                    freeSum += obj.properties.get('freeSpots') || 0;
+                });
+                cluster.properties.set('freeSpots', freeSum);
+            });
+        });
+
+        map.geoObjects.add(clusterer);
+
+        // ===== Обработчик клика по карте для показа адреса =====
+        map.events.add('click', function(e) {
+            var coords = e.get('coords');
+            ymaps.geocode(coords, { results: 1 }).then(function(res) {
+                var geoObject = res.geoObjects.get(0);
+                var address = geoObject ? geoObject.getAddressLine() : 'Адрес не определён';
+                map.balloon.open(coords, {
+                    contentHeader: '📍 Адрес',
+                    contentBody: address,
+                    contentFooter: '<button class="btn-secondary" style="margin-top:4px; padding:8px 16px; border-radius:8px;" onclick="findParkingsNearAddress(' + coords[0] + ', ' + coords[1] + ', \'' + address.replace(/'/g, "\\'") + '\')">🔍 Найти парковки рядом</button>'
+                });
+            }).catch(function() {
+                map.balloon.open(coords, {
+                    contentHeader: '⚠️ Ошибка',
+                    contentBody: 'Не удалось определить адрес'
+                });
+            });
+        });
+
+        // Обработчики кнопок и прочие настройки (оставляем как было)
+        document.getElementById('addBtn').onclick = () => {
+            if (!currentUser) showPanel('home');
             else if (isDrawingMode) cancelDrawing();
-            else startDrawingMode(); };
+            else startDrawingMode();
+        };
 
         const layerBtn = document.getElementById('layerSwitcher');
         let pressTimer = null;
-
         function showLayerMenu() {
             document.getElementById('layerMenu').classList.add('active');
         }
-
         layerBtn.addEventListener('mousedown', function(e) {
-            pressTimer = setTimeout(() => {
-                showLayerMenu();
-                pressTimer = null;
-            }, 500);
+            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
         });
-
         layerBtn.addEventListener('mouseup', function(e) {
             if (pressTimer) {
                 clearTimeout(pressTimer);
@@ -983,14 +1057,9 @@ function tryYandexGeolocation(resolve, reject) {
                 updateMapTheme();
             }
         });
-
         layerBtn.addEventListener('touchstart', function(e) {
-            pressTimer = setTimeout(() => {
-                showLayerMenu();
-                pressTimer = null;
-            }, 500);
+            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
         });
-
         layerBtn.addEventListener('touchend', function(e) {
             if (pressTimer) {
                 clearTimeout(pressTimer);
@@ -1012,46 +1081,70 @@ function tryYandexGeolocation(resolve, reject) {
             const btn = document.getElementById('geoBtn');
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-            getUserLocation().then(coords => {
-                btn.innerHTML = originalContent;
-                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь',
-                    balloonContent: '<strong>Ваше местоположение</strong>' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-                myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                map.geoObjects.add(myLocationPlacemark);
-                map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback
-                    .notificationOccurred('success');
-            }).catch(err => {
-                btn.innerHTML = originalContent;
-                console.error("Ошибка геолокации:", err);
-                let message = 'Не удалось определить местоположение.';
-                if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-                if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(message);
-                else alert(message);
-            });
+            getUserLocation()
+                .then(coords => {
+                    btn.innerHTML = originalContent;
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                        hintContent: 'Вы здесь',
+                        balloonContent: '<strong>Ваше местоположение</strong>'
+                    }, {
+                        preset: 'islands#blueCircleDotIconWithCaption'
+                    });
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    map.geoObjects.add(myLocationPlacemark);
+                    map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                })
+                .catch(err => {
+                    btn.innerHTML = originalContent;
+                    console.error('Ошибка геолокации:', err);
+                    let message = 'Не удалось определить местоположение.';
+                    if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
+                    if (window.Telegram?.WebApp?.showAlert) {
+                        window.Telegram.WebApp.showAlert(message);
+                    } else {
+                        alert(message);
+                    }
+                });
         };
 
-        loadAllParkings();
+        loadAllParkings().catch(err => console.warn('Не удалось загрузить парковки:', err));
 
         setTimeout(() => {
-            getUserLocation().then(coords => {
-                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], { hintContent: 'Вы здесь' }, { preset: 'islands#blueCircleDotIconWithCaption' });
-                myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                map.geoObjects.add(myLocationPlacemark);
-                map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
-            }).catch(() => console.log('Автогеолокация не удалась'));
+            getUserLocation()
+                .then(coords => {
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                        hintContent: 'Вы здесь'
+                    }, {
+                        preset: 'islands#blueCircleDotIconWithCaption'
+                    });
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    map.geoObjects.add(myLocationPlacemark);
+                    map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
+                })
+                .catch(() => console.log('Автогеолокация не удалась'));
         }, 1000);
-        setTimeout(() => {
-    const splash = document.getElementById('splashScreen');
-    if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(() => splash.remove(), 300);
-    }
-}, 5000);
-    }
 
+        setTimeout(() => {
+            const splash = document.getElementById('splashScreen');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.remove(), 300);
+            }
+        }, 5000);
+
+    } catch (e) {
+        console.error('❌ Ошибка инициализации карты:', e);
+        const container = document.getElementById('map');
+        if (container) {
+            container.innerHTML = '<div style="color:var(--red); text-align:center; padding:20px;">⚠️ Не удалось загрузить карту. Проверьте подключение к интернету и API-ключ Яндекс.Карт.</div>';
+        }
+    }
+}
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
 
