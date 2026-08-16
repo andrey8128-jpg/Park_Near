@@ -905,7 +905,6 @@ function tryYandexGeolocation(resolve, reject) {
     });
 }
 function addMarkerToMap(id, data) {
-    // Удаляем старый маркер, если он есть
     if (mapMarkers[id]) {
         clusterer.remove(mapMarkers[id]);
         delete mapMarkers[id];
@@ -917,7 +916,7 @@ function addMarkerToMap(id, data) {
     var freeSpots = totalSpots - occupiedSpots;
     var color = getOccupancyColor(occupiedSpots, totalSpots);
 
-    // Вычисляем центр (для полигонов – средняя точка)
+    // Центр парковки
     var centerLat = data.lat;
     var centerLng = data.lng;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length > 0) {
@@ -928,39 +927,52 @@ function addMarkerToMap(id, data) {
         centerLng = lngSum / coords.length;
     }
 
-    // Создаём маркер с числом свободных мест внутри иконки
+    // Создаём полигон (если есть координаты)
+    var polygon = null;
+    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+        polygon = new ymaps.Polygon([data.coordinates], {}, {
+            fillColor: color + '33',  // полупрозрачный
+            strokeColor: color,
+            strokeWidth: 2,
+            visible: false, // скрыт по умолчанию
+            zIndex: 5
+        });
+        map.geoObjects.add(polygon);
+    }
+
     var placemark = new ymaps.Placemark([centerLat, centerLng], {
         hintContent: data.name,
         name: data.name,
         freeSpots: freeSpots,
         totalSpots: totalSpots,
         parkingId: id,
-        // Текст, который отобразится внутри иконки
         iconContent: String(freeSpots),
-        balloonContent: `
-            <div style="padding: 8px;">
-                <strong>${escapeHtml(data.name || 'Без названия')}</strong><br>
-                Свободно: ${freeSpots} / ${totalSpots}<br>
-                <button class="btn-secondary" style="margin-top: 8px; padding: 4px 12px; border-radius: 8px; font-size: 14px;" onclick="openCenterSheet('${id}', parkingDataCache['${id}'])">Подробнее</button>
-            </div>
-        `
+        polygon: polygon // сохраняем полигон
     }, {
-        // Пресет с растягиваемой иконкой, внутри которой можно разместить текст
         preset: 'islands#blueStretchyIcon',
-        // Цвет иконки – можно использовать цвет занятости
         iconColor: color,
-        // Размер текста внутри иконки
         iconContentSize: [20, 20],
         iconContentOffset: [0, 0]
     });
 
-    // Открываем карточку парковки при клике на маркер
+    // Обработчик клика по маркеру
     placemark.events.add('click', function(e) {
+        // Скрываем предыдущий полигон
+        if (activePolygon) {
+            activePolygon.options.set('visible', false);
+            activePolygon = null;
+        }
+        // Показываем полигон текущей парковки
+        var poly = placemark.properties.get('polygon');
+        if (poly) {
+            poly.options.set('visible', true);
+            activePolygon = poly;
+        }
+        // Открываем карточку
         openCenterSheet(id, data);
         if (map.balloon) map.balloon.close();
     });
 
-    // Добавляем маркер в кластеризатор
     clusterer.add(placemark);
     mapMarkers[id] = placemark;
 }
@@ -1703,6 +1715,11 @@ function closeCenterSheet() {
     document.getElementById('centerSheet').classList.remove('active');
     currentParkingId = null;
     currentParkingData = null;
+    // Скрываем активный полигон
+    if (activePolygon) {
+        activePolygon.options.set('visible', false);
+        activePolygon = null;
+    }
 }
 function generateForecastText(forecastData, now) {
     if (!forecastData || forecastData.length === 0) {
