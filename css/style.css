@@ -2429,4 +2429,16 @@ body.dark-theme .theme-slider:before {
         font-size: 14px;
     }
 }
+/* 1. Сдвигаем копирайт Яндекс.Карт вниз за пределы экрана */
+.ymaps-2-1-79-copyright,
+.ymaps-2-1-79-logo,
+.ymaps-2-1-79-conditions {
+    bottom: -100px !important;
+    opacity: 0 !important;
+}
+
+/* 2. Скрываем индикатор обновления, если он есть */
+.pull-indicator {
+    display: none !important;
+}
     </style>
