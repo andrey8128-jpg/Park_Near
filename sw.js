@@ -1,4 +1,6 @@
 // sw.js
+const BASE_PATH = '/Park_Near/';
+const DEFAULT_ICON = `${BASE_PATH}assets/images/logo.png`;
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
 });
