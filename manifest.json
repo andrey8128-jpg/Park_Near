@@ -2,8 +2,8 @@
   "name": "Park Near",
   "short_name": "ParkNear",
   "description": "Поиск парковок рядом",
-  "start_url": "/Park_Near/index.html"
-  "scope": "/",
+  "start_url": "/Park_Near/",
+  "scope": "/Park_Near/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait",
