@@ -930,9 +930,13 @@ function loadAllParkings(force = false) {
     let cacheLoaded = false;
     if (!force && cached) {
         try {
-            const data = JSON.parse(cached);
-            if (data && Object.keys(data).length > 0) {
-                parkingDataCache = data;
+            const cache = JSON.parse(cached);
+           if (
+                cache &&
+                cache.data &&
+                Date.now() - cache.timestamp < 5 * 60 * 1000
+) {
+    parkingDataCache = cache.data;
                 lastDataRefresh = Date.now();
                 cacheLoaded = true;
 
@@ -953,7 +957,15 @@ function loadAllParkings(force = false) {
     }
 
     return new Promise((resolve, reject) => {
-        database.ref('parkings').once('value').then(snapshot => {
+        let parkingQuery = database.ref('parkings');
+
+if (userCityPrefs.city) {
+    parkingQuery = parkingQuery
+        .orderByChild('city')
+        .equalTo(userCityPrefs.city);
+}
+
+parkingQuery.once('value').then(snapshot => {
             const data = snapshot.val();
             const newCache = {};
             if (data) {
@@ -2444,112 +2456,163 @@ function loadHistoryPreview(parkingId) {
     }
 
   async function changeOccupancy(delta, parkingId) {
-    console.log('changeOccupancy called with delta=', delta, 'parkingId=', parkingId);
-
     if (!currentUser) {
-        alert('Необходимо авторизоваться');
+        showToast('Необходимо авторизоваться');
         return;
     }
 
     const id = parkingId || currentParkingId;
+
     if (!id) {
-        console.error('changeOccupancy: нет parkingId');
-        alert('Ошибка: ID парковки не найден');
+        showToast('ID парковки не найден');
         return;
     }
 
-    // Загружаем актуальные данные из Firebase
-    let data = parkingDataCache[id];
-    if (!data) {
-        try {
-            const snapshot = await database.ref(`parkings/${id}`).once('value');
-            data = snapshot.val();
-            if (data) {
-                parkingDataCache[id] = data;
-                if (id === currentParkingId) currentParkingData = data;
-            }
-        } catch (err) {
-            console.error('Ошибка загрузки данных:', err);
-            alert('Не удалось загрузить данные парковки');
-            return;
-        }
-    }
-
-    if (!data) {
-        alert('Данные парковки не найдены');
-        return;
-    }
-
-    const total = data.totalSpots || 0;
-    const cur = data.occupiedSpots || 0;
-    const newOcc = cur + delta;
-
-    if (newOcc < 0 || newOcc > total) {
-        console.warn('Недопустимое значение:', newOcc);
-        return;
-    }
-
-    const now = Date.now();
-    const car = currentUser.car || {};
+    const parkingRef = database.ref(`parkings/${id}`);
 
     try {
-        await database.ref(`parkings/${id}`).update({
-            occupiedSpots: newOcc,
+        const snapshot = await parkingRef.once('value');
+        const data = snapshot.val();
+
+        if (!data) {
+            showToast('Парковка не найдена');
+            return;
+        }
+
+        const total = Number(data.totalSpots || 0);
+
+        let previousOccupied = 0;
+        let newOccupied = 0;
+
+        const result = await parkingRef.child('occupiedSpots').transaction(
+            currentValue => {
+                previousOccupied = Number(currentValue || 0);
+                newOccupied = previousOccupied + delta;
+
+                if (
+                    newOccupied < 0 ||
+                    newOccupied > total
+                ) {
+                    return;
+                }
+
+                return newOccupied;
+            }
+        );
+
+        if (!result.committed) {
+            showToast('Количество мест уже изменилось');
+            return;
+        }
+
+        const now = Date.now();
+
+        await parkingRef.update({
             lastUpdatedAt: now,
-            lastUpdatedBy: currentUser.nickname || currentUser.firstName
+            lastUpdatedBy:
+                currentUser.nickname ||
+                currentUser.firstName ||
+                'Пользователь'
         });
 
-        await database.ref(`parkings/${id}/history`).push({
+        await parkingRef.child('history').push({
             action: delta < 0 ? 'freed' : 'occupied',
             timestamp: now,
             userId: currentUser.id,
-            username: currentUser.username || currentUser.nickname || 'Гость',
-            previousOccupied: cur,
-            newOccupied: newOcc,
-            car: {
-                brand: car.brand || '',
-                model: car.model || '',
-                plate: car.plate || '',
-                color: car.color || ''
-            }
+            username:
+                currentUser.username ||
+                currentUser.nickname ||
+                'Пользователь',
+            previousOccupied,
+            newOccupied
         });
 
-        // Обновляем кеш
-        if (parkingDataCache[id]) parkingDataCache[id].occupiedSpots = newOcc;
-        if (id === currentParkingId && currentParkingData) currentParkingData.occupiedSpots = newOcc;
+        if (parkingDataCache[id]) {
+            parkingDataCache[id].occupiedSpots = newOccupied;
+        }
 
-        // Обновляем интерфейс
-        updateOccupancyDisplay(newOcc);
+        if (
+            id === currentParkingId &&
+            currentParkingData
+        ) {
+            currentParkingData.occupiedSpots = newOccupied;
+        }
+
+        updateOccupancyDisplay(newOccupied);
         refreshParkingMarker();
-        if (document.getElementById('historyList')) loadHistoryPreview(id);
+
+        if (document.getElementById('historyList')) {
+            loadHistoryPreview(id);
+        }
 
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
-    } catch (err) {
-        console.error('Ошибка обновления занятости:', err);
-        alert('Ошибка: ' + (err.message || 'Неизвестная ошибка'));
+
+    } catch (error) {
+        console.error(
+            'Ошибка обновления занятости:',
+            error
+        );
+
+        showToast(
+            'Не удалось изменить количество мест'
+        );
     }
 }
-    function deleteParking(parkingId) {
-        if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-        if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
-        database.ref(`parkings/${parkingId}`).remove().then(() => {
-            if (mapMarkers[parkingId]) { map.geoObjects.remove(mapMarkers[parkingId]);
-                delete mapMarkers[parkingId]; }
-            delete parkingDataCache[parkingId];
-            closePanel();
-            showMap();
-            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback
-                .notificationOccurred('success');
-            const panelContent = document.getElementById('panelContent');
-            if (panelContent && document.getElementById('searchResults')) {
-                filterParkings();
-            }
-        }).catch(err => { console.error('Ошибка удаления:', err);
-            alert('Ошибка удаления: ' + err.message); });
+async function deleteParking(parkingId) {
+    if (!currentUser) {
+        showToast('Необходимо авторизоваться');
+        return;
     }
 
+    if (!parkingId) {
+        showToast('ID парковки не найден');
+        return;
+    }
+
+    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) {
+        return;
+    }
+
+    try {
+        const ref = database.ref(`parkings/${parkingId}`);
+        const snapshot = await ref.once('value');
+        const data = snapshot.val();
+
+        if (!data) {
+            showToast('Парковка уже удалена');
+            return;
+        }
+
+        if (data.authorId !== currentUser.id) {
+            showToast('Удалять парковку может только её автор');
+            return;
+        }
+
+        await ref.remove();
+
+        if (mapMarkers[parkingId]) {
+            map.geoObjects.remove(mapMarkers[parkingId]);
+            delete mapMarkers[parkingId];
+        }
+
+        delete parkingDataCache[parkingId];
+
+        closePanel();
+        showMap();
+
+        if (document.getElementById('searchResults')) {
+            filterParkings();
+        }
+
+        showToast('Парковка удалена');
+
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        showToast('Не удалось удалить парковку');
+    }
+}
     function confirmParking(parkingId) {
         if (!currentUser) return;
         database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
