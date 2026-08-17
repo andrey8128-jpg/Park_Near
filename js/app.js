@@ -1121,49 +1121,39 @@ function initMap() {
         console.log('✅ Карта инициализирована');
 
         // 2. Создаём кластеризатор (один раз)
-        clusterer = new ymaps.Clusterer({
-            gridSize: 128,
-            minClusterSize: 2,
-            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-    '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">' +
-    '{{ properties.freeSpots || "0" }}' +
-    '</div>'
-),
-            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="max-height: 200px; overflow-y: auto; padding: 4px;">' +
-                '{% for geoObject in properties.geoObjects %}' +
-                '<div style="padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer; border-radius: 8px; transition: background 0.15s;" ' +
-                'onclick="openCenterSheet(\'{{ geoObject.properties.parkingId }}\', window.parkingDataCache[\'{{ geoObject.properties.parkingId }}\'])" ' +
-                'onmouseover="this.style.background=\'var(--bg-primary)\'" ' +
-                'onmouseout="this.style.background=\'transparent\'">' +
-                '<div style="font-weight: 600; font-size: 14px;">{{ geoObject.properties.name }}</div>' +
-                '<div style="font-size: 13px; color: var(--text-secondary);">' +
-                '🅿️ Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
-                '</div>' +
-                '</div>' +
-                '{% endfor %}' +
-                '</div>'
-            ),
-            clusterBalloonPanelMaxMapArea: 0,
-            clusterBalloonItemContentLayout: null
-        });
-
-        // 3. Единственный обработчик событий кластеризации
-        clusterer.events.add('clusterize', function(e) {
-    var clusters = e.get('clusters');
-    clusters.forEach(function(cluster) {
-        var freeSum = 0;
-        cluster.getGeoObjects().forEach(function(obj) {
-            freeSum += obj.properties.get('freeSpots') || 0;
-        });
-        cluster.properties.set('freeSpots', freeSum);
-        console.log('Кластер с центром', cluster.geometry.getCoordinates(), 'свободно:', freeSum);
-    });
-    clusterer.reload(); // обязательно перерисовать
+       clusterer = new ymaps.Clusterer({
+    gridSize: 256,
+    minClusterSize: 2,
+    maxZoom: 18,
+    clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
+        '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">' +
+        '{{ properties.freeSpots || "0" }}' +
+        '</div>'
+    ),
+    clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
+        '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
+        '{% for geoObject in properties.geoObjects %}' +
+        '<div style="padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer;" onclick="openCenterSheet(\'{{ geoObject.properties.parkingId }}\', window.parkingDataCache[\'{{ geoObject.properties.parkingId }}\'])">' +
+        '<div style="font-weight: 600;">{{ geoObject.properties.name }}</div>' +
+        '<div style="font-size: 12px; color: var(--text-secondary);">🅿️ Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}</div>' +
+        '</div>' +
+        '{% endfor %}' +
+        '</div>'
+    )
 });
 
-        // 4. Добавляем кластеризатор на карту (один раз)
-        map.geoObjects.add(clusterer);
+clusterer.events.add('clusterize', function(e) {
+    e.get('clusters').forEach(function(cluster) {
+        var sum = 0;
+        cluster.getGeoObjects().forEach(function(obj) {
+            sum += obj.properties.get('freeSpots') || 0;
+        });
+        cluster.properties.set('freeSpots', sum);
+    });
+    clusterer.reload();
+});
+
+map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
         map.events.add('click', function(e) {
