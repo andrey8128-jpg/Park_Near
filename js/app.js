@@ -1123,13 +1123,13 @@ function initMap() {
         // 2. Создаём кластеризатор (один раз)
         clusterer = new ymaps.Clusterer({
             gridSize: 256,
-            minClusterSize: 5,
+            minClusterSize: 2,
             preset: 'islands#blueClusterIcons',
             clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
-                '{{ properties.freeSpots || "0" }}' +
-                '</div>'
-            ),
+    '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">' +
+    '{{ properties.freeSpots || "0" }}' +
+    '</div>'
+),
             clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
                 '<div style="max-height: 200px; overflow-y: auto; padding: 4px;">' +
                 '{% for geoObject in properties.geoObjects %}' +
