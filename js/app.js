@@ -1151,17 +1151,17 @@ function initMap() {
 
         // 3. Единственный обработчик событий кластеризации
         clusterer.events.add('clusterize', function(e) {
-            var clusters = e.get('clusters');
-            clusters.forEach(function(cluster) {
-                var freeSum = 0;
-                cluster.getGeoObjects().forEach(function(obj) {
-                    freeSum += obj.properties.get('freeSpots') || 0;
-                });
-                cluster.properties.set('freeSpots', freeSum);
-            });
-            // Перерисовываем кластеры (один раз)
-            clusterer.reload();
+    var clusters = e.get('clusters');
+    clusters.forEach(function(cluster) {
+        var freeSum = 0;
+        cluster.getGeoObjects().forEach(function(obj) {
+            freeSum += obj.properties.get('freeSpots') || 0;
         });
+        cluster.properties.set('freeSpots', freeSum);
+        console.log('Кластер с центром', cluster.geometry.getCoordinates(), 'свободно:', freeSum);
+    });
+    clusterer.reload(); // обязательно перерисовать
+});
 
         // 4. Добавляем кластеризатор на карту (один раз)
         map.geoObjects.add(clusterer);
