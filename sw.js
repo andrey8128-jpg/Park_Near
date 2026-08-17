@@ -49,15 +49,15 @@ self.addEventListener('notificationclick', (event) => {
 
   const parkingId = event.notification.data?.parkingId;
   const url = parkingId
-    ? `/?parking=${parkingId}`
-    : '/';
+    ? `${BASE_PATH}?parking=${encodeURIComponent(parkingId)}`
+    : BASE_PATH;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
         // Если уже есть открытое окно, переключаемся на него
         for (const client of clientList) {
-          if (client.url.includes('/') && 'focus' in client) {
+          if (client.url.includes('/Park_Near/') && 'focus' in client) {
             client.postMessage({ action: 'focusParking', parkingId });
             return client.focus();
           }
