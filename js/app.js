@@ -497,24 +497,26 @@
     if (userCoords && parking.lat && parking.lng) {
         const dist = getDistanceInMeters(userCoords.lat, userCoords.lng, parking.lat, parking.lng);
         const distStr = dist < 1000 ? Math.round(dist) + ' м' : (dist/1000).toFixed(1) + ' км';
-        const time = Math.round(dist / 500); // 30 км/ч
+        const time = Math.round(dist / 500);
         const timeStr = time < 1 ? '<1 мин' : time + ' мин';
-        distanceHtml = `<div class="meta-row"><span>${distStr}</span><span class="dot">·</span><span>${timeStr}</span></div>`;
+        distanceHtml = `<div class="meta-row"><span>${escapeHtml(distStr)}</span><span class="dot">·</span><span>${escapeHtml(timeStr)}</span></div>`;
     }
 
+    const safeName = escapeHtml(parking.name || 'Без названия');
+    const safeBadge = escapeHtml(String(badgeText));
+
     return `
-        <div class="parking-item" onclick="focusMap(${parking.lat}, ${parking.lng}, '${parking.id}')">
+        <div class="parking-item" onclick="focusMap(${parking.lat}, ${parking.lng}, '${escapeHtml(parking.id)}')">
             <div class="info">
                 <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <div class="name">${escapeHtml(parking.name || 'Без названия')}</div>
-                    <span style="font-weight:700; margin-left:8px; color:var(--text-primary);">${badgeText}</span>
+                    <div class="name">${safeName}</div>
+                    <span class="free-badge ${badgeClass}">${safeBadge}</span>
                 </div>
                 ${distanceHtml}
             </div>
         </div>
     `;
 }
-
     function formatDateTime(timestamp) {
         if (!timestamp) return 'Неизвестно';
         const d = new Date(timestamp);
