@@ -1138,14 +1138,21 @@ body.dark-theme .theme-slider:before {
         .label-picker-overlay.active {
             display: flex;
         }
-        .label-picker-box {
-            background: var(--bg-secondary);
-            border-radius: 16px;
-            padding: 24px;
-            width: 90%;
-            max-width: 340px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
+       .label-picker-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background: var(--bg-secondary, #ffffff);
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 340px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
         .label-picker-box h3 {
             text-align: center;
             margin-bottom: 16px;
