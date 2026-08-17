@@ -588,44 +588,129 @@ function saveParkingSettings(settings) {
     localStorage.setItem('parkingSettings', JSON.stringify(settings));
 }
 
-    function parseAddress(fullAddress) {
-        if (!fullAddress) return { region: '', city: '', street: '', houseNumber: '' };
-        let addr = fullAddress.replace(/^Россия,\s*/i, '');
-        let region = '',
-            city = '',
-            street = '',
-            houseNumber = '';
-        const houseMatch = addr.match(/\b(?:д(?:ом)?\.?\s*)?(\d+[а-я]?(?:\s*\/\s*\d+)?(?:\s*[кк]\.?\s*\d+)?)\b/i);
-        if (houseMatch) {
-            houseNumber = houseMatch[1].trim();
-            addr = addr.replace(houseMatch[0], '').trim();
-        }
-        for (const reg of Object.keys(regionsData)) {
-            if (addr.includes(reg)) { region = reg; break; }
-        }
-        if (region) {
-            const cities = regionsData[region];
-            for (const c of cities) {
-                if (addr.includes(c)) { city = c; break; }
-            }
-            if (!city && cities.includes(region)) city = region;
-        } else {
-            for (const reg of Object.keys(regionsData)) {
-                const cities = regionsData[reg];
-                for (const c of cities) {
-                    if (addr.includes(c)) { region = reg;
-                        city = c; break; }
-                }
-                if (region) break;
-            }
-        }
-        let streetPart = addr;
-        if (region) streetPart = streetPart.replace(new RegExp(region, 'i'), '').trim();
-        if (city && city !== region) streetPart = streetPart.replace(new RegExp(city, 'i'), '').trim();
-        streetPart = streetPart.replace(/^[, ]+/, '').replace(/[, ]+$/, '');
-        street = streetPart;
-        return { region, city, street, houseNumber };
+  /**
+ * Парсит российский адрес, извлекая регион, город, улицу и номер дома.
+ * @param {string} fullAddress - Полный адрес (например, "Россия, Московская область, г. Москва, ул. Тверская, д. 15")
+ * @param {Object} [regionsData] - Объект вида { "Регион": ["Город1", "Город2", ...] }.
+ *                                  Если не передан, используется глобальная переменная regionsData.
+ * @returns {{ region: string, city: string, street: string, houseNumber: string }}
+ */
+function parseAddress(fullAddress, regionsData = window.regionsData) {
+    // Результат по умолчанию
+    const defaultResult = { region: '', city: '', street: '', houseNumber: '' };
+
+    if (!fullAddress || typeof fullAddress !== 'string') {
+        return defaultResult;
     }
+
+    if (!regionsData || typeof regionsData !== 'object') {
+        console.warn('parseAddress: regionsData не определён или не является объектом');
+        return defaultResult;
+    }
+
+    // Нормализация: убираем "Россия", лишние пробелы, приводим к нижнему регистру для сравнения
+    let addr = fullAddress
+        .replace(/^Россия,\s*/i, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+    // Если после удаления "Россия" ничего не осталось
+    if (!addr) return defaultResult;
+
+    // 1. Извлечение номера дома (ищем в конце строки, после запятой или после "д.")
+    let houseNumber = '';
+    const houseRegex = /(?:^|,\s*|[дД]\.?\s*|[Дд]ом\s*)(\d+[а-я]?(?:\s*[/\\]\s*\d+)?(?:\s*[кК]\.?\s*\d+)?)\s*(?:$|,|$)/;
+    const houseMatch = addr.match(houseRegex);
+    if (houseMatch) {
+        houseNumber = houseMatch[1].trim();
+        // Удаляем найденный номер дома из строки, включая возможный разделитель
+        addr = addr.replace(houseMatch[0], '').trim();
+        // Убираем лишние запятые в конце/начале
+        addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
+    }
+
+    // Экранирование специальных символов для RegExp
+    function escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // 2. Построение индекса "город → регион" для быстрого поиска
+    const cityToRegion = new Map();
+    for (const [region, cities] of Object.entries(regionsData)) {
+        if (Array.isArray(cities)) {
+            cities.forEach(city => {
+                // Если город уже есть в индексе, возможно, он принадлежит нескольким регионам.
+                // Мы запоминаем первый найденный регион, но можно хранить массив.
+                if (!cityToRegion.has(city)) {
+                    cityToRegion.set(city, region);
+                }
+            });
+        }
+    }
+
+    // 3. Поиск города (с учётом границ слова)
+    let foundCity = '';
+    let foundRegion = '';
+
+    // Сортируем города по длине (сначала самые длинные) для избежания частичных совпадений
+    const sortedCities = [...cityToRegion.keys()].sort((a, b) => b.length - a.length);
+
+    // Ищем город в адресе
+    for (const city of sortedCities) {
+        const escapedCity = escapeRegex(city);
+        const cityRegex = new RegExp(`\\b${escapedCity}\\b`, 'i');
+        if (cityRegex.test(addr)) {
+            foundCity = city;
+            foundRegion = cityToRegion.get(city);
+            break;
+        }
+    }
+
+    // Если город найден, удаляем его из адреса
+    if (foundCity) {
+        const escapedCity = escapeRegex(foundCity);
+        const cityRegex = new RegExp(`\\b${escapedCity}\\b`, 'i');
+        addr = addr.replace(cityRegex, '').trim();
+        addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
+    }
+
+    // 4. Поиск региона, если город не дал однозначного региона или регион не найден
+    if (!foundRegion) {
+        // Пытаемся найти регион напрямую (например, "Московская область")
+        const sortedRegions = Object.keys(regionsData).sort((a, b) => b.length - a.length);
+        for (const region of sortedRegions) {
+            const escapedRegion = escapeRegex(region);
+            const regionRegex = new RegExp(`\\b${escapedRegion}\\b`, 'i');
+            if (regionRegex.test(addr)) {
+                foundRegion = region;
+                // Удаляем регион из адреса
+                addr = addr.replace(regionRegex, '').trim();
+                addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
+                break;
+            }
+        }
+    }
+
+    // 5. Оставшаяся часть — улица (очищаем от лишних слов)
+    let street = addr
+        .replace(/^[,.\s]+/, '')   // удаляем запятые и точки в начале
+        .replace(/[,.\s]+$/, '')   // удаляем в конце
+        .replace(/\s{2,}/g, ' ')   // схлопываем пробелы
+        .trim();
+
+    // Дополнительная нормализация улицы: убираем типичные сокращения (опционально)
+    // Можно удалить "ул.", "пр-т", "пер.", "бульв." и т.д., но аккуратно, чтобы не сломать названия.
+    // Простой вариант: оставляем как есть, т.к. это может быть и "Тверская улица" и "ул. Тверская".
+    // Если хотите убрать сокращения, раскомментируйте:
+    // street = street.replace(/^(ул\.|улица|проспект|пр-т|пер\.|переулок|бульвар|бульв\.|набережная|наб\.)\s+/i, '').trim();
+
+    return {
+        region: foundRegion || '',
+        city: foundCity || '',
+        street: street,
+        houseNumber: houseNumber
+    };
+}
 
     function extractStreetName(fullStreet) {
         if (!fullStreet) return '';
@@ -1026,6 +1111,7 @@ function initMap() {
     }
 
     try {
+        // 1. Создаём карту
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
             zoom: 14,
@@ -1033,51 +1119,37 @@ function initMap() {
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
-    // ===== КЛАСТЕРИЗАЦИЯ МАРКЕРОВ =====
-clusterer = new ymaps.Clusterer({
-    gridSize: 120,
-    preset: 'islands#blueClusterIcons',
-    clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
-        '{{ properties.freeSpots || "0" }}' +
-        '</div>'
-    ),
-    // ===== ЭТОТ БЛОК ОТВЕЧАЕТ ЗА СПИСОК ПАРКОВОК ПРИ КЛИКЕ НА КЛАСТЕР =====
-    clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="max-height: 200px; overflow-y: auto; padding: 4px;">' +
-        '{% for geoObject in properties.geoObjects %}' +
-        '<div style="padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer; border-radius: 8px; transition: background 0.15s;" ' +
-        'onclick="openCenterSheet(\'{{ geoObject.properties.parkingId }}\', window.parkingDataCache[\'{{ geoObject.properties.parkingId }}\'])" ' +
-        'onmouseover="this.style.background=\'var(--bg-primary)\'" ' +
-        'onmouseout="this.style.background=\'transparent\'">' +
-        '<div style="font-weight: 600; font-size: 14px;">{{ geoObject.properties.name }}</div>' +
-        '<div style="font-size: 13px; color: var(--text-secondary);">' +
-        '🅿️ Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
-        '</div>' +
-        '</div>' +
-        '{% endfor %}' +
-        '</div>'
-    ),
-    clusterBalloonPanelMaxMapArea: 0,
-    clusterBalloonItemContentLayout: null
-});
 
-// Обработчик кластеризации – вычисляет сумму свободных мест
-clusterer.events.add('clusterize', function(e) {
-    var clusters = e.get('clusters');
-    clusters.forEach(function(cluster) {
-        var freeSum = 0;
-        cluster.getGeoObjects().forEach(function(obj) {
-            freeSum += obj.properties.get('freeSpots') || 0;
+        // 2. Создаём кластеризатор (один раз)
+        clusterer = new ymaps.Clusterer({
+            gridSize: 256,
+            minClusterSize: 5,
+            preset: 'islands#blueClusterIcons',
+            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">' +
+                '{{ properties.freeSpots || "0" }}' +
+                '</div>'
+            ),
+            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="max-height: 200px; overflow-y: auto; padding: 4px;">' +
+                '{% for geoObject in properties.geoObjects %}' +
+                '<div style="padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer; border-radius: 8px; transition: background 0.15s;" ' +
+                'onclick="openCenterSheet(\'{{ geoObject.properties.parkingId }}\', window.parkingDataCache[\'{{ geoObject.properties.parkingId }}\'])" ' +
+                'onmouseover="this.style.background=\'var(--bg-primary)\'" ' +
+                'onmouseout="this.style.background=\'transparent\'">' +
+                '<div style="font-weight: 600; font-size: 14px;">{{ geoObject.properties.name }}</div>' +
+                '<div style="font-size: 13px; color: var(--text-secondary);">' +
+                '🅿️ Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}' +
+                '</div>' +
+                '</div>' +
+                '{% endfor %}' +
+                '</div>'
+            ),
+            clusterBalloonPanelMaxMapArea: 0,
+            clusterBalloonItemContentLayout: null
         });
-        cluster.properties.set('freeSpots', freeSum);
-    });
-    // Принудительно перерисовываем кластеры
-    clusterer.reload();
-});
 
-map.geoObjects.add(clusterer);
-        // При кластеризации вычисляем сумму свободных мест для каждого кластера
+        // 3. Единственный обработчик событий кластеризации
         clusterer.events.add('clusterize', function(e) {
             var clusters = e.get('clusters');
             clusters.forEach(function(cluster) {
@@ -1087,10 +1159,11 @@ map.geoObjects.add(clusterer);
                 });
                 cluster.properties.set('freeSpots', freeSum);
             });
-            // Принудительно перерисовываем кластеры, чтобы числа обновились
+            // Перерисовываем кластеры (один раз)
             clusterer.reload();
         });
 
+        // 4. Добавляем кластеризатор на карту (один раз)
         map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
@@ -1113,7 +1186,7 @@ map.geoObjects.add(clusterer);
         });
 
         // Обработчики кнопок и прочие настройки (оставляем как было)
-        document.getElementById('addBtn').onclick = () => {
+        document.getElementById('addBtn').onclick = function() {
             if (!currentUser) showPanel('home');
             else if (isDrawingMode) cancelDrawing();
             else startDrawingMode();
@@ -1125,7 +1198,7 @@ map.geoObjects.add(clusterer);
             document.getElementById('layerMenu').classList.add('active');
         }
         layerBtn.addEventListener('mousedown', function(e) {
-            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
+            pressTimer = setTimeout(function() { showLayerMenu(); pressTimer = null; }, 500);
         });
         layerBtn.addEventListener('mouseup', function(e) {
             if (pressTimer) {
@@ -1137,13 +1210,13 @@ map.geoObjects.add(clusterer);
                 if (idx === -1) idx = 0;
                 const nextType = types[(idx + 1) % types.length];
                 map.setType(nextType);
-                document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
-                document.querySelector(`.layer-option[data-type="${nextType}"]`).classList.add('selected');
+                document.querySelectorAll('.layer-option').forEach(function(o) { o.classList.remove('selected'); });
+                document.querySelector('.layer-option[data-type="' + nextType + '"]').classList.add('selected');
                 updateMapTheme();
             }
         });
         layerBtn.addEventListener('touchstart', function(e) {
-            pressTimer = setTimeout(() => { showLayerMenu(); pressTimer = null; }, 500);
+            pressTimer = setTimeout(function() { showLayerMenu(); pressTimer = null; }, 500);
         });
         layerBtn.addEventListener('touchend', function(e) {
             if (pressTimer) {
@@ -1155,19 +1228,19 @@ map.geoObjects.add(clusterer);
                 if (idx === -1) idx = 0;
                 const nextType = types[(idx + 1) % types.length];
                 map.setType(nextType);
-                document.querySelectorAll('.layer-option').forEach(o => o.classList.remove('selected'));
-                document.querySelector(`.layer-option[data-type="${nextType}"]`).classList.add('selected');
+                document.querySelectorAll('.layer-option').forEach(function(o) { o.classList.remove('selected'); });
+                document.querySelector('.layer-option[data-type="' + nextType + '"]').classList.add('selected');
                 updateMapTheme();
             }
         });
 
-        document.getElementById('geoBtn').onclick = () => {
+        document.getElementById('geoBtn').onclick = function() {
             if (!map) return;
             const btn = document.getElementById('geoBtn');
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
             getUserLocation()
-                .then(coords => {
+                .then(function(coords) {
                     btn.innerHTML = originalContent;
                     if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
                     myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
@@ -1179,16 +1252,16 @@ map.geoObjects.add(clusterer);
                     myLocationPlacemark.properties.set('caption', 'Вы здесь');
                     map.geoObjects.add(myLocationPlacemark);
                     map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
                 })
-                .catch(err => {
+                .catch(function(err) {
                     btn.innerHTML = originalContent;
                     console.error('Ошибка геолокации:', err);
                     let message = 'Не удалось определить местоположение.';
-                    if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-                    if (window.Telegram?.WebApp?.showAlert) {
+                    if (window.Telegram && window.Telegram.WebApp) message += ' Проверьте настройки геолокации.';
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
                         window.Telegram.WebApp.showAlert(message);
                     } else {
                         alert(message);
@@ -1196,11 +1269,11 @@ map.geoObjects.add(clusterer);
                 });
         };
 
-        loadAllParkings().catch(err => console.warn('Не удалось загрузить парковки:', err));
+        loadAllParkings().catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
 
-        setTimeout(() => {
+        setTimeout(function() {
             getUserLocation()
-                .then(coords => {
+                .then(function(coords) {
                     if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
                     myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
                         hintContent: 'Вы здесь'
@@ -1211,14 +1284,14 @@ map.geoObjects.add(clusterer);
                     map.geoObjects.add(myLocationPlacemark);
                     map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
                 })
-                .catch(() => console.log('Автогеолокация не удалась'));
+                .catch(function() { console.log('Автогеолокация не удалась'); });
         }, 1000);
 
-        setTimeout(() => {
+        setTimeout(function() {
             const splash = document.getElementById('splashScreen');
             if (splash) {
                 splash.style.opacity = '0';
-                setTimeout(() => splash.remove(), 300);
+                setTimeout(function() { splash.remove(); }, 300);
             }
         }, 5000);
 
