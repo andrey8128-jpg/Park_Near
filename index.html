@@ -331,5 +331,19 @@
     </div>
 
     <script src="js/app.js"></script>
+    <script>
+    // Ждём загрузки Яндекс.Карт и запускаем приложение
+    ymaps.ready(function() {
+        if (typeof initApp === 'function') {
+            initApp();
+        } else {
+            console.error('❌ initApp не найдена – проверьте app.js');
+            // Запасной вариант: показываем карту, если initApp нет
+            if (typeof initMap === 'function') {
+                initMap();
+            }
+        }
+    });
+</script>
 </body>
 </html>
