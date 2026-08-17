@@ -507,7 +507,7 @@
             <div class="info">
                 <div style="display:flex; align-items:center; justify-content:space-between;">
                     <div class="name">${escapeHtml(parking.name || 'Без названия')}</div>
-                    <span class="free-badge ${badgeClass}">${badgeText}</span>
+                    <span style="font-weight:700; margin-left:8px; color:var(--text-primary);">${badgeText}</span>
                 </div>
                 ${distanceHtml}
             </div>
@@ -1125,11 +1125,11 @@ function initMap() {
     gridSize: 256,
     minClusterSize: 2,
     maxZoom: 18,
-    clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="background: #12464C; color: #fff; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">' +
-        '{{ properties.freeSpots || "0" }}' +
-        '</div>'
-    ),
+  clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
+    '<div style="color: #fff; font-weight: bold; font-size: 16px; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);">' +
+    '{{ properties.freeSpots || "0" }}' +
+    '</div>'
+)
     clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
         '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
         '{% for geoObject in properties.geoObjects %}' +
