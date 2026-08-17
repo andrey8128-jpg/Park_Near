@@ -49,7 +49,12 @@ async function getFCMToken() {
 // Сохранение токена в Firebase
 async function savePushToken(token) {
   if (!currentUser || !token) return;
-  const deviceId = `device_${Date.now()}`; // можно заменить на постоянный ID
+ let deviceId = localStorage.getItem('parknear_device_id');
+
+if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem('parknear_device_id', deviceId);
+}
   await database.ref(`users/${currentUser.id}/pushSubscriptions/${deviceId}`).set({
     token: token,
     userAgent: navigator.userAgent,
@@ -76,15 +81,20 @@ async function initPushNotifications() {
   }
 
   // Регистрируем Service Worker
-  if (!navigator.serviceWorker.controller) {
-    try {
-      await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-      console.log('Service Worker зарегистрирован');
-    } catch (err) {
-      console.error('Ошибка регистрации SW:', err);
-      return;
-    }
-  }
+try {
+    const registration = await navigator.serviceWorker.register(
+        '/Park_Near/sw.js',
+        {
+            scope: '/Park_Near/'
+        }
+    );
+    await registration.update();
+
+    console.log('Service Worker зарегистрирован:', registration.scope);
+} catch (err) {
+    console.error('Ошибка регистрации Service Worker:', err);
+    return;
+}
 
   // Проверяем разрешение
   const granted = await requestNotificationPermission();
