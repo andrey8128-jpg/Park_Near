@@ -1143,7 +1143,7 @@ function initMap() {
     '<div style="color: #fff; font-weight: bold; font-size: 16px; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);">' +
     '{{ properties.freeSpots || "0" }}' +
     '</div>'
-)
+),
     clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
         '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
         '{% for geoObject in properties.geoObjects %}' +
