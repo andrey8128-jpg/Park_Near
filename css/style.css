@@ -117,37 +117,25 @@
 }
 /* Глобальные сбросы для полноэкранного режима */
 html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0E2931;
+  }
 /* Карта – на весь экран */
-#map {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    background: #E5E5EA !important;
-    z-index: 1;
-}
-/* Контент по центру поверх SVG */
-#splashScreen > div {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 80%;
-    max-width: 300px;
-    text-align: center;
-}
-
+  #splashScreen, #map {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+  }
 /* Логотип – занимает максимально возможное место, но сохраняет пропорции */
 #splashScreen img {
     width: 100%;
