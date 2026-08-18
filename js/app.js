@@ -867,7 +867,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
 
         // Стандартный браузерный метод
         if (!navigator.geolocation) {
-            return reject(new Error('Геолокация не поддерживается'));
+            return reject(new Error('Геолокация не поддерживается вашим устройством'));
         }
 
         navigator.geolocation.getCurrentPosition(
@@ -1255,7 +1255,6 @@ map.geoObjects.add(clusterer);
         .then(function(coords) {
             btn.innerHTML = originalContent;
             btn.disabled = false;
-
             if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
             myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
                 hintContent: 'Вы здесь',
@@ -1266,7 +1265,6 @@ map.geoObjects.add(clusterer);
             myLocationPlacemark.properties.set('caption', 'Вы здесь');
             map.geoObjects.add(myLocationPlacemark);
             map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
             }
@@ -1275,11 +1273,8 @@ map.geoObjects.add(clusterer);
             btn.innerHTML = originalContent;
             btn.disabled = false;
             console.error('Ошибка геолокации:', err);
-
             let message = 'Не удалось определить ваше местоположение.';
             if (err.message) message += ' ' + err.message;
-
-            // В Telegram показываем alert через WebApp
             if (window.Telegram?.WebApp?.showAlert) {
                 window.Telegram.WebApp.showAlert(message);
             } else {
@@ -5306,15 +5301,17 @@ function onTelegramAuth(user) {
         continueAsGuest();
     }
 }
-  function initApp() {
+ function initApp() {
     // 1. Проверяем, не вернулись ли с авторизации через Telegram (редирект)
     if (checkTelegramAuthFromUrl()) {
         // Если авторизация уже выполнена, показываем главную и выходим
         showPanel('home');
         return;
     }
+
     // 2. Инициализация авторизации (показывает окно входа, если нет сохранённого пользователя)
     initAuth();
+
     // 3. Обработчик кнопки «+» (добавить парковку)
     document.getElementById('addBtn').onclick = () => {
         if (!currentUser) {
@@ -5325,51 +5322,23 @@ function onTelegramAuth(user) {
             startDrawingMode();
         }
     };
-    // 4. Обработчик кнопки геолокации
-    document.getElementById('geoBtn').onclick = () => {
-        if (!map) return;
-        const btn = document.getElementById('geoBtn');
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-        getUserLocation()
-            .then(coords => {
-                btn.innerHTML = originalContent;
-                if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                    hintContent: 'Вы здесь',
-                    balloonContent: '<strong>Ваше местоположение</strong>'
-                }, {
-                    preset: 'islands#blueCircleDotIconWithCaption'
-                });
-                myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                map.geoObjects.add(myLocationPlacemark);
-                map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                if (window.Telegram?.WebApp?.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                }
-            })
-            .catch(err => {
-                btn.innerHTML = originalContent;
-                console.error('Ошибка геолокации:', err);
-                let message = 'Не удалось определить местоположение.';
-                if (window.Telegram?.WebApp) message += ' Проверьте настройки геолокации.';
-                if (window.Telegram?.WebApp?.showAlert) {
-                    window.Telegram.WebApp.showAlert(message);
-                } else {
-                    alert(message);
-                }
-            });
-    };
+
+    // 4. Обработчик кнопки геолокации УДАЛЁН из initApp
+    //    (он устанавливается в initMap, чтобы избежать дублирования и конфликтов)
+
     // 5. Инициализация карты (если ещё не инициализирована)
+    //    !!! ВАЖНО: вызываем напрямую, без ymaps.ready,
+    //    потому что initApp уже вызван после загрузки Яндекс.Карт
     if (!map) {
-        ymaps.ready(() => {
-            initMap();
-        });
+        initMap();
     }
+
     // 6. Загружаем парковки
     loadAllParkings();
+
     // 7. Pull-to-refresh
     initPullToRefresh();
+
     // 8. Если пользователь уже залогинен, показываем домашнюю панель
     if (currentUser) {
         showPanel('home');
