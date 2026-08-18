@@ -1085,7 +1085,6 @@ lastDataRefresh = Date.now();
 if (typeof updateTotalFreeCircle === 'function') {
     updateTotalFreeCircle();
 }
-if (clusterer) clusterer.reload();
             resolve();
         }).catch(error => {
             console.error('❌ Ошибка загрузки из Firebase:', error);
@@ -1120,36 +1119,39 @@ if (clusterer) clusterer.reload();
     if (!id) return;
     var data = parkingDataCache[id];
     if (!data) return;
-    if (mapMarkers[id]) {
-        var placemark = mapMarkers[id];
-        placemark.properties.set({
-            freeSpots: data.totalSpots - (data.occupiedSpots || 0),
-            totalSpots: data.totalSpots,
-            name: data.name,
-            parkingId: id
-        });
-        var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
-        placemark.options.set('iconColor', color);
-        clusterer.reload(); // ← пересчёт кластеров, чтобы обновить цвет
-    } else {
-        addMarkerToMap(id, data);
-    }
+if (mapMarkers[id]) {
+    var placemark = mapMarkers[id];
+    placemark.properties.set({
+        freeSpots: data.totalSpots - (data.occupiedSpots || 0),
+        totalSpots: data.totalSpots,
+        name: data.name,
+        parkingId: id
+    });
+    var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
+    placemark.options.set('iconColor', color);
+    clusterer.remove(placemark);
+    clusterer.add(placemark);
+} else {
+    addMarkerToMap(id, data);
+  }
 }
 function addMarkerToMap(id, data) {
     // Если маркер уже существует – обновляем его данные
     if (mapMarkers[id]) {
-        var placemark = mapMarkers[id];
-        placemark.properties.set({
-            freeSpots: data.totalSpots - (data.occupiedSpots || 0),
-            totalSpots: data.totalSpots,
-            name: data.name,
-            parkingId: id
-        });
-        var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
-        placemark.options.set('iconColor', color);
-        clusterer.reload(); // пересчёт кластеров для обновления цвета
-        return;
-    }
+    var placemark = mapMarkers[id];
+    placemark.properties.set({
+        freeSpots: data.totalSpots - (data.occupiedSpots || 0),
+        totalSpots: data.totalSpots,
+        name: data.name,
+        parkingId: id
+    });
+    var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
+    placemark.options.set('iconColor', color);
+    // Принудительно перестраиваем кластер
+    clusterer.remove(placemark);
+    clusterer.add(placemark);
+    return;
+}
 
     // --- Создание нового маркера (только если маркер не существовал) ---
     if (!map || !clusterer) return;
