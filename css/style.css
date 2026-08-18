@@ -2211,39 +2211,38 @@ body.dark-theme .theme-slider:before {
         }
         /* Центральное модальное окно */
         .center-sheet {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 3000;
-            align-items: center;
-            justify-content: center;
-        }
-        .center-sheet.active {
-            display: flex;
-        }
-        .center-sheet-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--overlay-bg);
-        }
-        .center-sheet-box {
-            position: relative;
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            padding: 20px;
-            width: 90%;
-            max-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            z-index: 3001;
-        }
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3000;
+    align-items: flex-end;        /* прижимаем к низу */
+    justify-content: center;
+    pointer-events: none;         /* чтобы клики проходили на карту */
+}
+.center-sheet.active {
+    display: flex;
+}
+.center-sheet-overlay {
+    display: none;                /* полностью скрываем затемнение */
+}
+.center-sheet-box {
+    position: relative;
+    background: var(--bg-secondary);
+    border-radius: 20px 20px 0 0; /* скругляем только верхние углы */
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 60vh;             /* ограничиваем высоту, чтобы не перекрывать таб-бар */
+    overflow-y: auto;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    z-index: 3001;
+    pointer-events: auto;         /* разрешаем взаимодействие с окном */
+    margin-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 16px);
+    /* отступ от таб-бара: высота таба + его отступ снизу + 16px */
+}
         .center-sheet-close {
             position: absolute;
             top: 10px;
