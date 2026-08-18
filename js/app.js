@@ -560,14 +560,14 @@ function calculatePolygonArea(coordinates) {
 function calculateParkingSpots(coordinates) {
     if (!coordinates || coordinates.length < 3) return 0;
     const settings = getUserParkingSettings();
-    const spotArea = settings.spotArea || 12.0;
+    const spotArea = settings.spotArea || 12.5;
     const area = calculatePolygonArea(coordinates);
     let spots = Math.floor(area / spotArea);
     return Math.max(0, spots);
 }
 
 function getUserParkingSettings() {
-    const defaults = { spotArea: 12.0 }; // ← объявляем defaults
+    const defaults = { spotArea: 12.5}; // ← объявляем defaults
     if (currentUser && currentUser.parkingSettings) {
         const s = currentUser.parkingSettings;
         return { spotArea: s.spotArea || defaults.spotArea };
