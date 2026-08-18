@@ -1639,6 +1639,7 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                     username: currentUser.username
                 });
                 addMarkerToMap(newRef.key, parkingData);
+                map.setCenter([centerLat, centerLng], 17, { duration: 500 });
                 if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
                 window.newParkingCoords = null;
 
