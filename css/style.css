@@ -2209,8 +2209,8 @@ body.dark-theme .theme-slider:before {
             font-size: 16px;
             cursor: pointer;
         }
-        /* Центральное модальное окно */
         /* Центральное модальное окно – привязано к низу */
+/* Центральное модальное окно – без тонировки, прижато к низу */
 .center-sheet {
     display: none;
     position: fixed;
@@ -2219,30 +2219,30 @@ body.dark-theme .theme-slider:before {
     right: 0;
     bottom: 0;
     z-index: 3000;
-    align-items: flex-end;      /* прижимаем к низу */
+    align-items: flex-end;
     justify-content: center;
-    pointer-events: none;       /* чтобы клики проходили на карту */
+    pointer-events: none;
 }
 .center-sheet.active {
     display: flex;
 }
 .center-sheet-overlay {
-    display: none;              /* убираем тонирование */
+    display: none; /* убираем затемнение */
 }
 .center-sheet-box {
     position: relative;
     background: var(--bg-secondary);
     border-radius: 20px 20px 0 0;
-    padding: 20px;
-    width: 90%;
-    max-width: 400px;
+    padding: 20px 16px;
+    width: 85%;                    /* уже, чем было 90% */
+    max-width: 340px;              /* уменьшили с 400px */
     max-height: 60vh;
     overflow-y: auto;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
     z-index: 3001;
     pointer-events: auto;
-    margin-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 16px);
-    /* отступ от нижнего края, чтобы окно было выше таб-бара */
+    /* отступ от низа – таб-бар (60px) + его отступ (20px) + дополнительный отступ (30px) */
+    margin-bottom: calc(var(--tab-bar-height, 60px) + var(--tab-bar-bottom, 20px) + 30px);
 }
         .center-sheet-close {
             position: absolute;
