@@ -1824,9 +1824,6 @@ async function openCenterSheet(parkingId, data) {
     const free = total - occupied;
     const percent = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
-    const now = new Date();
-    let forecastText = 'Загрузка прогноза...';
-
     let html = `
         <div class="center-sheet-title">${escapeHtml(data.name || 'Парковка')}</div>
         <div class="center-stats">
@@ -1843,14 +1840,6 @@ async function openCenterSheet(parkingId, data) {
                 <div class="center-stat-label">Загруженность</div>
             </div>
         </div>
-        <div class="center-forecast">
-            <div class="center-forecast-title">📊 Прогноз</div>
-            <div class="center-forecast-text">${escapeHtml(forecastText)}</div>
-            <div id="forecastChartPlaceholder" style="text-align:center; padding:10px; color:var(--text-secondary);">
-                <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
-                <p>Загрузка прогноза...</p>
-            </div>
-        </div>
         <div class="center-actions">
             <button class="btn-secondary" onclick="toggleFavoriteCenter()">⭐ Избранное</button>
             <button class="btn-secondary" onclick="buildRouteFromCenter()">🧭 Маршрут</button>
@@ -1860,28 +1849,6 @@ async function openCenterSheet(parkingId, data) {
 
     content.innerHTML = html;
     sheet.classList.add('active');
-
-    try {
-        const forecastData = await generateForecastData(now, free, parkingId);
-        const chartHtml = renderForecastChart(forecastData);
-        const text = generateForecastText(forecastData, now);
-        const textContainer = document.querySelector('.center-forecast-text');
-        if (textContainer) textContainer.innerHTML = text;
-        const placeholder = document.getElementById('forecastChartPlaceholder');
-        if (placeholder) {
-            const container = document.createElement('div');
-            container.innerHTML = chartHtml;
-            placeholder.parentNode.replaceChild(container.firstElementChild, placeholder);
-        }
-    } catch (e) {
-        console.warn('Ошибка загрузки прогноза:', e);
-        const placeholder = document.getElementById('forecastChartPlaceholder');
-        if (placeholder) {
-            placeholder.innerHTML = '<div style="color:var(--text-secondary);">Прогноз временно недоступен</div>';
-        }
-        const textContainer = document.querySelector('.center-forecast-text');
-        if (textContainer) textContainer.innerHTML = 'Прогноз временно недоступен';
-    }
 }
 function closeCenterSheet() {
     document.getElementById('centerSheet').classList.remove('active');
@@ -1905,6 +1872,40 @@ function generateForecastText(forecastData, now) {
     // Добавляем окончание для слова "мест"
     const places = value % 10 === 1 && value % 100 !== 11 ? 'место' : (value % 10 >= 2 && value % 10 <= 4 && (value % 100 < 10 || value % 100 >= 20) ? 'места' : 'мест');
     return `Ожидается примерно <b>${value}</b> ${places} к <b>${timeStr}</b>`;
+}
+async function loadForecastForEdit(parkingId) {
+    const container = document.getElementById('forecastContainerInEdit');
+    if (!container) return;
+
+    const data = parkingDataCache[parkingId];
+    if (!data) return;
+
+    const now = new Date();
+    const free = data.totalSpots - (data.occupiedSpots || 0);
+
+    try {
+        const forecastData = await generateForecastData(now, free, parkingId);
+        const chartHtml = renderForecastChart(forecastData);
+        const text = generateForecastText(forecastData, now);
+
+        const textContainer = container.querySelector('.center-forecast-text');
+        if (textContainer) textContainer.innerHTML = text;
+
+        const placeholder = document.getElementById('forecastChartPlaceholderInEdit');
+        if (placeholder) {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = chartHtml;
+            placeholder.parentNode.replaceChild(wrapper.firstElementChild, placeholder);
+        }
+    } catch (e) {
+        console.warn('Ошибка загрузки прогноза:', e);
+        const textContainer = container.querySelector('.center-forecast-text');
+        if (textContainer) textContainer.innerHTML = 'Прогноз временно недоступен';
+        const placeholder = document.getElementById('forecastChartPlaceholderInEdit');
+        if (placeholder) {
+            placeholder.innerHTML = '<div style="color:var(--text-secondary);">Прогноз недоступен</div>';
+        }
+    }
 }
 // Генерация прогноза на основе истории за 7 дней
 async function generateForecastData(now, currentFree, parkingId) {
@@ -2109,13 +2110,7 @@ function editFromCenter() {
     const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
     const isAuthor = currentUser && currentUser.id === data.authorId;
     const status = data.status || 'unknown';
-    const statusText = status === 'free' ? 'Свободно' : status === 'occupied' ? 'Занято' : 'Неизвестно';
     const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
-
-    let addressDisplay = data.street || data.name || 'Без названия';
-    if (data.houseNumber) {
-        addressDisplay += `, д. ${data.houseNumber}`;
-    }
 
     document.getElementById('panel').classList.add('active');
     document.getElementById('panelTitle').textContent = 'Редактирование';
@@ -2137,13 +2132,13 @@ function editFromCenter() {
     <div class="occupancy-control" style="margin-bottom:15px;">
         <label>Изменить количество занятых мест:</label>
         <div class="counter-row">
-    <button class="counter-btn minus" onclick="changeOccupancy(-1, '${currentParkingId}')">−</button>
-    <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-    <button class="counter-btn plus" onclick="changeOccupancy(1, '${currentParkingId}')">+</button>
-       </div>
+            <button class="counter-btn minus" onclick="changeOccupancy(-1, '${currentParkingId}')">−</button>
+            <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
+            <button class="counter-btn plus" onclick="changeOccupancy(1, '${currentParkingId}')">+</button>
+        </div>
     </div>
 
-    <!-- ===== ИСТОРИЯ ИЗМЕНЕНИЙ (ВСЕГДА ОТКРЫТА) ===== -->
+    <!-- ===== ИСТОРИЯ ИЗМЕНЕНИЙ ===== -->
     <div id="historyContainer" style="margin-top:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="font-weight:600; font-size:16px;">📋 История изменений</span>
@@ -2154,10 +2149,18 @@ function editFromCenter() {
         <div id="historyFullList" style="display:none; max-height:200px; overflow-y:auto; margin-top:8px;"></div>
         <button id="hideAllHistoryBtn" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:4px;">Скрыть всё</button>
     </div>
-    `;
 
-    // ===== ТРИ КНОПКИ В РЯД =====
-    html += `
+    <!-- ===== ПРОГНОЗ (добавлен) ===== -->
+    <div id="forecastContainerInEdit" style="margin-top:20px; background:var(--bg-secondary); border-radius:16px; padding:16px; box-shadow:var(--card-shadow);">
+        <div class="center-forecast-title">📊 Прогноз</div>
+        <div class="center-forecast-text" style="font-size:14px; margin-bottom:8px;">Загрузка прогноза...</div>
+        <div id="forecastChartPlaceholderInEdit" style="text-align:center; padding:10px; color:var(--text-secondary);">
+            <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
+            <p>Загрузка прогноза...</p>
+        </div>
+    </div>
+
+    <!-- ===== ТРИ КНОПКИ В РЯД ===== -->
     <div style="display:flex; gap:8px; margin-top:16px;">
         <button class="btn-secondary" style="flex:1; margin:0;" onclick="toggleParkingEditor()">✏️ Изменить</button>
         <button class="btn-secondary" style="flex:1; margin:0;" onclick="buildRouteToParking('${currentParkingId}')">🧭 Маршрут</button>
@@ -2165,12 +2168,10 @@ function editFromCenter() {
     </div>
     `;
 
-    // ===== ПАНЕЛЬ РЕДАКТИРОВАНИЯ (СКРЫТА ПО УМОЛЧАНИЮ) =====
+    // ===== ПАНЕЛЬ РЕДАКТИРОВАНИЯ (скрыта по умолчанию) =====
     if (currentUser && isAuthor) {
         const currentStreet = data.street || '';
-        const streetType = currentStreet.split(' ')[0] || '';
         const streetName = extractStreetName(currentStreet);
-
         html += `
         <div id="editPanel" style="display:none; margin-top:16px; background:var(--bg-secondary); border-radius:16px; padding:16px; box-shadow:var(--card-shadow);">
             <div class="form-group">
@@ -2207,43 +2208,41 @@ function editFromCenter() {
 
     document.getElementById('panelContent').innerHTML = html;
 
-    // ===== ЗАГРУЗКА ИСТОРИИ (ВСЕГДА) =====
+    // ===== ЗАГРУЗКА ИСТОРИИ =====
     if (currentUser && currentParkingId) {
         loadHistoryPreview(currentParkingId);
     }
 
-    // ===== ОБРАБОТЧИК ДЛЯ КНОПКИ "СМ. ВСЕ" =====
+    // ===== ЗАГРУЗКА ПРОГНОЗА =====
+    if (currentParkingId) {
+        loadForecastForEdit(currentParkingId);
+    }
+
+    // ===== ОБРАБОТЧИКИ КНОПОК =====
     window.showAllHistory = function() {
         document.getElementById('historyList').style.display = 'none';
         document.getElementById('historyFullList').style.display = 'block';
         document.getElementById('showAllHistoryBtn').style.display = 'none';
         document.getElementById('hideAllHistoryBtn').style.display = 'inline-block';
     };
-
     window.hideAllHistory = function() {
         document.getElementById('historyFullList').style.display = 'none';
         document.getElementById('historyList').style.display = 'block';
         document.getElementById('showAllHistoryBtn').style.display = 'inline-block';
         document.getElementById('hideAllHistoryBtn').style.display = 'none';
     };
-
-    // ===== ПЕРЕКЛЮЧЕНИЕ ПАНЕЛИ РЕДАКТИРОВАНИЯ =====
     window.toggleParkingEditor = function() {
         const panel = document.getElementById('editPanel');
         if (panel) {
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
     };
-
-    // ===== УДАЛЕНИЕ С ПОДТВЕРЖДЕНИЕМ =====
     window.deleteParkingWithConfirm = function(parkingId) {
         if (confirm('Вы уверены, что хотите удалить эту парковку? Это действие необратимо!')) {
             deleteParking(parkingId);
         }
     };
 }
-    // Загрузка истории для предпросмотра (первые 3 записи + кнопка "См. все")
-// Загрузка истории для предпросмотра (первые 3 записи + кнопка "См. все")
 function loadHistoryPreview(parkingId) {
     const container = document.getElementById('historyList');
     const fullContainer = document.getElementById('historyFullList');
