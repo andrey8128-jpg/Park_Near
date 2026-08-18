@@ -1085,7 +1085,7 @@ lastDataRefresh = Date.now();
 if (typeof updateTotalFreeCircle === 'function') {
     updateTotalFreeCircle();
 }
-
+if (clusterer) clusterer.reload();
             resolve();
         }).catch(error => {
             console.error('❌ Ошибка загрузки из Firebase:', error);
@@ -1115,7 +1115,7 @@ if (typeof updateTotalFreeCircle === 'function') {
         });
     });
 }
-   function refreshParkingMarker(parkingId) {
+  function refreshParkingMarker(parkingId) {
     var id = parkingId || currentParkingId;
     if (!id) return;
     var data = parkingDataCache[id];
@@ -1130,12 +1130,12 @@ if (typeof updateTotalFreeCircle === 'function') {
         });
         var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
         placemark.options.set('iconColor', color);
+        clusterer.reload(); // ← пересчёт кластеров, чтобы обновить цвет
     } else {
         addMarkerToMap(id, data);
     }
 }
 function addMarkerToMap(id, data) {
-    // Если маркер уже существует – обновляем его данные
     if (mapMarkers[id]) {
         var placemark = mapMarkers[id];
         placemark.properties.set({
@@ -1146,8 +1146,11 @@ function addMarkerToMap(id, data) {
         });
         var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
         placemark.options.set('iconColor', color);
+        clusterer.reload(); // ← добавляем, чтобы кластер пересчитал цвет
         return;
     }
+    // ... создание нового маркера
+}
     if (!map || !clusterer) return;
 
     var totalSpots = data.totalSpots || 0;
@@ -1286,7 +1289,7 @@ clusterer.events.add('clusterize', function(e) {
         // 1. Количество парковок в кластере
         var parkingCount = cluster.getGeoObjects().length;
 
-        // 2. Сумма свободных мест (для цвета)
+        // 2. Расчёт свободных мест для цвета
         var totalFree = 0;
         var totalSpots = 0;
         cluster.getGeoObjects().forEach(function(obj) {
@@ -1301,12 +1304,11 @@ clusterer.events.add('clusterize', function(e) {
         else if (ratio >= 0.2) color = '#ED6C02';
         else color = '#D32F2F';
 
-        // 3. Устанавливаем свойства для отображения
-        cluster.properties.set('clusterParkingCount', parkingCount);
+        // 3. Устанавливаем свойства для иконки
         cluster.properties.set('clusterColor', color);
+        cluster.properties.set('clusterParkingCount', parkingCount); // ← теперь количество парковок
     });
 });
-
         map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
