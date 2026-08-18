@@ -939,26 +939,23 @@ function loadAllParkings(force = false) {
     if (!force && cached) {
         try {
             const cache = JSON.parse(cached);
-           if (
-                cache &&
-                cache.data &&
-                Date.now() - cache.timestamp < 5 * 60 * 1000
-) {
+         if (cache && cache.data && Date.now() - cache.timestamp < 5 * 60 * 1000) {
     parkingDataCache = cache.data;
-                lastDataRefresh = Date.now();
-                cacheLoaded = true;
+    lastDataRefresh = Date.now();
+    cacheLoaded = true;
 
-                if (map && clusterer) {
-                    clusterer.removeAll();
-                    Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                    Object.entries(data).forEach(([key, p]) => {
-                        if (p.lat && p.lng) {
-                            addMarkerToMap(key, p);
-                        }
-                    });
-                }
-                console.log('✅ Загружено из localStorage, количество парковок:', Object.keys(data).length);
+    if (map && clusterer) {
+        clusterer.removeAll();
+        Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
+        // ✅ ИСПРАВЛЕНО: используем cache.data
+        Object.entries(cache.data).forEach(([key, p]) => {
+            if (p.lat && p.lng) {
+                addMarkerToMap(key, p);
             }
+        });
+    }
+    console.log('✅ Загружено из localStorage, количество парковок:', Object.keys(cache.data).length);
+}
         } catch (e) {
             console.warn('Ошибка парсинга localStorage:', e);
         }
@@ -5503,16 +5500,3 @@ function onTelegramAuth(user) {
             setTimeout(function() { splash.remove(); }, 300);
         }
     }, 5000);
-    // Диагностика загрузки карты
-(function checkMapLoading() {
-    console.log('🔍 Проверка загрузки Яндекс.Карт...');
-    if (typeof ymaps === 'undefined') {
-        console.error('❌ ymaps не определён. Скрипт Яндекс.Карт не загрузился.');
-        document.getElementById('map').innerHTML = '<div style="color:red;text-align:center;padding:20px;">⚠️ Карта не загрузилась. Проверьте API-ключ и интернет-соединение.</div>';
-        return;
-    }
-    ymaps.ready(function() {
-        console.log('✅ ymaps.ready сработал');
-        initApp(); // <- вызываем именно initApp, а не initMap
-    });
-})();
