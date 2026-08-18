@@ -2236,13 +2236,13 @@ body.dark-theme .theme-slider:before {
     padding: 20px 16px;
     width: 85%;                    /* уже, чем было 90% */
     max-width: 340px;              /* уменьшили с 400px */
-    max-height: 60vh;
+    max-height: 80vh;
     overflow-y: auto;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
     z-index: 3001;
     pointer-events: auto;
     /* отступ от низа – таб-бар (60px) + его отступ (20px) + дополнительный отступ (30px) */
-    margin-bottom: calc(var(--tab-bar-height, 60px) + var(--tab-bar-bottom, 20px) + 30px);
+    margin-bottom: calc(var(--tab-bar-height, 60px) + var(--tab-bar-bottom, 20px) + 50px);
 }
         .center-sheet-close {
             position: absolute;
