@@ -939,23 +939,24 @@ function loadAllParkings(force = false) {
     if (!force && cached) {
         try {
             const cache = JSON.parse(cached);
-         if (cache && cache.data && Date.now() - cache.timestamp < 5 * 60 * 1000) {
-    parkingDataCache = cache.data;
-    lastDataRefresh = Date.now();
-    cacheLoaded = true;
+            if (cache && cache.data && Date.now() - cache.timestamp < 5 * 60 * 1000) {
+                parkingDataCache = cache.data;
+                lastDataRefresh = Date.now();
+                cacheLoaded = true;
 
-    if (map && clusterer) {
-        clusterer.removeAll();
-        Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-        // ✅ ИСПРАВЛЕНО: используем cache.data
-        Object.entries(cache.data).forEach(([key, p]) => {
-            if (p.lat && p.lng) {
-                addMarkerToMap(key, p);
+                if (map && clusterer) {
+                    clusterer.removeAll();
+                    Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
+                    // ✅ ИСПРАВЛЕНО: используем cache.data вместо data
+                    Object.entries(cache.data).forEach(([key, p]) => {
+                        if (p.lat && p.lng) {
+                            addMarkerToMap(key, p);
+                        }
+                    });
+                    // Обновление кластеров произойдёт автоматически после добавления маркеров
+                }
+                console.log('✅ Загружено из localStorage, количество парковок:', Object.keys(cache.data).length);
             }
-        });
-    }
-    console.log('✅ Загружено из localStorage, количество парковок:', Object.keys(cache.data).length);
-}
         } catch (e) {
             console.warn('Ошибка парсинга localStorage:', e);
         }
@@ -964,13 +965,13 @@ function loadAllParkings(force = false) {
     return new Promise((resolve, reject) => {
         let parkingQuery = database.ref('parkings');
 
-if (userCityPrefs.city) {
-    parkingQuery = parkingQuery
-        .orderByChild('city')
-        .equalTo(userCityPrefs.city);
-}
+        if (userCityPrefs.city) {
+            parkingQuery = parkingQuery
+                .orderByChild('city')
+                .equalTo(userCityPrefs.city);
+        }
 
-parkingQuery.once('value').then(snapshot => {
+        parkingQuery.once('value').then(snapshot => {
             const data = snapshot.val();
             const newCache = {};
             if (data) {
@@ -1051,6 +1052,8 @@ parkingQuery.once('value').then(snapshot => {
             }
             parkingDataCache[currentParkingId] = data;
             addMarkerToMap(currentParkingId, data);
+            // ✅ Пересчитываем кластеры
+            if (clusterer) clusterer.reload();
         }
     });
 }
@@ -1611,7 +1614,7 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
     const btn = document.getElementById('saveParkBtn');
     btn.textContent = 'Сохранение...';
     btn.disabled = true;
-    const saveBtn = btn; // сохраняем ссылку для восстановления
+    const saveBtn = btn;
 
     const centerLat = coordsToSave.reduce((s, c) => s + c[0], 0) / coordsToSave.length;
     const centerLng = coordsToSave.reduce((s, c) => s + c[1], 0) / coordsToSave.length;
@@ -1672,6 +1675,8 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 });
                 addMarkerToMap(newRef.key, parkingData);
                 map.setCenter([centerLat, centerLng], 17, { duration: 500 });
+                // ✅ Обновляем кластеры после добавления маркера
+                if (clusterer) clusterer.reload();
                 if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
                 window.newParkingCoords = null;
 
@@ -1719,6 +1724,8 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                     username: currentUser.username
                 });
                 addMarkerToMap(newRef.key, parkingData);
+                // ✅ Обновляем кластеры после добавления маркера
+                if (clusterer) clusterer.reload();
                 if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
                 window.newParkingCoords = null;
 
@@ -1734,14 +1741,12 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             });
         })
         .then(() => {
-            // === Аналог finally – выполняется всегда ===
             if (saveBtn) {
                 saveBtn.textContent = 'Сохранить парковку';
                 saveBtn.disabled = false;
             }
         });
 }
-
     function saveEditedPolygon(newCoords) {
         if (!currentParkingId) return;
         const sizeCheck = checkPolygonSize(newCoords);
@@ -2404,69 +2409,46 @@ function loadHistoryPreview(parkingId) {
     }
 
     function saveParkingDetails() {
-        if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-        if (!currentParkingId || !currentParkingData) return;
+    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
+    if (!currentParkingId || !currentParkingData) return;
 
-        const streetType = document.getElementById('editStreetType')?.value || '';
-        const streetName = document.getElementById('editStreetName')?.value.trim() || '';
-        const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
-        const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value) || 0;
+    const streetType = document.getElementById('editStreetType')?.value || '';
+    const streetName = document.getElementById('editStreetName')?.value.trim() || '';
+    const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
+    const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value) || 0;
 
-        const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData
-            .street || '');
-        if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
+    const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street || '');
+    if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
 
-        let newName = street;
-        if (houseNumber) {
-            newName = newName ? `${newName}, ${houseNumber}` : houseNumber;
-        }
-        if (!newName) {
-            newName = 'Адрес не указан';
-        }
-
-        if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
-        if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.');
-            return; }
-
-        const updates = { name: newName, street, houseNumber, totalSpots };
-
-        database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
-            if (currentUser.id === currentParkingData.authorId) database.ref(
-                `users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
-            currentParkingData = { ...currentParkingData, ...updates };
-            parkingDataCache[currentParkingId] = currentParkingData;
-            updateOccupancyDisplay(currentParkingData.occupiedSpots);
-            refreshParkingMarker();
-
-            const summaryAddress = document.getElementById('summaryAddress');
-            const summarySpots = document.getElementById('summarySpots');
-            if (summaryAddress) {
-                let display = updates.street || updates.name || 'Без названия';
-                if (updates.houseNumber) {
-                    display += `, д. ${updates.houseNumber}`;
-                }
-                summaryAddress.textContent = display;
-            }
-            if (summarySpots) {
-                summarySpots.textContent = `🅿️ ${updates.totalSpots} мест`;
-            }
-            const fields = document.getElementById('editorFields');
-            const btn = document.getElementById('editToggleBtn');
-            if (fields && fields.classList.contains('open')) {
-                fields.classList.remove('open');
-                if (btn) {
-                    btn.classList.remove('active');
-                    btn.textContent = '✏️';
-                }
-            }
-
-            closePanel();
-            showMap();
-            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback
-                .notificationOccurred('success');
-        }).catch(err => { console.error('Ошибка сохранения:', err);
-            alert('Ошибка: ' + err.message); });
+    let newName = street;
+    if (houseNumber) {
+        newName = newName ? `${newName}, ${houseNumber}` : houseNumber;
     }
+    if (!newName) {
+        newName = 'Адрес не указан';
+    }
+
+    if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
+    if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
+
+    const updates = { name: newName, street, houseNumber, totalSpots };
+
+    database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
+        if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
+        currentParkingData = { ...currentParkingData, ...updates };
+        parkingDataCache[currentParkingId] = currentParkingData;
+        updateOccupancyDisplay(currentParkingData.occupiedSpots);
+        refreshParkingMarker();
+
+        // ✅ Пересчитываем кластеры
+        if (clusterer) clusterer.reload();
+
+        // ... остальной код (закрытие панели, обновление интерфейса)
+        closePanel();
+        showMap();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
+}
 
     function updateOccupancyDisplay(newOccupied) {
         if (!currentParkingData) return;
@@ -2494,7 +2476,6 @@ function loadHistoryPreview(parkingId) {
     }
 
     const id = parkingId || currentParkingId;
-
     if (!id) {
         showToast('ID парковки не найден');
         return;
@@ -2512,7 +2493,6 @@ function loadHistoryPreview(parkingId) {
         }
 
         const total = Number(data.totalSpots || 0);
-
         let previousOccupied = 0;
         let newOccupied = 0;
 
@@ -2520,14 +2500,7 @@ function loadHistoryPreview(parkingId) {
             currentValue => {
                 previousOccupied = Number(currentValue || 0);
                 newOccupied = previousOccupied + delta;
-
-                if (
-                    newOccupied < 0 ||
-                    newOccupied > total
-                ) {
-                    return;
-                }
-
+                if (newOccupied < 0 || newOccupied > total) return;
                 return newOccupied;
             }
         );
@@ -2538,58 +2511,37 @@ function loadHistoryPreview(parkingId) {
         }
 
         const now = Date.now();
-
         await parkingRef.update({
             lastUpdatedAt: now,
-            lastUpdatedBy:
-                currentUser.nickname ||
-                currentUser.firstName ||
-                'Пользователь'
+            lastUpdatedBy: currentUser.nickname || currentUser.firstName || 'Пользователь'
         });
 
         await parkingRef.child('history').push({
             action: delta < 0 ? 'freed' : 'occupied',
             timestamp: now,
             userId: currentUser.id,
-            username:
-                currentUser.username ||
-                currentUser.nickname ||
-                'Пользователь',
+            username: currentUser.username || currentUser.nickname || 'Пользователь',
             previousOccupied,
             newOccupied
         });
 
-        if (parkingDataCache[id]) {
-            parkingDataCache[id].occupiedSpots = newOccupied;
-        }
-
-        if (
-            id === currentParkingId &&
-            currentParkingData
-        ) {
-            currentParkingData.occupiedSpots = newOccupied;
-        }
+        if (parkingDataCache[id]) parkingDataCache[id].occupiedSpots = newOccupied;
+        if (id === currentParkingId && currentParkingData) currentParkingData.occupiedSpots = newOccupied;
 
         updateOccupancyDisplay(newOccupied);
         refreshParkingMarker();
 
-        if (document.getElementById('historyList')) {
-            loadHistoryPreview(id);
-        }
+        // ✅ Пересчитываем кластеры, чтобы обновить сумму на иконках
+        if (clusterer) clusterer.reload();
 
+        if (document.getElementById('historyList')) loadHistoryPreview(id);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
 
     } catch (error) {
-        console.error(
-            'Ошибка обновления занятости:',
-            error
-        );
-
-        showToast(
-            'Не удалось изменить количество мест'
-        );
+        console.error('Ошибка обновления занятости:', error);
+        showToast('Не удалось изменить количество мест');
     }
 }
 async function deleteParking(parkingId) {
@@ -2597,15 +2549,11 @@ async function deleteParking(parkingId) {
         showToast('Необходимо авторизоваться');
         return;
     }
-
     if (!parkingId) {
         showToast('ID парковки не найден');
         return;
     }
-
-    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) {
-        return;
-    }
+    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
 
     try {
         const ref = database.ref(`parkings/${parkingId}`);
@@ -2631,13 +2579,12 @@ async function deleteParking(parkingId) {
 
         delete parkingDataCache[parkingId];
 
+        // ✅ Пересчитываем кластеры
+        if (clusterer) clusterer.reload();
+
         closePanel();
         showMap();
-
-        if (document.getElementById('searchResults')) {
-            filterParkings();
-        }
-
+        if (document.getElementById('searchResults')) filterParkings();
         showToast('Парковка удалена');
 
     } catch (error) {
