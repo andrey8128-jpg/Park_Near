@@ -1177,18 +1177,15 @@ function initMap() {
 
         // 3. Обработчик кластеризации (суммируем свободные места)
         clusterer.events.add('clusterize', function(e) {
-            e.get('clusters').forEach(function(cluster) {
-                var sum = 0;
-                cluster.getGeoObjects().forEach(function(obj) {
-                    sum += obj.properties.get('freeSpots') || 0;
-                });
-                cluster.properties.set('freeSpots', sum);
-            });
-            console.log('Кластер, сумма свободных мест:', sum); // <- добавьте
-    });
-            clusterer.reload();
+    e.get('clusters').forEach(function(cluster) {
+        var sum = 0;
+        cluster.getGeoObjects().forEach(function(obj) {
+            sum += obj.properties.get('freeSpots') || 0;
         });
-
+        cluster.properties.set('freeSpots', sum);
+    });
+    clusterer.reload();
+});
         map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
