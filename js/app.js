@@ -1079,12 +1079,12 @@ function addMarkerToMap(id, data) {
     var polygon = null;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         polygon = new ymaps.Polygon([data.coordinates], {}, {
-            fillColor: color + '33',
-            strokeColor: color,
-            strokeWidth: 2,
-            visible: false,
-            zIndex: 5
-        });
+    fillColor: color + '66',   // ↑ увеличение непрозрачности
+    strokeColor: color,
+    strokeWidth: 3,
+    visible: false,
+    zIndex: 10
+     });
         map.geoObjects.add(polygon);
     }
 
@@ -1142,7 +1142,8 @@ function initMap() {
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
             var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 15);
+            var showPolygons = (currentZoom >= 15);   // порог – можно менять
+            console.log('Zoom:', currentZoom, 'Показывать полигоны:', showPolygons); // для отладки
             Object.keys(mapMarkers).forEach(function(id) {
                 var placemark = mapMarkers[id];
                 if (!placemark) return;
@@ -1153,7 +1154,7 @@ function initMap() {
             });
         });
 
-        // 2. Создаём кластеризатор (с исправленной запятой)
+        // 2. Создаём кластеризатор (с исправленной структурой)
         clusterer = new ymaps.Clusterer({
             gridSize: 256,
             minClusterSize: 2,
@@ -1162,7 +1163,7 @@ function initMap() {
                 '<div style="color: #fff; font-weight: bold; font-size: 16px; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);">' +
                 '{{ properties.freeSpots || "0" }}' +
                 '</div>'
-            ),   // ← ЗАПЯТАЯ ИСПРАВЛЕНА
+            ),
             clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
                 '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
                 '{% for geoObject in properties.geoObjects %}' +
@@ -1175,17 +1176,18 @@ function initMap() {
             )
         });
 
-        // 3. Обработчик кластеризации (суммируем свободные места)
+        // 3. Обработчик кластеризации – СУММИРУЕМ СВОБОДНЫЕ МЕСТА (исправлен)
         clusterer.events.add('clusterize', function(e) {
-    e.get('clusters').forEach(function(cluster) {
-        var sum = 0;
-        cluster.getGeoObjects().forEach(function(obj) {
-            sum += obj.properties.get('freeSpots') || 0;
+            e.get('clusters').forEach(function(cluster) {
+                var sum = 0;
+                cluster.getGeoObjects().forEach(function(obj) {
+                    sum += obj.properties.get('freeSpots') || 0;
+                });
+                cluster.properties.set('freeSpots', sum);
+            });
+            clusterer.reload();
         });
-        cluster.properties.set('freeSpots', sum);
-    });
-    clusterer.reload();
-});
+
         map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
@@ -1299,7 +1301,7 @@ function initMap() {
         // 4. Загружаем парковки
         loadAllParkings().catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
 
-        // 5. Автогеолокация через 1 секунду (с улучшенной обработкой)
+        // 5. Автогеолокация через 1 секунду
         setTimeout(function() {
             getUserLocation()
                 .then(function(coords) {
@@ -1315,12 +1317,11 @@ function initMap() {
                 })
                 .catch(function() {
                     console.log('Автогеолокация не удалась');
-                    // Показываем подсказку пользователю
                     showToast('Нажмите 📍, чтобы определить ваше местоположение', 4000);
                 });
         }, 1000);
 
-        // 6. Скрываем сплеш-экран (уже есть в вашем коде)
+        // 6. Скрываем сплеш-экран
         setTimeout(function() {
             const splash = document.getElementById('splashScreen');
             if (splash) {
