@@ -4584,7 +4584,7 @@ function showPanel(type, keepFilter = false) {
     closeRoute();
     document.getElementById('panel').classList.remove('active');
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelector('.tab:first-child').classList.add('active');
+    document.querySelectorAll('.tab')[1].classList.add('active');
     currentParkingId = null;
     currentParkingData = null;
 
