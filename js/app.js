@@ -476,19 +476,33 @@ function getVisibleParkings() {
 }
 
 // ===== ОБНОВЛЕНИЕ КРУЖКА =====
+// ===================== ОБНОВЛЕНИЕ КРУЖКА С ОБЩИМ КОЛИЧЕСТВОМ =====================
 function updateTotalFreeCircle() {
-    var visible = getVisibleParkings();
-    var totalFree = visible.reduce(function(sum, p) {
+    // 1. Получаем все парковки из кеша (уже отфильтрованы по городу, если выбран)
+    var allParkings = Object.values(parkingDataCache);
+
+    // 2. Считаем сумму свободных мест (общее - занятые)
+    var totalFree = allParkings.reduce(function(sum, p) {
         var free = (p.totalSpots || 0) - (p.occupiedSpots || 0);
-        return sum + Math.max(0, free);
+        return sum + Math.max(0, free); // защита от отрицательных
     }, 0);
+
+    // 3. Обновляем текст в кружке
     var countEl = document.getElementById('totalFreeCount');
+    if (countEl) {
+        countEl.textContent = totalFree;
+    }
+
+    // 4. Меняем цвет кружка в зависимости от количества свободных мест
     var circle = document.getElementById('totalFreeCircle');
-    if (countEl) countEl.textContent = totalFree;
     if (circle) {
-        if (totalFree === 0) circle.style.backgroundColor = '#D32F2F';
-        else if (totalFree < 10) circle.style.backgroundColor = '#ED6C02';
-        else circle.style.backgroundColor = '#2B7574';
+        if (totalFree === 0) {
+            circle.style.backgroundColor = '#D32F2F';   // красный – мест нет
+        } else if (totalFree < 10) {
+            circle.style.backgroundColor = '#ED6C02';   // оранжевый – мало
+        } else {
+            circle.style.backgroundColor = '#2B7574';   // зелёный/акцент – достаточно
+        }
     }
 }
    function escapeHtml(text) {
@@ -1235,16 +1249,16 @@ function initMap() {
     minClusterSize: 2,
     maxZoom: 18,
     clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="' +
-        'display: flex; align-items: center; justify-content: center;' +
-        'width: 56px; height: 56px; border-radius: 50%;' +
-        'background: {{ properties.clusterColor || "#2B7574" }};' +
-        'color: #fff; font-weight: 700; font-size: 18px;' +
-        'box-shadow: 0 4px 12px rgba(0,0,0,0.3);' +
-        'border: 2px solid rgba(255,255,255,0.2);' +
-        'transition: transform 0.2s;' +
-        '">{{ properties.clusterCount || "0" }}</div>'
-    ),
+    '<div style="' +
+    'display: flex; align-items: center; justify-content: center;' +
+    'width: 56px; height: 56px; border-radius: 50%;' +
+    'background: {{ properties.clusterColor || "#2B7574" }};' +
+    'color: #fff; font-weight: 700; font-size: 18px;' +
+    'box-shadow: 0 4px 12px rgba(0,0,0,0.3);' +
+    'border: 2px solid rgba(255,255,255,0.2);' +
+    'transition: transform 0.2s;' +
+    '">{{ properties.clusterParkingCount || "0" }}</div>'
+),
     clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
         '<div style="max-height:150px; overflow-y:auto; padding:8px;">' +
         '{% for geoObject in properties.geoObjects %}' +
@@ -1269,6 +1283,10 @@ clusterer.events.add('click', function(e) {
 // Новый обработчик для цвета и счётчика кластера (вместо старого)
 clusterer.events.add('clusterize', function(e) {
     e.get('clusters').forEach(function(cluster) {
+        // 1. Количество парковок в кластере
+        var parkingCount = cluster.getGeoObjects().length;
+
+        // 2. Сумма свободных мест (для цвета)
         var totalFree = 0;
         var totalSpots = 0;
         cluster.getGeoObjects().forEach(function(obj) {
@@ -1282,8 +1300,10 @@ clusterer.events.add('clusterize', function(e) {
         if (ratio >= 0.5) color = '#2B7574';
         else if (ratio >= 0.2) color = '#ED6C02';
         else color = '#D32F2F';
+
+        // 3. Устанавливаем свойства для отображения
+        cluster.properties.set('clusterParkingCount', parkingCount);
         cluster.properties.set('clusterColor', color);
-        cluster.properties.set('clusterCount', totalFree);
     });
 });
 
