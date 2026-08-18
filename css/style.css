@@ -1,4 +1,4 @@
-* {
+й* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -2210,7 +2210,8 @@ body.dark-theme .theme-slider:before {
             cursor: pointer;
         }
         /* Центральное модальное окно */
-        .center-sheet {
+        /* Центральное модальное окно – привязано к низу */
+.center-sheet {
     display: none;
     position: fixed;
     top: 0;
@@ -2218,30 +2219,30 @@ body.dark-theme .theme-slider:before {
     right: 0;
     bottom: 0;
     z-index: 3000;
-    align-items: flex-end;        /* прижимаем к низу */
+    align-items: flex-end;      /* прижимаем к низу */
     justify-content: center;
-    pointer-events: none;         /* чтобы клики проходили на карту */
+    pointer-events: none;       /* чтобы клики проходили на карту */
 }
 .center-sheet.active {
     display: flex;
 }
 .center-sheet-overlay {
-    display: none;                /* полностью скрываем затемнение */
+    display: none;              /* убираем тонирование */
 }
 .center-sheet-box {
     position: relative;
     background: var(--bg-secondary);
-    border-radius: 20px 20px 0 0; /* скругляем только верхние углы */
+    border-radius: 20px 20px 0 0;
     padding: 20px;
     width: 90%;
     max-width: 400px;
-    max-height: 60vh;             /* ограничиваем высоту, чтобы не перекрывать таб-бар */
+    max-height: 60vh;
     overflow-y: auto;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
     z-index: 3001;
-    pointer-events: auto;         /* разрешаем взаимодействие с окном */
+    pointer-events: auto;
     margin-bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 16px);
-    /* отступ от таб-бара: высота таба + его отступ снизу + 16px */
+    /* отступ от нижнего края, чтобы окно было выше таб-бара */
 }
         .center-sheet-close {
             position: absolute;
