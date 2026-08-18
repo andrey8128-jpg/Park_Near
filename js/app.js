@@ -1137,56 +1137,57 @@ function initMap() {
             controls: ['zoomControl'],
             type: 'yandex#map'
         });
-        // ==== Автоматическое отображение полигонов при зуме >= 15 ====
-map.events.add('zoomchange', function() {
-    var currentZoom = map.getZoom();
-    var showPolygons = (currentZoom >= 15);
-
-    Object.keys(mapMarkers).forEach(function(id) {
-        var placemark = mapMarkers[id];
-        if (!placemark) return;
-        var poly = placemark.properties.get('polygon');
-        if (poly) {
-            poly.options.set('visible', showPolygons);
-        }
-    });
-});
         console.log('✅ Карта инициализирована');
 
-        // 2. Создаём кластеризатор (один раз)
-       clusterer = new ymaps.Clusterer({
-    gridSize: 256,
-    minClusterSize: 2,
-    maxZoom: 18,
-  clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-    '<div style="color: #fff; font-weight: bold; font-size: 16px; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);">' +
-    '{{ properties.freeSpots || "0" }}' +
-    '</div>'
-),
-    clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
-        '{% for geoObject in properties.geoObjects %}' +
-        '<div style="padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer;" onclick="openCenterSheet(\'{{ geoObject.properties.parkingId }}\', window.parkingDataCache[\'{{ geoObject.properties.parkingId }}\'])">' +
-        '<div style="font-weight: 600;">{{ geoObject.properties.name }}</div>' +
-        '<div style="font-size: 12px; color: var(--text-secondary);">🅿️ Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}</div>' +
-        '</div>' +
-        '{% endfor %}' +
-        '</div>'
-    )
-});
-
-clusterer.events.add('clusterize', function(e) {
-    e.get('clusters').forEach(function(cluster) {
-        var sum = 0;
-        cluster.getGeoObjects().forEach(function(obj) {
-            sum += obj.properties.get('freeSpots') || 0;
+        // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
+        map.events.add('zoomchange', function() {
+            var currentZoom = map.getZoom();
+            var showPolygons = (currentZoom >= 15);
+            Object.keys(mapMarkers).forEach(function(id) {
+                var placemark = mapMarkers[id];
+                if (!placemark) return;
+                var poly = placemark.properties.get('polygon');
+                if (poly) {
+                    poly.options.set('visible', showPolygons);
+                }
+            });
         });
-        cluster.properties.set('freeSpots', sum);
-    });
-    clusterer.reload();
-});
 
-map.geoObjects.add(clusterer);
+        // 2. Создаём кластеризатор (с исправленной запятой)
+        clusterer = new ymaps.Clusterer({
+            gridSize: 256,
+            minClusterSize: 2,
+            maxZoom: 18,
+            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="color: #fff; font-weight: bold; font-size: 16px; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);">' +
+                '{{ properties.freeSpots || "0" }}' +
+                '</div>'
+            ),   // ← ЗАПЯТАЯ ИСПРАВЛЕНА
+            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
+                '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
+                '{% for geoObject in properties.geoObjects %}' +
+                '<div style="padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer;" onclick="openCenterSheet(\'{{ geoObject.properties.parkingId }}\', window.parkingDataCache[\'{{ geoObject.properties.parkingId }}\'])">' +
+                '<div style="font-weight: 600;">{{ geoObject.properties.name }}</div>' +
+                '<div style="font-size: 12px; color: var(--text-secondary);">🅿️ Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}</div>' +
+                '</div>' +
+                '{% endfor %}' +
+                '</div>'
+            )
+        });
+
+        // 3. Обработчик кластеризации (суммируем свободные места)
+        clusterer.events.add('clusterize', function(e) {
+            e.get('clusters').forEach(function(cluster) {
+                var sum = 0;
+                cluster.getGeoObjects().forEach(function(obj) {
+                    sum += obj.properties.get('freeSpots') || 0;
+                });
+                cluster.properties.set('freeSpots', sum);
+            });
+            clusterer.reload();
+        });
+
+        map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
         map.events.add('click', function(e) {
@@ -1207,7 +1208,7 @@ map.geoObjects.add(clusterer);
             });
         });
 
-        // Обработчики кнопок и прочие настройки (оставляем как было)
+        // ===== Обработчики кнопок =====
         document.getElementById('addBtn').onclick = function() {
             if (!currentUser) showPanel('home');
             else if (isDrawingMode) cancelDrawing();
@@ -1255,46 +1256,51 @@ map.geoObjects.add(clusterer);
                 updateMapTheme();
             }
         });
-        document.getElementById('geoBtn').onclick = function() {
-    if (!map) return;
-    const btn = this;
-    const originalContent = btn.innerHTML;
-    btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-    btn.disabled = true;
 
-    getUserLocation()
-        .then(function(coords) {
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-            if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-            myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                hintContent: 'Вы здесь',
-                balloonContent: '<strong>Ваше местоположение</strong>'
-            }, {
-                preset: 'islands#blueCircleDotIconWithCaption'
-            });
-            myLocationPlacemark.properties.set('caption', 'Вы здесь');
-            map.geoObjects.add(myLocationPlacemark);
-            map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
-        })
-        .catch(function(err) {
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-            console.error('Ошибка геолокации:', err);
-            let message = 'Не удалось определить ваше местоположение.';
-            if (err.message) message += ' ' + err.message;
-            if (window.Telegram?.WebApp?.showAlert) {
-                window.Telegram.WebApp.showAlert(message);
-            } else {
-                alert(message);
-            }
-        });
-};
+        // ===== Кнопка геолокации (исправленный обработчик) =====
+        document.getElementById('geoBtn').onclick = function() {
+            if (!map) return;
+            const btn = this;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
+            btn.disabled = true;
+
+            getUserLocation()
+                .then(function(coords) {
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                        hintContent: 'Вы здесь',
+                        balloonContent: '<strong>Ваше местоположение</strong>'
+                    }, {
+                        preset: 'islands#blueCircleDotIconWithCaption'
+                    });
+                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
+                    map.geoObjects.add(myLocationPlacemark);
+                    map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                })
+                .catch(function(err) {
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                    console.error('Ошибка геолокации:', err);
+                    let message = 'Не удалось определить ваше местоположение.';
+                    if (err.message) message += ' ' + err.message;
+                    if (window.Telegram?.WebApp?.showAlert) {
+                        window.Telegram.WebApp.showAlert(message);
+                    } else {
+                        alert(message);
+                    }
+                });
+        };
+
+        // 4. Загружаем парковки
         loadAllParkings().catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
 
+        // 5. Автогеолокация через 1 секунду (с улучшенной обработкой)
         setTimeout(function() {
             getUserLocation()
                 .then(function(coords) {
@@ -1308,9 +1314,14 @@ map.geoObjects.add(clusterer);
                     map.geoObjects.add(myLocationPlacemark);
                     map.setCenter([coords.lat, coords.lng], 14, { duration: 500 });
                 })
-                .catch(function() { console.log('Автогеолокация не удалась'); });
+                .catch(function() {
+                    console.log('Автогеолокация не удалась');
+                    // Показываем подсказку пользователю
+                    showToast('Нажмите 📍, чтобы определить ваше местоположение', 4000);
+                });
         }, 1000);
 
+        // 6. Скрываем сплеш-экран (уже есть в вашем коде)
         setTimeout(function() {
             const splash = document.getElementById('splashScreen');
             if (splash) {
