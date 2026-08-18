@@ -1136,6 +1136,7 @@ if (clusterer) clusterer.reload();
     }
 }
 function addMarkerToMap(id, data) {
+    // Если маркер уже существует – обновляем его данные
     if (mapMarkers[id]) {
         var placemark = mapMarkers[id];
         placemark.properties.set({
@@ -1146,11 +1147,11 @@ function addMarkerToMap(id, data) {
         });
         var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
         placemark.options.set('iconColor', color);
-        clusterer.reload(); // ← добавляем, чтобы кластер пересчитал цвет
+        clusterer.reload(); // пересчёт кластеров для обновления цвета
         return;
     }
-    // ... создание нового маркера
-}
+
+    // --- Создание нового маркера (только если маркер не существовал) ---
     if (!map || !clusterer) return;
 
     var totalSpots = data.totalSpots || 0;
@@ -1162,8 +1163,8 @@ function addMarkerToMap(id, data) {
     var centerLng = data.lng;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length > 0) {
         var coords = data.coordinates;
-        var latSum = coords.reduce((sum, c) => sum + c[0], 0);
-        var lngSum = coords.reduce((sum, c) => sum + c[1], 0);
+        var latSum = coords.reduce(function(sum, c) { return sum + c[0]; }, 0);
+        var lngSum = coords.reduce(function(sum, c) { return sum + c[1]; }, 0);
         centerLat = latSum / coords.length;
         centerLng = lngSum / coords.length;
     }
@@ -1171,24 +1172,24 @@ function addMarkerToMap(id, data) {
     var polygon = null;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         polygon = new ymaps.Polygon([data.coordinates], {}, {
-    fillColor: color + '66',   // ↑ увеличение непрозрачности
-    strokeColor: color,
-    strokeWidth: 3,
-    visible: false,
-    zIndex: 10
-     });
+            fillColor: color + '66',
+            strokeColor: color,
+            strokeWidth: 3,
+            visible: false,
+            zIndex: 10
+        });
         map.geoObjects.add(polygon);
     }
 
-   var placemark = new ymaps.Placemark([centerLat, centerLng], {
-    hintContent: data.name,
-    name: data.name,
-    freeSpots: freeSpots,
-    totalSpots: totalSpots,
-    parkingId: id,   // ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
-    iconContent: String(freeSpots),
-    polygon: polygon
-}, {
+    var placemark = new ymaps.Placemark([centerLat, centerLng], {
+        hintContent: data.name,
+        name: data.name,
+        freeSpots: freeSpots,
+        totalSpots: totalSpots,
+        parkingId: id,
+        iconContent: String(freeSpots),
+        polygon: polygon
+    }, {
         preset: 'islands#blueStretchyIcon',
         iconColor: color,
         iconContentSize: [20, 20],
