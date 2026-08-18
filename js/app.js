@@ -1184,6 +1184,8 @@ function initMap() {
                 });
                 cluster.properties.set('freeSpots', sum);
             });
+            console.log('Кластер, сумма свободных мест:', sum); // <- добавьте
+    });
             clusterer.reload();
         });
 
