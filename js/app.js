@@ -1137,6 +1137,20 @@ function initMap() {
             controls: ['zoomControl'],
             type: 'yandex#map'
         });
+        // ==== Автоматическое отображение полигонов при зуме >= 15 ====
+map.events.add('zoomchange', function() {
+    var currentZoom = map.getZoom();
+    var showPolygons = (currentZoom >= 15);
+
+    Object.keys(mapMarkers).forEach(function(id) {
+        var placemark = mapMarkers[id];
+        if (!placemark) return;
+        var poly = placemark.properties.get('polygon');
+        if (poly) {
+            poly.options.set('visible', showPolygons);
+        }
+    });
+});
         console.log('✅ Карта инициализирована');
 
         // 2. Создаём кластеризатор (один раз)
