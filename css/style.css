@@ -404,6 +404,7 @@ html, body {
         .panel-content {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 20px;
             padding-bottom: calc(20px + 72px + 16px);
             -webkit-overflow-scrolling: touch;
@@ -506,6 +507,8 @@ html, body {
             outline: none;
             transition: border-color 0.2s;
             font-family: inherit;
+            max-width: 100%
+            box-sizing: border-box;
         }
         .input-field:focus {
             border-color: var(--accent);
