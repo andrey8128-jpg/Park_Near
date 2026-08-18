@@ -853,23 +853,31 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
     // ===================== ГЕОЛОКАЦИЯ =====================
     function getUserLocation() {
     return new Promise((resolve, reject) => {
+        // Если запущено внутри Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.getLocation === 'function') {
+            window.Telegram.WebApp.getLocation(function(position) {
+                if (position && position.latitude && position.longitude) {
+                    resolve({ lat: position.latitude, lng: position.longitude });
+                } else {
+                    reject(new Error('Telegram геолокация не удалась'));
+                }
+            });
+            return;
+        }
+
+        // Стандартный браузерный метод
         if (!navigator.geolocation) {
-            return reject(new Error('Геолокация не поддерживается вашим устройством'));
+            return reject(new Error('Геолокация не поддерживается'));
         }
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                resolve({
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                });
+                resolve({ lat: position.coords.latitude, lng: position.coords.longitude });
             },
-            (error) => reject(error),
-            {
-                enableHighAccuracy: true,
-                timeout: 7000,      // Ждем максимум 7 секунд
-                maximumAge: 60000   // Кэшируем позицию на 1 минуту
-            }
+            (error) => {
+                reject(error);
+            },
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
         );
     });
 }
@@ -1236,42 +1244,49 @@ map.geoObjects.add(clusterer);
                 updateMapTheme();
             }
         });
-
         document.getElementById('geoBtn').onclick = function() {
-            if (!map) return;
-            const btn = document.getElementById('geoBtn');
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
-            getUserLocation()
-                .then(function(coords) {
-                    btn.innerHTML = originalContent;
-                    if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
-                    myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
-                        hintContent: 'Вы здесь',
-                        balloonContent: '<strong>Ваше местоположение</strong>'
-                    }, {
-                        preset: 'islands#blueCircleDotIconWithCaption'
-                    });
-                    myLocationPlacemark.properties.set('caption', 'Вы здесь');
-                    map.geoObjects.add(myLocationPlacemark);
-                    map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                })
-                .catch(function(err) {
-                    btn.innerHTML = originalContent;
-                    console.error('Ошибка геолокации:', err);
-                    let message = 'Не удалось определить местоположение.';
-                    if (window.Telegram && window.Telegram.WebApp) message += ' Проверьте настройки геолокации.';
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
-                        window.Telegram.WebApp.showAlert(message);
-                    } else {
-                        alert(message);
-                    }
-                });
-        };
+    if (!map) return;
+    const btn = this;
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
+    btn.disabled = true;
 
+    getUserLocation()
+        .then(function(coords) {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+
+            if (myLocationPlacemark) map.geoObjects.remove(myLocationPlacemark);
+            myLocationPlacemark = new ymaps.Placemark([coords.lat, coords.lng], {
+                hintContent: 'Вы здесь',
+                balloonContent: '<strong>Ваше местоположение</strong>'
+            }, {
+                preset: 'islands#blueCircleDotIconWithCaption'
+            });
+            myLocationPlacemark.properties.set('caption', 'Вы здесь');
+            map.geoObjects.add(myLocationPlacemark);
+            map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        })
+        .catch(function(err) {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            console.error('Ошибка геолокации:', err);
+
+            let message = 'Не удалось определить ваше местоположение.';
+            if (err.message) message += ' ' + err.message;
+
+            // В Telegram показываем alert через WebApp
+            if (window.Telegram?.WebApp?.showAlert) {
+                window.Telegram.WebApp.showAlert(message);
+            } else {
+                alert(message);
+            }
+        });
+};
         loadAllParkings().catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
 
         setTimeout(function() {
