@@ -1156,20 +1156,20 @@ function addMarkerToMap(id, data) {
         centerLng = lngSum / coords.length;
     }
 
-    // СОЗДАЁМ ПОЛИГОН, ЕСЛИ ЕСТЬ КООРДИНАТЫ
+    // === СОЗДАЁМ ПОЛИГОН (если есть координаты) ===
     var polygon = null;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         polygon = new ymaps.Polygon([data.coordinates], {}, {
-            fillColor: color + '33',
+            fillColor: color + '33',      // цвет с прозрачностью
             strokeColor: color,
             strokeWidth: 2,
-            visible: false,        // будет управляться через zoomchange
+            visible: false,               // видимость управляется через zoomchange
             zIndex: 5
         });
         map.geoObjects.add(polygon);
     }
 
-    // СОЗДАЁМ МАРКЕР
+    // === СОЗДАЁМ МАРКЕР ===
     var placemark = new ymaps.Placemark([centerLat, centerLng], {
         hintContent: data.name,
         name: data.name,
@@ -1177,7 +1177,7 @@ function addMarkerToMap(id, data) {
         totalSpots: totalSpots,
         parkingId: id,
         iconContent: String(freeSpots),
-        polygon: polygon          // сохраняем полигон в свойствах маркера
+        polygon: polygon        // сохраняем полигон в маркере
     }, {
         preset: 'islands#blueStretchyIcon',
         iconColor: color,
@@ -1185,13 +1185,13 @@ function addMarkerToMap(id, data) {
         iconContentOffset: [0, 0]
     });
 
-    // ОБРАБОТЧИК КЛИКА – только открывает карточку, НЕ управляет полигоном
+    // === ОБРАБОТЧИК КЛИКА – только открывает карточку, НЕ управляет полигоном ===
     placemark.events.add('click', function(e) {
         openCenterSheet(id, data);
         if (map.balloon) map.balloon.close();
     });
 
-    // ДОБАВЛЯЕМ МАРКЕР В КЛАСТЕР
+    // === ДОБАВЛЯЕМ МАРКЕР В КЛАСТЕР ===
     clusterer.add(placemark);
     mapMarkers[id] = placemark;
 }
@@ -1205,7 +1205,7 @@ function initMap() {
     }
 
     try {
-        // 1. Создаём карту
+        // 1. Создаём карту с начальным зумом 14
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
             zoom: 14,
@@ -1217,7 +1217,7 @@ function initMap() {
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
             var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 15);   // ← меняйте порог здесь (14,15,16...)
+            var showPolygons = (currentZoom >= 15);   // ← измените на 14, если хотите раньше
             Object.keys(mapMarkers).forEach(function(id) {
                 var placemark = mapMarkers[id];
                 if (!placemark) return;
@@ -1230,7 +1230,7 @@ function initMap() {
 
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР (без круга, только число) =====
         clusterer = new ymaps.Clusterer({
-            gridSize: 64,              // чем меньше, тем раньше появляются кластеры при отдалении
+            gridSize: 64,              // чем меньше, тем раньше появляются кластеры
             minClusterSize: 2,
             maxZoom: 19,
             // Убираем preset, чтобы не было стандартного синего круга
@@ -1341,7 +1341,7 @@ function initMap() {
             }
         });
 
-        // ===== Кнопка геолокации (исправленный обработчик) =====
+        // ===== Кнопка геолокации =====
         document.getElementById('geoBtn').onclick = function() {
             if (!map) return;
             const btn = this;
