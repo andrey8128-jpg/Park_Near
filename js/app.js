@@ -974,39 +974,76 @@ function tryYandexGeolocation(resolve, reject) {
     }
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
 function loadAllParkings(force = false) {
-    if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
+    // Не делаем лишний запрос, если данные недавно обновлялись
+    if (
+        !force &&
+        Date.now() - lastDataRefresh < 30000 &&
+        Object.keys(parkingDataCache).length > 0
+    ) {
         return Promise.resolve();
     }
 
     const cached = localStorage.getItem('parkingCache');
     let cacheLoaded = false;
+
+    // =========================================================
+    // 1. СНАЧАЛА ПРОБУЕМ ЗАГРУЗИТЬ КЕШ
+    // =========================================================
     if (!force && cached) {
         try {
             const cache = JSON.parse(cached);
-            if (cache && cache.data && Date.now() - cache.timestamp < 5 * 60 * 1000) {
+
+            if (
+                cache &&
+                cache.data &&
+                cache.timestamp &&
+                Date.now() - cache.timestamp < 5 * 60 * 1000
+            ) {
                 parkingDataCache = cache.data;
                 lastDataRefresh = Date.now();
                 cacheLoaded = true;
 
                 if (map && clusterer) {
                     clusterer.removeAll();
-                    Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                    // ✅ ИСПРАВЛЕНО: используем cache.data вместо data
-                    Object.entries(cache.data).forEach(([key, p]) => {
-                        if (p.lat && p.lng) {
-                            addMarkerToMap(key, p);
+
+                    // Удаляем старые маркеры
+                    Object.keys(mapMarkers).forEach(function(id) {
+                        delete mapMarkers[id];
+                    });
+
+                    // Добавляем парковки из кеша
+                    Object.entries(cache.data).forEach(function([key, parking]) {
+                        if (
+                            parking &&
+                            parking.lat != null &&
+                            parking.lng != null
+                        ) {
+                            addMarkerToMap(key, parking);
                         }
                     });
-                    // Обновление кластеров произойдёт автоматически после добавления маркеров
                 }
-                console.log('✅ Загружено из localStorage, количество парковок:', Object.keys(cache.data).length);
+
+                console.log(
+                    '✅ Загружено из localStorage:',
+                    Object.keys(cache.data).length
+                );
             }
-        } catch (e) {
-            console.warn('Ошибка парсинга localStorage:', e);
+        } catch (error) {
+            console.warn(
+                '⚠️ Ошибка чтения parkingCache:',
+                error
+            );
+
+            localStorage.removeItem('parkingCache');
         }
     }
 
-    return new Promise((resolve, reject) => {
+    // =========================================================
+    // 2. ЗАПРАШИВАЕМ FIREBASE
+    // =========================================================
+
+    return new Promise(function(resolve, reject) {
+
         let parkingQuery = database.ref('parkings');
 
         if (userCityPrefs.city) {
@@ -1015,195 +1052,764 @@ function loadAllParkings(force = false) {
                 .equalTo(userCityPrefs.city);
         }
 
-        parkingQuery.once('value').then(snapshot => {
-            const data = snapshot.val();
-            const newCache = {};
-            if (data) {
-                const cityFilter = userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '';
-                Object.keys(data).forEach(key => {
-                    const p = data[key];
-                    if (p && p.lat && p.lng) {
+        parkingQuery.once('value')
+            .then(function(snapshot) {
+
+                const data = snapshot.val();
+
+                // Сохраняем СТАРЫЙ кеш до его замены
+                const oldCache = parkingDataCache || {};
+
+                // Новый кеш
+                const newCache = {};
+
+                // =================================================
+                // 3. ФОРМИРУЕМ НОВЫЙ КЕШ
+                // =================================================
+
+                if (data) {
+
+                    const cityFilter = userCityPrefs.city
+                        ? userCityPrefs.city.toLowerCase()
+                        : '';
+
+                    Object.keys(data).forEach(function(key) {
+
+                        const parking = data[key];
+
+                        if (
+                            !parking ||
+                            parking.lat == null ||
+                            parking.lng == null
+                        ) {
+                            return;
+                        }
+
+                        // Фильтр города
                         if (cityFilter) {
-                            const pCity = (p.city || '').toLowerCase();
-                            const pAddr = (p.address || '').toLowerCase();
-                            const pName = (p.name || '').toLowerCase();
-                            if (!pCity.includes(cityFilter) && !pAddr.includes(cityFilter) && !pName.includes(cityFilter)) {
+
+                            const pCity = String(
+                                parking.city || ''
+                            ).toLowerCase();
+
+                            const pAddress = String(
+                                parking.address || ''
+                            ).toLowerCase();
+
+                            const pName = String(
+                                parking.name || ''
+                            ).toLowerCase();
+
+                            if (
+                                !pCity.includes(cityFilter) &&
+                                !pAddress.includes(cityFilter) &&
+                                !pName.includes(cityFilter)
+                            ) {
                                 return;
                             }
                         }
-                        newCache[key] = p;
+
+                        // Нормализуем количество мест
+                        parking.totalSpots =
+                            Number(parking.totalSpots) || 0;
+
+                        parking.occupiedSpots =
+                            Number(parking.occupiedSpots) || 0;
+
+                        // Не позволяем свободным местам быть отрицательными
+                        parking.occupiedSpots = Math.max(
+                            0,
+                            Math.min(
+                                parking.occupiedSpots,
+                                parking.totalSpots
+                            )
+                        );
+
+                        newCache[key] = parking;
+                    });
+                }
+
+                // =================================================
+                // 4. УДАЛЯЕМ СТАРЫЕ ПАРКОВКИ
+                // =================================================
+
+                Object.keys(oldCache).forEach(function(id) {
+
+                    if (!newCache[id]) {
+
+                        if (mapMarkers[id]) {
+
+                            // Удаляем маркер из кластера
+                            if (clusterer) {
+                                clusterer.remove(
+                                    mapMarkers[id]
+                                );
+                            }
+
+                            // Удаляем полигон
+                            const polygon =
+                                mapMarkers[id].properties.get(
+                                    'polygon'
+                                );
+
+                            if (polygon && map) {
+                                map.geoObjects.remove(
+                                    polygon
+                                );
+                            }
+
+                            delete mapMarkers[id];
+                        }
+
+                        // Если удаляется активный полигон
+                        if (
+                            activePolygon &&
+                            oldCache[id]
+                        ) {
+                            const activeId =
+                                activePolygon.__parkingId;
+
+                            if (activeId === id) {
+                                map.geoObjects.remove(
+                                    activePolygon
+                                );
+
+                                activePolygon = null;
+                            }
+                        }
                     }
                 });
-            }
 
-            parkingDataCache = newCache;
-            lastDataRefresh = Date.now();
+                // =================================================
+                // 5. ДОБАВЛЯЕМ / ОБНОВЛЯЕМ ПАРКОВКИ
+                // =================================================
 
-            try {
-                localStorage.setItem('parkingCache', JSON.stringify(newCache));
-            } catch (e) {}
+                Object.keys(newCache).forEach(function(id) {
 
-      // Вместо полной перерисовки – обновляем только изменившиеся
-var oldKeys = Object.keys(parkingDataCache);
-var newKeys = Object.keys(newCache);
+                    const parking = newCache[id];
 
-// 1. Удаляем маркеры, которых больше нет
-oldKeys.forEach(function(id) {
-    if (!newCache[id] && mapMarkers[id]) {
-        clusterer.remove(mapMarkers[id]);
-        delete mapMarkers[id];
-    }
-});
+                    if (
+                        parking.lat == null ||
+                        parking.lng == null
+                    ) {
+                        return;
+                    }
 
-// 2. Добавляем новые и обновляем существующие
-newKeys.forEach(function(id) {
-    var p = newCache[id];
-    if (p.lat && p.lng) {
-        if (mapMarkers[id]) {
-            // обновляем существующий
-            var placemark = mapMarkers[id];
-            placemark.properties.set({
-                freeSpots: p.totalSpots - (p.occupiedSpots || 0),
-                totalSpots: p.totalSpots,
-                name: p.name,
-                parkingId: id
-            });
-            var color = getOccupancyColor(p.occupiedSpots || 0, p.totalSpots);
-            placemark.options.set('iconColor', color);
-        } else {
-            // новый маркер
-            addMarkerToMap(id, p);
-        }
-    }
-});
+                    // Уже существует
+                    if (mapMarkers[id]) {
 
-// Обновляем кеш
-parkingDataCache = newCache;
-lastDataRefresh = Date.now();
+                        updateParkingMarker(
+                            id,
+                            parking
+                        );
 
-// Обновляем кружок (если функция уже есть)
-if (typeof updateTotalFreeCircle === 'function') {
-    updateTotalFreeCircle();
-}
+                    } else {
 
-            resolve();
-        }).catch(error => {
-            console.error('❌ Ошибка загрузки из Firebase:', error);
-            if (cacheLoaded) {
+                        // Новый
+                        addMarkerToMap(
+                            id,
+                            parking
+                        );
+                    }
+                });
+
+                // =================================================
+                // 6. ТЕПЕРЬ ТОЛЬКО ЗАМЕНЯЕМ КЕШ
+                // =================================================
+
+                parkingDataCache = newCache;
+
+                lastDataRefresh = Date.now();
+
+                // =================================================
+                // 7. СОХРАНЯЕМ В LOCALSTORAGE
+                // =================================================
+
+                try {
+
+                    localStorage.setItem(
+                        'parkingCache',
+                        JSON.stringify({
+                            data: newCache,
+                            timestamp: Date.now()
+                        })
+                    );
+
+                } catch (error) {
+
+                    console.warn(
+                        '⚠️ Не удалось сохранить parkingCache:',
+                        error
+                    );
+                }
+
+                // =================================================
+                // 8. ОБНОВЛЯЕМ ОБЩИЙ СЧЁТЧИК
+                // =================================================
+
+                if (
+                    typeof updateTotalFreeCircle ===
+                    'function'
+                ) {
+                    updateTotalFreeCircle();
+                }
+
+                console.log(
+                    '✅ Firebase: парковки обновлены:',
+                    Object.keys(newCache).length
+                );
+
                 resolve();
-            } else {
-                const fallback = localStorage.getItem('parkingCache');
-                if (fallback) {
-                    try {
-                        parkingDataCache = JSON.parse(fallback);
-                        lastDataRefresh = Date.now();
-                        if (map && clusterer) {
-                            clusterer.removeAll();
-                            Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
-                            Object.entries(parkingDataCache).forEach(([key, p]) => {
-                                if (p.lat && p.lng) {
-                                    addMarkerToMap(key, p);
-                                }
+
+            })
+            .catch(function(error) {
+
+                console.error(
+                    '❌ Ошибка загрузки парковок из Firebase:',
+                    error
+                );
+
+                // =================================================
+                // 9. FALLBACK НА LOCALSTORAGE
+                // =================================================
+
+                if (cacheLoaded) {
+                    resolve();
+                    return;
+                }
+
+                const fallback =
+                    localStorage.getItem('parkingCache');
+
+                if (!fallback) {
+                    reject(error);
+                    return;
+                }
+
+                try {
+
+                    const cache =
+                        JSON.parse(fallback);
+
+                    if (
+                        !cache ||
+                        !cache.data
+                    ) {
+                        throw new Error(
+                            'Некорректный формат parkingCache'
+                        );
+                    }
+
+                    parkingDataCache =
+                        cache.data;
+
+                    lastDataRefresh =
+                        Date.now();
+
+                    if (map && clusterer) {
+
+                        clusterer.removeAll();
+
+                        // Удаляем старые ссылки
+                        Object.keys(mapMarkers)
+                            .forEach(function(id) {
+                                delete mapMarkers[id];
                             });
-                        }
-                        resolve();
-                    } catch (e) { reject(error); }
-                } else {
+
+                        Object.entries(
+                            parkingDataCache
+                        ).forEach(function([
+                            id,
+                            parking
+                        ]) {
+
+                            if (
+                                parking &&
+                                parking.lat != null &&
+                                parking.lng != null
+                            ) {
+                                addMarkerToMap(
+                                    id,
+                                    parking
+                                );
+                            }
+
+                        });
+                    }
+
+                    if (
+                        typeof updateTotalFreeCircle ===
+                        'function'
+                    ) {
+                        updateTotalFreeCircle();
+                    }
+
+                    console.log(
+                        '⚠️ Использован локальный кеш'
+                    );
+
+                    resolve();
+
+                } catch (cacheError) {
+
+                    console.error(
+                        '❌ Ошибка fallback-кеша:',
+                        cacheError
+                    );
+
                     reject(error);
                 }
-            }
-        });
+            });
     });
 }
-   function refreshParkingMarker(parkingId) {
-    var id = parkingId || currentParkingId;
-    if (!id) return;
-    var data = parkingDataCache[id];
-    if (!data) return;
-    if (mapMarkers[id]) {
-        var placemark = mapMarkers[id];
-        placemark.properties.set({
-            freeSpots: data.totalSpots - (data.occupiedSpots || 0),
-            totalSpots: data.totalSpots,
-            name: data.name,
-            parkingId: id
-        });
-        var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
-        placemark.options.set('iconColor', color);
-    } else {
+function updateParkingMarker(id, data) {
+
+    if (!map || !clusterer) {
+        return;
+    }
+
+    const placemark = mapMarkers[id];
+
+    if (!placemark) {
         addMarkerToMap(id, data);
+        return;
+    }
+
+    const totalSpots =
+        Number(data.totalSpots) || 0;
+
+    const occupiedSpots =
+        Number(data.occupiedSpots) || 0;
+
+    const freeSpots = Math.max(
+        0,
+        totalSpots - occupiedSpots
+    );
+
+    const color =
+        getOccupancyColor(
+            occupiedSpots,
+            totalSpots
+        );
+
+    // ============================================
+    // Обновляем данные маркера
+    // ============================================
+
+    placemark.properties.set({
+        name: data.name || 'Парковка',
+
+        hintContent:
+            data.name || 'Парковка',
+
+        freeSpots: freeSpots,
+
+        totalSpots: totalSpots,
+
+        occupiedSpots: occupiedSpots,
+
+        parkingId: id
+    });
+
+    // ============================================
+    // Обновляем текст самого маркера
+    // ============================================
+
+    placemark.properties.set(
+        'iconContent',
+        String(freeSpots)
+    );
+
+    // ============================================
+    // Обновляем цвет
+    // ============================================
+
+    placemark.options.set(
+        'iconColor',
+        color
+    );
+
+    // ============================================
+    // Обновляем полигон
+    // ============================================
+
+    const oldPolygon =
+        placemark.properties.get('polygon');
+
+    const coordinates = data.coordinates;
+
+    if (
+        coordinates &&
+        Array.isArray(coordinates) &&
+        coordinates.length >= 3
+    ) {
+
+        // Если координаты зоны изменились,
+        // создаём новый полигон
+
+        if (oldPolygon) {
+            map.geoObjects.remove(
+                oldPolygon
+            );
+        }
+
+        const newPolygon =
+            new ymaps.Polygon(
+                [coordinates],
+                {},
+                {
+                    fillColor:
+                        color + '33',
+
+                    strokeColor:
+                        color,
+
+                    strokeWidth: 2,
+
+                    visible: false,
+
+                    zIndex: 5
+                }
+            );
+
+        map.geoObjects.add(
+            newPolygon
+        );
+
+        placemark.properties.set(
+            'polygon',
+            newPolygon
+        );
+
+    } else {
+
+        // Если зоны больше нет
+        if (oldPolygon) {
+
+            map.geoObjects.remove(
+                oldPolygon
+            );
+
+            placemark.properties.set(
+                'polygon',
+                null
+            );
+        }
+    }
+
+    // ============================================
+    // Обновляем общий счётчик
+    // ============================================
+
+    if (
+        typeof updateTotalFreeCircle ===
+        'function'
+    ) {
+        updateTotalFreeCircle();
+    }
+}
+function refreshParkingMarker(parkingId) {
+
+    const id =
+        parkingId || currentParkingId;
+
+    if (!id) {
+        return;
+    }
+
+    const data =
+        parkingDataCache[id];
+
+    if (!data) {
+        return;
+    }
+
+    updateParkingMarker(
+        id,
+        data
+    );
+
+    // Обновляем общий счётчик
+    if (
+        typeof updateTotalFreeCircle ===
+        'function'
+    ) {
+        updateTotalFreeCircle();
     }
 }
 function addMarkerToMap(id, data) {
+
+    if (!map || !clusterer) {
+        return;
+    }
+
+    // ============================================
+    // Если маркер уже существует — сначала
+    // полностью удаляем старый
+    // ============================================
+
     if (mapMarkers[id]) {
-        clusterer.remove(mapMarkers[id]);
+
+        const oldPlacemark =
+            mapMarkers[id];
+
+        const oldPolygon =
+            oldPlacemark.properties.get(
+                'polygon'
+            );
+
+        // Удаляем маркер из кластера
+        clusterer.remove(
+            oldPlacemark
+        );
+
+        // Удаляем полигон
+        if (oldPolygon) {
+            map.geoObjects.remove(
+                oldPolygon
+            );
+        }
+
         delete mapMarkers[id];
     }
-    if (!map || !clusterer) return;
 
-    var totalSpots = data.totalSpots || 0;
-    var occupiedSpots = data.occupiedSpots || 0;
-    var freeSpots = totalSpots - occupiedSpots;
-    var color = getOccupancyColor(occupiedSpots, totalSpots);
+    // ============================================
+    // Нормализуем данные
+    // ============================================
 
-    var centerLat = data.lat;
-    var centerLng = data.lng;
-    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length > 0) {
-        var coords = data.coordinates;
-        var latSum = coords.reduce((sum, c) => sum + c[0], 0);
-        var lngSum = coords.reduce((sum, c) => sum + c[1], 0);
-        centerLat = latSum / coords.length;
-        centerLng = lngSum / coords.length;
+    const totalSpots =
+        Number(data.totalSpots) || 0;
+
+    const occupiedSpots =
+        Number(data.occupiedSpots) || 0;
+
+    const freeSpots = Math.max(
+        0,
+        totalSpots - occupiedSpots
+    );
+
+    const color =
+        getOccupancyColor(
+            occupiedSpots,
+            totalSpots
+        );
+
+    // ============================================
+    // Определяем центр парковочной зоны
+    // ============================================
+
+    let centerLat =
+        Number(data.lat);
+
+    let centerLng =
+        Number(data.lng);
+
+    if (
+        Array.isArray(data.coordinates) &&
+        data.coordinates.length > 0
+    ) {
+
+        let latSum = 0;
+        let lngSum = 0;
+        let validPoints = 0;
+
+        data.coordinates.forEach(
+            function(point) {
+
+                if (
+                    Array.isArray(point) &&
+                    point.length >= 2 &&
+                    Number.isFinite(
+                        Number(point[0])
+                    ) &&
+                    Number.isFinite(
+                        Number(point[1])
+                    )
+                ) {
+
+                    latSum +=
+                        Number(point[0]);
+
+                    lngSum +=
+                        Number(point[1]);
+
+                    validPoints++;
+                }
+            }
+        );
+
+        if (validPoints > 0) {
+
+            centerLat =
+                latSum / validPoints;
+
+            centerLng =
+                lngSum / validPoints;
+        }
     }
 
-    // === СОЗДАЁМ ПОЛИГОН (если есть координаты) ===
-    var polygon = null;
-    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-        polygon = new ymaps.Polygon([data.coordinates], {}, {
-            fillColor: color + '33',
-            strokeColor: color,
-            strokeWidth: 2,
-            visible: false,               // по умолчанию скрыт
-            zIndex: 5
-        });
-        map.geoObjects.add(polygon);
+    // ============================================
+    // Создаём полигон
+    // ============================================
+
+    let polygon = null;
+
+    if (
+        Array.isArray(data.coordinates) &&
+        data.coordinates.length >= 3
+    ) {
+
+        polygon =
+            new ymaps.Polygon(
+                [data.coordinates],
+                {},
+                {
+                    fillColor:
+                        color + '33',
+
+                    strokeColor:
+                        color,
+
+                    strokeWidth: 2,
+
+                    visible: false,
+
+                    zIndex: 5
+                }
+            );
+
+        map.geoObjects.add(
+            polygon
+        );
+
+        // Чтобы можно было определить,
+        // к какой парковке относится полигон
+        polygon.__parkingId = id;
     }
 
-    // === СОЗДАЁМ МАРКЕР ===
-    var placemark = new ymaps.Placemark([centerLat, centerLng], {
-        hintContent: data.name,
-        name: data.name,
-        freeSpots: freeSpots,
-        totalSpots: totalSpots,
-        parkingId: id,
-        iconContent: String(freeSpots),
-        polygon: polygon
-    }, {
-        preset: 'islands#blueStretchyIcon',
-        iconColor: color,
-        iconContentSize: [20, 20],
-        iconContentOffset: [0, 0]
-    });
+    // ============================================
+    // Создаём маркер
+    // ============================================
 
-    // === ОБРАБОТЧИК КЛИКА – показывает полигон и открывает окно ===
-    placemark.events.add('click', function(e) {
-        // Скрыть предыдущий активный полигон
-        if (activePolygon) {
-            activePolygon.options.set('visible', false);
-            activePolygon = null;
-        }
-        var poly = placemark.properties.get('polygon');
-        if (poly) {
-            poly.options.set('visible', true);
-            activePolygon = poly;
-        }
-        openCenterSheet(id, data);
-        if (map.balloon) map.balloon.close();
-    });
+    const placemark =
+        new ymaps.Placemark(
+            [
+                centerLat,
+                centerLng
+            ],
+            {
+                hintContent:
+                    data.name ||
+                    'Парковка',
 
-    // === ДОБАВЛЯЕМ МАРКЕР В КЛАСТЕР ===
-    clusterer.add(placemark);
-    mapMarkers[id] = placemark;
+                name:
+                    data.name ||
+                    'Парковка',
+
+                freeSpots:
+                    freeSpots,
+
+                totalSpots:
+                    totalSpots,
+
+                occupiedSpots:
+                    occupiedSpots,
+
+                parkingId:
+                    id,
+
+                iconContent:
+                    String(freeSpots),
+
+                polygon:
+                    polygon
+            },
+            {
+                preset:
+                    'islands#blueStretchyIcon',
+
+                iconColor:
+                    color,
+
+                iconContentSize:
+                    [20, 20],
+
+                iconContentOffset:
+                    [0, 0]
+            }
+        );
+
+    // ============================================
+    // Клик по парковке
+    // ============================================
+
+    placemark.events.add(
+        'click',
+        function() {
+
+            // Скрываем предыдущий полигон
+            if (activePolygon) {
+
+                activePolygon.options.set(
+                    'visible',
+                    false
+                );
+
+                activePolygon = null;
+            }
+
+            const poly =
+                placemark.properties.get(
+                    'polygon'
+                );
+
+            if (poly) {
+
+                poly.options.set(
+                    'visible',
+                    true
+                );
+
+                activePolygon =
+                    poly;
+            }
+
+            openCenterSheet(
+                id,
+                data
+            );
+
+            if (map.balloon) {
+                map.balloon.close();
+            }
+        }
+    );
+
+    // ============================================
+    // Добавляем в кластер
+    // ============================================
+
+    clusterer.add(
+        placemark
+    );
+
+    // ============================================
+    // Сохраняем ссылку
+    // ============================================
+
+    mapMarkers[id] =
+        placemark;
+
+    // ============================================
+    // Обновляем общий счётчик
+    // ============================================
+
+    if (
+        typeof updateTotalFreeCircle ===
+        'function'
+    ) {
+        updateTotalFreeCircle();
+    }
 }
   // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
 function initMap() {
@@ -1240,70 +1846,165 @@ function initMap() {
 
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР (без круга, только число) =====
         clusterer = new ymaps.Clusterer({
-            gridSize: 64,              // чем меньше, тем раньше появляются кластеры
-            minClusterSize: 2,
-            maxZoom: 19,
-            // Убираем preset, чтобы не было стандартного синего круга
-            clusterIconLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">' +
+    gridSize: 64,
+    minClusterSize: 2,
+    maxZoom: 19,
+
+    clusterIconLayout:
+        ymaps.templateLayoutFactory.createClass(
+            '<div style="' +
+                'width:44px;' +
+                'height:44px;' +
+                'border-radius:50%;' +
+                'background:#2B7574;' +
+                'display:flex;' +
+                'align-items:center;' +
+                'justify-content:center;' +
+                'box-shadow:0 2px 8px rgba(0,0,0,0.3);' +
+            '">' +
                 '{{ content }}' +
-                '</div>'
-            ),
-            // Само число – белое с тенью (без фона)
-            clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="color: #fff; font-weight: bold; font-size: 16px; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);">' +
-                '{{ properties.freeSpots || "0" }}' +
-                '</div>'
-            ),
-            // Балун при клике на кластер
-            clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
-                '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
+            '</div>'
+        ),
+
+    clusterIconContentLayout:
+        ymaps.templateLayoutFactory.createClass(
+            '<div style="' +
+                'color:#fff;' +
+                'font-weight:700;' +
+                'font-size:15px;' +
+                'line-height:44px;' +
+                'width:44px;' +
+                'height:44px;' +
+                'text-align:center;' +
+            '">' +
+                '{{ properties.totalSpots || "0" }}' +
+            '</div>'
+        ),
+
+    clusterBalloonContentLayout:
+        ymaps.templateLayoutFactory.createClass(
+            '<div style="' +
+                'max-height:150px;' +
+                'overflow-y:auto;' +
+                'padding:6px 10px;' +
+                'font-size:13px;' +
+            '">' +
+
                 '{% for geoObject in properties.geoObjects %}' +
-                '<div style="padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer;" onclick="openCenterSheet(\'{{ geoObject.properties.parkingId }}\', window.parkingDataCache[\'{{ geoObject.properties.parkingId }}\'])">' +
-                '<div style="font-weight: 600;">{{ geoObject.properties.name }}</div>' +
-                '<div style="font-size: 12px; color: var(--text-secondary);">🅿️ Свободно: {{ geoObject.properties.freeSpots }} / {{ geoObject.properties.totalSpots }}</div>' +
-                '</div>' +
+
+                    '<div style="' +
+                        'padding:6px 8px;' +
+                        'border-bottom:1px solid #eee;' +
+                        'cursor:pointer;' +
+                    '" onclick="' +
+                        'openCenterSheet(' +
+                        '\'{{ geoObject.properties.parkingId }}\',' +
+                        'window.parkingDataCache[' +
+                        '\'{{ geoObject.properties.parkingId }}\'' +
+                        '])' +
+                    '">' +
+
+                        '<div style="font-weight:600;">' +
+                            '{{ geoObject.properties.name }}' +
+                        '</div>' +
+
+                        '<div style="font-size:12px;color:var(--text-secondary);">' +
+                            '🅿️ Свободно: ' +
+                            '{{ geoObject.properties.freeSpots }}' +
+                            ' / ' +
+                            '{{ geoObject.properties.totalSpots }}' +
+                        '</div>' +
+
+                    '</div>' +
+
                 '{% endfor %}' +
-                '</div>'
-            )
-        });
 
-        // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем свободные места =====
-        clusterer.events.add('clusterize', function (e) {
-    const clusters = e.get('target');
-
-    if (!clusters) return;
-
-    clusters.each(function (cluster) {
-        const geoObjects = cluster.getGeoObjects();
-
-        let totalSpots = 0;
-        let freeSpots = 0;
-
-        geoObjects.forEach(function (placemark) {
-            const props = placemark.properties;
-
-            const total = Number(
-                props.get('totalSpots') || 0
-            );
-            const free = Number(
-                props.get('freeSpots') || 0
-            );
-            totalSpots += total;
-            freeSpots += free;
-        });
-        cluster.properties.set(
-            'totalSpots',
-            totalSpots
-        );
-        cluster.properties.set(
-            'freeSpots',
-            freeSpots
-        );
-    });
-
-    // НЕ вызываем clusterer.reload()
+            '</div>'
+        )
 });
+        // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем свободные места =====
+       // =========================================================
+// КЛАСТЕРИЗАЦИЯ
+// =========================================================
+// Для каждого кластера считаем:
+// 1. количество парковочных зон
+// 2. общее количество парковочных мест
+// 3. общее количество свободных мест
+// =========================================================
+
+clusterer.events.add(
+    'clusterize',
+    function(e) {
+
+        const clusters =
+            e.get('clusters');
+
+        if (!clusters) {
+            return;
+        }
+
+        clusters.forEach(
+            function(cluster) {
+
+                const geoObjects =
+                    cluster.getGeoObjects();
+
+                let totalSpots = 0;
+                let freeSpots = 0;
+                let parkingCount = 0;
+
+                geoObjects.forEach(
+                    function(placemark) {
+
+                        const total =
+                            Number(
+                                placemark.properties.get(
+                                    'totalSpots'
+                                )
+                            ) || 0;
+
+                        const free =
+                            Number(
+                                placemark.properties.get(
+                                    'freeSpots'
+                                )
+                            ) || 0;
+
+                        totalSpots +=
+                            total;
+
+                        freeSpots +=
+                            free;
+
+                        parkingCount++;
+                    }
+                );
+
+                // Сохраняем рассчитанные значения
+                // непосредственно в свойства кластера
+
+                cluster.properties.set(
+                    'totalSpots',
+                    totalSpots
+                );
+
+                cluster.properties.set(
+                    'freeSpots',
+                    freeSpots
+                );
+
+                cluster.properties.set(
+                    'parkingCount',
+                    parkingCount
+                );
+            }
+        );
+
+        // ❗ НЕ ВЫЗЫВАТЬ:
+        // clusterer.reload();
+
+    }
+);
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
 
