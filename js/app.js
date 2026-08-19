@@ -1220,7 +1220,7 @@ function initMap() {
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
     var currentZoom = map.getZoom();
-    var showPolygons = (currentZoom >= 14);   // можно менять
+    var showPolygons = (currentZoom >= 10);   // можно менять
     console.log('Zoom:', currentZoom, 'Показывать полигоны:', showPolygons);
     Object.keys(mapMarkers).forEach(function(id) {
         var placemark = mapMarkers[id];
@@ -1234,9 +1234,9 @@ function initMap() {
 
         // 2. Создаём кластеризатор БЕЗ круга
         clusterer = new ymaps.Clusterer({
-            gridSize: 64,
-            minClusterSize: 2,
-            maxZoom: 18,
+            gridSize: 128,
+            minClusterSize: 3,
+            maxZoom: 15,
             // НЕ используем preset, чтобы не было стандартного круга
             // preset: 'islands#blueClusterIcons',   // ← УДАЛЁН
 
