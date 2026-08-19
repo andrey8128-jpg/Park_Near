@@ -1244,7 +1244,7 @@ function initMap() {
 
         // 2. Создаём кластеризатор БЕЗ круга
         clusterer = new ymaps.Clusterer({
-            gridSize: 256,
+            gridSize: 64,
             minClusterSize: 2,
             maxZoom: 18,
             // НЕ используем preset, чтобы не было стандартного круга
