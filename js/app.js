@@ -1168,12 +1168,12 @@ function addMarkerToMap(id, data) {
     var polygon = null;
 if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
     polygon = new ymaps.Polygon([data.coordinates], {}, {
-        fillColor: color + '33',
-        strokeColor: color,
-        strokeWidth: 2,
-        visible: false,
-        zIndex: 5
-    });
+    fillColor: 'rgba(43,117,116,0.3)',   // чуть прозрачный зелёный
+    strokeColor: '#2B7574',
+    strokeWidth: 3,
+    visible: false,
+    zIndex: 10
+});
     map.geoObjects.add(polygon);
 }
 
@@ -1191,21 +1191,10 @@ if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.leng
         iconContentSize: [20, 20],
         iconContentOffset: [0, 0]
     });
-
     placemark.events.add('click', function(e) {
-        if (activePolygon) {
-            activePolygon.options.set('visible', false);
-            activePolygon = null;
-        }
-        var poly = placemark.properties.get('polygon');
-        if (poly) {
-            poly.options.set('visible', true);
-            activePolygon = poly;
-        }
-        openCenterSheet(id, data);
-        if (map.balloon) map.balloon.close();
-    });
-
+    openCenterSheet(id, data);
+    if (map.balloon) map.balloon.close();
+});
     clusterer.add(placemark);
     mapMarkers[id] = placemark;
 }
