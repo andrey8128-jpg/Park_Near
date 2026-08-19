@@ -1269,17 +1269,41 @@ function initMap() {
         });
 
         // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем свободные места =====
-        clusterer.events.add('clusterize', function(e) {
-            e.get('clusters').forEach(function(cluster) {
-                var sum = 0;
-                cluster.getGeoObjects().forEach(function(obj) {
-                    sum += obj.properties.get('freeSpots') || 0;
-                });
-                cluster.properties.set('freeSpots', sum);
-            });
-            clusterer.reload();
-        });
+        clusterer.events.add('clusterize', function (e) {
+    const clusters = e.get('target');
 
+    if (!clusters) return;
+
+    clusters.each(function (cluster) {
+        const geoObjects = cluster.getGeoObjects();
+
+        let totalSpots = 0;
+        let freeSpots = 0;
+
+        geoObjects.forEach(function (placemark) {
+            const props = placemark.properties;
+
+            const total = Number(
+                props.get('totalSpots') || 0
+            );
+            const free = Number(
+                props.get('freeSpots') || 0
+            );
+            totalSpots += total;
+            freeSpots += free;
+        });
+        cluster.properties.set(
+            'totalSpots',
+            totalSpots
+        );
+        cluster.properties.set(
+            'freeSpots',
+            freeSpots
+        );
+    });
+
+    // НЕ вызываем clusterer.reload()
+});
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
 
