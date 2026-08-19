@@ -1166,16 +1166,16 @@ function addMarkerToMap(id, data) {
     }
 
     var polygon = null;
-    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-        polygon = new ymaps.Polygon([data.coordinates], {}, {
-    fillColor: color + '66',   // ↑ увеличение непрозрачности
-    strokeColor: color,
-    strokeWidth: 3,
-    visible: false,
-    zIndex: 10
-     });
-        map.geoObjects.add(polygon);
-    }
+if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+    polygon = new ymaps.Polygon([data.coordinates], {}, {
+        fillColor: color + '33',
+        strokeColor: color,
+        strokeWidth: 2,
+        visible: false,
+        zIndex: 5
+    });
+    map.geoObjects.add(polygon);
+}
 
    var placemark = new ymaps.Placemark([centerLat, centerLng], {
     hintContent: data.name,
@@ -1230,17 +1230,18 @@ function initMap() {
 
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
-            var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 15);
-            Object.keys(mapMarkers).forEach(function(id) {
-                var placemark = mapMarkers[id];
-                if (!placemark) return;
-                var poly = placemark.properties.get('polygon');
-                if (poly) {
-                    poly.options.set('visible', showPolygons);
-                }
-            });
-        });
+    var currentZoom = map.getZoom();
+    var showPolygons = (currentZoom >= 14);   // можно менять
+    console.log('Zoom:', currentZoom, 'Показывать полигоны:', showPolygons);
+    Object.keys(mapMarkers).forEach(function(id) {
+        var placemark = mapMarkers[id];
+        if (!placemark) return;
+        var poly = placemark.properties.get('polygon');
+        if (poly) {
+            poly.options.set('visible', showPolygons);
+        }
+    });
+});
 
         // 2. Создаём кластеризатор БЕЗ круга
         clusterer = new ymaps.Clusterer({
