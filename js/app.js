@@ -1085,6 +1085,7 @@ lastDataRefresh = Date.now();
 if (typeof updateTotalFreeCircle === 'function') {
     updateTotalFreeCircle();
 }
+
             resolve();
         }).catch(error => {
             console.error('❌ Ошибка загрузки из Firebase:', error);
@@ -1114,46 +1115,39 @@ if (typeof updateTotalFreeCircle === 'function') {
         });
     });
 }
-  function refreshParkingMarker(parkingId) {
+   function refreshParkingMarker(parkingId) {
     var id = parkingId || currentParkingId;
     if (!id) return;
     var data = parkingDataCache[id];
     if (!data) return;
-if (mapMarkers[id]) {
-    var placemark = mapMarkers[id];
-    placemark.properties.set({
-        freeSpots: data.totalSpots - (data.occupiedSpots || 0),
-        totalSpots: data.totalSpots,
-        name: data.name,
-        parkingId: id
-    });
-    var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
-    placemark.options.set('iconColor', color);
-    clusterer.remove(placemark);
-    clusterer.add(placemark);
-} else {
-    addMarkerToMap(id, data);
-  }
+    if (mapMarkers[id]) {
+        var placemark = mapMarkers[id];
+        placemark.properties.set({
+            freeSpots: data.totalSpots - (data.occupiedSpots || 0),
+            totalSpots: data.totalSpots,
+            name: data.name,
+            parkingId: id
+        });
+        var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
+        placemark.options.set('iconColor', color);
+    } else {
+        addMarkerToMap(id, data);
+    }
 }
 function addMarkerToMap(id, data) {
     // Если маркер уже существует – обновляем его данные
     if (mapMarkers[id]) {
-    var placemark = mapMarkers[id];
-    placemark.properties.set({
-        freeSpots: data.totalSpots - (data.occupiedSpots || 0),
-        totalSpots: data.totalSpots,
-        name: data.name,
-        parkingId: id
-    });
-    var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
-    placemark.options.set('iconColor', color);
-    // Принудительно перестраиваем кластер
-    clusterer.remove(placemark);
-    clusterer.add(placemark);
-    return;
-}
-
-    // --- Создание нового маркера (только если маркер не существовал) ---
+        var placemark = mapMarkers[id];
+        placemark.properties.set({
+            freeSpots: data.totalSpots - (data.occupiedSpots || 0),
+            totalSpots: data.totalSpots,
+            name: data.name,
+            parkingId: id
+        });
+        var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
+        placemark.options.set('iconColor', color);
+        return;
+    }
     if (!map || !clusterer) return;
 
     var totalSpots = data.totalSpots || 0;
@@ -1165,8 +1159,8 @@ function addMarkerToMap(id, data) {
     var centerLng = data.lng;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length > 0) {
         var coords = data.coordinates;
-        var latSum = coords.reduce(function(sum, c) { return sum + c[0]; }, 0);
-        var lngSum = coords.reduce(function(sum, c) { return sum + c[1]; }, 0);
+        var latSum = coords.reduce((sum, c) => sum + c[0], 0);
+        var lngSum = coords.reduce((sum, c) => sum + c[1], 0);
         centerLat = latSum / coords.length;
         centerLng = lngSum / coords.length;
     }
@@ -1174,24 +1168,24 @@ function addMarkerToMap(id, data) {
     var polygon = null;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         polygon = new ymaps.Polygon([data.coordinates], {}, {
-            fillColor: color + '66',
-            strokeColor: color,
-            strokeWidth: 3,
-            visible: false,
-            zIndex: 10
-        });
+    fillColor: color + '66',   // ↑ увеличение непрозрачности
+    strokeColor: color,
+    strokeWidth: 3,
+    visible: false,
+    zIndex: 10
+     });
         map.geoObjects.add(polygon);
     }
 
-    var placemark = new ymaps.Placemark([centerLat, centerLng], {
-        hintContent: data.name,
-        name: data.name,
-        freeSpots: freeSpots,
-        totalSpots: totalSpots,
-        parkingId: id,
-        iconContent: String(freeSpots),
-        polygon: polygon
-    }, {
+   var placemark = new ymaps.Placemark([centerLat, centerLng], {
+    hintContent: data.name,
+    name: data.name,
+    freeSpots: freeSpots,
+    totalSpots: totalSpots,
+    parkingId: id,   // ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
+    iconContent: String(freeSpots),
+    polygon: polygon
+}, {
         preset: 'islands#blueStretchyIcon',
         iconColor: color,
         iconContentSize: [20, 20],
@@ -1292,7 +1286,7 @@ clusterer.events.add('clusterize', function(e) {
         // 1. Количество парковок в кластере
         var parkingCount = cluster.getGeoObjects().length;
 
-        // 2. Расчёт свободных мест для цвета
+        // 2. Сумма свободных мест (для цвета)
         var totalFree = 0;
         var totalSpots = 0;
         cluster.getGeoObjects().forEach(function(obj) {
@@ -1307,11 +1301,12 @@ clusterer.events.add('clusterize', function(e) {
         else if (ratio >= 0.2) color = '#ED6C02';
         else color = '#D32F2F';
 
-        // 3. Устанавливаем свойства для иконки
+        // 3. Устанавливаем свойства для отображения
+        cluster.properties.set('clusterParkingCount', parkingCount);
         cluster.properties.set('clusterColor', color);
-        cluster.properties.set('clusterParkingCount', parkingCount); // ← теперь количество парковок
     });
 });
+
         map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
