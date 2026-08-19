@@ -1135,18 +1135,9 @@ if (typeof updateTotalFreeCircle === 'function') {
     }
 }
 function addMarkerToMap(id, data) {
-    // Если маркер уже существует – обновляем его данные
     if (mapMarkers[id]) {
-        var placemark = mapMarkers[id];
-        placemark.properties.set({
-            freeSpots: data.totalSpots - (data.occupiedSpots || 0),
-            totalSpots: data.totalSpots,
-            name: data.name,
-            parkingId: id
-        });
-        var color = getOccupancyColor(data.occupiedSpots || 0, data.totalSpots);
-        placemark.options.set('iconColor', color);
-        return;
+        clusterer.remove(mapMarkers[id]);
+        delete mapMarkers[id];
     }
     if (!map || !clusterer) return;
 
@@ -1165,36 +1156,42 @@ function addMarkerToMap(id, data) {
         centerLng = lngSum / coords.length;
     }
 
+    // СОЗДАЁМ ПОЛИГОН, ЕСЛИ ЕСТЬ КООРДИНАТЫ
     var polygon = null;
-if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
-    polygon = new ymaps.Polygon([data.coordinates], {}, {
-    fillColor: 'rgba(43,117,116,0.3)',   // чуть прозрачный зелёный
-    strokeColor: '#2B7574',
-    strokeWidth: 3,
-    visible: false,
-    zIndex: 10
-});
-    map.geoObjects.add(polygon);
-}
+    if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
+        polygon = new ymaps.Polygon([data.coordinates], {}, {
+            fillColor: color + '33',
+            strokeColor: color,
+            strokeWidth: 2,
+            visible: false,        // будет управляться через zoomchange
+            zIndex: 5
+        });
+        map.geoObjects.add(polygon);
+    }
 
-   var placemark = new ymaps.Placemark([centerLat, centerLng], {
-    hintContent: data.name,
-    name: data.name,
-    freeSpots: freeSpots,
-    totalSpots: totalSpots,
-    parkingId: id,   // ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
-    iconContent: String(freeSpots),
-    polygon: polygon
-}, {
+    // СОЗДАЁМ МАРКЕР
+    var placemark = new ymaps.Placemark([centerLat, centerLng], {
+        hintContent: data.name,
+        name: data.name,
+        freeSpots: freeSpots,
+        totalSpots: totalSpots,
+        parkingId: id,
+        iconContent: String(freeSpots),
+        polygon: polygon          // сохраняем полигон в свойствах маркера
+    }, {
         preset: 'islands#blueStretchyIcon',
         iconColor: color,
         iconContentSize: [20, 20],
         iconContentOffset: [0, 0]
     });
+
+    // ОБРАБОТЧИК КЛИКА – только открывает карточку, НЕ управляет полигоном
     placemark.events.add('click', function(e) {
-    openCenterSheet(id, data);
-    if (map.balloon) map.balloon.close();
-});
+        openCenterSheet(id, data);
+        if (map.balloon) map.balloon.close();
+    });
+
+    // ДОБАВЛЯЕМ МАРКЕР В КЛАСТЕР
     clusterer.add(placemark);
     mapMarkers[id] = placemark;
 }
@@ -1219,42 +1216,36 @@ function initMap() {
 
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
-    var currentZoom = map.getZoom();
-    var showPolygons = (currentZoom >= 10);   // можно менять
-    console.log('Zoom:', currentZoom, 'Показывать полигоны:', showPolygons);
-    Object.keys(mapMarkers).forEach(function(id) {
-        var placemark = mapMarkers[id];
-        if (!placemark) return;
-        var poly = placemark.properties.get('polygon');
-        if (poly) {
-            poly.options.set('visible', showPolygons);
-        }
-    });
-});
+            var currentZoom = map.getZoom();
+            var showPolygons = (currentZoom >= 15);   // ← меняйте порог здесь (14,15,16...)
+            Object.keys(mapMarkers).forEach(function(id) {
+                var placemark = mapMarkers[id];
+                if (!placemark) return;
+                var poly = placemark.properties.get('polygon');
+                if (poly) {
+                    poly.options.set('visible', showPolygons);
+                }
+            });
+        });
 
-        // 2. Создаём кластеризатор БЕЗ круга
+        // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР (без круга, только число) =====
         clusterer = new ymaps.Clusterer({
-            gridSize: 128,
-            minClusterSize: 3,
-            maxZoom: 15,
-            // НЕ используем preset, чтобы не было стандартного круга
-            // preset: 'islands#blueClusterIcons',   // ← УДАЛЁН
-
-            // Явно задаём обёртку, чтобы убрать фон
+            gridSize: 64,              // чем меньше, тем раньше появляются кластеры при отдалении
+            minClusterSize: 2,
+            maxZoom: 19,
+            // Убираем preset, чтобы не было стандартного синего круга
             clusterIconLayout: ymaps.templateLayoutFactory.createClass(
                 '<div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">' +
                 '{{ content }}' +
                 '</div>'
             ),
-
-            // Содержимое кластера – только число с тенью (без круга)
+            // Само число – белое с тенью (без фона)
             clusterIconContentLayout: ymaps.templateLayoutFactory.createClass(
                 '<div style="color: #fff; font-weight: bold; font-size: 16px; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8);">' +
                 '{{ properties.freeSpots || "0" }}' +
                 '</div>'
             ),
-
-            // Балун при клике на кластер (оставляем как есть)
+            // Балун при клике на кластер
             clusterBalloonContentLayout: ymaps.templateLayoutFactory.createClass(
                 '<div style="max-height: 150px; overflow-y: auto; padding: 6px 10px; font-size: 13px;">' +
                 '{% for geoObject in properties.geoObjects %}' +
@@ -1267,7 +1258,7 @@ function initMap() {
             )
         });
 
-        // 3. Обработчик кластеризации – суммируем свободные места
+        // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем свободные места =====
         clusterer.events.add('clusterize', function(e) {
             e.get('clusters').forEach(function(cluster) {
                 var sum = 0;
@@ -1279,6 +1270,7 @@ function initMap() {
             clusterer.reload();
         });
 
+        // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
 
         // ===== Обработчик клика по карте для показа адреса =====
@@ -1389,10 +1381,10 @@ function initMap() {
                 });
         };
 
-        // 4. Загружаем парковки
+        // ===== Загружаем парковки =====
         loadAllParkings().catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
 
-        // 5. Автогеолокация через 1 секунду
+        // ===== Автогеолокация через 1 секунду =====
         setTimeout(function() {
             getUserLocation()
                 .then(function(coords) {
@@ -1412,7 +1404,7 @@ function initMap() {
                 });
         }, 1000);
 
-        // 6. Скрываем сплеш-экран
+        // ===== Скрываем сплеш-экран =====
         setTimeout(function() {
             const splash = document.getElementById('splashScreen');
             if (splash) {
