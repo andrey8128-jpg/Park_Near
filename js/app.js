@@ -1160,10 +1160,10 @@ function addMarkerToMap(id, data) {
     var polygon = null;
     if (data.coordinates && Array.isArray(data.coordinates) && data.coordinates.length >= 3) {
         polygon = new ymaps.Polygon([data.coordinates], {}, {
-            fillColor: color + '33',      // цвет с прозрачностью
+            fillColor: color + '33',
             strokeColor: color,
             strokeWidth: 2,
-            visible: false,               // видимость управляется через zoomchange
+            visible: false,               // по умолчанию скрыт
             zIndex: 5
         });
         map.geoObjects.add(polygon);
@@ -1177,7 +1177,7 @@ function addMarkerToMap(id, data) {
         totalSpots: totalSpots,
         parkingId: id,
         iconContent: String(freeSpots),
-        polygon: polygon        // сохраняем полигон в маркере
+        polygon: polygon
     }, {
         preset: 'islands#blueStretchyIcon',
         iconColor: color,
@@ -1185,8 +1185,18 @@ function addMarkerToMap(id, data) {
         iconContentOffset: [0, 0]
     });
 
-    // === ОБРАБОТЧИК КЛИКА – только открывает карточку, НЕ управляет полигоном ===
+    // === ОБРАБОТЧИК КЛИКА – показывает полигон и открывает окно ===
     placemark.events.add('click', function(e) {
+        // Скрыть предыдущий активный полигон
+        if (activePolygon) {
+            activePolygon.options.set('visible', false);
+            activePolygon = null;
+        }
+        var poly = placemark.properties.get('polygon');
+        if (poly) {
+            poly.options.set('visible', true);
+            activePolygon = poly;
+        }
         openCenterSheet(id, data);
         if (map.balloon) map.balloon.close();
     });
@@ -1275,23 +1285,27 @@ function initMap() {
 
         // ===== Обработчик клика по карте для показа адреса =====
         map.events.add('click', function(e) {
-            var coords = e.get('coords');
-            ymaps.geocode(coords, { results: 1 }).then(function(res) {
-                var geoObject = res.geoObjects.get(0);
-                var address = geoObject ? geoObject.getAddressLine() : 'Адрес не определён';
-                map.balloon.open(coords, {
-                    contentHeader: '📍 Адрес',
-                    contentBody: address,
-                    contentFooter: '<button class="btn-secondary" style="margin-top:4px; padding:8px 16px; border-radius:8px;" onclick="findParkingsNearAddress(' + coords[0] + ', ' + coords[1] + ', \'' + address.replace(/'/g, "\\'") + '\')">🔍 Найти парковки рядом</button>'
-                });
-            }).catch(function() {
-                map.balloon.open(coords, {
-                    contentHeader: '⚠️ Ошибка',
-                    contentBody: 'Не удалось определить адрес'
-                });
-            });
+    // Скрываем активный полигон при клике на карту
+    if (activePolygon) {
+        activePolygon.options.set('visible', false);
+        activePolygon = null;
+    }
+    var coords = e.get('coords');
+    ymaps.geocode(coords, { results: 1 }).then(function(res) {
+        var geoObject = res.geoObjects.get(0);
+        var address = geoObject ? geoObject.getAddressLine() : 'Адрес не определён';
+        map.balloon.open(coords, {
+            contentHeader: '📍 Адрес',
+            contentBody: address,
+            contentFooter: '<button class="btn-secondary" style="margin-top:4px; padding:8px 16px; border-radius:8px;" onclick="findParkingsNearAddress(' + coords[0] + ', ' + coords[1] + ', \'' + address.replace(/'/g, "\\'") + '\')">🔍 Найти парковки рядом</button>'
         });
-
+    }).catch(function() {
+        map.balloon.open(coords, {
+            contentHeader: '⚠️ Ошибка',
+            contentBody: 'Не удалось определить адрес'
+        });
+    });
+});
         // ===== Обработчики кнопок =====
         document.getElementById('addBtn').onclick = function() {
             if (!currentUser) showPanel('home');
