@@ -2007,9 +2007,11 @@ clusterer.events.add(
             contentFooter: '<button class="btn-secondary" style="margin-top:4px; padding:8px 16px; border-radius:8px;" onclick="findParkingsNearAddress(' + coords[0] + ', ' + coords[1] + ', \'' + address.replace(/'/g, "\\'") + '\')">🔍 Найти парковки рядом</button>'
         });
     }).catch(function() {
+        // ✅ ПОКАЗЫВАЕМ КООРДИНАТЫ ВМЕСТО ОШИБКИ
         map.balloon.open(coords, {
-            contentHeader: '⚠️ Ошибка',
-            contentBody: 'Не удалось определить адрес'
+            contentHeader: '📍 Координаты',
+            contentBody: `Широта: ${coords[0].toFixed(6)}, Долгота: ${coords[1].toFixed(6)}`,
+            contentFooter: '<button class="btn-secondary" style="margin-top:4px; padding:8px 16px; border-radius:8px;" onclick="findParkingsNearAddress(' + coords[0] + ', ' + coords[1] + ', null)">🔍 Найти парковки рядом</button>'
         });
     });
 });
