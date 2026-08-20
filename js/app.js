@@ -2005,11 +2005,7 @@ clusterer.events.add(
         );
     }
 );
-        // ❗ НЕ ВЫЗЫВАТЬ:
-        // clusterer.reload();
-
-    }
-);
+        
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
 
