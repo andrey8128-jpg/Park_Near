@@ -1412,15 +1412,6 @@ function updateParkingMarker(id, data) {
     });
 
     // ============================================
-    // Обновляем текст самого маркера
-    // ============================================
-
-    placemark.properties.set(
-        'iconContent',
-        String(freeSpots)
-    );
-
-    // ============================================
     // Обновляем цвет
     // ============================================
 
@@ -1717,25 +1708,16 @@ function addMarkerToMap(id, data) {
 
                 parkingId:
                     id,
-
-                iconContent:
-                    String(freeSpots),
-
+                    
                 polygon:
                     polygon
             },
             {
                 preset:
-                    'islands#blueStretchyIcon',
+                    'islands#blueIcon',
 
                 iconColor:
                     color,
-
-                iconContentSize:
-                    [20, 20],
-
-                iconContentOffset:
-                    [0, 0]
             }
         );
 
