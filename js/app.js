@@ -1982,26 +1982,29 @@ clusterer.events.add(
                     }
                 );
 
-                // Сохраняем рассчитанные значения
-                // непосредственно в свойства кластера
-
+                // Общее количество парковочных мест
+                // во всех парковках этого кластера
                 cluster.properties.set(
                     'totalSpots',
                     totalSpots
                 );
 
+                // Общее количество свободных мест
+                // во всех парковках этого кластера
                 cluster.properties.set(
                     'freeSpots',
                     freeSpots
                 );
 
+                // Количество парковок в кластере
                 cluster.properties.set(
                     'parkingCount',
                     parkingCount
                 );
             }
         );
-
+    }
+);
         // ❗ НЕ ВЫЗЫВАТЬ:
         // clusterer.reload();
 
