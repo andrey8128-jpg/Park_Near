@@ -1855,11 +1855,12 @@ function initMap() {
             '<div style="' +
                 'width:44px;' +
                 'height:44px;' +
-                'border-radius:50%;' +
+                'border-radius:50% 50% 50% 0;' +
                 'background:#2B7574;' +
                 'display:flex;' +
                 'align-items:center;' +
                 'justify-content:center;' +
+                'transform:rotate(-45deg);' +
                 'box-shadow:0 2px 8px rgba(0,0,0,0.3);' +
             '">' +
                 '{{ content }}' +
@@ -1876,6 +1877,7 @@ function initMap() {
                 'width:44px;' +
                 'height:44px;' +
                 'text-align:center;' +
+                'transform:rotate(45deg);' +
             '">' +
                 '{{ properties.totalSpots || "0" }}' +
             '</div>'
