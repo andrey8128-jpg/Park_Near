@@ -1828,9 +1828,9 @@ function initMap() {
 
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР (без круга, только число) =====
         clusterer = new ymaps.Clusterer({
-    gridSize: 64,
+    gridSize: 128,
     minClusterSize: 2,
-    maxZoom: 19,
+    maxZoom: 17,
 
     clusterIconLayout:
         ymaps.templateLayoutFactory.createClass(
