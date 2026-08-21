@@ -2669,14 +2669,18 @@ function closeCenterSheet() {
         activePolygon = null;
     }
 
-    // ===== ВОССТАНАВЛИВАЕМ ПРЕДЫДУЩИЙ ЗУМ И ЦЕНТР =====
-    if (previousZoom !== null && map) {
-        map.setZoom(previousZoom, { duration: 300 });
+    // ===== ВОССТАНАВЛИВАЕМ ЦЕНТР И УСТАНАВЛИВАЕМ ЗУМ 16 =====
+    if (map) {
+        // Если был сохранён центр (при клике на маркер), восстанавливаем его
         if (previousCenter) {
-            map.setCenter(previousCenter, { duration: 300 });
+            map.setCenter(previousCenter, 16, { duration: 300 });
+            previousCenter = null;
+        } else {
+            // Если центра нет (окно открыто не через клик), просто устанавливаем зум 16
+            map.setZoom(16, { duration: 300 });
         }
+        // Сбрасываем сохранённый зум (больше не нужен)
         previousZoom = null;
-        previousCenter = null;
     }
 }
 function generateForecastText(forecastData, now) {
