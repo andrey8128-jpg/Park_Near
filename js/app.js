@@ -1989,7 +1989,12 @@ clusterer.events.add(
 );
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
-
+// ===== Обработчик клика на кластер (приближение) =====
+clusterer.events.add('click', function(e) {
+    var cluster = e.get('target');
+    // Приближаем карту так, чтобы кластер разбился на отдельные метки
+    clusterer.zoomToCluster(cluster, { duration: 300 });
+});
         // ===== Обработчики кнопок =====
         document.getElementById('addBtn').onclick = function() {
             if (!currentUser) showPanel('home');
