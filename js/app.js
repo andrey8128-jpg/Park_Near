@@ -49,6 +49,8 @@
     let addressPreviewMarker = null;
     let _parkingFormCoords = null;
     let _parkingFormSizeCheck = null;
+    let previousZoom = null;
+    let previousCenter = null;
     let drawingPolygon = null;
     let clusterer = null;
     let activePolygon = null; 
@@ -1726,46 +1728,35 @@ function addMarkerToMap(id, data) {
     // ============================================
 
     placemark.events.add(
-        'click',
-        function() {
+    'click',
+    function() {
 
-            // Скрываем предыдущий полигон
-            if (activePolygon) {
-
-                activePolygon.options.set(
-                    'visible',
-                    false
-                );
-
-                activePolygon = null;
-            }
-
-            const poly =
-                placemark.properties.get(
-                    'polygon'
-                );
-
-            if (poly) {
-
-                poly.options.set(
-                    'visible',
-                    true
-                );
-
-                activePolygon =
-                    poly;
-            }
-
-            openCenterSheet(
-                id,
-                data
-            );
-
-            if (map.balloon) {
-                map.balloon.close();
-            }
+        // ===== СОХРАНЯЕМ ТЕКУЩИЙ ЗУМ И ЦЕНТР, ЗАТЕМ ПРИБЛИЖАЕМ =====
+        if (map) {
+            previousZoom = map.getZoom();
+            previousCenter = map.getCenter();
+            map.setCenter([centerLat, centerLng], 18, { duration: 300, checkZoomRange: true });
         }
-    );
+
+        // Скрываем предыдущий полигон
+        if (activePolygon) {
+            activePolygon.options.set('visible', false);
+            activePolygon = null;
+        }
+
+        const poly = placemark.properties.get('polygon');
+        if (poly) {
+            poly.options.set('visible', true);
+            activePolygon = poly;
+        }
+
+        openCenterSheet(id, data);
+
+        if (map.balloon) {
+            map.balloon.close();
+        }
+    }
+);
 
     // ============================================
     // Добавляем в кластер
@@ -2671,10 +2662,21 @@ function closeCenterSheet() {
     document.getElementById('centerSheet').classList.remove('active');
     currentParkingId = null;
     currentParkingData = null;
+
     // Скрываем активный полигон
     if (activePolygon) {
         activePolygon.options.set('visible', false);
         activePolygon = null;
+    }
+
+    // ===== ВОССТАНАВЛИВАЕМ ПРЕДЫДУЩИЙ ЗУМ И ЦЕНТР =====
+    if (previousZoom !== null && map) {
+        map.setZoom(previousZoom, { duration: 300 });
+        if (previousCenter) {
+            map.setCenter(previousCenter, { duration: 300 });
+        }
+        previousZoom = null;
+        previousCenter = null;
     }
 }
 function generateForecastText(forecastData, now) {
