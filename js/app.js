@@ -2544,12 +2544,20 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             });
         })
         .then(() => {
-            if (saveBtn) {
-                saveBtn.textContent = 'Сохранить парковку';
-                saveBtn.disabled = false;
-            }
-        });
-}
+    // === Аналог finally – выполняется всегда ===
+    if (saveBtn) {
+        saveBtn.textContent = 'Сохранить парковку';
+        saveBtn.disabled = false;
+    }
+    // Закрываем панель
+    closePanel();
+    showMap();
+    // Принудительно удаляем класс active (страховка)
+    var panel = document.getElementById('panel');
+    if (panel && panel.classList.contains('active')) {
+        panel.classList.remove('active');
+    }
+});
     function saveEditedPolygon(newCoords) {
         if (!currentParkingId) return;
         const sizeCheck = checkPolygonSize(newCoords);
