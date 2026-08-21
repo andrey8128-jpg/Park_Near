@@ -1727,17 +1727,13 @@ function addMarkerToMap(id, data) {
     // Клик по парковке
     // ============================================
 
-    placemark.events.add(
-    'click',
-    function() {
-
-        // ===== СОХРАНЯЕМ ТЕКУЩИЙ ЗУМ И ЦЕНТР, ЗАТЕМ ПРИБЛИЖАЕМ =====
-        if (map) {
-            previousZoom = map.getZoom();
-            previousCenter = map.getCenter();
-            map.setCenter([centerLat, centerLng], 18, { duration: 300, checkZoomRange: true });
-        }
-
+   placemark.events.add('click', function() {
+    // Сохраняем текущий зум и центр
+    if (map) {
+        previousZoom = map.getZoom();
+        previousCenter = map.getCenter();
+        map.setCenter([centerLat, centerLng], 18, { duration: 300, checkZoomRange: true });
+    }
         // Скрываем предыдущий полигон
         if (activePolygon) {
             activePolygon.options.set('visible', false);
@@ -2663,24 +2659,23 @@ function closeCenterSheet() {
     currentParkingId = null;
     currentParkingData = null;
 
-    // Скрываем активный полигон
     if (activePolygon) {
         activePolygon.options.set('visible', false);
         activePolygon = null;
     }
 
-    // ===== ВОССТАНАВЛИВАЕМ ЦЕНТР И УСТАНАВЛИВАЕМ ЗУМ 16 =====
-    if (map) {
-        // Если был сохранён центр (при клике на маркер), восстанавливаем его
-        if (previousCenter) {
+    // Восстанавливаем центр и зум 16 (если центр сохранён)
+    if (map && previousCenter) {
+        try {
             map.setCenter(previousCenter, 16, { duration: 300 });
             previousCenter = null;
-        } else {
-            // Если центра нет (окно открыто не через клик), просто устанавливаем зум 16
-            map.setZoom(16, { duration: 300 });
+            previousZoom = null;
+        } catch (e) {
+            console.warn('Ошибка восстановления:', e);
         }
-        // Сбрасываем сохранённый зум (больше не нужен)
-        previousZoom = null;
+    } else if (map) {
+        // Если центр не сохранён, просто ставим зум 16
+        map.setZoom(16, { duration: 300 });
     }
 }
 function generateForecastText(forecastData, now) {
