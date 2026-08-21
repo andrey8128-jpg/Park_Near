@@ -1728,32 +1728,26 @@ function addMarkerToMap(id, data) {
     // ============================================
 
    placemark.events.add('click', function() {
-    // Сохраняем текущий зум и центр
+    // ===== ПРИБЛИЖАЕМ КАРТУ =====
     if (map) {
-        previousZoom = map.getZoom();
-        previousCenter = map.getCenter();
         map.setCenter([centerLat, centerLng], 18, { duration: 300, checkZoomRange: true });
     }
-        // Скрываем предыдущий полигон
-        if (activePolygon) {
-            activePolygon.options.set('visible', false);
-            activePolygon = null;
-        }
 
-        const poly = placemark.properties.get('polygon');
-        if (poly) {
-            poly.options.set('visible', true);
-            activePolygon = poly;
-        }
-
-        openCenterSheet(id, data);
-
-        if (map.balloon) {
-            map.balloon.close();
-        }
+    // Скрываем предыдущий полигон
+    if (activePolygon) {
+        activePolygon.options.set('visible', false);
+        activePolygon = null;
     }
-);
 
+    const poly = placemark.properties.get('polygon');
+    if (poly) {
+        poly.options.set('visible', true);
+        activePolygon = poly;
+    }
+
+    openCenterSheet(id, data);
+    if (map.balloon) map.balloon.close();
+});
     // ============================================
     // Добавляем в кластер
     // ============================================
