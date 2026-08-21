@@ -2549,20 +2549,34 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 saveBtn.textContent = 'Сохранить парковку';
                 saveBtn.disabled = false;
             }
-            // ✅ Дополнительная страховка: принудительно закрываем панель
-            // (на случай, если closePanel() не сработала из‑за ошибки)
+            // ✅ ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ ПАНЕЛИ И ПЕРЕХОД НА КАРТУ
+            // Небольшая задержка, чтобы все асинхронные операции завершились
             setTimeout(function() {
+                // Закрываем панель
                 var panel = document.getElementById('panel');
                 if (panel) {
                     panel.classList.remove('active');
+                    // Сброс стилей (если вдруг остались трансформации)
+                    panel.style.transform = 'translateY(100%)';
                 }
-                // Также убеждаемся, что вкладка "Новая парковка" скрыта
+                // Переключаем таб на «Карта»
+                document.querySelectorAll('.tab').forEach(function(tab) {
+                    tab.classList.remove('active');
+                });
+                var mapTab = document.querySelectorAll('.tab')[1];
+                if (mapTab) {
+                    mapTab.classList.add('active');
+                }
+                // Сбрасываем заголовок панели, если он не изменился
                 var title = document.getElementById('panelTitle');
                 if (title && title.textContent === 'Новая парковка') {
-                    // Если заголовок остался, сбрасываем состояние
                     title.textContent = 'Главная';
                 }
-            }, 50);
+                // Убеждаемся, что карта видна (на случай, если showMap() не сработала)
+                if (typeof showMap === 'function') {
+                    showMap();
+                }
+            }, 100);
         });
 }
     function saveEditedPolygon(newCoords) {
