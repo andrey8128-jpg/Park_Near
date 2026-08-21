@@ -2544,20 +2544,27 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             });
         })
         .then(() => {
-    // === Аналог finally – выполняется всегда ===
-    if (saveBtn) {
-        saveBtn.textContent = 'Сохранить парковку';
-        saveBtn.disabled = false;
-    }
-    // Закрываем панель
-    closePanel();
-    showMap();
-    // Принудительно удаляем класс active (страховка)
-    var panel = document.getElementById('panel');
-    if (panel && panel.classList.contains('active')) {
-        panel.classList.remove('active');
-    }
-});
+            // === Аналог finally – выполняется всегда ===
+            if (saveBtn) {
+                saveBtn.textContent = 'Сохранить парковку';
+                saveBtn.disabled = false;
+            }
+            // ✅ Дополнительная страховка: принудительно закрываем панель
+            // (на случай, если closePanel() не сработала из‑за ошибки)
+            setTimeout(function() {
+                var panel = document.getElementById('panel');
+                if (panel) {
+                    panel.classList.remove('active');
+                }
+                // Также убеждаемся, что вкладка "Новая парковка" скрыта
+                var title = document.getElementById('panelTitle');
+                if (title && title.textContent === 'Новая парковка') {
+                    // Если заголовок остался, сбрасываем состояние
+                    title.textContent = 'Главная';
+                }
+            }, 50);
+        });
+}
     function saveEditedPolygon(newCoords) {
         if (!currentParkingId) return;
         const sizeCheck = checkPolygonSize(newCoords);
