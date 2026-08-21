@@ -1990,31 +1990,6 @@ clusterer.events.add(
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
 
-        // ===== Обработчик клика по карте для показа адреса =====
-        map.events.add('click', function(e) {
-    // Скрываем активный полигон при клике на карту
-    if (activePolygon) {
-        activePolygon.options.set('visible', false);
-        activePolygon = null;
-    }
-    var coords = e.get('coords');
-    ymaps.geocode(coords, { results: 1 }).then(function(res) {
-        var geoObject = res.geoObjects.get(0);
-        var address = geoObject ? geoObject.getAddressLine() : 'Адрес не определён';
-        map.balloon.open(coords, {
-            contentHeader: '📍 Адрес',
-            contentBody: address,
-            contentFooter: '<button class="btn-secondary" style="margin-top:4px; padding:8px 16px; border-radius:8px;" onclick="findParkingsNearAddress(' + coords[0] + ', ' + coords[1] + ', \'' + address.replace(/'/g, "\\'") + '\')">🔍 Найти парковки рядом</button>'
-        });
-    }).catch(function() {
-        // ✅ ПОКАЗЫВАЕМ КООРДИНАТЫ ВМЕСТО ОШИБКИ
-        map.balloon.open(coords, {
-            contentHeader: '📍 Координаты',
-            contentBody: `Широта: ${coords[0].toFixed(6)}, Долгота: ${coords[1].toFixed(6)}`,
-            contentFooter: '<button class="btn-secondary" style="margin-top:4px; padding:8px 16px; border-radius:8px;" onclick="findParkingsNearAddress(' + coords[0] + ', ' + coords[1] + ', null)">🔍 Найти парковки рядом</button>'
-        });
-    });
-});
         // ===== Обработчики кнопок =====
         document.getElementById('addBtn').onclick = function() {
             if (!currentUser) showPanel('home');
