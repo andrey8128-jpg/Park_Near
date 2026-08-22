@@ -5212,17 +5212,36 @@ function getGuestId() {
     }
     return guestId;
 }
-    function continueAsGuest() {
-        hideAuthScreen();
-        currentUser = {
-            id: 'guest_' + Date.now(),
+   function continueAsGuest() {
+    // 1. Пытаемся восстановить существующего гостя
+    let guestId = localStorage.getItem('parknear_guest_id');
+    let user;
+
+    if (guestId) {
+        // Восстанавливаем существующего гостя
+        user = {
+            id: guestId,
             username: 'guest',
             firstName: 'Гость',
             photoUrl: '',
             isGuest: true
         };
-        localStorage.setItem('tgUser', JSON.stringify(currentUser));
-        database.ref(`users/${currentUser.id}/stats`).set({
+        console.log('👤 Восстановлен гость:', guestId);
+    } else {
+        // Создаём нового гостя
+        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('parknear_guest_id', guestId);
+        user = {
+            id: guestId,
+            username: 'guest',
+            firstName: 'Гость',
+            photoUrl: '',
+            isGuest: true
+        };
+        console.log('🆕 Создан новый гость:', guestId);
+
+        // Создаём статистику в Firebase только для нового гостя
+        database.ref('users/' + guestId + '/stats').set({
             registeredAt: Date.now(),
             lastActive: Date.now(),
             parkingsCreated: 0,
@@ -5231,10 +5250,47 @@ function getGuestId() {
             views: 0,
             favorites: 0,
             activeDates: [new Date().toISOString().split('T')[0]]
+        }).catch(function(err) {
+            console.warn('Ошибка создания статистики гостя:', err);
         });
-        showPanel('home');
-        showOnboarding();
     }
+
+    // 2. Устанавливаем текущего пользователя
+    currentUser = user;
+    window.currentUser = user;
+
+    // 3. Сохраняем в localStorage (для совместимости с initAuth)
+    localStorage.setItem('tgUser', JSON.stringify(user));
+
+    // 4. Обновляем активность (последний вход)
+    database.ref('users/' + guestId + '/stats/lastActive').set(Date.now())
+        .catch(function(err) {
+            console.warn('Не удалось обновить lastActive:', err);
+        });
+
+    // 5. Обновляем активные дни (если сегодня ещё не было)
+    const today = new Date().toISOString().split('T')[0];
+    database.ref('users/' + guestId + '/stats/activeDates').once('value')
+        .then(function(snap) {
+            var dates = snap.val() || [];
+            if (!dates.includes(today)) {
+                dates.push(today);
+                database.ref('users/' + guestId + '/stats/activeDates').set(dates);
+            }
+        })
+        .catch(function(err) {
+            console.warn('Не удалось обновить активные дни:', err);
+        });
+
+    // 6. Скрываем экран входа
+    hideAuthScreen();
+
+    // 7. Показываем главную панель и онбординг (если ещё не показывали)
+    showPanel('home');
+    showOnboarding();
+
+    console.log('✅ Гостевой вход выполнен');
+}
 
     function logout() {
         localStorage.removeItem('tgUser');
