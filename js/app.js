@@ -980,6 +980,7 @@ function tryYandexGeolocation(resolve, reject) {
 function loadAllParkings(force = false) {
     // Не делаем лишний запрос, если данные недавно обновлялись
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
+        console.log('⏳ Используем кеш, данных:', Object.keys(parkingDataCache).length);
         return Promise.resolve();
     }
 
@@ -1045,22 +1046,6 @@ function loadAllParkings(force = false) {
                         parking.occupiedSpots = Math.max(0, Math.min(parking.occupiedSpots, parking.totalSpots));
                         newCache[key] = parking;
                     });
-                }
-
-                // ✅ НОВЫЙ ФИЛЬТР ПО РАДИУСУ ОТ ЦЕНТРА ГОРОДА
-                if (cityCoords) {
-                    const radius = CITY_RADIUS;
-                    const filtered = {};
-                    Object.keys(newCache).forEach(function(key) {
-                        const p = newCache[key];
-                        if (p.lat && p.lng) {
-                            const dist = getDistanceInMeters(cityCoords.lat, cityCoords.lng, p.lat, p.lng);
-                            if (dist <= radius) {
-                                filtered[key] = p;
-                            }
-                        }
-                    });
-                    newCache = filtered;
                 }
 
                 // Удаляем старые парковки
