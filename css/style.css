@@ -117,25 +117,30 @@
 }
 /* Глобальные сбросы для полноэкранного режима */
 html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #0E2931;
-  }
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0E2931;
+    /* ДОБАВИТЬ */
+    overscroll-behavior: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
 /* Карта – на весь экран */
-  #splashScreen, #map {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-  }
+#splashScreen, #map {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh; /* динамическая высота – учитывает безопасные зоны */
+    margin: 0;
+    padding: 0;
+    background: #0E2931; /* для сплеша, для карты не обязательно, но фон не помешает */
+}
 /* Логотип – занимает максимально возможное место, но сохраняет пропорции */
 #splashScreen img {
     width: 100%;
