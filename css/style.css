@@ -2288,27 +2288,6 @@ body.dark-theme .theme-slider:before {
     fill-opacity: 0.15;
 }
 
-/* === ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА ДЛЯ КРУЖКА СВОБОДНЫХ МЕСТ === */
-#totalFreeCircle {
-    position: fixed;
-    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + 110px);
-    right: 20px;
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background-color: #2B7574;
-    color: #E2E2E0;
-    font-size: 22px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 999;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    transition: background-color 0.3s ease;
-}
-
 /* === СКРЫТИЕ КОПИРАЙТА ЯНДЕКС === */
 .ymaps-2-1-79-copyright,
 .ymaps-2-1-79-logo,
