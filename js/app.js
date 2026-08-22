@@ -1016,6 +1016,7 @@ function loadAllParkings(force = false) {
     // 2. ЗАПРАШИВАЕМ FIREBASE
     return new Promise(function(resolve, reject) {
         let parkingQuery = database.ref('parkings');
+        // Если есть выбранный город, используем старый фильтр по названию (опционально)
         if (userCityPrefs.city) {
             parkingQuery = parkingQuery.orderByChild('city').equalTo(userCityPrefs.city);
         }
@@ -1046,6 +1047,22 @@ function loadAllParkings(force = false) {
                         parking.occupiedSpots = Math.max(0, Math.min(parking.occupiedSpots, parking.totalSpots));
                         newCache[key] = parking;
                     });
+                }
+
+                // ✅ НОВЫЙ ФИЛЬТР ПО РАДИУСУ ОТ ЦЕНТРА ГОРОДА (используем координаты)
+                if (cityCoords) {
+                    const radius = CITY_RADIUS;
+                    const filtered = {};
+                    Object.keys(newCache).forEach(function(key) {
+                        const p = newCache[key];
+                        if (p.lat && p.lng) {
+                            const dist = getDistanceInMeters(cityCoords.lat, cityCoords.lng, p.lat, p.lng);
+                            if (dist <= radius) {
+                                filtered[key] = p;
+                            }
+                        }
+                    });
+                    newCache = filtered;
                 }
 
                 // Удаляем старые парковки
@@ -1088,7 +1105,7 @@ function loadAllParkings(force = false) {
                     console.warn('⚠️ Не удалось сохранить parkingCache:', error);
                 }
 
-                // Обновляем общий счётчик
+                // Обновляем общий счётчик (если он ещё используется)
                 if (typeof updateTotalFreeCircle === 'function') {
                     updateTotalFreeCircle();
                 }
@@ -5955,11 +5972,12 @@ function onTelegramAuth(user) {
  function initApp() {
     // 1. Проверяем, не вернулись ли с авторизации через Telegram (редирект)
     if (checkTelegramAuthFromUrl()) {
+        // Если авторизация уже выполнена, показываем главную и выходим
         showPanel('home');
         return;
     }
 
-    // 2. Инициализация авторизации
+    // 2. Инициализация авторизации (показывает окно входа, если нет сохранённого пользователя)
     initAuth();
 
     // 3. Восстанавливаем выбранный город из localStorage
@@ -5968,18 +5986,19 @@ function onTelegramAuth(user) {
         try {
             const prefs = JSON.parse(savedCity);
             userCityPrefs = prefs;
-            // Восстанавливаем координаты
+            // Восстанавливаем координаты города
             const savedCoords = localStorage.getItem('parknear_city_coords');
             if (savedCoords) {
                 cityCoords = JSON.parse(savedCoords);
             }
             updateCityDisplay();
+            console.log('✅ Город восстановлен:', userCityPrefs.city);
         } catch (e) {
-            console.warn('Ошибка восстановления города:', e);
+            console.warn('⚠️ Ошибка восстановления города:', e);
         }
     }
 
-    // 3. Обработчик кнопки «+» (добавить парковку)
+    // 4. Обработчик кнопки «+» (добавить парковку)
     document.getElementById('addBtn').onclick = function() {
         if (!currentUser) {
             showPanel('home');
@@ -5990,25 +6009,26 @@ function onTelegramAuth(user) {
         }
     };
 
-    // 4. Обработчик кнопки геолокации УДАЛЁН из initApp (устанавливается в initMap)
+    // 5. Обработчик кнопки геолокации УДАЛЁН из initApp
+    //    (он устанавливается в initMap, чтобы избежать дублирования и конфликтов)
 
-    // 5. Инициализация карты (если ещё не инициализирована)
+    // 6. Инициализация карты (если ещё не инициализирована)
     if (!map) {
         initMap();
     }
 
-    // 6. Загружаем парковки (фильтр по городу уже есть в loadAllParkings)
+    // 7. Загружаем парковки (фильтр по городу уже есть в loadAllParkings)
     loadAllParkings();
 
-    // 7. Pull-to-refresh
+    // 8. Pull-to-refresh
     initPullToRefresh();
 
-    // 8. Если пользователь уже залогинен, показываем домашнюю панель
+    // 9. Если пользователь уже залогинен, показываем домашнюю панель
     if (currentUser) {
         showPanel('home');
     }
 
-    // 9. Центрируем карту на сохранённом городе (если есть координаты)
+    // 10. Центрируем карту на сохранённом городе (если есть координаты)
     if (map && cityCoords) {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
