@@ -5,12 +5,8 @@
   "start_url": "/Park_Near/",
   "scope": "/Park_Near/",
   "display": "standalone",
-  "display_override": [
-    "window-controls-overlay",
-    "standalone"
-  ],
   "orientation": "portrait",
-  "background_color": "#ffffff",
+  "background_color": "#0E2931",
   "theme_color": "#2B7574",
   "icons": [
     {
