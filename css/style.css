@@ -96,8 +96,8 @@ html, body {
     height: 100%;
     overflow: hidden;
     background: #0E2931;
-    overscroll-behavior: none;              /* убирает «резинку» */
-    padding-bottom: env(safe-area-inset-bottom, 0px); /* безопасная зона снизу */
+    overscroll-behavior: none;              
+    padding-bottom: 0; 
 }
 
 /* === СПЛЕШ-ЭКРАН === */
