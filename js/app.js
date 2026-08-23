@@ -994,7 +994,6 @@ function loadAllParkings(city, force = false) {
     if (!city) city = currentCity;
     if (!city) {
         console.warn('⚠️ Город не выбран, загружаем все парковки (не рекомендуется)');
-        // Можно загрузить все, но лучше вернуть пустой результат
         return Promise.resolve();
     }
 
@@ -1736,7 +1735,7 @@ clusterer.events.add('click', function(e) {
         };
 
         // ===== Загружаем парковки =====
-        loadAllParkings().catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
+        loadAllParkings(currentCity).catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
 
         // ===== Автогеолокация через 1 секунду =====
         setTimeout(function() {
@@ -2075,27 +2074,27 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 parsed.city = userCityPrefs.city;
             }
 
-            const parkingData = {
-                lat: centerLat,
-                lng: centerLng,
-                coordinates: coordsToSave,
-                totalSpots,
-                occupiedSpots: 0,
-                name,
-                isPaid: false,
-                address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-                region: parsed.region,
-                city: parsed.city,
-                street: parsed.street,
-                houseNumber: parsed.houseNumber,
-                authorId: currentUser.id,
-                authorName: currentUser.firstName,
-                authorUsername: currentUser.username,
-                lastUpdatedAt: Date.now(),
-                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-                timestamp: Date.now(),
-                status: 'unknown'
-            };
+           const parkingData = {
+    lat: centerLat,
+    lng: centerLng,
+    coordinates: coordsToSave,
+    totalSpots,
+    occupiedSpots: 0,
+    name,
+    isPaid: false,
+    address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+    region: parsed.region,
+    street: parsed.street,
+    houseNumber: parsed.houseNumber,
+    authorId: currentUser.id,
+    authorName: currentUser.firstName,
+    authorUsername: currentUser.username,
+    lastUpdatedAt: Date.now(),
+    lastUpdatedBy: currentUser.nickname || currentUser.firstName,
+    timestamp: Date.now(),
+    status: 'unknown',
+    city: currentCity   // ← принудительно из текущего города
+};
 
             const newRef = database.ref('parkings').push();
             return newRef.set(parkingData).then(() => {
@@ -2127,27 +2126,26 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
         })
         .catch(() => {
             const parkingData = {
-                lat: centerLat,
-                lng: centerLng,
-                coordinates: coordsToSave,
-                totalSpots,
-                occupiedSpots: 0,
-                name,
-                isPaid: false,
-                address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-                region: userCityPrefs.region || '',
-                city: userCityPrefs.city || '',
-                street: fullStreet,
-                houseNumber: houseNumber,
-                authorId: currentUser.id,
-                authorName: currentUser.firstName,
-                authorUsername: currentUser.username,
-                lastUpdatedAt: Date.now(),
-                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-                timestamp: Date.now(),
-                status: 'unknown'
-                city: currentCity,
-            };
+    lat: centerLat,
+    lng: centerLng,
+    coordinates: coordsToSave,
+    totalSpots,
+    occupiedSpots: 0,
+    name,
+    isPaid: false,
+    address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+    region: userCityPrefs.region || '',
+    street: fullStreet,
+    houseNumber: houseNumber,
+    authorId: currentUser.id,
+    authorName: currentUser.firstName,
+    authorUsername: currentUser.username,
+    lastUpdatedAt: Date.now(),
+    lastUpdatedBy: currentUser.nickname || currentUser.firstName,
+    timestamp: Date.now(),
+    status: 'unknown',
+    city: currentCity   // ← только одно поле
+};
             const newRef = database.ref('parkings').push();
             return newRef.set(parkingData).then(() => {
                 database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
@@ -3675,23 +3673,22 @@ async function deleteParking(parkingId) {
             </div>
         `;
 
-        loadAllParkings()
-            .then(function() {
-                renderSearchPanel(content, {
-                    searchQuery: savedSearch,
-                    sortBy: savedSort,
-                    radius: savedRadius,
-                    freeOnly: savedFreeOnly
-                });
-            })
-            .catch(function() {
-                renderSearchPanel(content, {
-                    searchQuery: savedSearch,
-                    sortBy: savedSort,
-                    radius: savedRadius,
-                    freeOnly: savedFreeOnly
-                });
+        // ✅ ИСПРАВЛЕНО: передаём currentCity
+        loadAllParkings(currentCity).then(function() {
+            renderSearchPanel(content, {
+                searchQuery: savedSearch,
+                sortBy: savedSort,
+                radius: savedRadius,
+                freeOnly: savedFreeOnly
             });
+        }).catch(function() {
+            renderSearchPanel(content, {
+                searchQuery: savedSearch,
+                sortBy: savedSort,
+                radius: savedRadius,
+                freeOnly: savedFreeOnly
+            });
+        });
         return;
     }
 
@@ -3822,47 +3819,34 @@ function applyCityFromPicker(city) {
     // 1. Сохраняем город
     currentCity = city;
     localStorage.setItem('selectedCity', city);
+    userCityPrefs.city = city;   // синхронизация для остальных модулей
 
-    // 2. Обновляем userCityPrefs (для совместимости)
-    userCityPrefs.city = city;
-    // (регион можно определить, но это необязательно)
-
-    // 3. Очищаем карту
-    clearAllMarkers();
-
-    // 4. Загружаем парковки для выбранного города
+    // 2. Загружаем парковки (очистка карты происходит внутри loadAllParkings)
     loadAllParkings(city, true);
 
-    // 5. Перемещаем карту на город
+    // 3. Перемещаем карту на город
     const coords = getCityCoordinates(city);
     if (map && coords) {
         map.setCenter(coords, 12, { duration: 500 });
-    } else {
-        // Если координат нет – пытаемся через геокодер
-        if (typeof ymaps !== 'undefined' && ymaps.geocode) {
-            ymaps.geocode(city, { results: 1 }).then(function(res) {
-                const geo = res.geoObjects.get(0);
-                if (geo) {
-                    const coords = geo.geometry.getCoordinates();
-                    cityCoords = { lat: coords[0], lng: coords[1] };
-                    localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
-                    map.setCenter(coords, 12, { duration: 500 });
-                }
-            }).catch(function() {});
-        }
+    } else if (typeof ymaps !== 'undefined' && ymaps.geocode) {
+        ymaps.geocode(city, { results: 1 }).then(function(res) {
+            const geo = res.geoObjects.get(0);
+            if (geo) {
+                const coords = geo.geometry.getCoordinates();
+                cityCoords = { lat: coords[0], lng: coords[1] };
+                localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
+                if (map) map.setCenter(coords, 12, { duration: 500 });
+            }
+        }).catch(function() {});
     }
 
-    // 6. Обновляем отображение города в интерфейсе
+    // 4. Обновляем отображение города в интерфейсе
     updateCityDisplay();
 }
-
-// Вспомогательная функция – можно использовать готовый словарь или геокодер
 function getCityCoordinates(city) {
-    // Если есть сохранённые координаты – используем их
     if (cityCoords && cityCoords.lat && cityCoords.lng) {
         return [cityCoords.lat, cityCoords.lng];
     }
-    // Простой словарь для популярных городов (можно расширить)
     const coordsMap = {
         'Москва': [55.7558, 37.6173],
         'Санкт-Петербург': [59.9343, 30.3351],
@@ -3893,19 +3877,7 @@ function getCityCoordinates(city) {
         'Севастополь': [44.6167, 33.5254],
         'Симферополь': [44.9484, 34.1003],
     };
-    if (coordsMap[city]) {
-        return coordsMap[city];
-    }
-    return null;
-}
-function clearMapObjects() {
-    if (clustererInstance) {
-        mapInstance.geoObjects.remove(clustererInstance);
-        clustererInstance = null;
-    }
-    // Если есть отдельные метки – удаляем их
-    placemarks.forEach(pm => mapInstance.geoObjects.remove(pm));
-    placemarks = [];
+    return coordsMap[city] || null;
 }
 
 function createMarkersAndCluster(parkings) {
@@ -5713,8 +5685,9 @@ function createAuthScreenFallback() {
 
     const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
     if (needRefresh) {
+        // ✅ ИСПРАВЛЕНО: передаём currentCity и force=true
         Promise.all([
-            loadAllParkings(true),
+            loadAllParkings(currentCity, true),
             getUserLocation().catch(() => null)
         ]).then(([, coords]) => {
             userLocationForSearch = coords;
