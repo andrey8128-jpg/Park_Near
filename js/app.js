@@ -1752,8 +1752,10 @@ clusterer.events.add(
 // ===== Обработчик клика на кластер (приближение) =====
 clusterer.events.add('click', function(e) {
     var cluster = e.get('target');
-    // Приближаем карту так, чтобы кластер разбился на отдельные метки
-    clusterer.zoomToCluster(cluster, { duration: 300 });
+    // Получаем координаты кластера
+    var coords = cluster.geometry.getCoordinates();
+    // Приближаем карту на зум 16 (или подходящий)
+    map.setCenter(coords, 16, { duration: 300, checkZoomRange: true });
 });
         // ===== Обработчики кнопок =====
         document.getElementById('addBtn').onclick = function() {
