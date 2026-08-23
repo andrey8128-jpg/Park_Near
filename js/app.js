@@ -986,7 +986,6 @@ function loadAllParkings(force = false) {
     const cached = localStorage.getItem('parkingCache');
     let cacheLoaded = false;
 
-    // 1. КЕШ
     if (!force && cached) {
         try {
             const cache = JSON.parse(cached);
@@ -1011,9 +1010,10 @@ function loadAllParkings(force = false) {
         }
     }
 
-    // 2. FIREBASE – загружаем ВСЕ парковки без фильтра по city
     return new Promise(function(resolve, reject) {
         let parkingQuery = database.ref('parkings');
+
+        // ❗ УБИРАЕМ фильтрацию по полю city – загружаем ВСЕ парковки
         parkingQuery.once('value')
             .then(function(snapshot) {
                 const data = snapshot.val();
@@ -1021,6 +1021,7 @@ function loadAllParkings(force = false) {
                 const newCache = {};
 
                 if (data) {
+                    // ❗ УБИРАЕМ старый фильтр по includes
                     Object.keys(data).forEach(function(key) {
                         const parking = data[key];
                         if (!parking || parking.lat == null || parking.lng == null) return;
@@ -1490,6 +1491,7 @@ function initMap() {
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
             zoom: 14,
+            maxZoom: 19,
             controls: ['zoomControl'],
             type: 'yandex#map'
         });
@@ -3858,14 +3860,11 @@ function applyCityFromPicker() {
     closeCityPicker();
     updateCityDisplay();
 
-    // Сохраняем выбор в Firebase (если авторизован)
     if (currentUser) {
         database.ref('users/' + currentUser.id + '/cityPreferences').set({ region, city });
     }
-    // Сохраняем в localStorage
     localStorage.setItem('parknear_city', JSON.stringify({ region, city }));
 
-    // Получаем координаты города
     ymaps.geocode(city, { results: 1 })
         .then(function(res) {
             const geo = res.geoObjects.get(0);
@@ -3877,7 +3876,6 @@ function applyCityFromPicker() {
                     map.setCenter(coords, 12, { duration: 500 });
                 }
             }
-            // Загружаем парковки с новым фильтром
             loadAllParkings();
         })
         .catch(function(err) {
@@ -5900,7 +5898,6 @@ function initApp() {
     }
     initAuth();
 
-    // Восстанавливаем город
     const savedCity = localStorage.getItem('parknear_city');
     if (savedCity) {
         try {
