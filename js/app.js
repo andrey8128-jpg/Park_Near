@@ -81,7 +81,7 @@
     let routeParkingData = null;
     let userCityPrefs = { region: '', city: '' };
     let cityCoords = null;
-    const CITY_RADIUS = 5000;
+    const CITY_RADIUS = 3000;
     let nearbySearchFilter = null;
     let userLocationForSearch = null;
     let pendingAddressData = null;
