@@ -978,7 +978,6 @@ function tryYandexGeolocation(resolve, reject) {
     }
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
 function loadAllParkings(force = false) {
-    // Не делаем лишний запрос, если данные недавно обновлялись
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
         console.log('⏳ Используем кеш, данных:', Object.keys(parkingDataCache).length);
         return Promise.resolve();
@@ -987,7 +986,7 @@ function loadAllParkings(force = false) {
     const cached = localStorage.getItem('parkingCache');
     let cacheLoaded = false;
 
-    // 1. СНАЧАЛА ПРОБУЕМ ЗАГРУЗИТЬ КЕШ
+    // 1. КЕШ
     if (!force && cached) {
         try {
             const cache = JSON.parse(cached);
@@ -995,11 +994,10 @@ function loadAllParkings(force = false) {
                 parkingDataCache = cache.data;
                 lastDataRefresh = Date.now();
                 cacheLoaded = true;
-
                 if (map && clusterer) {
                     clusterer.removeAll();
-                    Object.keys(mapMarkers).forEach(function(id) { delete mapMarkers[id]; });
-                    Object.entries(cache.data).forEach(function([key, parking]) {
+                    Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
+                    Object.entries(cache.data).forEach(([key, parking]) => {
                         if (parking && parking.lat != null && parking.lng != null) {
                             addMarkerToMap(key, parking);
                         }
@@ -1007,43 +1005,33 @@ function loadAllParkings(force = false) {
                 }
                 console.log('✅ Загружено из localStorage:', Object.keys(cache.data).length);
             }
-        } catch (error) {
-            console.warn('⚠️ Ошибка чтения parkingCache:', error);
+        } catch (e) {
+            console.warn('⚠️ Ошибка чтения parkingCache:', e);
             localStorage.removeItem('parkingCache');
         }
     }
 
-    // 2. ЗАПРАШИВАЕМ FIREBASE
+    // 2. FIREBASE – загружаем ВСЕ парковки без фильтра по city
     return new Promise(function(resolve, reject) {
-        // ❗ УБРАНА фильтрация по полю city – загружаем ВСЕ парковки
         let parkingQuery = database.ref('parkings');
-
         parkingQuery.once('value')
             .then(function(snapshot) {
                 const data = snapshot.val();
                 const oldCache = parkingDataCache || {};
                 const newCache = {};
 
-                // =========================================================
-                // 3. ФОРМИРУЕМ НОВЫЙ КЕШ (без фильтрации по названию города)
-                // =========================================================
                 if (data) {
                     Object.keys(data).forEach(function(key) {
                         const parking = data[key];
                         if (!parking || parking.lat == null || parking.lng == null) return;
-
-                        // Нормализуем количество мест
                         parking.totalSpots = Number(parking.totalSpots) || 0;
                         parking.occupiedSpots = Number(parking.occupiedSpots) || 0;
                         parking.occupiedSpots = Math.max(0, Math.min(parking.occupiedSpots, parking.totalSpots));
-
                         newCache[key] = parking;
                     });
                 }
 
-                // =========================================================
-                // 4. ФИЛЬТР ПО КООРДИНАТАМ (радиус от центра выбранного города)
-                // =========================================================
+                // ✅ ФИЛЬТР ПО РАДИУСУ (если задан город)
                 if (cityCoords) {
                     const radius = CITY_RADIUS;
                     const filtered = {};
@@ -1059,9 +1047,7 @@ function loadAllParkings(force = false) {
                     newCache = filtered;
                 }
 
-                // =========================================================
-                // 5. УДАЛЯЕМ СТАРЫЕ ПАРКОВКИ (которых нет в новом кеше)
-                // =========================================================
+                // Удаляем старые парковки
                 Object.keys(oldCache).forEach(function(id) {
                     if (!newCache[id]) {
                         if (mapMarkers[id]) {
@@ -1080,9 +1066,7 @@ function loadAllParkings(force = false) {
                     }
                 });
 
-                // =========================================================
-                // 6. ДОБАВЛЯЕМ / ОБНОВЛЯЕМ ПАРКОВКИ
-                // =========================================================
+                // Добавляем/обновляем
                 Object.keys(newCache).forEach(function(id) {
                     const parking = newCache[id];
                     if (parking.lat == null || parking.lng == null) return;
@@ -1095,28 +1079,17 @@ function loadAllParkings(force = false) {
 
                 parkingDataCache = newCache;
                 lastDataRefresh = Date.now();
-
-                // Сохраняем в localStorage
                 try {
                     localStorage.setItem('parkingCache', JSON.stringify({ data: newCache, timestamp: Date.now() }));
-                } catch (error) {
-                    console.warn('⚠️ Не удалось сохранить parkingCache:', error);
-                }
-
-                // Обновляем общий счётчик (если есть)
+                } catch (e) {}
                 if (typeof updateTotalFreeCircle === 'function') {
                     updateTotalFreeCircle();
                 }
-
                 console.log('✅ Firebase: парковки обновлены:', Object.keys(newCache).length);
                 resolve();
             })
             .catch(function(error) {
                 console.error('❌ Ошибка загрузки парковок из Firebase:', error);
-
-                // =========================================================
-                // 7. FALLBACK НА LOCALSTORAGE
-                // =========================================================
                 if (cacheLoaded) {
                     resolve();
                     return;
@@ -1133,8 +1106,8 @@ function loadAllParkings(force = false) {
                     lastDataRefresh = Date.now();
                     if (map && clusterer) {
                         clusterer.removeAll();
-                        Object.keys(mapMarkers).forEach(function(id) { delete mapMarkers[id]; });
-                        Object.entries(parkingDataCache).forEach(function([id, parking]) {
+                        Object.keys(mapMarkers).forEach(id => delete mapMarkers[id]);
+                        Object.entries(parkingDataCache).forEach(([id, parking]) => {
                             if (parking && parking.lat != null && parking.lng != null) {
                                 addMarkerToMap(id, parking);
                             }
@@ -1153,139 +1126,80 @@ function loadAllParkings(force = false) {
     });
 }
 function updateParkingMarker(id, data) {
-
-    if (!map || !clusterer) {
-        return;
-    }
+    if (!map || !clusterer) return;
 
     const placemark = mapMarkers[id];
-
     if (!placemark) {
         addMarkerToMap(id, data);
         return;
     }
 
-    const totalSpots =
-        Number(data.totalSpots) || 0;
+    const totalSpots = Number(data.totalSpots) || 0;
+    const occupiedSpots = Number(data.occupiedSpots) || 0;
+    const freeSpots = Math.max(0, totalSpots - occupiedSpots);
+    const color = getOccupancyColor(occupiedSpots, totalSpots);
 
-    const occupiedSpots =
-        Number(data.occupiedSpots) || 0;
-
-    const freeSpots = Math.max(
-        0,
-        totalSpots - occupiedSpots
-    );
-
-    const color =
-        getOccupancyColor(
-            occupiedSpots,
-            totalSpots
-        );
-
-    // ============================================
-    // Обновляем данные маркера
-    // ============================================
-
+    // Обновляем свойства маркера
     placemark.properties.set({
         name: data.name || 'Парковка',
-
-        hintContent:
-            data.name || 'Парковка',
-
+        hintContent: data.name || 'Парковка',
         freeSpots: freeSpots,
-
         totalSpots: totalSpots,
-
         occupiedSpots: occupiedSpots,
-
-        parkingId: id
+        parkingId: id,
+        iconContent: String(freeSpots)
     });
 
-    // ============================================
-    // Обновляем цвет
-    // ============================================
+    placemark.options.set('iconColor', color);
 
-    placemark.options.set(
-        'iconColor',
-        color
-    );
+    // ✅ Обновляем Polygon только если изменились координаты
+    const oldPolygon = placemark.properties.get('polygon');
+    const newCoords = data.coordinates;
 
-    // ============================================
-    // Обновляем полигон
-    // ============================================
-
-    const oldPolygon =
-        placemark.properties.get('polygon');
-
-    const coordinates = data.coordinates;
-
-    if (
-        coordinates &&
-        Array.isArray(coordinates) &&
-        coordinates.length >= 3
-    ) {
-
-        // Если координаты зоны изменились,
-        // создаём новый полигон
-
-        if (oldPolygon) {
-            map.geoObjects.remove(
-                oldPolygon
-            );
+    // Функция для сравнения двух массивов координат (примитивная, но работает)
+    function coordsChanged(oldCoord, newCoord) {
+        if (!oldCoord || !newCoord) return true;
+        if (oldCoord.length !== newCoord.length) return true;
+        for (let i = 0; i < oldCoord.length; i++) {
+            if (oldCoord[i][0] !== newCoord[i][0] || oldCoord[i][1] !== newCoord[i][1]) {
+                return true;
+            }
         }
+        return false;
+    }
 
-        const newPolygon =
-            new ymaps.Polygon(
-                [coordinates],
-                {},
-                {
-                    fillColor:
-                        color + '33',
-
-                    strokeColor:
-                        color,
-
-                    strokeWidth: 2,
-
-                    visible: false,
-
-                    zIndex: 5
-                }
-            );
-
-        map.geoObjects.add(
-            newPolygon
-        );
-
-        placemark.properties.set(
-            'polygon',
-            newPolygon
-        );
-
+    if (newCoords && Array.isArray(newCoords) && newCoords.length >= 3) {
+        if (!oldPolygon || coordsChanged(oldPolygon.geometry.getCoordinates()[0], newCoords)) {
+            // Удаляем старый полигон
+            if (oldPolygon) map.geoObjects.remove(oldPolygon);
+            // Создаём новый
+            const newPolygon = new ymaps.Polygon([newCoords], {}, {
+                fillColor: color + '33',
+                strokeColor: color,
+                strokeWidth: 2,
+                visible: false,
+                zIndex: 5
+            });
+            map.geoObjects.add(newPolygon);
+            placemark.properties.set('polygon', newPolygon);
+            newPolygon.__parkingId = id;
+        } else {
+            // Координаты не изменились – просто обновляем цвет
+            oldPolygon.options.set({
+                fillColor: color + '33',
+                strokeColor: color
+            });
+        }
     } else {
-
-        // Если зоны больше нет
+        // Зоны больше нет
         if (oldPolygon) {
-
-            map.geoObjects.remove(
-                oldPolygon
-            );
-
-            placemark.properties.set(
-                'polygon',
-                null
-            );
+            map.geoObjects.remove(oldPolygon);
+            placemark.properties.set('polygon', null);
         }
     }
 
-    // ============================================
     // Обновляем общий счётчик
-    // ============================================
-
-    if (
-        typeof updateTotalFreeCircle ===
-        'function'
-    ) {
+    if (typeof updateTotalFreeCircle === 'function') {
         updateTotalFreeCircle();
     }
 }
@@ -1761,9 +1675,7 @@ clusterer.events.add(
 // ===== Обработчик клика на кластер (приближение) =====
 clusterer.events.add('click', function(e) {
     var cluster = e.get('target');
-    // Получаем координаты кластера
     var coords = cluster.geometry.getCoordinates();
-    // Приближаем карту на зум 16 (или подходящий)
     map.setCenter(coords, 16, { duration: 300, checkZoomRange: true });
 });
         // ===== Обработчики кнопок =====
@@ -3169,9 +3081,25 @@ async function deleteParking(parkingId) {
 
         await ref.remove();
 
-        if (mapMarkers[parkingId]) {
-            map.geoObjects.remove(mapMarkers[parkingId]);
+        // ✅ Удаляем Placemark и Polygon корректно
+        const placemark = mapMarkers[parkingId];
+        if (placemark) {
+            // Удаляем полигон
+            const polygon = placemark.properties.get('polygon');
+            if (polygon) {
+                map.geoObjects.remove(polygon);
+            }
+            // Удаляем маркер из кластера
+            if (clusterer) {
+                clusterer.remove(placemark);
+            }
             delete mapMarkers[parkingId];
+        }
+
+        // Если удаляется активный полигон
+        if (activePolygon && activePolygon.__parkingId === parkingId) {
+            map.geoObjects.remove(activePolygon);
+            activePolygon = null;
         }
 
         delete parkingDataCache[parkingId];
@@ -5714,58 +5642,48 @@ function createAuthScreenFallback() {
     showPanel('home');
     showOnboarding();
 }
-    function renderHomePanel(content) {
-    // 1. Мгновенно показываем сохранённый кеш (если есть)
+   function renderHomePanel(content) {
     const cached = localStorage.getItem('parkingCache');
     let cacheData = null;
     if (cached) {
         try {
-            cacheData = JSON.parse(cached);
-            parkingDataCache = cacheData;
-            // Отображаем контент без геолокации (пока без расстояния)
-            renderHomeContent(content, null);
-            // Добавляем индикатор обновления в фоне
-            const list = document.getElementById('homeParkingList');
-            if (list) {
-                list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;">🔄 Обновление данных...</div>');
+            const cache = JSON.parse(cached);
+            if (cache && cache.data) {
+                cacheData = cache.data;
+                parkingDataCache = cacheData;
+                renderHomeContent(content, null);
+                const list = document.getElementById('homeParkingList');
+                if (list) {
+                    list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;">🔄 Обновление данных...</div>');
+                }
             }
-        } catch (e) { /* игнорируем */ }
+        } catch (e) {}
     } else {
-        // Если кеша нет – показываем заглушку
         content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
     }
 
-    // 2. Фоновое обновление из Firebase (если прошло больше 30 сек или нет кеша)
     const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
     if (needRefresh) {
-        // Загружаем данные и геолокацию параллельно
         Promise.all([
             loadAllParkings(true),
             getUserLocation().catch(() => null)
         ]).then(([, coords]) => {
             userLocationForSearch = coords;
-            // Перерисовываем с актуальными данными и расстояниями
             renderHomeContent(content, coords);
-            // Убираем индикатор обновления
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.remove();
         }).catch(() => {
-            // Если обновление не удалось, но кеш был – ничего страшного
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.textContent = '⚠️ Не удалось обновить данные';
             setTimeout(() => { if (indicator) indicator.remove(); }, 3000);
         });
     } else {
-        // Если обновление не требуется, всё равно пытаемся получить геолокацию для расстояний
         getUserLocation()
             .then(coords => {
                 userLocationForSearch = coords;
-                // Перерисовываем с расстояниями (без повторной загрузки данных)
                 renderHomeContent(content, coords);
             })
-            .catch(() => {
-                // Если геолокация не удалась, оставляем как есть
-            });
+            .catch(() => {});
     }
 }
 function renderHomeContent(content, coords) {
@@ -5936,10 +5854,8 @@ function onTelegramAuth(user) {
             photoUrl: user.photo_url || '',
             isGuest: false
         };
-        // Сохраняем в localStorage
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
 
-        // Сохраняем в Firebase
         const userRef = database.ref('users/' + currentUser.id);
         userRef.update({
             username: currentUser.username,
@@ -5947,15 +5863,25 @@ function onTelegramAuth(user) {
             photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
-        userRef.child('stats').set({
-            registeredAt: Date.now(),
-            lastActive: Date.now(),
-            parkingsCreated: 0,
-            parkingsUpdated: 0,
-            confirmations: 0,
-            views: 0,
-            favorites: 0,
-            activeDates: [new Date().toISOString().split('T')[0]]
+
+        // ✅ Проверяем, есть ли статистика, и создаём только если её нет
+        userRef.child('stats').once('value').then(function(snap) {
+            if (snap.exists()) {
+                // Статистика есть – обновляем только lastActive
+                userRef.child('stats/lastActive').set(Date.now());
+            } else {
+                // Статистики нет – создаём начальную
+                userRef.child('stats').set({
+                    registeredAt: Date.now(),
+                    lastActive: Date.now(),
+                    parkingsCreated: 0,
+                    parkingsUpdated: 0,
+                    confirmations: 0,
+                    views: 0,
+                    favorites: 0,
+                    activeDates: [new Date().toISOString().split('T')[0]]
+                });
+            }
         }).catch(console.error);
 
         hideAuthScreen();
@@ -5964,7 +5890,6 @@ function onTelegramAuth(user) {
         console.log('✅ Пользователь авторизован:', user.first_name);
     } catch (e) {
         console.error('❌ Ошибка в onTelegramAuth:', e);
-        // Запасной вариант – гость
         continueAsGuest();
     }
 }
