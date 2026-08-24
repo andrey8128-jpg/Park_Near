@@ -994,8 +994,11 @@ function loadAllParkings(city, force = false) {
     if (!city) {
         console.warn('⚠️ Город не выбран, загружаем все парковки');
         // Если город не выбран – показываем все (но такого быть не должно)
-        return loadAllParkingsNoFilter();
-    }
+        if (!city) {
+    clearAllMarkers();
+    parkingDataCache = {};
+    return Promise.resolve();
+}
 
     // Проверка кеша (только если force=false и кеш актуален)
     if (!force && Date.now() - lastDataRefresh < 30000 && parkingDataCache && Object.keys(parkingDataCache).length > 0) {
@@ -1027,9 +1030,9 @@ function loadAllParkings(city, force = false) {
 
                     // ✅ Фильтрация по городу на клиенте
                     // Если у парковки есть поле city, и оно НЕ равно текущему городу – пропускаем
-                    if (parking.city && parking.city !== city) {
-                        return; // не включаем в кеш
-                    }
+                    if (parking.city !== city) {
+                     return;
+                      }
                     // Если поле city отсутствует – считаем, что парковка принадлежит текущему городу (включаем)
 
                     parking.totalSpots = Number(parking.totalSpots) || 0;
@@ -1564,7 +1567,7 @@ function initMap() {
                 'text-align:center;' +
                 'transform:rotate(45deg);' +
             '">' +
-                '{{ properties.totalSpots || "0" }}' +
+                {{ properties.freeSpots || "0" }}
             '</div>'
         ),
 
@@ -2152,7 +2155,7 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 isPaid: false,
                 address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
                 region: parsed.region,
-                city: parsed.city,          // ← сохраняем город
+                city: parsed.city || currentCity
                 street: parsed.street,
                 houseNumber: parsed.houseNumber,
                 authorId: currentUser.id,
@@ -4848,6 +4851,7 @@ function saveCityFromSettingsInline() {
     database.ref('users/' + currentUser.id + '/cityPreferences').set({ region: region, city: city })
         .then(function() {
             userCityPrefs = { region: region, city: city };
+            currentCity = city;
             localStorage.setItem('parknear_city', JSON.stringify({ region, city }));
             // Получаем координаты и сохраняем
             ymaps.geocode(city, { results: 1 }).then(function(res) {
