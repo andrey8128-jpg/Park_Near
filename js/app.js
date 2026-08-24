@@ -1503,6 +1503,15 @@ function initMap() {
         return;
     }
 
+    // =====================================================
+    // ПРОВЕРКА ЗАГРУЗКИ ЯНДЕКС.КАРТ
+    // =====================================================
+    if (typeof ymaps === 'undefined') {
+        mapContainer.innerHTML = '⚠️ API Яндекс.Карт не загружен. Проверьте ключ и интернет.';
+        console.error('❌ ymaps не определён – API не загружен');
+        return;
+    }
+
     try {
         // 1. Создаём карту с начальным зумом 14
         map = new ymaps.Map("map", {
@@ -1517,7 +1526,7 @@ function initMap() {
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
             var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 15);   // ← измените на 14, если хотите раньше
+            var showPolygons = (currentZoom >= 15);
             Object.keys(mapMarkers).forEach(function(id) {
                 var placemark = mapMarkers[id];
                 if (!placemark) return;
@@ -1528,175 +1537,122 @@ function initMap() {
             });
         });
 
-        // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР (без круга, только число) =====
+        // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
         clusterer = new ymaps.Clusterer({
-    gridSize: 128,
-    minClusterSize: 2,
-    maxZoom: 17,
+            gridSize: 128,
+            minClusterSize: 2,
+            maxZoom: 17,
 
-    clusterIconLayout:
-        ymaps.templateLayoutFactory.createClass(
-            '<div style="' +
-                'width:44px;' +
-                'height:44px;' +
-                'border-radius:50% 50% 50% 0;' +
-                'background:#2B7574;' +
-                'display:flex;' +
-                'align-items:center;' +
-                'justify-content:center;' +
-                'transform:rotate(-45deg);' +
-                'box-shadow:0 2px 8px rgba(0,0,0,0.3);' +
-            '">' +
-                '{{ content }}' +
-            '</div>'
-        ),
-
-    clusterIconContentLayout:
-        ymaps.templateLayoutFactory.createClass(
-            '<div style="' +
-                'color:#fff;' +
-                'font-weight:700;' +
-                'font-size:15px;' +
-                'line-height:44px;' +
-                'width:44px;' +
-                'height:44px;' +
-                'text-align:center;' +
-                'transform:rotate(45deg);' +
-            '">' +
-                '{{ properties.freeSpots || "0" }}' +
-            '</div>'
-        ),
-
-    clusterBalloonContentLayout:
-        ymaps.templateLayoutFactory.createClass(
-            '<div style="' +
-                'max-height:150px;' +
-                'overflow-y:auto;' +
-                'padding:6px 10px;' +
-                'font-size:13px;' +
-            '">' +
-
-                '{% for geoObject in properties.geoObjects %}' +
-
+            clusterIconLayout:
+                ymaps.templateLayoutFactory.createClass(
                     '<div style="' +
-                        'padding:6px 8px;' +
-                        'border-bottom:1px solid #eee;' +
-                        'cursor:pointer;' +
-                    '" onclick="' +
-                        'openCenterSheet(' +
-                        '\'{{ geoObject.properties.parkingId }}\',' +
-                        'window.parkingDataCache[' +
-                        '\'{{ geoObject.properties.parkingId }}\'' +
-                        '])' +
+                        'width:44px;' +
+                        'height:44px;' +
+                        'border-radius:50% 50% 50% 0;' +
+                        'background:#2B7574;' +
+                        'display:flex;' +
+                        'align-items:center;' +
+                        'justify-content:center;' +
+                        'transform:rotate(-45deg);' +
+                        'box-shadow:0 2px 8px rgba(0,0,0,0.3);' +
+                    '">' +
+                        '{{ content }}' +
+                    '</div>'
+                ),
+
+            clusterIconContentLayout:
+                ymaps.templateLayoutFactory.createClass(
+                    '<div style="' +
+                        'color:#fff;' +
+                        'font-weight:700;' +
+                        'font-size:15px;' +
+                        'line-height:44px;' +
+                        'width:44px;' +
+                        'height:44px;' +
+                        'text-align:center;' +
+                        'transform:rotate(45deg);' +
+                    '">' +
+                        '{{ properties.freeSpots || "0" }}' +
+                    '</div>'
+                ),
+
+            clusterBalloonContentLayout:
+                ymaps.templateLayoutFactory.createClass(
+                    '<div style="' +
+                        'max-height:150px;' +
+                        'overflow-y:auto;' +
+                        'padding:6px 10px;' +
+                        'font-size:13px;' +
                     '">' +
 
-                        '<div style="font-weight:600;">' +
-                            '{{ geoObject.properties.name }}' +
-                        '</div>' +
+                        '{% for geoObject in properties.geoObjects %}' +
 
-                        '<div style="font-size:12px;color:var(--text-secondary);">' +
-                            '🅿️ Свободно: ' +
-                            '{{ geoObject.properties.freeSpots }}' +
-                            ' / ' +
-                            '{{ geoObject.properties.totalSpots }}' +
-                        '</div>' +
+                            '<div style="' +
+                                'padding:6px 8px;' +
+                                'border-bottom:1px solid #eee;' +
+                                'cursor:pointer;' +
+                            '" onclick="' +
+                                'openCenterSheet(' +
+                                '\'{{ geoObject.properties.parkingId }}\',' +
+                                'window.parkingDataCache[' +
+                                '\'{{ geoObject.properties.parkingId }}\'' +
+                                '])' +
+                            '">' +
 
-                    '</div>' +
+                                '<div style="font-weight:600;">' +
+                                    '{{ geoObject.properties.name }}' +
+                                '</div>' +
 
-                '{% endfor %}' +
+                                '<div style="font-size:12px;color:var(--text-secondary);">' +
+                                    '🅿️ Свободно: ' +
+                                    '{{ geoObject.properties.freeSpots }}' +
+                                    ' / ' +
+                                    '{{ geoObject.properties.totalSpots }}' +
+                                '</div>' +
 
-            '</div>'
-        )
-});
-        // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем свободные места =====
-       // =========================================================
-// КЛАСТЕРИЗАЦИЯ
-// =========================================================
-// Для каждого кластера считаем:
-// 1. количество парковочных зон
-// 2. общее количество парковочных мест
-// 3. общее количество свободных мест
-// =========================================================
+                            '</div>' +
 
-clusterer.events.add(
-    'clusterize',
-    function(e) {
+                        '{% endfor %}' +
 
-        const clusters =
-            e.get('clusters');
+                    '</div>'
+                )
+        });
 
-        if (!clusters) {
-            return;
-        }
-
-        clusters.forEach(
-            function(cluster) {
-
-                const geoObjects =
-                    cluster.getGeoObjects();
-
-                let totalSpots = 0;
-                let freeSpots = 0;
-                let parkingCount = 0;
-
-                geoObjects.forEach(
-                    function(placemark) {
-
-                        const total =
-                            Number(
-                                placemark.properties.get(
-                                    'totalSpots'
-                                )
-                            ) || 0;
-
-                        const free =
-                            Number(
-                                placemark.properties.get(
-                                    'freeSpots'
-                                )
-                            ) || 0;
-
-                        totalSpots +=
-                            total;
-
-                        freeSpots +=
-                            free;
-
+        // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем места =====
+        clusterer.events.add(
+            'clusterize',
+            function(e) {
+                const clusters = e.get('clusters');
+                if (!clusters) return;
+                clusters.forEach(function(cluster) {
+                    const geoObjects = cluster.getGeoObjects();
+                    let totalSpots = 0;
+                    let freeSpots = 0;
+                    let parkingCount = 0;
+                    geoObjects.forEach(function(placemark) {
+                        const total = Number(placemark.properties.get('totalSpots')) || 0;
+                        const free = Number(placemark.properties.get('freeSpots')) || 0;
+                        totalSpots += total;
+                        freeSpots += free;
                         parkingCount++;
-                    }
-                );
-
-                // Общее количество парковочных мест
-                // во всех парковках этого кластера
-                cluster.properties.set(
-                    'totalSpots',
-                    totalSpots
-                );
-
-                // Общее количество свободных мест
-                // во всех парковках этого кластера
-                cluster.properties.set(
-                    'freeSpots',
-                    freeSpots
-                );
-
-                // Количество парковок в кластере
-                cluster.properties.set(
-                    'parkingCount',
-                    parkingCount
-                );
+                    });
+                    cluster.properties.set('totalSpots', totalSpots);
+                    cluster.properties.set('freeSpots', freeSpots);
+                    cluster.properties.set('parkingCount', parkingCount);
+                });
             }
         );
-    }
-);
+
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
-// ===== Обработчик клика на кластер (приближение) =====
-clusterer.events.add('click', function(e) {
-    var cluster = e.get('target');
-    var coords = cluster.geometry.getCoordinates();
-    map.setCenter(coords, 16, { duration: 300, checkZoomRange: true });
-});
+
+        // ===== Обработчик клика на кластер (приближение) =====
+        clusterer.events.add('click', function(e) {
+            var cluster = e.get('target');
+            var coords = cluster.geometry.getCoordinates();
+            map.setCenter(coords, 16, { duration: 300, checkZoomRange: true });
+        });
+
         // ===== Обработчики кнопок =====
         document.getElementById('addBtn').onclick = function() {
             if (!currentUser) showPanel('home');
@@ -1787,7 +1743,9 @@ clusterer.events.add('click', function(e) {
         };
 
         // ===== Загружаем парковки =====
-        loadAllParkings(currentCity).catch(function(err) { console.warn('Не удалось загрузить парковки:', err); });
+        loadAllParkings(currentCity).catch(function(err) {
+            console.warn('Не удалось загрузить парковки:', err);
+        });
 
         // ===== Автогеолокация через 1 секунду =====
         setTimeout(function() {
