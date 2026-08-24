@@ -991,14 +991,11 @@ function loadAllParkings(city, force = false) {
     if (!city) city = currentCity;
     console.log('🔍 Загрузка парковок для города:', city);
 
+    // Если город не выбран – загружаем все парковки (запасной вариант)
     if (!city) {
         console.warn('⚠️ Город не выбран, загружаем все парковки');
-        // Если город не выбран – показываем все (но такого быть не должно)
-        if (!city) {
-    clearAllMarkers();
-    parkingDataCache = {};
-    return Promise.resolve();
-}
+        return loadAllParkingsNoFilter(); // вызов fallback-функции
+    }
 
     // Проверка кеша (только если force=false и кеш актуален)
     if (!force && Date.now() - lastDataRefresh < 30000 && parkingDataCache && Object.keys(parkingDataCache).length > 0) {
@@ -1019,7 +1016,7 @@ function loadAllParkings(city, force = false) {
     clearAllMarkers();
 
     return new Promise(function(resolve, reject) {
-        // ✅ Загружаем ВСЕ парковки без фильтра
+        // ✅ Загружаем ВСЕ парковки без фильтра (сначала все, потом фильтруем на клиенте)
         database.ref('parkings').once('value').then(function(snapshot) {
             const data = snapshot.val();
             const newCache = {};
@@ -1030,9 +1027,9 @@ function loadAllParkings(city, force = false) {
 
                     // ✅ Фильтрация по городу на клиенте
                     // Если у парковки есть поле city, и оно НЕ равно текущему городу – пропускаем
-                    if (parking.city !== city) {
-                     return;
-                      }
+                    if (parking.city && parking.city !== city) {
+                        return;
+                    }
                     // Если поле city отсутствует – считаем, что парковка принадлежит текущему городу (включаем)
 
                     parking.totalSpots = Number(parking.totalSpots) || 0;
@@ -1086,7 +1083,6 @@ function loadAllParkings(city, force = false) {
         });
     });
 }
-
 // ===== Вспомогательная функция для загрузки всех парковок (без фильтра) =====
 function loadAllParkingsNoFilter() {
     return new Promise(function(resolve, reject) {
