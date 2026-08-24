@@ -992,6 +992,7 @@ function tryYandexGeolocation(resolve, reject) {
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
 function loadAllParkings(city, force = false) {
     if (!city) city = currentCity;
+    console.log('🔍 Загрузка парковок для города:', city);
     if (!city) {
         console.warn('⚠️ Город не выбран, загружаем все парковки (не рекомендуется)');
         return Promise.resolve();
@@ -1041,7 +1042,7 @@ function loadAllParkings(city, force = false) {
             console.log('✅ Загружено парковок для города', city, ':', Object.keys(newCache).length);
             resolve();
         }).catch(function(error) {
-            console.error('❌ Ошибка загрузки парковок из Firebase:', error);
+            console.error('❌ Ошибка запроса к Firebase:', error);
             // Пытаемся загрузить из кеша
             const cached = localStorage.getItem('parkingCache');
             if (cached) {
@@ -5685,7 +5686,7 @@ function createAuthScreenFallback() {
 
     const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
     if (needRefresh) {
-        // ✅ ИСПРАВЛЕНО: передаём currentCity и force=true
+        // ✅ Передаём текущий город
         Promise.all([
             loadAllParkings(currentCity, true),
             getUserLocation().catch(() => null)
@@ -5694,10 +5695,15 @@ function createAuthScreenFallback() {
             renderHomeContent(content, coords);
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.remove();
-        }).catch(() => {
+            // Логируем количество загруженных парковок
+            console.log('🏠 На главной загружено парковок:', Object.keys(parkingDataCache).length);
+        }).catch((err) => {
+            console.error('Ошибка загрузки парковок:', err);
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.textContent = '⚠️ Не удалось обновить данные';
             setTimeout(() => { if (indicator) indicator.remove(); }, 3000);
+            // Показываем пустой список с сообщением
+            renderHomeContent(content, null);
         });
     } else {
         getUserLocation()
@@ -5705,7 +5711,9 @@ function createAuthScreenFallback() {
                 userLocationForSearch = coords;
                 renderHomeContent(content, coords);
             })
-            .catch(() => {});
+            .catch(() => {
+                renderHomeContent(content, null);
+            });
     }
 }
 function renderHomeContent(content, coords) {
@@ -5731,12 +5739,30 @@ function renderHomeContent(content, coords) {
     `;
     content.innerHTML = html;
 
-    // Если координаты есть – показываем парковки рядом, иначе – все парковки (без сортировки по расстоянию)
+    // Получаем список парковок из кеша
+    var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
+    
+    // Если данных нет – показываем сообщение
+    if (allParkings.length === 0) {
+        var container = document.getElementById('homeParkingList');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>😕 Нет парковок в городе <strong>${currentCity || 'не выбран'}</strong></p>
+                    <p style="font-size:13px; margin-top:8px; color:var(--text-secondary);">
+                        Попробуйте изменить город в настройках профиля
+                    </p>
+                </div>
+            `;
+        }
+        return;
+    }
+
+    // Если координаты есть – показываем ближайшие
     if (coords) {
         showNearbyParkings(coords, 5);
     } else {
-        // Показываем все парковки (без учёта расстояния)
-        var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
+        // Иначе показываем все (без сортировки по расстоянию)
         var container = document.getElementById('homeParkingList');
         if (container) {
             renderParkingList(container, allParkings);
