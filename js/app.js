@@ -2119,6 +2119,7 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
         name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
     }
 
+    // ----- Геокодирование для получения адреса и города -----
     ymaps.geocode([centerLat, centerLng], { kind: 'locality', results: 1 })
         .then(res => {
             const geo = res.geoObjects.get(0);
@@ -2127,32 +2128,33 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             const parsed = parseAddress(address);
             if (fullStreet) parsed.street = fullStreet;
             if (houseNumber) parsed.houseNumber = houseNumber;
-            if (!parsed.city && userCityPrefs.region && userCityPrefs.city) {
-                parsed.region = userCityPrefs.region;
-                parsed.city = userCityPrefs.city;
+            // ✅ Если город не определён геокодером — используем текущий выбранный город
+            if (!parsed.city) {
+                parsed.city = currentCity;
+                parsed.region = userCityPrefs.region || '';
             }
 
-           const parkingData = {
-    lat: centerLat,
-    lng: centerLng,
-    coordinates: coordsToSave,
-    totalSpots,
-    occupiedSpots: 0,
-    name,
-    isPaid: false,
-    address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-    region: parsed.region,
-    street: parsed.street,
-    houseNumber: parsed.houseNumber,
-    authorId: currentUser.id,
-    authorName: currentUser.firstName,
-    authorUsername: currentUser.username,
-    lastUpdatedAt: Date.now(),
-    lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-    timestamp: Date.now(),
-    status: 'unknown',
-    city: currentCity   // ← принудительно из текущего города
-};
+            const parkingData = {
+                lat: centerLat,
+                lng: centerLng,
+                coordinates: coordsToSave,
+                totalSpots,
+                occupiedSpots: 0,
+                name,
+                isPaid: false,
+                address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+                region: parsed.region,
+                city: parsed.city,          // ← город из геокодера или currentCity
+                street: parsed.street,
+                houseNumber: parsed.houseNumber,
+                authorId: currentUser.id,
+                authorName: currentUser.firstName,
+                authorUsername: currentUser.username,
+                lastUpdatedAt: Date.now(),
+                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
+                timestamp: Date.now(),
+                status: 'unknown'
+            };
 
             const newRef = database.ref('parkings').push();
             return newRef.set(parkingData).then(() => {
@@ -2166,7 +2168,6 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 });
                 addMarkerToMap(newRef.key, parkingData);
                 map.setCenter([centerLat, centerLng], 17, { duration: 500 });
-                // ✅ Обновляем кластеры после добавления маркера
                 if (clusterer) clusterer.reload();
                 if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
                 window.newParkingCoords = null;
@@ -2183,27 +2184,29 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             });
         })
         .catch(() => {
+            // ----- Fallback: если геокодер не сработал -----
             const parkingData = {
-    lat: centerLat,
-    lng: centerLng,
-    coordinates: coordsToSave,
-    totalSpots,
-    occupiedSpots: 0,
-    name,
-    isPaid: false,
-    address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-    region: userCityPrefs.region || '',
-    street: fullStreet,
-    houseNumber: houseNumber,
-    authorId: currentUser.id,
-    authorName: currentUser.firstName,
-    authorUsername: currentUser.username,
-    lastUpdatedAt: Date.now(),
-    lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-    timestamp: Date.now(),
-    status: 'unknown',
-    city: currentCity   // ← только одно поле
-};
+                lat: centerLat,
+                lng: centerLng,
+                coordinates: coordsToSave,
+                totalSpots,
+                occupiedSpots: 0,
+                name,
+                isPaid: false,
+                address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+                region: userCityPrefs.region || '',
+                city: currentCity,   // ← принудительно из текущего города
+                street: fullStreet,
+                houseNumber: houseNumber,
+                authorId: currentUser.id,
+                authorName: currentUser.firstName,
+                authorUsername: currentUser.username,
+                lastUpdatedAt: Date.now(),
+                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
+                timestamp: Date.now(),
+                status: 'unknown'
+            };
+
             const newRef = database.ref('parkings').push();
             return newRef.set(parkingData).then(() => {
                 database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
@@ -2215,7 +2218,6 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                     username: currentUser.username
                 });
                 addMarkerToMap(newRef.key, parkingData);
-                // ✅ Обновляем кластеры после добавления маркера
                 if (clusterer) clusterer.reload();
                 if (drawingPolygon) { map.geoObjects.remove(drawingPolygon); drawingPolygon = null; }
                 window.newParkingCoords = null;
@@ -2231,23 +2233,19 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 }
             });
         })
-        .then(() => {
-            // === Аналог finally – выполняется всегда ===
+        .finally(() => {
+            // Восстанавливаем кнопку
             if (saveBtn) {
                 saveBtn.textContent = 'Сохранить парковку';
                 saveBtn.disabled = false;
             }
-            // ✅ ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ ПАНЕЛИ И ПЕРЕХОД НА КАРТУ
-            // Небольшая задержка, чтобы все асинхронные операции завершились
+            // Закрываем панель и переключаемся на карту
             setTimeout(function() {
-                // Закрываем панель
                 var panel = document.getElementById('panel');
                 if (panel) {
                     panel.classList.remove('active');
-                    // Сброс стилей (если вдруг остались трансформации)
                     panel.style.transform = 'translateY(100%)';
                 }
-                // Переключаем таб на «Карта»
                 document.querySelectorAll('.tab').forEach(function(tab) {
                     tab.classList.remove('active');
                 });
@@ -2255,12 +2253,10 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 if (mapTab) {
                     mapTab.classList.add('active');
                 }
-                // Сбрасываем заголовок панели, если он не изменился
                 var title = document.getElementById('panelTitle');
                 if (title && title.textContent === 'Новая парковка') {
                     title.textContent = 'Главная';
                 }
-                // Убеждаемся, что карта видна (на случай, если showMap() не сработала)
                 if (typeof showMap === 'function') {
                     showMap();
                 }
