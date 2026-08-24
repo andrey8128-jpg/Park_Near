@@ -994,8 +994,9 @@ function loadAllParkings(city, force = false) {
     if (!city) city = currentCity;
     console.log('🔍 Загрузка парковок для города:', city);
     if (!city) {
-        console.warn('⚠️ Город не выбран, загружаем все парковки (не рекомендуется)');
-        return Promise.resolve();
+        console.warn('⚠️ Город не выбран, загружаем все парковки (как запасной вариант)');
+        // Если город не выбран – загружаем все парковки (без фильтра)
+        return loadAllParkingsFallback();
     }
 
     // Если force=false и кеш актуален – используем его
@@ -1043,33 +1044,72 @@ function loadAllParkings(city, force = false) {
             resolve();
         }).catch(function(error) {
             console.error('❌ Ошибка запроса к Firebase:', error);
-            // Пытаемся загрузить из кеша
-           const cached = localStorage.getItem('parkingCache');
-if (cached) {
-    try {
-        const cache = JSON.parse(cached);
-        if (cache && cache.city === city && cache.data) {
-            parkingDataCache = cache.data;
+            // Пытаемся загрузить из кеша (если он есть и соответствует городу)
+            const cached = localStorage.getItem('parkingCache');
+            if (cached) {
+                try {
+                    const cache = JSON.parse(cached);
+                    if (cache && cache.city === city && cache.data) {
+                        parkingDataCache = cache.data;
+                        lastDataRefresh = Date.now();
+                        Object.keys(parkingDataCache).forEach(function(id) {
+                            addMarkerToMap(id, parkingDataCache[id]);
+                        });
+                        if (typeof updateTotalFreeCircle === 'function') {
+                            updateTotalFreeCircle();
+                        }
+                        console.log('⚠️ Использован локальный кеш для города', city);
+                        resolve();
+                        return;
+                    } else {
+                        // Кеш есть, но не для этого города – просто игнорируем, НЕ УДАЛЯЕМ
+                        console.warn('⚠️ Кеш не соответствует городу', city, '– игнорируем');
+                        // ❌ НЕ УДАЛЯЕМ КЕШ! (закомментировано)
+                        // localStorage.removeItem('parkingCache');
+                    }
+                } catch (e) {
+                    // Если кеш повреждён – игнорируем, но не удаляем
+                    console.warn('⚠️ Ошибка чтения кеша, игнорируем');
+                    // localStorage.removeItem('parkingCache');
+                }
+            }
+            // Если ничего не помогло – отклоняем промис
+            reject(error);
+        });
+    });
+}
+
+// ===== Вспомогательная функция для загрузки всех парковок (без фильтра) =====
+function loadAllParkingsFallback() {
+    return new Promise(function(resolve, reject) {
+        database.ref('parkings').once('value').then(function(snapshot) {
+            const data = snapshot.val();
+            const newCache = {};
+            if (data) {
+                Object.keys(data).forEach(function(key) {
+                    const parking = data[key];
+                    if (!parking || parking.lat == null || parking.lng == null) return;
+                    parking.totalSpots = Number(parking.totalSpots) || 0;
+                    parking.occupiedSpots = Number(parking.occupiedSpots) || 0;
+                    parking.occupiedSpots = Math.max(0, Math.min(parking.occupiedSpots, parking.totalSpots));
+                    newCache[key] = parking;
+                });
+            }
+            parkingDataCache = newCache;
             lastDataRefresh = Date.now();
-            Object.keys(parkingDataCache).forEach(function(id) {
-                addMarkerToMap(id, parkingDataCache[id]);
+            try {
+                localStorage.setItem('parkingCache', JSON.stringify({ city: 'all', data: newCache, timestamp: Date.now() }));
+            } catch (e) {}
+            Object.keys(newCache).forEach(function(id) {
+                addMarkerToMap(id, newCache[id]);
             });
             if (typeof updateTotalFreeCircle === 'function') {
                 updateTotalFreeCircle();
             }
-            console.log('⚠️ Использован локальный кеш для города', city);
+            console.log('⚠️ Загружены ВСЕ парковки (без фильтра по городу) –', Object.keys(newCache).length);
             resolve();
-            return;
-        } else {
-            // ✅ НОВЫЙ БЛОК
-            console.warn('⚠️ Кеш не соответствует городу', city, '– игнорируем');
-            localStorage.removeItem('parkingCache');
-        }
-    } catch (e) {
-        // Если кеш повреждён, тоже удаляем
-        localStorage.removeItem('parkingCache');
-    }
-}
+        }).catch(function(error) {
+            console.error('❌ Ошибка загрузки всех парковок:', error);
             reject(error);
         });
     });
