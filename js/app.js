@@ -1567,7 +1567,7 @@ function initMap() {
                 'text-align:center;' +
                 'transform:rotate(45deg);' +
             '">' +
-                {{ properties.freeSpots || "0" }}
+                '{{ properties.freeSpots || "0" }}' +
             '</div>'
         ),
 
@@ -2155,7 +2155,7 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 isPaid: false,
                 address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
                 region: parsed.region,
-                city: parsed.city || currentCity
+                city: parsed.city || currentCity,
                 street: parsed.street,
                 houseNumber: parsed.houseNumber,
                 authorId: currentUser.id,
@@ -4720,7 +4720,7 @@ function saveCityFromSettingsInline() {
                 }
             });
             updateCityDisplay();
-            loadAllParkings();
+            loadAllParkings(city);   // ← передаём city
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.selectionChanged();
             }
@@ -4866,7 +4866,7 @@ function saveCityFromSettingsInline() {
                 }
             });
             updateCityDisplay();
-            loadAllParkings();
+            loadAllParkings(city);   // ← передаём city
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.selectionChanged();
             }
