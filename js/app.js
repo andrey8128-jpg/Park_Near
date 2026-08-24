@@ -1044,25 +1044,32 @@ function loadAllParkings(city, force = false) {
         }).catch(function(error) {
             console.error('❌ Ошибка запроса к Firebase:', error);
             // Пытаемся загрузить из кеша
-            const cached = localStorage.getItem('parkingCache');
-            if (cached) {
-                try {
-                    const cache = JSON.parse(cached);
-                    if (cache && cache.city === city && cache.data) {
-                        parkingDataCache = cache.data;
-                        lastDataRefresh = Date.now();
-                        Object.keys(parkingDataCache).forEach(function(id) {
-                            addMarkerToMap(id, parkingDataCache[id]);
-                        });
-                        if (typeof updateTotalFreeCircle === 'function') {
-                            updateTotalFreeCircle();
-                        }
-                        console.log('⚠️ Использован локальный кеш для города', city);
-                        resolve();
-                        return;
-                    }
-                } catch (e) {}
+           const cached = localStorage.getItem('parkingCache');
+if (cached) {
+    try {
+        const cache = JSON.parse(cached);
+        if (cache && cache.city === city && cache.data) {
+            parkingDataCache = cache.data;
+            lastDataRefresh = Date.now();
+            Object.keys(parkingDataCache).forEach(function(id) {
+                addMarkerToMap(id, parkingDataCache[id]);
+            });
+            if (typeof updateTotalFreeCircle === 'function') {
+                updateTotalFreeCircle();
             }
+            console.log('⚠️ Использован локальный кеш для города', city);
+            resolve();
+            return;
+        } else {
+            // ✅ НОВЫЙ БЛОК
+            console.warn('⚠️ Кеш не соответствует городу', city, '– игнорируем');
+            localStorage.removeItem('parkingCache');
+        }
+    } catch (e) {
+        // Если кеш повреждён, тоже удаляем
+        localStorage.removeItem('parkingCache');
+    }
+}
             reject(error);
         });
     });
@@ -5670,7 +5677,8 @@ function createAuthScreenFallback() {
     if (cached) {
         try {
             const cache = JSON.parse(cached);
-            if (cache && cache.data) {
+            // ✅ Проверяем, что кеш соответствует текущему городу
+            if (cache && cache.city === currentCity && cache.data) {
                 cacheData = cache.data;
                 parkingDataCache = cacheData;
                 renderHomeContent(content, null);
@@ -5678,9 +5686,17 @@ function createAuthScreenFallback() {
                 if (list) {
                     list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;">🔄 Обновление данных...</div>');
                 }
+            } else {
+                // Если город не совпадает – удаляем устаревший кеш
+                localStorage.removeItem('parkingCache');
+                console.log('🗑️ Удалён устаревший кеш парковок');
             }
-        } catch (e) {}
-    } else {
+        } catch (e) {
+            localStorage.removeItem('parkingCache');
+        }
+    }
+
+    if (!cacheData) {
         content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
     }
 
@@ -5695,14 +5711,12 @@ function createAuthScreenFallback() {
             renderHomeContent(content, coords);
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.remove();
-            // Логируем количество загруженных парковок
             console.log('🏠 На главной загружено парковок:', Object.keys(parkingDataCache).length);
         }).catch((err) => {
             console.error('Ошибка загрузки парковок:', err);
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.textContent = '⚠️ Не удалось обновить данные';
             setTimeout(() => { if (indicator) indicator.remove(); }, 3000);
-            // Показываем пустой список с сообщением
             renderHomeContent(content, null);
         });
     } else {
@@ -5741,7 +5755,7 @@ function renderHomeContent(content, coords) {
 
     // Получаем список парковок из кеша
     var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
-    
+    console.log('📊 Всего парковок в кеше:', allParkings.length);
     // Если данных нет – показываем сообщение
     if (allParkings.length === 0) {
         var container = document.getElementById('homeParkingList');
@@ -5972,7 +5986,8 @@ function initApp() {
     if (!map) {
         initMap();
     }
-    loadAllParkings();
+    // ✅ ИСПРАВЛЕНО: передаём текущий город
+    loadAllParkings(currentCity);
     initPullToRefresh();
     if (currentUser) {
         showPanel('home');
