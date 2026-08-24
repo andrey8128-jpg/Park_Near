@@ -6224,3 +6224,6 @@ function initApp() {
             setTimeout(function() { splash.remove(); }, 300);
         }
     }, 5000);
+
+    // ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
+    initApp();
