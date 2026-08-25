@@ -103,7 +103,6 @@
                 });
             }
         );
-
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
 
@@ -113,3 +112,27 @@
             var coords = cluster.geometry.getCoordinates();
             map.setCenter(coords, 16, { duration: 300, checkZoomRange: true });
         });
+function createMarkersAndCluster(parkings) {
+    // Удаляем старый кластер
+    if (clustererInstance) {
+        mapInstance.geoObjects.remove(clustererInstance);
+        clustererInstance = null;
+    }
+    // Создаём метки
+    const newPlacemarks = parkings.map(parking => {
+        const coords = [parking.latitude, parking.longitude];
+        return new ymaps.Placemark(coords, {
+            balloonContent: `<b>${parking.name}</b><br>${parking.address}`
+        });
+    });
+    // Создаём кластер
+    clustererInstance = new ymaps.Clusterer({
+        clusterDisableClickZoom: false,
+        clusterOpenBalloonOnClick: true,
+        gridSize: 32,
+        minClusterSize: 3
+    });
+    clustererInstance.add(newPlacemarks);
+    mapInstance.geoObjects.add(clustererInstance);
+    placemarks = newPlacemarks; // сохраняем для очистки
+}
