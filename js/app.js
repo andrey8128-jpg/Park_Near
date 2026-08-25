@@ -1,15 +1,4 @@
-  // ===================== FIREBASE =====================
-    const firebaseConfig = {
-        apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
-        authDomain: "parknear-bef41.firebaseapp.com",
-        databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "parknear-bef41",
-        storageBucket: "parknear-bef41.firebasestorage.app",
-        messagingSenderId: "1066552333578",
-        appId: "1:1066552333578:web:e60e333cf877852eba16f3"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+ 
     // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
     (function restoreTheme() {
         const darkTheme = localStorage.getItem('darkTheme');
@@ -40,53 +29,7 @@
         if (toggle1) toggle1.checked = isDark;
         if (toggle2) toggle2.checked = isDark;
     })();
-    // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
-    let map = null;
-    let currentCity = null; // или 'Москва' по умолчанию
-    let currentUser = null;
-    let lastKnownLocation = null;
-    let mapMarkers = {};
-    let myLocationPlacemark = null;
-    let addressPreviewMarker = null;
-    let _parkingFormCoords = null;
-    let _parkingFormSizeCheck = null;
-    let previousZoom = null;
-    let previousCenter = null;
-    let drawingPolygon = null;
-    let clusterer = null;
-    let activePolygon = null; 
-    let isDrawingMode = false;
-    let currentParkingId = null;
-    let currentParkingData = null;
-    let originalPolyCoords = null;
-    let editingParkingId = null;
-    let editingPolygon = null;
-    let mapCity = null;
-    let currentUserId = null;
-    let parkingDataCache = {};
-    let highlightedParkings = {};
-    let lastClickTime = 0;
-    let lastDataRefresh = 0;
-    const REFRESH_INTERVAL_MS = 60000;
-    let lastClickParkingId = null;
-    let clickTimeout = null;
-    const MAX_ZONE_WIDTH = 100;
-    const MAX_ZONE_LENGTH = 100;
-    let addressPickerMap = null;
-    let addressPickerPlacemark = null;
-    let addressPickerCoords = null;
-    let isAddressPickerOpen = false;
-    let currentRoute = null;
-    let routeStartCoords = null;
-    let routeEndCoords = null;
-    let routeParkingData = null;
-    let userCityPrefs = { region: '', city: '' };
-    let cityCoords = null;
-    const CITY_RADIUS = 3000;
-    let nearbySearchFilter = null;
-    let userLocationForSearch = null;
-    let pendingAddressData = null;
-    let newParkingCoords = null;
+    
 
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
