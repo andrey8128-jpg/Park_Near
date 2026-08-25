@@ -1027,9 +1027,27 @@ function loadAllParkings(city, force = false) {
 
                     // ✅ Фильтрация по городу на клиенте
                     // Если у парковки есть поле city, и оно НЕ равно текущему городу – пропускаем
-                    if (parking.city && parking.city !== city) {
-                        return;
-                    }
+                    if (parking.city) {
+
+    const parkingCity =
+        String(parking.city)
+            .trim()
+            .toLowerCase();
+
+    const selectedCity =
+        String(city)
+            .trim()
+            .toLowerCase();
+
+    if (
+        parkingCity !== selectedCity &&
+        !String(parking.address || '')
+            .toLowerCase()
+            .includes(selectedCity)
+    ) {
+        return;
+    }
+}
                     // Если поле city отсутствует – считаем, что парковка принадлежит текущему городу (включаем)
 
                     parking.totalSpots = Number(parking.totalSpots) || 0;
@@ -1167,12 +1185,12 @@ function updateParkingMarker(id, data) {
             if (oldPolygon) map.geoObjects.remove(oldPolygon);
             // Создаём новый
             const newPolygon = new ymaps.Polygon([newCoords], {}, {
-                fillColor: color + '33',
-                strokeColor: color,
-                strokeWidth: 2,
-                visible: false,
-                zIndex: 5
-            });
+    fillColor: color + '33',
+    strokeColor: color,
+    strokeWidth: 2,
+    visible: map ? map.getZoom() >= 15 : false,
+    zIndex: 5
+});
             map.geoObjects.add(newPolygon);
             placemark.properties.set('polygon', newPolygon);
             newPolygon.__parkingId = id;
@@ -1352,16 +1370,10 @@ function addMarkerToMap(id, data) {
                 [data.coordinates],
                 {},
                 {
-                    fillColor:
-                        color + '33',
-
-                    strokeColor:
-                        color,
-
+                    fillColor:color + '33',
+                    strokeColor:color,
                     strokeWidth: 2,
-
-                    visible: false,
-
+                    visible: map ? map.getZoom() >= 15 : false,
                     zIndex: 5
                 }
             );
@@ -1524,17 +1536,37 @@ function initMap() {
 
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
-            var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 15);
-            Object.keys(mapMarkers).forEach(function(id) {
-                var placemark = mapMarkers[id];
-                if (!placemark) return;
-                var poly = placemark.properties.get('polygon');
-                if (poly) {
-                    poly.options.set('visible', showPolygons);
-                }
-            });
-        });
+
+    const currentZoom = map.getZoom();
+
+    const showPolygons = currentZoom >= 15;
+
+    Object.keys(mapMarkers).forEach(function(id) {
+
+        const placemark = mapMarkers[id];
+        if (!placemark) return;
+        const polygon =
+            placemark.properties.get('polygon');
+        if (!polygon) return;
+        // Если парковка сейчас выбрана,
+        // её зона остаётся видимой
+        if (
+            activePolygon === polygon &&
+            currentZoom < 15
+        ) {
+            polygon.options.set(
+                'visible',
+                true
+            );
+            return;
+        }
+        polygon.options.set(
+            'visible',
+            showPolygons
+        );
+    });
+
+});
 
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
         clusterer = new ymaps.Clusterer({
