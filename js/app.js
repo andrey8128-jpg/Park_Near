@@ -93,10 +93,33 @@ const savedCity = localStorage.getItem('selectedCity');
 if (savedCity) {
     currentCity = savedCity;
 } else {
-    currentCity = 'Москва'; // город по умолчанию
-    localStorage.setItem('selectedCity', currentCity);
+    currentCity = null;
 }
-console.log('🏙️ Текущий город:', currentCity);
+const savedCityPrefs = localStorage.getItem('parknear_city');
+if (savedCityPrefs) {
+    try {
+        const parsed = JSON.parse(savedCityPrefs);
+        if (parsed && parsed.city) {
+            userCityPrefs = {
+                region: parsed.region || '',
+                city: parsed.city || ''
+            };
+            currentCity = parsed.city;
+        }
+    } catch (e) {
+        console.warn('⚠️ Не удалось восстановить город:', e);
+    }
+}
+const savedCityCoords = localStorage.getItem('parknear_city_coords');
+if (savedCityCoords) {
+    try {
+        cityCoords = JSON.parse(savedCityCoords);
+    } catch (e) {
+        cityCoords = null;
+    }
+}
+console.log('🏙️ Восстановленный город:', currentCity);
+console.log('🗺️ Восстановленный регион:', userCityPrefs.region);
     // ===================== КОНСТАНТЫ =====================
     const carBrands = {
         'Lada': ['Vesta', 'Vesta Cross', 'Vesta SW', 'Vesta SW Cross', 'Granta', 'Granta Cross', 'Niva Legend',
@@ -771,7 +794,107 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         houseNumber: houseNumber
     };
 }
+// ============================================================
+// ОПРЕДЕЛЕНИЕ ГОРОДА И РЕГИОНА ПО КООРДИНАТАМ
+// ============================================================
 
+async function getLocationDetailsByCoords(lat, lng) {
+
+    if (
+        !Number.isFinite(Number(lat)) ||
+        !Number.isFinite(Number(lng))
+    ) {
+        throw new Error('Некорректные координаты');
+    }
+    const coords = [
+        Number(lat),
+        Number(lng)
+    ];
+    try {
+        const result = await ymaps.geocode(
+            coords,
+            {
+                kind: 'house',
+                results: 1
+            }
+        );
+        const geoObject =
+            result.geoObjects.get(0);
+        if (!geoObject) {
+            throw new Error(
+                'Адрес по координатам не найден'
+            );
+        }
+        const address =
+            geoObject.getAddressLine() || '';
+        const parsed =
+            parseAddress(address);
+        // Если parseAddress не смог найти город,
+        // пробуем получить его из properties Яндекса
+        let city = parsed.city || '';
+        let region = parsed.region || '';
+
+        try {
+            const meta =
+                geoObject.properties.get(
+                    'metaDataProperty'
+                );
+
+            const geocoderMeta =
+                meta &&
+                meta.GeocoderMetaData;
+
+            const addressDetails =
+                geocoderMeta &&
+                geocoderMeta.AddressDetails;
+            if (
+                !city &&
+                addressDetails
+            ) {
+                const country =
+                    addressDetails.Country;
+
+                const administrativeArea =
+                    country &&
+                    country.AdministrativeArea;
+
+                const locality =
+                    administrativeArea &&
+                    administrativeArea.Locality;
+
+                if (locality) {
+                    city =
+                        locality.AddressLine ||
+                        locality.LocalityName ||
+                        '';
+                }
+            }
+        } catch (e) {
+            console.warn(
+                'Не удалось получить дополнительные данные адреса:',
+                e
+            );
+        }
+        return {
+            address: address,
+            region: region,
+            city: city,
+            street:
+                parsed.street || '',
+            houseNumber:
+                parsed.houseNumber || '',
+            lat: Number(lat),
+            lng: Number(lng)
+
+        };
+    } catch (error) {
+        console.error(
+            '❌ Reverse geocoding error:',
+            error
+        );
+        throw error;
+    }
+}
     function extractStreetName(fullStreet) {
         if (!fullStreet) return '';
         const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
@@ -5162,43 +5285,157 @@ function saveCityFromSettingsInline() {
     }
 
    function saveCityFromSettings() {
+
     if (!currentUser) {
-        console.warn('Пользователь не авторизован');
+        console.warn(
+            'Пользователь не авторизован'
+        );
         return;
     }
-    var regionSelect = document.getElementById('settingsRegion');
-    var citySelect = document.getElementById('settingsCity');
-    var region = regionSelect ? regionSelect.value : '';
-    var city = citySelect ? citySelect.value : '';
-    if (!region || !city) return;
-    mapCity = null;
-    database.ref('users/' + currentUser.id + '/cityPreferences').set({ region: region, city: city })
-        .then(function() {
-            userCityPrefs = { region: region, city: city };
+
+    const regionSelect =
+        document.getElementById('settingsRegion');
+
+    const citySelect =
+        document.getElementById('settingsCity');
+
+    const region =
+        regionSelect
+            ? regionSelect.value.trim()
+            : '';
+
+    const city =
+        citySelect
+            ? citySelect.value.trim()
+            : '';
+
+    if (!region || !city) {
+        return;
+    }
+
+    const prefs = {
+        region: region,
+        city: city
+    };
+
+    // ------------------------------------------------------------
+    // 1. Сохраняем в Firebase
+    // ------------------------------------------------------------
+
+    database
+        .ref(
+            `users/${currentUser.id}/cityPreferences`
+        )
+        .set(prefs)
+
+        .then(async function() {
+
+            // ----------------------------------------------------
+            // 2. Сохраняем локально
+            // ----------------------------------------------------
+
+            userCityPrefs = prefs;
+
             currentCity = city;
-            localStorage.setItem('parknear_city', JSON.stringify({ region, city }));
-            // Получаем координаты и сохраняем
-            ymaps.geocode(city, { results: 1 }).then(function(res) {
-                const geo = res.geoObjects.get(0);
+
+            localStorage.setItem(
+                'selectedCity',
+                city
+            );
+
+            localStorage.setItem(
+                'parknear_city',
+                JSON.stringify(prefs)
+            );
+
+            // ----------------------------------------------------
+            // 3. Получаем координаты города
+            // ----------------------------------------------------
+
+            try {
+
+                const result =
+                    await ymaps.geocode(
+                        `${city}, ${region}`,
+                        {
+                            results: 1
+                        }
+                    );
+
+                const geo =
+                    result.geoObjects.get(0);
+
                 if (geo) {
-                    const coords = geo.geometry.getCoordinates();
-                    cityCoords = { lat: coords[0], lng: coords[1] };
-                    localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
+
+                    const coords =
+                        geo.geometry.getCoordinates();
+
+                    cityCoords = {
+                        lat: coords[0],
+                        lng: coords[1]
+                    };
+
+                    localStorage.setItem(
+                        'parknear_city_coords',
+                        JSON.stringify(cityCoords)
+                    );
+
                     if (map) {
-                        map.setCenter(coords, 12, { duration: 500 });
+
+                        map.setCenter(
+                            coords,
+                            12,
+                            {
+                                duration: 500
+                            }
+                        );
+
                     }
                 }
-            });
-            updateCityDisplay();
-            loadAllParkings(city);   // ← передаём city
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+
+            } catch (error) {
+
+                console.warn(
+                    '⚠️ Не удалось получить координаты города:',
+                    error
+                );
             }
-            console.log('✅ Город сохранён в профиле:', city);
+
+            // ----------------------------------------------------
+            // 4. Обновляем интерфейс
+            // ----------------------------------------------------
+            updateCityDisplay();
+            // ----------------------------------------------------
+            // 5. Загружаем парковки выбранного города
+            // ----------------------------------------------------
+            await loadAllParkings(
+                currentCity,
+                true
+            );
+            console.log(
+                '✅ Город сохранён:',
+                region,
+                city
+            );
+            if (
+                window.Telegram &&
+                window.Telegram.WebApp &&
+                window.Telegram.WebApp.HapticFeedback
+            ) {
+                window.Telegram.WebApp.HapticFeedback
+                    .selectionChanged();
+            }
         })
-        .catch(function(err) {
-            console.error('❌ Ошибка сохранения города:', err);
-            alert('Не удалось сохранить город: ' + err.message);
+        .catch(function(error) {
+            console.error(
+                '❌ Ошибка сохранения города:',
+                error
+            );
+            alert(
+                'Не удалось сохранить город: ' +
+                error.message
+            );
+
         });
 }
     function saveNickname(newNickname) {
