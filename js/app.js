@@ -2263,121 +2263,154 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
     }
 
     // 7. Сохраняем парковку (с геокодированием или без)
-    function saveParkingData(parkingData) {
-        const newRef = database.ref('parkings').push();
-        return newRef.set(parkingData).then(() => {
-            // Обновляем статистику
-            database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-                .transaction(count => (count || 0) + 1);
-            database.ref(`parkings/${newRef.key}/history`).push({
-                action: 'created',
-                timestamp: Date.now(),
-                userId: currentUser.id,
-                username: currentUser.username
-            });
-            // Добавляем маркер
-            addMarkerToMap(newRef.key, parkingData);
-            // Если есть полигон рисования – удаляем
-            if (drawingPolygon) {
-                map.geoObjects.remove(drawingPolygon);
-                drawingPolygon = null;
-            }
-            window.newParkingCoords = null;
-            // Центрируем карту на новой парковке
-            map.setCenter([centerLat, centerLng], 17, { duration: 500 });
-            if (clusterer) {
-             clusterer.removeAll();
-            clusterer.add(map.geoObjects);
-            }
-            if (document.getElementById('searchResults')) {
-                filterParkings();
-            }
+  async function saveParkingData(parkingData, centerLat, centerLng) {
+    const newRef = database.ref('parkings').push();
+    await newRef.set(parkingData);
+    await database
+        .ref(`users/${currentUser.id}/stats/parkingsCreated`)
+        .transaction(count => (count || 0) + 1);
+    await database
+        .ref(`parkings/${newRef.key}/history`)
+        .push({
+            action: 'created',
+            timestamp: Date.now(),
+            userId: currentUser.id,
+            username: currentUser.username || ''
         });
+    // Добавляем маркер.
+    // Кластеризатор здесь НЕ перезагружаем.
+    addMarkerToMap(newRef.key, parkingData);
+    if (drawingPolygon) {
+        map.geoObjects.remove(drawingPolygon);
+        drawingPolygon = null;
     }
-
-    // 8. Пытаемся получить адрес через геокодер
-    let savePromise;
-    ymaps.geocode(
+    window.newParkingCoords = null;
+    if (
+        Number.isFinite(centerLat) &&
+        Number.isFinite(centerLng)
+    ) {
+        map.setCenter(
+            [centerLat, centerLng],
+            17,
+            { duration: 500 }
+        );
+    }
+    if (document.getElementById('searchResults')) {
+        filterParkings();
+    }
+    return newRef.key;
+}
+      ymaps.geocode(
     [centerLat, centerLng],
     {
         kind: 'house',
         results: 1
     }
 )
-        .then(res => {
-            const geo = res.geoObjects.get(0);
-            let address = geo ? geo.getAddressLine() : '';
-            if (address.length > 80) address = address.substring(0, 77) + '...';
-            const parsed = parseAddress(address);
-            if (fullStreet) parsed.street = fullStreet;
-            if (houseNumber) parsed.houseNumber = houseNumber;
-            if (!parsed.city) {
-                parsed.city = currentCity;
-                parsed.region = userCityPrefs.region || '';
-            }
+.then(res => {
+    const geo = res.geoObjects.get(0);
 
-            const parkingData = {
-                lat: centerLat,
-                lng: centerLng,
-                coordinates: coordsToSave,
-                totalSpots,
-                occupiedSpots: 0,
-                name,
-                isPaid: false,
-                address: address || `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-                region: parsed.region,
-                city: parsed.city,
-                street: parsed.street,
-                houseNumber: parsed.houseNumber,
-                authorId: currentUser.id,
-                authorName: currentUser.firstName,
-                authorUsername: currentUser.username,
-                lastUpdatedAt: Date.now(),
-                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-                timestamp: Date.now(),
-                status: 'unknown'
-            };
-            savePromise = saveParkingData(parkingData);
-        })
-        .catch(() => {
-            // Геокодер не сработал – сохраняем без адреса (тост не показываем)
-            console.warn('⚠️ Геокодер не сработал, парковка сохранена по координатам');
-            const parkingData = {
-                lat: centerLat,
-                lng: centerLng,
-                coordinates: coordsToSave,
-                totalSpots,
-                occupiedSpots: 0,
-                name,
-                isPaid: false,
-                address: `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
-                region: userCityPrefs.region || '',
-                city: currentCity,
-                street: fullStreet,
-                houseNumber: houseNumber,
-                authorId: currentUser.id,
-                authorName: currentUser.firstName,
-                authorUsername: currentUser.username,
-                lastUpdatedAt: Date.now(),
-                lastUpdatedBy: currentUser.nickname || currentUser.firstName,
-                timestamp: Date.now(),
-                status: 'unknown'
-            };
-            savePromise = saveParkingData(parkingData);
-        })
-      
-            // Восстанавливаем кнопку
-            if (saveBtn) {
-                saveBtn.textContent = 'Сохранить парковку';
-                saveBtn.disabled = false;
-            }
-            // Закрываем панель и переключаем на карту (гарантированно)
-            setTimeout(() => {
-                closePanel();
-                showMap();
-            }, 100);
-        });
-}
+    let address = geo
+        ? geo.getAddressLine()
+        : '';
+
+    if (address.length > 80) {
+        address = address.substring(0, 77) + '...';
+    }
+
+    const parsed = parseAddress(address);
+
+    if (fullStreet) {
+        parsed.street = fullStreet;
+    }
+
+    if (houseNumber) {
+        parsed.houseNumber = houseNumber;
+    }
+
+    if (!parsed.city) {
+        parsed.city = currentCity || '';
+        parsed.region =
+            userCityPrefs.region || '';
+    }
+
+    const parkingData = {
+        lat: centerLat,
+        lng: centerLng,
+        coordinates: coordsToSave,
+        totalSpots,
+        occupiedSpots: 0,
+        name,
+        isPaid: false,
+        address:
+            address ||
+            `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+        region: parsed.region || '',
+        city: parsed.city || '',
+        street: parsed.street || '',
+        houseNumber: parsed.houseNumber || '',
+
+        authorId: currentUser.id,
+        authorName: currentUser.firstName || '',
+        authorUsername: currentUser.username || '',
+        lastUpdatedAt: Date.now(),
+        lastUpdatedBy:
+            currentUser.nickname ||
+            currentUser.firstName ||
+            '',
+        timestamp: Date.now(),
+        status: 'unknown'
+    };
+    return saveParkingData(
+        parkingData,
+        centerLat,
+        centerLng
+    );
+})
+.catch(error => {
+    console.warn(
+        'Геокодирование не удалось:',
+        error
+    );
+
+    // Геокодер не ответил.
+    // Но парковку всё равно сохраняем.
+
+    const parkingData = {
+        lat: centerLat,
+        lng: centerLng,
+        coordinates: coordsToSave,
+        totalSpots,
+        occupiedSpots: 0,
+        name,
+        isPaid: false,
+        address:
+        `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`,
+        region:
+        userCityPrefs.region || '',
+        city:
+        currentCity || '',
+        street:
+        fullStreet || '',
+        houseNumber:
+        houseNumber || '',
+        authorId: currentUser.id,
+        authorName: currentUser.firstName || '',
+        authorUsername: currentUser.username || '',
+        lastUpdatedAt: Date.now(),
+        lastUpdatedBy:
+            currentUser.nickname ||
+            currentUser.firstName ||
+            '',
+        timestamp: Date.now(),
+        status: 'unknown'
+    };
+    return saveParkingData(
+        parkingData,
+        centerLat,
+        centerLng
+    );
+});
     function saveEditedPolygon(newCoords) {
         if (!currentParkingId) return;
         const sizeCheck = checkPolygonSize(newCoords);
@@ -2401,7 +2434,6 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             alert('Ошибка: ' + err.message);
             cancelDrawing(); });
     }
-
     // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
     function openParkingSheet(parkingId, data) {
     // Получаем элементы bottom-sheet
