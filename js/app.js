@@ -2180,7 +2180,6 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
         })
         .catch(() => {
             // 8. Fallback – если геокодер не сработал, используем текущий город
-            showToast('⚠️ Не удалось определить адрес, парковка сохранена по координатам', 3000);
 
             const parkingData = {
                 lat: centerLat,
@@ -2233,35 +2232,33 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 }
             });
         })
-        .finally(() => {
-            // 9. Восстанавливаем кнопку
-            if (saveBtn) {
-                saveBtn.textContent = 'Сохранить парковку';
-                saveBtn.disabled = false;
-            }
-            // 10. Закрываем панель и переключаемся на карту (гарантированно)
-            setTimeout(function() {
-                const panel = document.getElementById('panel');
-                if (panel) {
-                    panel.classList.remove('active');
-                    panel.style.transform = 'translateY(100%)';
-                }
-                document.querySelectorAll('.tab').forEach(function(tab) {
-                    tab.classList.remove('active');
-                });
-                const mapTab = document.querySelectorAll('.tab')[1];
-                if (mapTab) {
-                    mapTab.classList.add('active');
-                }
-                const title = document.getElementById('panelTitle');
-                if (title && title.textContent === 'Новая парковка') {
-                    title.textContent = 'Главная';
-                }
-                if (typeof showMap === 'function') {
-                    showMap();
-                }
-            }, 100);
+       .finally(() => {
+    if (saveBtn) {
+        saveBtn.textContent = 'Сохранить парковку';
+        saveBtn.disabled = false;
+    }
+    setTimeout(function() {
+        const panel = document.getElementById('panel');
+        if (panel) {
+            panel.classList.remove('active');
+            panel.style.transform = 'translateY(100%)';
+        }
+        document.querySelectorAll('.tab').forEach(function(tab) {
+            tab.classList.remove('active');
         });
+        const mapTab = document.querySelectorAll('.tab')[1];
+        if (mapTab) {
+            mapTab.classList.add('active');
+        }
+        const title = document.getElementById('panelTitle');
+        if (title && title.textContent === 'Новая парковка') {
+            title.textContent = 'Главная';
+        }
+        if (typeof showMap === 'function') {
+            showMap();
+        }
+    }, 100);
+});
 }
     function saveEditedPolygon(newCoords) {
         if (!currentParkingId) return;
