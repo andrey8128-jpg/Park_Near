@@ -2285,6 +2285,7 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
 async function openCenterSheet(parkingId, data) {
     const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
+
     if (!sheet || !content) return;
 
     currentParkingId = parkingId;
@@ -2292,48 +2293,32 @@ async function openCenterSheet(parkingId, data) {
     parkingDataCache[parkingId] = data;
 
     const total = Number(data.totalSpots) || 0;
-
-    // ============================================================
-    // НОВАЯ СИСТЕМА СОСТОЯНИЯ ПАРКОВКИ
-    // free     = есть места
-    // limited  = мало мест
-    // occupied = мест нет
-    // unknown  = нет свежей информации
-    // ============================================================
-
     const status = data.status || 'unknown';
 
+    // Статус парковки
     let statusIcon = '⚪';
     let statusTitle = 'Нет свежих данных';
-    let statusText = 'Пока никто недавно не сообщил о состоянии парковки';
     let statusClass = 'unknown';
 
     if (status === 'free') {
         statusIcon = '🟢';
-        statusTitle = 'Есть свободные места';
-        statusText = 'По последним сообщениям здесь можно найти место';
+        statusTitle = 'Есть места';
         statusClass = 'free';
     } else if (status === 'limited') {
         statusIcon = '🟡';
-        statusTitle = 'Мало свободных мест';
-        statusText = 'Парковка почти заполнена';
+        statusTitle = 'Мало мест';
         statusClass = 'limited';
     } else if (status === 'occupied') {
         statusIcon = '🔴';
-        statusTitle = 'Свободных мест почти нет';
-        statusText = 'По последним сообщениям парковка заполнена';
+        statusTitle = 'Мест нет';
         statusClass = 'occupied';
     }
 
-    // ============================================================
-    // ВРЕМЯ ПОСЛЕДНЕГО ОБНОВЛЕНИЯ
-    // ============================================================
-
+    // Время последнего обновления
     let lastUpdatedText = 'Нет данных';
 
     if (data.lastUpdatedAt) {
         const diff = Date.now() - Number(data.lastUpdatedAt);
-
         const minutes = Math.floor(diff / 60000);
 
         if (minutes < 1) {
@@ -2352,142 +2337,107 @@ async function openCenterSheet(parkingId, data) {
         }
     }
 
-    // ============================================================
-    // КОЛИЧЕСТВО ПОДТВЕРЖДЕНИЙ
-    // ============================================================
+    // Количество подтверждений
+    const confirmations =
+        Number(data.statusConfirmations) || 0;
 
-    const confirmations = Number(data.statusConfirmations) || 0;
+    // Количество парковочных мест
+    const totalText = total > 0
+        ? `🅿️ ${total} ${getParkingPlacesWord(total)}`
+        : '🅿️ Мест неизвестно';
 
-    let confirmationsText = '';
-
-    if (confirmations === 0) {
-        confirmationsText = 'Пока нет подтверждений';
-    } else if (confirmations === 1) {
-        confirmationsText = '1 подтверждение';
-    } else if (
-        confirmations >= 2 &&
-        confirmations <= 4
-    ) {
-        confirmationsText = `${confirmations} подтверждения`;
-    } else {
-        confirmationsText = `${confirmations} подтверждений`;
-    }
-
-    // ============================================================
-    // АДРЕС
-    // ============================================================
-
+    // Адрес
     const address = data.address
         ? escapeHtml(data.address)
         : 'Адрес не указан';
 
-    // ============================================================
-    // КОЛИЧЕСТВО МЕСТ
-    // ============================================================
+    const html = `
+        <div class="parking-card-compact">
 
-    let totalText = '';
+            <div class="parking-card-top">
 
-    if (total > 0) {
-        totalText = `
-            <div class="parking-total-spots">
-                🅿️ ${total} ${getParkingPlacesWord(total)}
-            </div>
-        `;
-    } else {
-        totalText = `
-            <div class="parking-total-spots">
-                🅿️ Количество мест неизвестно
-            </div>
-        `;
-    }
+                <div class="parking-card-title-block">
 
-    // ============================================================
-    // ФОРМИРУЕМ НОВУЮ КАРТОЧКУ
-    // ============================================================
-
-    let html = `
-        <div class="parking-card-new">
-
-            <div class="parking-card-header">
-                <div class="center-sheet-title">
-                    ${escapeHtml(data.name || 'Парковка')}
-                </div>
-
-                <div class="parking-address">
-                    📍 ${address}
-                </div>
-            </div>
-
-            <div class="parking-status ${statusClass}">
-                <div class="parking-status-icon">
-                    ${statusIcon}
-                </div>
-
-                <div class="parking-status-content">
-                    <div class="parking-status-title">
-                        ${statusTitle}
+                    <div class="parking-card-title">
+                        🅿️ ${escapeHtml(
+                            data.name || 'Парковка'
+                        )}
                     </div>
 
-                    <div class="parking-status-text">
-                        ${statusText}
-                    </div>
-                </div>
-            </div>
-
-            ${totalText}
-
-            <div class="parking-info-row">
-
-                <div class="parking-info-item">
-                    <span class="parking-info-icon">👥</span>
-
-                    <div>
-                        <div class="parking-info-value">
-                            ${confirmationsText}
-                        </div>
-
-                        <div class="parking-info-label">
-                            сегодня
-                        </div>
-                    </div>
-                </div>
-
-                <div class="parking-info-item">
-
-                    <span class="parking-info-icon">🕐</span>
-
-                    <div>
-                        <div class="parking-info-value">
-                            ${lastUpdatedText}
-                        </div>
-
-                        <div class="parking-info-label">
-                            последнее обновление
-                        </div>
+                    <div class="parking-card-address">
+                        📍 ${address}
                     </div>
 
                 </div>
-
-            </div>
-
-            <div class="center-actions">
 
                 <button
-                    class="btn-primary"
+                    class="parking-card-close"
+                    onclick="closeCenterSheet()">
+                    ✕
+                </button>
+
+            </div>
+
+
+            <div class="parking-status-compact ${statusClass}">
+
+                <span class="parking-status-dot">
+                    ${statusIcon}
+                </span>
+
+                <strong>
+                    ${statusTitle}
+                </strong>
+
+            </div>
+
+
+            <div class="parking-meta">
+
+                <span>
+                    ${totalText}
+                </span>
+
+                <span>
+                    👥 ${confirmations}
+                </span>
+
+                <span>
+                    🕐 ${lastUpdatedText}
+                </span>
+
+            </div>
+
+
+            <div class="parking-main-actions">
+
+                <button
+                    class="parking-route-btn"
                     onclick="buildRouteFromCenter()">
                     🧭 Поехать
                 </button>
 
                 <button
-                    class="btn-secondary"
+                    class="parking-update-btn"
                     onclick="reportParkingStatus('${parkingId}')">
-                    🔄 Обновить состояние
+                    🔄 Обновить
+                </button>
+
+            </div>
+
+
+            <div class="parking-secondary-actions">
+
+                <button
+                    class="parking-secondary-btn"
+                    onclick="toggleFavoriteCenter()">
+                    ⭐ Избранное
                 </button>
 
                 <button
-                    class="btn-secondary"
-                    onclick="toggleFavoriteCenter()">
-                    ⭐ Избранное
+                    class="parking-secondary-btn"
+                    onclick="editFromCenter()">
+                    ✏️ Редактировать
                 </button>
 
             </div>
@@ -2496,6 +2446,7 @@ async function openCenterSheet(parkingId, data) {
     `;
 
     content.innerHTML = html;
+
     sheet.classList.add('active');
 }
 function reportParkingStatus(parkingId) {
