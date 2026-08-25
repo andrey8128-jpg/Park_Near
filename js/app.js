@@ -2291,36 +2291,456 @@ async function openCenterSheet(parkingId, data) {
     currentParkingData = data;
     parkingDataCache[parkingId] = data;
 
-    const total = data.totalSpots || 0;
-    const occupied = data.occupiedSpots || 0;
-    const free = total - occupied;
-    const percent = total > 0 ? Math.round((occupied / total) * 100) : 0;
+    const total = Number(data.totalSpots) || 0;
+
+    // ============================================================
+    // НОВАЯ СИСТЕМА СОСТОЯНИЯ ПАРКОВКИ
+    // free     = есть места
+    // limited  = мало мест
+    // occupied = мест нет
+    // unknown  = нет свежей информации
+    // ============================================================
+
+    const status = data.status || 'unknown';
+
+    let statusIcon = '⚪';
+    let statusTitle = 'Нет свежих данных';
+    let statusText = 'Пока никто недавно не сообщил о состоянии парковки';
+    let statusClass = 'unknown';
+
+    if (status === 'free') {
+        statusIcon = '🟢';
+        statusTitle = 'Есть свободные места';
+        statusText = 'По последним сообщениям здесь можно найти место';
+        statusClass = 'free';
+    } else if (status === 'limited') {
+        statusIcon = '🟡';
+        statusTitle = 'Мало свободных мест';
+        statusText = 'Парковка почти заполнена';
+        statusClass = 'limited';
+    } else if (status === 'occupied') {
+        statusIcon = '🔴';
+        statusTitle = 'Свободных мест почти нет';
+        statusText = 'По последним сообщениям парковка заполнена';
+        statusClass = 'occupied';
+    }
+
+    // ============================================================
+    // ВРЕМЯ ПОСЛЕДНЕГО ОБНОВЛЕНИЯ
+    // ============================================================
+
+    let lastUpdatedText = 'Нет данных';
+
+    if (data.lastUpdatedAt) {
+        const diff = Date.now() - Number(data.lastUpdatedAt);
+
+        const minutes = Math.floor(diff / 60000);
+
+        if (minutes < 1) {
+            lastUpdatedText = 'только что';
+        } else if (minutes < 60) {
+            lastUpdatedText = `${minutes} мин назад`;
+        } else {
+            const hours = Math.floor(minutes / 60);
+
+            if (hours < 24) {
+                lastUpdatedText = `${hours} ч назад`;
+            } else {
+                const days = Math.floor(hours / 24);
+                lastUpdatedText = `${days} дн назад`;
+            }
+        }
+    }
+
+    // ============================================================
+    // КОЛИЧЕСТВО ПОДТВЕРЖДЕНИЙ
+    // ============================================================
+
+    const confirmations = Number(data.statusConfirmations) || 0;
+
+    let confirmationsText = '';
+
+    if (confirmations === 0) {
+        confirmationsText = 'Пока нет подтверждений';
+    } else if (confirmations === 1) {
+        confirmationsText = '1 подтверждение';
+    } else if (
+        confirmations >= 2 &&
+        confirmations <= 4
+    ) {
+        confirmationsText = `${confirmations} подтверждения`;
+    } else {
+        confirmationsText = `${confirmations} подтверждений`;
+    }
+
+    // ============================================================
+    // АДРЕС
+    // ============================================================
+
+    const address = data.address
+        ? escapeHtml(data.address)
+        : 'Адрес не указан';
+
+    // ============================================================
+    // КОЛИЧЕСТВО МЕСТ
+    // ============================================================
+
+    let totalText = '';
+
+    if (total > 0) {
+        totalText = `
+            <div class="parking-total-spots">
+                🅿️ ${total} ${getParkingPlacesWord(total)}
+            </div>
+        `;
+    } else {
+        totalText = `
+            <div class="parking-total-spots">
+                🅿️ Количество мест неизвестно
+            </div>
+        `;
+    }
+
+    // ============================================================
+    // ФОРМИРУЕМ НОВУЮ КАРТОЧКУ
+    // ============================================================
 
     let html = `
-        <div class="center-sheet-title">${escapeHtml(data.name || 'Парковка')}</div>
-        <div class="center-stats">
-            <div class="center-stat">
-                <div class="center-stat-value green">${free}</div>
-                <div class="center-stat-label">Свободно</div>
+        <div class="parking-card-new">
+
+            <div class="parking-card-header">
+                <div class="center-sheet-title">
+                    ${escapeHtml(data.name || 'Парковка')}
+                </div>
+
+                <div class="parking-address">
+                    📍 ${address}
+                </div>
             </div>
-            <div class="center-stat">
-                <div class="center-stat-value blue">${total}</div>
-                <div class="center-stat-label">Всего мест</div>
+
+            <div class="parking-status ${statusClass}">
+                <div class="parking-status-icon">
+                    ${statusIcon}
+                </div>
+
+                <div class="parking-status-content">
+                    <div class="parking-status-title">
+                        ${statusTitle}
+                    </div>
+
+                    <div class="parking-status-text">
+                        ${statusText}
+                    </div>
+                </div>
             </div>
-            <div class="center-stat">
-                <div class="center-stat-value ${percent > 70 ? 'red' : percent > 40 ? 'orange' : 'green'}">${percent}%</div>
-                <div class="center-stat-label">Загруженность</div>
+
+            ${totalText}
+
+            <div class="parking-info-row">
+
+                <div class="parking-info-item">
+                    <span class="parking-info-icon">👥</span>
+
+                    <div>
+                        <div class="parking-info-value">
+                            ${confirmationsText}
+                        </div>
+
+                        <div class="parking-info-label">
+                            сегодня
+                        </div>
+                    </div>
+                </div>
+
+                <div class="parking-info-item">
+
+                    <span class="parking-info-icon">🕐</span>
+
+                    <div>
+                        <div class="parking-info-value">
+                            ${lastUpdatedText}
+                        </div>
+
+                        <div class="parking-info-label">
+                            последнее обновление
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
-        </div>
-        <div class="center-actions">
-            <button class="btn-secondary" onclick="toggleFavoriteCenter()">⭐ Избранное</button>
-            <button class="btn-secondary" onclick="buildRouteFromCenter()">🧭 Маршрут</button>
-            <button class="btn-secondary" onclick="editFromCenter()">✏️ Изменить</button>
+
+            <div class="center-actions">
+
+                <button
+                    class="btn-primary"
+                    onclick="buildRouteFromCenter()">
+                    🧭 Поехать
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="reportParkingStatus('${parkingId}')">
+                    🔄 Обновить состояние
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="toggleFavoriteCenter()">
+                    ⭐ Избранное
+                </button>
+
+            </div>
+
         </div>
     `;
 
     content.innerHTML = html;
     sheet.classList.add('active');
+}
+function reportParkingStatus(parkingId) {
+    const sheet = document.getElementById('centerSheet');
+    const content = document.getElementById('centerSheetContent');
+
+    if (!content) return;
+
+    const html = `
+        <div class="parking-status-panel">
+
+            <div class="parking-status-panel-title">
+                Как сейчас выглядит парковка?
+            </div>
+
+            <div class="parking-status-panel-subtitle">
+                Выберите наиболее подходящий вариант
+            </div>
+
+            <button
+                class="status-choice status-choice-free"
+                onclick="submitParkingStatus('${parkingId}', 'free')">
+
+                <span class="status-choice-icon">🟢</span>
+
+                <span class="status-choice-content">
+                    <strong>Есть места</strong>
+                    <small>Свободных мест достаточно</small>
+                </span>
+
+            </button>
+
+            <button
+                class="status-choice status-choice-limited"
+                onclick="submitParkingStatus('${parkingId}', 'limited')">
+
+                <span class="status-choice-icon">🟡</span>
+
+                <span class="status-choice-content">
+                    <strong>Мало мест</strong>
+                    <small>Парковка почти заполнена</small>
+                </span>
+
+            </button>
+
+            <button
+                class="status-choice status-choice-occupied"
+                onclick="submitParkingStatus('${parkingId}', 'occupied')">
+
+                <span class="status-choice-icon">🔴</span>
+
+                <span class="status-choice-content">
+                    <strong>Мест нет</strong>
+                    <small>Свободное место найти сложно</small>
+                </span>
+
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="openCenterSheet('${parkingId}', currentParkingData)"
+                style="margin-top:12px;">
+
+                ← Назад
+
+            </button>
+
+        </div>
+    `;
+
+    content.innerHTML = html;
+}
+async function submitParkingStatus(parkingId, status) {
+
+    if (!parkingId) return;
+
+    if (!currentUser || !currentUser.id) {
+        alert('Чтобы обновлять состояние парковки, необходимо войти в аккаунт.');
+        return;
+    }
+
+    const now = Date.now();
+
+    try {
+
+        const parkingRef = database.ref(`parkings/${parkingId}`);
+
+        const snapshot = await parkingRef.once('value');
+        const parking = snapshot.val();
+
+        if (!parking) {
+            console.error('Парковка не найдена:', parkingId);
+            return;
+        }
+
+        // ------------------------------------------------------------
+        // Увеличиваем количество подтверждений
+        // ------------------------------------------------------------
+
+        const confirmations =
+            Number(parking.statusConfirmations) || 0;
+
+        // ------------------------------------------------------------
+        // Сохраняем новое состояние
+        // ------------------------------------------------------------
+
+        await parkingRef.update({
+
+            status: status,
+
+            lastUpdatedAt: now,
+
+            lastUpdatedBy:
+                currentUser.nickname ||
+                currentUser.firstName ||
+                currentUser.username ||
+                'Пользователь',
+
+            statusConfirmations: confirmations + 1
+
+        });
+
+        // ------------------------------------------------------------
+        // Сохраняем событие в историю
+        // ------------------------------------------------------------
+
+        await parkingRef.child('history').push({
+
+            action: 'status_update',
+
+            status: status,
+
+            timestamp: now,
+
+            userId: currentUser.id,
+
+            username:
+                currentUser.username ||
+                currentUser.firstName ||
+                ''
+
+        });
+
+        // ------------------------------------------------------------
+        // Обновляем локальные данные
+        // ------------------------------------------------------------
+
+        const updatedData = {
+            ...parking,
+
+            status: status,
+
+            lastUpdatedAt: now,
+
+            statusConfirmations: confirmations + 1,
+
+            lastUpdatedBy:
+                currentUser.nickname ||
+                currentUser.firstName ||
+                currentUser.username ||
+                'Пользователь'
+        };
+
+        currentParkingData = updatedData;
+        parkingDataCache[parkingId] = updatedData;
+
+        // ------------------------------------------------------------
+        // Обновляем маркер на карте
+        // ------------------------------------------------------------
+
+        try {
+            refreshParkingMarker();
+        } catch (e) {
+            console.warn(
+                'Не удалось обновить маркер:',
+                e
+            );
+        }
+
+        // ------------------------------------------------------------
+        // Показываем обновлённую карточку
+        // ------------------------------------------------------------
+
+        await openCenterSheet(
+            parkingId,
+            updatedData
+        );
+
+        // ------------------------------------------------------------
+        // Вибрация Telegram
+        // ------------------------------------------------------------
+
+        if (
+            window.Telegram &&
+            window.Telegram.WebApp &&
+            window.Telegram.WebApp.HapticFeedback
+        ) {
+
+            try {
+
+                window.Telegram.WebApp.HapticFeedback
+                    .notificationOccurred('success');
+
+            } catch (e) {}
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            'Ошибка обновления состояния парковки:',
+            error
+        );
+
+        alert(
+            'Не удалось обновить состояние парковки.'
+        );
+    }
+}
+function getParkingPlacesWord(number) {
+
+    number = Math.abs(Number(number));
+
+    const lastTwo = number % 100;
+    const lastOne = number % 10;
+
+    if (
+        lastTwo >= 11 &&
+        lastTwo <= 19
+    ) {
+        return 'мест';
+    }
+
+    if (lastOne === 1) {
+        return 'место';
+    }
+
+    if (
+        lastOne >= 2 &&
+        lastOne <= 4
+    ) {
+        return 'места';
+    }
+
+    return 'мест';
 }
 function closeCenterSheet() {
     document.getElementById('centerSheet').classList.remove('active');
