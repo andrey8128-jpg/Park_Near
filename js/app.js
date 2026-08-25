@@ -2294,7 +2294,13 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
 
     // 8. Пытаемся получить адрес через геокодер
     let savePromise;
-    ymaps.geocode([centerLat, centerLng], { kind: 'locality', results: 1 })
+    ymaps.geocode(
+    [centerLat, centerLng],
+    {
+        kind: 'house',
+        results: 1
+    }
+)
         .then(res => {
             const geo = res.geoObjects.get(0);
             let address = geo ? geo.getAddressLine() : '';
