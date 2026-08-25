@@ -2356,27 +2356,19 @@ async function openCenterSheet(parkingId, data) {
 
             <div class="parking-card-top">
 
-                <div class="parking-card-title-block">
+    <div class="parking-card-title-block">
 
-                    <div class="parking-card-title">
-                        🅿️ ${escapeHtml(
-                            data.name || 'Парковка'
-                        )}
-                    </div>
+        <div class="parking-card-title">
+             ${escapeHtml(data.name || 'Парковка')}
+        </div>
 
-                    <div class="parking-card-address">
-                        📍 ${address}
-                    </div>
+        <div class="parking-card-street">
+            ${address}
+        </div>
 
-                </div>
+    </div>
 
-                <button
-                    class="parking-card-close"
-                    onclick="closeCenterSheet()">
-                    ✕
-                </button>
-
-            </div>
+</div>
 
 
             <div class="parking-status-compact ${statusClass}">
