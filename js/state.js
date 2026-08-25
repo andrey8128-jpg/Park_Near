@@ -45,3 +45,36 @@
     let userLocationForSearch = null;
     let pendingAddressData = null;
     let newParkingCoords = null;
+
+// ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
+const savedCity = localStorage.getItem('selectedCity');
+if (savedCity) {
+    currentCity = savedCity;
+} else {
+    currentCity = null;
+}
+const savedCityPrefs = localStorage.getItem('parknear_city');
+if (savedCityPrefs) {
+    try {
+        const parsed = JSON.parse(savedCityPrefs);
+        if (parsed && parsed.city) {
+            userCityPrefs = {
+                region: parsed.region || '',
+                city: parsed.city || ''
+            };
+            currentCity = parsed.city;
+        }
+    } catch (e) {
+        console.warn('⚠️ Не удалось восстановить город:', e);
+    }
+}
+const savedCityCoords = localStorage.getItem('parknear_city_coords');
+if (savedCityCoords) {
+    try {
+        cityCoords = JSON.parse(savedCityCoords);
+    } catch (e) {
+        cityCoords = null;
+    }
+}
+console.log('🏙️ Восстановленный город:', currentCity);
+console.log('🗺️ Восстановленный регион:', userCityPrefs.region);
