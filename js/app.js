@@ -1502,7 +1502,6 @@ function initMap() {
         console.error('❌ Элемент #map не найден в DOM');
         return;
     }
-
     // =====================================================
     // ПРОВЕРКА ЗАГРУЗКИ ЯНДЕКС.КАРТ
     // =====================================================
@@ -1777,12 +1776,37 @@ function initMap() {
         }, 5000);
 
     } catch (e) {
-        console.error('❌ Ошибка инициализации карты:', e);
-        const container = document.getElementById('map');
-        if (container) {
-            container.innerHTML = '<div style="color:var(--red); text-align:center; padding:20px;">⚠️ Не удалось загрузить карту. Проверьте подключение к интернету и API-ключ Яндекс.Карт.</div>';
-        }
+
+    console.error(
+        '❌ Ошибка инициализации ParkNear:',
+        e
+    );
+
+    // Если карта уже создана —
+    // НЕ уничтожаем её и НЕ показываем
+    // сообщение "не удалось загрузить карту"
+    if (map) {
+        console.error(
+            '⚠️ Карта уже создана. Ошибка произошла после создания карты.'
+        );
+        return;
     }
+
+    const container =
+        document.getElementById('map');
+
+    if (container) {
+        container.innerHTML = `
+            <div style="
+                color: var(--red);
+                text-align: center;
+                padding: 20px;
+            ">
+                ⚠️ Не удалось инициализировать карту.
+            </div>
+        `;
+    }
+}
 }
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
@@ -6169,15 +6193,3 @@ function initApp() {
         }
     })();
     console.log('✅ ParkNear загружен. Код исправлен.');
-
-    // Принудительное скрытие splash через 5 секунд (на случай, если карта не загрузилась)
-    setTimeout(function() {
-        var splash = document.getElementById('splashScreen');
-        if (splash) {
-            splash.style.opacity = '0';
-            setTimeout(function() { splash.remove(); }, 300);
-        }
-    }, 5000);
-
-    // ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
-    initApp();
