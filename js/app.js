@@ -2412,10 +2412,10 @@ async function openCenterSheet(parkingId, data) {
             <div class="parking-main-actions">
 
                 <button
-                    class="parking-route-btn"
-                    onclick="buildRouteFromCenter()">
-                    🧭 Поехать
-                </button>
+    class="parking-route-btn"
+    onclick="buildRouteToParking('${parkingId}')">
+    🧭 Поехать
+</button>
 
                 <button
                     class="parking-update-btn"
