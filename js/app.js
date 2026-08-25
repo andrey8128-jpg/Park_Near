@@ -2285,7 +2285,10 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             window.newParkingCoords = null;
             // Центрируем карту на новой парковке
             map.setCenter([centerLat, centerLng], 17, { duration: 500 });
-            if (clusterer) clusterer.reload();
+            if (clusterer) {
+             clusterer.removeAll();
+            clusterer.add(map.geoObjects);
+            }
             if (document.getElementById('searchResults')) {
                 filterParkings();
             }
@@ -2362,7 +2365,7 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             };
             savePromise = saveParkingData(parkingData);
         })
-        .finally(() => {
+      
             // Восстанавливаем кнопку
             if (saveBtn) {
                 saveBtn.textContent = 'Сохранить парковку';
