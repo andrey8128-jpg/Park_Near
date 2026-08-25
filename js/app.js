@@ -6817,3 +6817,5 @@ function initApp() {
         }
     })();
     console.log('✅ ParkNear загружен. Код исправлен.');
+// ===== ЗАПУСК ПРИЛОЖЕНИЯ =====
+    initApp();
