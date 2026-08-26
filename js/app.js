@@ -90,11 +90,21 @@
 
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
+const savedPrefs = localStorage.getItem('parknear_city');
+
 if (savedCity) {
     currentCity = savedCity;
+    try {
+        const prefs = JSON.parse(savedPrefs || '{}');
+        userCityPrefs.city = prefs.city || savedCity;
+        userCityPrefs.region = prefs.region || '';
+    } catch (e) {
+        userCityPrefs.city = savedCity;
+    }
 } else {
-    currentCity = 'Москва'; // город по умолчанию
-    localStorage.setItem('selectedCity', currentCity);
+    currentCity = '';
+    userCityPrefs.city = '';
+    userCityPrefs.region = '';
 }
 console.log('🏙️ Текущий город:', currentCity);
     // ===================== КОНСТАНТЫ =====================
@@ -939,24 +949,88 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         );
     });
 }
-function tryYandexGeolocation(resolve, reject) {
-    if (typeof ymaps !== 'undefined' && ymaps.geolocation) {
-        ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
-            .then(function(result) {
-                var coords = result.geoObjects.get(0).geometry.getCoordinates();
-                var location = { lat: coords[0], lng: coords[1] };
-                lastKnownLocation = location;
-                console.log('✅ Геолокация получена через Яндекс:', location);
-                resolve(location);
-            })
-            .catch(function(err) {
-                console.error('❌ Яндекс.Геолокация не удалась:', err);
-                reject(new Error('Геолокация недоступна'));
-            });
-    } else {
-        // Ни один метод не сработал
-        reject(new Error('Геолокация не поддерживается браузером'));
+async function detectCityByUserLocation() {
+    if (currentCity) return currentCity;
+    if (!navigator.geolocation) {
+        console.warn('Геолокация браузера недоступна');
+        return '';
     }
+    return new Promise(resolve => {
+        navigator.geolocation.getCurrentPosition(async position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            try {
+                const result = await ymaps.geocode([lat, lng], { results: 1 });
+                const geo = result.geoObjects.get(0);
+                if (!geo) {
+                    resolve('');
+                    return;
+                }
+                const localities = geo.getLocalities ? geo.getLocalities() : [];
+                const areas = geo.getAdministrativeAreas ? geo.getAdministrativeAreas() : [];
+                const city = localities[0] || '';
+                const region = areas[areas.length - 1] || '';
+                if (city) {
+                    currentCity = city;
+                    userCityPrefs.city = city;
+                    userCityPrefs.region = region;
+                    localStorage.setItem('selectedCity', city);
+                    localStorage.setItem('parknear_city', JSON.stringify({ city, region }));
+                    if (typeof updateCityDisplay === 'function') updateCityDisplay();
+                }
+                resolve(city);
+            } catch (error) {
+                console.error('Ошибка определения города:', error);
+                resolve('');
+            }
+        }, error => {
+            console.warn('Не удалось получить геолокацию:', error.message);
+            resolve('');
+        }, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 300000
+        });
+    });
+}
+function tryYandexGeolocation(resolve, reject) {
+    if (typeof ymaps === 'undefined' || !ymaps.geolocation) {
+        reject(new Error('Геолокация не поддерживается'));
+        return;
+    }
+    ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
+        .then(async function(result) {
+            const coords = result.geoObjects.get(0).geometry.getCoordinates();
+            const location = { lat: coords[0], lng: coords[1] };
+            lastKnownLocation = location;
+            console.log('✅ Геолокация получена через Яндекс:', location);
+            try {
+                const geoResult = await ymaps.geocode(coords, { results: 1 });
+                const geo = geoResult.geoObjects.get(0);
+                if (geo) {
+                    const localities = geo.getLocalities ? geo.getLocalities() : [];
+                    const areas = geo.getAdministrativeAreas ? geo.getAdministrativeAreas() : [];
+                    const city = localities[0] || '';
+                    const region = areas[areas.length - 1] || '';
+                    if (city) {
+                        currentCity = city;
+                        userCityPrefs.city = city;
+                        userCityPrefs.region = region;
+                        localStorage.setItem('selectedCity', city);
+                        localStorage.setItem('parknear_city', JSON.stringify({ city, region }));
+                        if (typeof updateCityDisplay === 'function') updateCityDisplay();
+                        console.log('✅ Город определён:', city, region);
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Не удалось определить город:', error);
+            }
+            resolve(location);
+        })
+        .catch(function(err) {
+            console.error('❌ Яндекс.Геолокация не удалась:', err);
+            reject(new Error('Геолокация недоступна'));
+        });
 }
 
     function tryBrowserGeolocation(resolve, reject) {
