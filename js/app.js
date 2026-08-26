@@ -3929,35 +3929,41 @@ async function deleteParking(parkingId) {
             });
         }
     }
-function applyCityFromPicker(city) {
-    if (!city) return;
-
-    // 1. Сохраняем город
+function applyCityFromPicker() {
+    const regionSelect = document.getElementById('cityPickerRegion');
+    const citySelect = document.getElementById('cityPickerCity');
+    const region = regionSelect?.value?.trim() || '';
+    const city = citySelect?.value?.trim() || '';
+    if (!region || !city) {
+        alert('Выберите регион и город');
+        return;
+    }
     currentCity = city;
+    userCityPrefs.region = region;
+    userCityPrefs.city = city;
+    mapCity = { region, city };
     localStorage.setItem('selectedCity', city);
-    userCityPrefs.city = city;   // синхронизация для остальных модулей
-
-    // 2. Загружаем парковки (очистка карты происходит внутри loadAllParkings)
-    loadAllParkings(city, true);
-
-    // 3. Перемещаем карту на город
+    localStorage.setItem('parknear_city', JSON.stringify({ region, city }));
+    updateCityDisplay();
+    closeCityPicker();
     const coords = getCityCoordinates(city);
     if (map && coords) {
         map.setCenter(coords, 12, { duration: 500 });
+        cityCoords = { lat: coords[0], lng: coords[1] };
+        localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
     } else if (typeof ymaps !== 'undefined' && ymaps.geocode) {
-        ymaps.geocode(city, { results: 1 }).then(function(res) {
+        ymaps.geocode(city, { results: 1 }).then(res => {
             const geo = res.geoObjects.get(0);
-            if (geo) {
-                const coords = geo.geometry.getCoordinates();
-                cityCoords = { lat: coords[0], lng: coords[1] };
-                localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
-                if (map) map.setCenter(coords, 12, { duration: 500 });
-            }
-        }).catch(function() {});
+            if (!geo) return;
+            const coords = geo.geometry.getCoordinates();
+            cityCoords = { lat: coords[0], lng: coords[1] };
+            localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
+            if (map) map.setCenter(coords, 12, { duration: 500 });
+        }).catch(err => console.warn('Не удалось определить координаты города:', err));
     }
-
-    // 4. Обновляем отображение города в интерфейсе
-    updateCityDisplay();
+    loadAllParkings(city, true).catch(err => {
+        console.error('Ошибка загрузки парковок города:', err);
+    });
 }
 function getCityCoordinates(city) {
     if (cityCoords && cityCoords.lat && cityCoords.lng) {
@@ -4023,13 +4029,10 @@ function createMarkersAndCluster(parkings) {
     placemarks = newPlacemarks; // сохраняем для очистки
 }
     function updateCityDisplay() {
-        const cityName = mapCity ? mapCity.city : (userCityPrefs.city || 'Не указан');
-        const displayEl = document.getElementById('cityDisplayName');
-        if (displayEl) {
-            displayEl.textContent = cityName;
-        }
-    }
-
+    const cityName = currentCity || userCityPrefs.city || mapCity?.city || 'Не указан';
+    const displayEl = document.getElementById('cityDisplayName');
+    if (displayEl) displayEl.textContent = cityName;
+}
     function changeSearchCity() {
         openCityPicker();
     }
