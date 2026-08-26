@@ -2,212 +2,147 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ParkNear — Парковка без забот</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <title>ParkNear</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2B7574">
 
-    <!-- Основные стили -->
+    <!-- ===== ДЛЯ IOS (ПОЛНОЭКРАННЫЙ РЕЖИМ) ===== -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ParkNear">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="apple-mobile-web-app-orientations" content="portrait">
+
+    <!-- ===== ИКОНКИ (единый путь assets/images/logo.png) ===== -->
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
+
+    <!-- Библиотеки -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script> 
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
+
+    <!-- Стили -->
     <link rel="stylesheet" href="css/style.css">
-
-    <!-- Telegram WebApp (если используется) -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <!-- Яндекс.Карты (API-ключ из Firebase Config) -->
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU&lang=ru_RU" type="text/javascript"></script>
-
-    <!-- Firebase SDK (необходим для работы с базой данных) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-    <style>
-        /* Базовые сбросы и стили для body */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        html, body {
-            height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        :root {
-            --bg-primary: #F2F2F7;
-            --bg-secondary: #FFFFFF;
-            --text-primary: #1C1C1E;
-            --text-secondary: #8E8E93;
-            --accent: #2B7574;
-            --red: #D32F2F;
-            --green: #2E7D32;
-            --orange: #ED6C02;
-            --gray: #8E8E93;
-            --border-color: #E5E5EA;
-            --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-        }
-        .dark-theme {
-            --bg-primary: #000000;
-            --bg-secondary: #1C1C1E;
-            --text-primary: #FFFFFF;
-            --text-secondary: #8E8E93;
-            --border-color: #2C2C2E;
-            --card-shadow: 0 2px 12px rgba(255, 255, 255, 0.05);
-        }
-        #map {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        /* Остальные стили находятся в css/style.css */
-    </style>
 </head>
 <body>
+    <!-- Toast -->
+    <div id="toast" style="position:fixed; top:60px; left:50%; transform:translateX(-50%); background:var(--toast-bg); color:#E2E2E0; padding:12px 24px; border-radius:12px; font-size:15px; z-index:9999; opacity:0; transition: opacity 0.3s, transform 0.3s; pointer-events:none; text-align:center; max-width:90%;"></div>
 
-    <!-- ============ СПЛЕШ-ЭКРАН ============ -->
-    <div id="splashScreen">
-        <div class="splash-content">
-            <div class="splash-logo">🚗</div>
-            <div class="splash-title">ParkNear</div>
-            <div class="splash-subtitle">Парковка без забот</div>
-            <div class="splash-spinner"></div>
+    <!-- Splash Screen -->
+    <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.8s ease; background: #0E2931; overflow:hidden;">
+        <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" style="position:absolute; width:100%; height:100%;">
+            <defs>
+                <filter id="lavaBlur" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="50" />
+                </filter>
+            </defs>
+            <circle cx="30%" cy="30%" r="90" fill="#2B7574" filter="url(#lavaBlur)" opacity="0.8">
+                <animate attributeName="cx" values="30%;70%;40%;30%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+                <animate attributeName="cy" values="30%;60%;20%;30%" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+                <animate attributeName="r" values="90;120;80;90" dur="10s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+            </circle>
+            <circle cx="70%" cy="70%" r="110" fill="#2B7574" filter="url(#lavaBlur)" opacity="0.7">
+                <animate attributeName="cx" values="70%;20%;80%;70%" dur="20s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+                <animate attributeName="cy" values="70%;40%;80%;70%" dur="16s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+                <animate attributeName="r" values="110;90;130;110" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+            </circle>
+            <circle cx="50%" cy="50%" r="70" fill="#12464C" filter="url(#lavaBlur)" opacity="0.6">
+                <animate attributeName="cx" values="50%;30%;90%;50%" dur="22s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+                <animate attributeName="cy" values="50%;80%;10%;50%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+                <animate attributeName="r" values="70;100;50;70" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
+            </circle>
+        </svg>
+        <div style="position:relative; z-index:1; text-align:center;">
+           <img src="assets/images/logo.png" alt="Логотип" style="width: 120px; height: auto;"
+     onerror="console.error('Ошибка загрузки изображения:', this.src)">
+            <div style="font-size: 22px; font-weight: 700; color: #E2E2E0; letter-spacing: 1px;">Park<span style="color: #2B7574;">Near</span></div>
+            <div style="margin-top: 20px;">
+                <div class="spinner" style="border-top-color: #E2E2E0; border-color: rgba(226,226,224,0.3);"></div>
+            </div>
         </div>
     </div>
 
-    <!-- ============ КАРТА ============ -->
+    <!-- Карта -->
     <div id="map"></div>
 
-    <!-- ============ КРУЖОК СО СЧЁТЧИКОМ СВОБОДНЫХ МЕСТ ============ -->
-    <div id="totalFreeCircle">
-        <span id="totalFreeCount">0</span>
+    <!-- Город -->
+    <div id="citySelectorOnMap" onclick="openCityPicker()" style="position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 1001; background: var(--bg-secondary); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 8px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; color: var(--text-primary); transition: background 0.2s;">
+        <span>🏙️</span>
+        <span id="cityDisplayName"></span>
+        <span style="font-size: 12px; color: var(--text-secondary);">▼</span>
     </div>
 
-    <!-- ============ КНОПКА ДОБАВЛЕНИЯ ПАРКОВКИ ============ -->
-    <button id="addBtn" class="add-btn" aria-label="Добавить парковку">+</button>
-
-    <!-- ============ КНОПКА ГЕОЛОКАЦИИ ============ -->
-    <button id="geoBtn" class="geo-btn" aria-label="Определить местоположение">📍</button>
-
-    <!-- ============ ПЕРЕКЛЮЧАТЕЛЬ СЛОЁВ КАРТЫ ============ -->
-    <div id="layerSwitcher" class="layer-switcher" aria-label="Слои карты">
-        🗺️
-        <div id="layerMenu" class="layer-menu">
-            <div class="layer-option" data-type="yandex#map" onclick="setMapType(this)">Схема</div>
-            <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">Спутник</div>
-            <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">Гибрид</div>
-        </div>
+    <!-- Слои -->
+    <div class="layer-switcher" id="layerSwitcher">🗺️</div>
+    <div class="layer-menu" id="layerMenu">
+        <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
+        <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
+        <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
     </div>
 
-    <!-- ============ НИЖНЯЯ ПАНЕЛЬ ============ -->
-    <div id="panel" class="panel">
+   <svg width="0" height="0" style="position:absolute;">
+    <defs>
+        <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#4a9eff"/>
+            <stop offset="40%" stop-color="#1a6dd4"/>
+            <stop offset="100%" stop-color="#0a3d8f"/>
+        </linearGradient>
+        <!-- ДОБАВЛЯЕМ ГРАДИЕНТ ДЛЯ КРУГА РЕПУТАЦИИ -->
+        <linearGradient id="repGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2B7574"/>
+            <stop offset="100%" stop-color="#4DA3FF"/>
+        </linearGradient>
+    </defs>
+</svg>
+    <button id="geoBtn" title="Моё местоположение">📍</button>
+    <button id="addBtn" title="Добавить парковку">+</button>
+    <!-- Панель -->
+    <div class="panel" id="panel">
         <div class="panel-header">
-            <span id="panelTitle">Главная</span>
-            <button class="panel-close" onclick="closePanel()">✕</button>
+            <button class="panel-close" onclick="closePanel()" aria-label="Закрыть">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+            <div class="panel-title" id="panelTitle">Профиль</div>
         </div>
-        <div id="panelContent" class="panel-content"></div>
-        <div id="pullIndicator" class="pull-indicator"></div>
+        <div class="pull-indicator" id="pullIndicator">
+            <div class="spinner-small"></div>
+            <span>Обновление...</span>
+        </div>
+        <div class="panel-content" id="panelContent"></div>
     </div>
 
-    <!-- ============ НИЖНЕЕ МЕНЮ (ТАББАР) ============ -->
-    <div class="tabBar">
-        <div class="tab active" data-tab="home" onclick="showPanel('home')">
-            <span class="tab-icon">🏠</span>
-            <span class="tab-label">Главная</span>
-        </div>
-        <div class="tab" data-tab="search" onclick="showPanel('search')">
-            <span class="tab-icon">🔍</span>
-            <span class="tab-label">Поиск</span>
-        </div>
-        <div class="tab" data-tab="favorites" onclick="showPanel('favorites')">
-            <span class="tab-icon">⭐</span>
-            <span class="tab-label">Избранное</span>
-        </div>
-        <div class="tab" data-tab="profile" onclick="showPanel('profile')">
-            <span class="tab-icon">👤</span>
-            <span class="tab-label">Профиль</span>
-        </div>
-    </div>
-
-    <!-- ============ ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО ============ -->
-    <div id="centerSheet" class="center-sheet">
-        <div class="center-sheet-content" id="centerSheetContent">
-            <button class="center-sheet-close" onclick="closeCenterSheet()">✕</button>
-        </div>
-    </div>
-
-    <!-- ============ ОВЕРЛЕЙ АВТОРИЗАЦИИ ============ -->
-    <div id="authOverlay" class="auth-overlay" style="display:none;">
-        <div class="auth-container">
-            <div class="auth-logo">🚗</div>
-            <h2>Добро пожаловать в ParkNear</h2>
-            <p>Войдите через Telegram, чтобы сохранять данные</p>
-            <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
-                data-telegram-login="parknear_bot"
-                data-size="large"
-                data-onauth="onTelegramAuth(user)"
-                data-request-access="write">
-            </script>
-            <div style="margin:12px 0; color:var(--text-secondary);">— или —</div>
-            <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
-            <button class="close-auth-btn" onclick="closeAuthScreen()">✕</button>
-        </div>
-    </div>
-
-    <!-- ============ ОНБОРДИНГ (обучение) ============ -->
-    <div id="onboardingOverlay" class="onboarding-overlay" style="display:none;">
-        <div class="onboarding-modal">
-            <div id="onboardingSlide" class="onboarding-slide"></div>
-            <div class="onboarding-progress">
-                <div id="onboardingProgressFill" class="onboarding-progress-fill"></div>
+    <!-- Address Picker -->
+    <div id="addressPickerOverlay" style="display:none; position:fixed; top:0;left:0;right:0;bottom:0; z-index:3000; background:var(--overlay-bg);">
+        <div id="addressPickerContainer" style="position:absolute; top:5%; left:5%; right:5%; bottom:5%; background:var(--bg-secondary); border-radius:16px; overflow:hidden; display:flex; flex-direction:column;">
+            <div style="padding:12px; background:var(--bg-secondary); border-bottom:0.5px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:600;">Укажите дом на карте</span>
+                <button onclick="cancelAddressPicker()" style="background:none; border:none; color:var(--accent); font-size:16px; cursor:pointer;">Отмена</button>
             </div>
-            <div id="onboardingDots" class="onboarding-dots"></div>
-            <div class="onboarding-buttons">
-                <button id="onboardingPrev" class="onboarding-btn">Назад</button>
-                <button id="onboardingNext" class="onboarding-btn primary">Далее</button>
-                <button id="onboardingSkip" class="onboarding-btn skip">✕</button>
+            <div id="addressPickerMap" style="flex:1;"></div>
+            <div style="padding:12px; background:var(--bg-secondary); border-top:0.5px solid var(--border-color);">
+                <button class="btn-primary" onclick="saveAddressFromPicker()">💾 Сохранить адрес</button>
             </div>
         </div>
     </div>
 
-    <!-- ============ ТОСТ-УВЕДОМЛЕНИЯ ============ -->
-    <div id="toast" class="toast"></div>
-
-    <!-- ============ РАЗНЫЕ ОВЕРЛЕИ ============ -->
-    <div id="addressPickerOverlay" class="overlay" style="display:none;">
-        <div class="overlay-content">
-            <div id="addressPickerMap" style="width:100%; height:300px;"></div>
-            <div class="overlay-buttons">
-                <button class="btn-secondary" onclick="cancelAddressPicker()">Отмена</button>
-                <button class="btn-primary" onclick="saveAddressFromPicker()">Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="labelPickerOverlay" class="overlay" style="display:none;">
-        <div class="overlay-content">
-            <h3>Выберите метку</h3>
-            <div class="label-options">
-                <button class="label-option" onclick="selectLabel('Дом')">🏠 Дом</button>
-                <button class="label-option" onclick="selectLabel('Работа')">💼 Работа</button>
-                <button class="label-option" onclick="selectLabel('Родственники')">👨‍👩‍👧‍👦 Родственники</button>
-                <button class="label-option" onclick="selectLabel('Другое')">📍 Другое</button>
-            </div>
-            <button class="btn-secondary" onclick="cancelLabelPicker()">Отмена</button>
-        </div>
-    </div>
-
-    <div id="addressEditorOverlay" class="overlay" style="display:none;">
-        <div class="overlay-content">
-            <h3>Редактировать адрес</h3>
-            <input type="hidden" id="editAddrId">
+    <!-- Address Editor -->
+    <div class="address-editor-overlay" id="addressEditorOverlay">
+        <div class="car-editor-box">
+            <h3>✏️ Редактировать адрес</h3>
             <div class="form-group">
                 <label>Метка</label>
-                <input type="text" id="editAddrLabel" class="input-field" placeholder="Дом, Работа...">
+                <select id="editAddrLabel" class="input-field">
+                    <option value="Дом">🏠 Дом</option>
+                    <option value="Работа">💼 Работа</option>
+                    <option value="Родственники">👨‍👩‍👧‍👦 Родственники</option>
+                    <option value="Другое">📍 Другое</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>Город</label>
@@ -215,23 +150,22 @@
             </div>
             <div class="form-group">
                 <label>Улица</label>
-                <input type="text" id="editAddrStreet" class="input-field" placeholder="Тверская">
+                <input type="text" id="editAddrStreet" class="input-field" placeholder="ул. Тверская">
             </div>
             <div class="form-group">
                 <label>Номер дома</label>
                 <input type="text" id="editAddrHouse" class="input-field" placeholder="15">
             </div>
-            <div class="overlay-buttons">
-                <button class="btn-secondary" onclick="closeAddressEditor()">Отмена</button>
-                <button class="btn-primary" onclick="saveAddressChanges()">Сохранить</button>
-            </div>
+            <input type="hidden" id="editAddrId">
+            <button class="btn-primary" onclick="saveAddressChanges()">💾 Сохранить</button>
+            <button class="btn-secondary" onclick="closeAddressEditor()">Отмена</button>
         </div>
     </div>
 
-    <!-- ============ РЕДАКТОР АВТОМОБИЛЯ ============ -->
-    <div id="carEditorOverlay" class="overlay" style="display:none;">
-        <div class="overlay-content">
-            <h3>Мой автомобиль</h3>
+    <!-- Car Editor -->
+    <div class="car-editor-overlay" id="carEditorOverlay">
+        <div class="car-editor-box">
+            <h3>🚗 Мой автомобиль</h3>
             <div class="form-group">
                 <label>Марка</label>
                 <select id="carBrandSelect" class="input-field" onchange="updateCarModelSelect()">
@@ -241,7 +175,7 @@
             <div class="form-group">
                 <label>Модель</label>
                 <select id="carModelSelect" class="input-field">
-                    <option value="">Выберите модель</option>
+                    <option value="">Сначала выберите марку</option>
                 </select>
             </div>
             <div class="form-group">
@@ -252,19 +186,94 @@
             </div>
             <div class="form-group">
                 <label>Госномер</label>
-                <input type="text" id="carPlateInput" class="input-field" placeholder="А123БВ 777">
+                <input type="text" id="carPlateInput" class="input-field" placeholder="А123БВ 177" maxlength="12">
             </div>
-            <div class="overlay-buttons">
-                <button class="btn-secondary" onclick="closeCarEditor()">Отмена</button>
-                <button class="btn-primary" onclick="saveCarData()">Сохранить</button>
-            </div>
+            <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
+            <button class="btn-secondary" onclick="closeCarEditor()">Отмена</button>
         </div>
     </div>
 
-    <!-- ============ ОВЕРЛЕЙ ВЫБОРА ГОРОДА ============ -->
-    <div id="cityPickerOverlay" class="overlay" style="display:none;">
-        <div class="overlay-content">
-            <h3>Выберите город</h3>
+    <!-- Label Picker -->
+    <div class="label-picker-overlay" id="labelPickerOverlay">
+        <div class="label-picker-box">
+            <h3>🏷️ Выберите метку</h3>
+            <div class="label-options">
+                <button class="btn-secondary" onclick="selectLabel('Дом')">🏠 Дом</button>
+                <button class="btn-secondary" onclick="selectLabel('Работа')">💼 Работа</button>
+                <button class="btn-secondary" onclick="selectLabel('Родственники')">👨‍👩‍👦 Родственники</button>
+                <button class="btn-secondary" onclick="selectLabel('Другое')">✏️ Другое</button>
+            </div>
+            <button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Центральное модальное окно -->
+    <div class="center-sheet" id="centerSheet">
+        <div class="center-sheet-overlay" onclick="closeCenterSheet()"></div>
+        <div class="center-sheet-box">
+            <button class="center-sheet-close" onclick="closeCenterSheet()">✕</button>
+            <div id="centerSheetContent"></div>
+        </div>
+    </div>
+
+    <!-- Route Card -->
+    <div class="route-card" id="routeCard">
+        <button class="route-close" onclick="closeRoute()">✕</button>
+        <div id="routeInfo"></div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center; padding:0 4px;">
+            <select id="routeTypeSelect" style="flex:1; padding:6px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:14px;">
+                <option value="driving">🚗 Автомобиль</option>
+                <option value="walking">🚶 Пешком</option>
+                <option value="transit">🚌 Общественный транспорт</option>
+            </select>
+        </div>
+        <div class="route-actions">
+            <button class="btn-primary" onclick="startNavigation()">▶ Начать</button>
+            <button class="btn-secondary" onclick="rebuildRoute()">🔄 Перестроить</button>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tabBar">
+        <div class="tab active" onclick="showPanel('home')">
+            <div class="icon">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            <div class="label">Главная</div>
+        </div>
+        <div class="tab" onclick="showMap()">
+            <div class="icon">
+                <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+            </div>
+            <div class="label">Карта</div>
+        </div>
+        <div class="tab" onclick="showPanel('favorites')">
+            <div class="icon">
+                <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            </div>
+            <div class="label">Избранное</div>
+        </div>
+        <div class="tab" onclick="showPanel('profile')">
+            <div class="icon">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div class="label">Профиль</div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
+        <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
+            <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
+            <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
+        </div>
+        <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
+    </div>
+
+    <!-- City Picker -->
+    <div id="cityPickerOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); z-index:4500; align-items:center; justify-content:center; flex-direction:column;">
+        <div style="background:var(--bg-secondary); border-radius:16px; padding:24px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0; text-align:center; font-weight:600;">Выберите город</h3>
             <div class="form-group">
                 <label>Регион</label>
                 <select id="cityPickerRegion" class="input-field" onchange="updateCityPickerCities()">
@@ -277,31 +286,64 @@
                     <option value="">Выберите город</option>
                 </select>
             </div>
-            <div class="overlay-buttons">
-                <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
-                <button class="btn-primary" onclick="applyCityFromPicker(document.getElementById('cityPickerCity').value)">Применить</button>
-            </div>
+            <button class="btn-primary" onclick="applyCityFromPicker()">Применить</button>
+            <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
         </div>
     </div>
 
-    <!-- ============ ПОДКЛЮЧЕНИЕ МОДУЛЕЙ ============ -->
-    <script src="js/config.js"></script>
-    <script src="js/state.js"></script>
-    <script src="js/firebase.js"></script>
-    <script src="js/utils/helpers.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/geolocation.js"></script>
-    <script src="js/cluster.js"></script>
-    <script src="js/markers.js"></script>
-    <script src="js/parking.js"></script>
-    <script src="js/ui/panels.js"></script>
-    <script src="js/ui/home.js"></script>
-    <script src="js/ui/search.js"></script>
-    <script src="js/ui/profile.js"></script>
-    <script src="js/ui/favorites.js"></script>
-    <script src="js/services/route.js"></script>
-    <script src="js/services/address.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Auth Overlay -->
+    <div id="authOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); z-index:6000; align-items:center; justify-content:center; flex-direction:column;">
+        <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative;">
+            <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
+            <div style="font-size:48px; margin-bottom:12px;">🚗</div>
+            <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
+            <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
 
+            <!-- Telegram Login Widget (редиректный режим) -->
+        <script async src="https://telegram.org/js/telegram-widget.js?24"
+                data-telegram-login="parknear_bot"
+                data-size="large"
+                data-onauth="onTelegramAuth(user)"
+                data-request-access="write"
+                data-redirect-uri="https://andrey8128-jpg.github.io/Park_Near/">
+        </script>
+
+        <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
+        <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
+    </div>
+</div>
+
+    <!-- Onboarding Overlay -->
+    <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); z-index:5000; align-items:center; justify-content:center; pointer-events:none;">
+        <div style="background:var(--bg-secondary); border-radius:24px; padding:24px 20px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative; pointer-events:auto;">
+            <div id="onboardingProgress" style="width:100%; height:4px; background:var(--bg-primary); border-radius:2px; margin-bottom:16px; overflow:hidden;">
+                <div id="onboardingProgressFill" style="height:100%; width:0%; background:linear-gradient(90deg, #2B7574, #12464C); transition:width 0.5s ease;"></div>
+            </div>
+            <div id="onboardingSlide" style="min-height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center;"></div>
+            <div style="display:flex; justify-content:center; gap:8px; margin-top:16px;" id="onboardingDots"></div>
+            <div style="display:flex; gap:8px; margin-top:16px; align-items:center; justify-content:space-between;">
+                <button id="onboardingPrev" style="background:none; border:none; color:var(--accent); font-size:18px; cursor:pointer; padding:8px 12px; visibility:hidden;">←</button>
+                <button class="btn-primary" id="onboardingNext" style="flex:1; margin:0; padding:12px;">Далее →</button>
+                <button id="onboardingSkip" style="background:none; border:none; color:var(--text-secondary); font-size:18px; cursor:pointer; padding:8px 12px;">✕</button>
+            </div>
+            <div style="font-size:12px; color:var(--text-secondary); margin-top:8px; opacity:0.7;">Свайп влево/вправо для навигации</div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+    // Ждём загрузки Яндекс.Карт и запускаем приложение
+    ymaps.ready(function() {
+        if (typeof initApp === 'function') {
+            initApp();
+        } else {
+            console.error('❌ initApp не найдена – проверьте app.js');
+            // Запасной вариант: показываем карту, если initApp нет
+            if (typeof initMap === 'function') {
+                initMap();
+            }
+        }
+    });
+</script>
 </body>
 </html>
