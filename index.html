@@ -1,198 +1,190 @@
-<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>ParkNear</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2B7574">
-
-    <!-- ===== ДЛЯ IOS (ПОЛНОЭКРАННЫЙ РЕЖИМ) ===== -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#20A895">
+    <!-- iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ParkNear">
     <meta name="apple-touch-fullscreen" content="yes">
     <meta name="apple-mobile-web-app-orientations" content="portrait">
-
-    <!-- ===== ИКОНКИ (единый путь assets/images/logo.png) ===== -->
+    <!-- Иконки -->
     <link rel="icon" type="image/png" href="assets/images/logo.png">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/images/logo.png">
-
-    <!-- Библиотеки -->
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script> 
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+    <!-- Yandex Maps -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
 
-    <!-- Стили -->
-    <link rel="stylesheet" href="css/style.css">
+  <!-- Стили -->
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Toast -->
-    <div id="toast" style="position:fixed; top:60px; left:50%; transform:translateX(-50%); background:var(--toast-bg); color:#E2E2E0; padding:12px 24px; border-radius:12px; font-size:15px; z-index:9999; opacity:0; transition: opacity 0.3s, transform 0.3s; pointer-events:none; text-align:center; max-width:90%;"></div>
+<!-- Toast -->
+<div id="toast" aria-live="polite"></div>
 
-    <!-- Splash Screen -->
-    <div id="splashScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; transition: opacity 0.8s ease; background: #0E2931; overflow:hidden;">
-        <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" style="position:absolute; width:100%; height:100%;">
-            <defs>
-                <filter id="lavaBlur" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="50" />
-                </filter>
-            </defs>
-            <circle cx="30%" cy="30%" r="90" fill="#2B7574" filter="url(#lavaBlur)" opacity="0.8">
-                <animate attributeName="cx" values="30%;70%;40%;30%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-                <animate attributeName="cy" values="30%;60%;20%;30%" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-                <animate attributeName="r" values="90;120;80;90" dur="10s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-            </circle>
-            <circle cx="70%" cy="70%" r="110" fill="#2B7574" filter="url(#lavaBlur)" opacity="0.7">
-                <animate attributeName="cx" values="70%;20%;80%;70%" dur="20s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-                <animate attributeName="cy" values="70%;40%;80%;70%" dur="16s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-                <animate attributeName="r" values="110;90;130;110" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-            </circle>
-            <circle cx="50%" cy="50%" r="70" fill="#12464C" filter="url(#lavaBlur)" opacity="0.6">
-                <animate attributeName="cx" values="50%;30%;90%;50%" dur="22s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-                <animate attributeName="cy" values="50%;80%;10%;50%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-                <animate attributeName="r" values="70;100;50;70" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1" />
-            </circle>
-        </svg>
-        <div style="position:relative; z-index:1; text-align:center;">
-           <img src="assets/images/logo.png" alt="Логотип" style="width: 120px; height: auto;"
-     onerror="console.error('Ошибка загрузки изображения:', this.src)">
-            <div style="font-size: 22px; font-weight: 700; color: #E2E2E0; letter-spacing: 1px;">Park<span style="color: #2B7574;">Near</span></div>
-            <div style="margin-top: 20px;">
-                <div class="spinner" style="border-top-color: #E2E2E0; border-color: rgba(226,226,224,0.3);"></div>
-            </div>
-        </div>
+<!-- Splash Screen -->
+<div id="splashScreen">
+    <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+            <filter id="lavaBlur" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="50"/>
+            </filter>
+        </defs>
+        <circle cx="30%" cy="30%" r="90" fill="#30B8A5" filter="url(#lavaBlur)" opacity="0.8">
+            <animate attributeName="cx" values="30%;70%;40%;30%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+            <animate attributeName="cy" values="30%;60%;20%;30%" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+            <animate attributeName="r" values="90;120;80;90" dur="10s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+        </circle>
+        <circle cx="70%" cy="70%" r="110" fill="#20A895" filter="url(#lavaBlur)" opacity="0.7">
+            <animate attributeName="cx" values="70%;20%;80%;70%" dur="20s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+            <animate attributeName="cy" values="70%;40%;80%;70%" dur="16s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+            <animate attributeName="r" values="110;90;130;110" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+        </circle>
+        <circle cx="50%" cy="50%" r="70" fill="#178F7E" filter="url(#lavaBlur)" opacity="0.6">
+            <animate attributeName="cx" values="50%;30%;90%;50%" dur="22s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+            <animate attributeName="cy" values="50%;80%;10%;50%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+            <animate attributeName="r" values="70;100;50;70" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
+        </circle>
+    </svg>
+    <div class="splash-content">
+        <img src="assets/images/logo.png" alt="ParkNear" onerror="this.style.display='none'">
+        <div class="splash-title">Park<span>Near</span></div>
+        <div class="spinner" aria-label="Загрузка"></div>
     </div>
+</div>
 
-    <!-- Карта -->
-    <div id="map"></div>
+<!-- Карта -->
+<div id="map"></div>
 
-    <!-- Город -->
-    <div id="citySelectorOnMap" onclick="openCityPicker()" style="position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 1001; background: var(--bg-secondary); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 8px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; color: var(--text-primary); transition: background 0.2s;">
-        <span>🏙️</span>
-        <span id="cityDisplayName"></span>
-        <span style="font-size: 12px; color: var(--text-secondary);">▼</span>
-    </div>
+<!-- Город -->
+<div id="citySelectorOnMap" onclick="openCityPicker()">
+    <span>🏙️</span>
+    <span id="cityDisplayName"></span>
+    <span class="city-selector-arrow">▼</span>
+</div>
+   <!-- Слои -->
+<div class="layer-switcher" id="layerSwitcher" role="button" aria-label="Выбор типа карты">🗺️</div>
+<div class="layer-menu" id="layerMenu">
+    <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
+    <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
+    <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
+</div>
 
-    <!-- Слои -->
-    <div class="layer-switcher" id="layerSwitcher">🗺️</div>
-    <div class="layer-menu" id="layerMenu">
-        <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
-        <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
-        <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
-    </div>
-
-   <svg width="0" height="0" style="position:absolute;">
+<!-- SVG-градиенты -->
+<svg width="0" height="0" aria-hidden="true">
     <defs>
         <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stop-color="#4a9eff"/>
             <stop offset="40%" stop-color="#1a6dd4"/>
             <stop offset="100%" stop-color="#0a3d8f"/>
         </linearGradient>
-        <!-- ДОБАВЛЯЕМ ГРАДИЕНТ ДЛЯ КРУГА РЕПУТАЦИИ -->
         <linearGradient id="repGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#2B7574"/>
+            <stop offset="0%" stop-color="#30B8A5"/>
             <stop offset="100%" stop-color="#4DA3FF"/>
         </linearGradient>
     </defs>
 </svg>
-    <button id="geoBtn" title="Моё местоположение">📍</button>
-    <button id="addBtn" title="Добавить парковку">+</button>
-    <!-- Панель -->
-    <div class="panel" id="panel">
-        <div class="panel-header">
-            <button class="panel-close" onclick="closePanel()" aria-label="Закрыть">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-            <div class="panel-title" id="panelTitle">Профиль</div>
-        </div>
-        <div class="pull-indicator" id="pullIndicator">
-            <div class="spinner-small"></div>
-            <span>Обновление...</span>
-        </div>
-        <div class="panel-content" id="panelContent"></div>
-    </div>
 
+<!-- Плавающие кнопки -->
+<button id="geoBtn" type="button" title="Моё местоположение" aria-label="Моё местоположение">📍</button>
+<button id="addBtn" type="button" title="Добавить парковку" aria-label="Добавить парковку">+</button>
+
+<!-- Основная панель -->
+<div class="panel" id="panel">
+    <div class="panel-header">
+        <button class="panel-close" type="button" onclick="closePanel()" aria-label="Закрыть">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+        <div class="panel-title" id="panelTitle">Профиль</div>
+    </div>
+    <div class="pull-indicator" id="pullIndicator">
+        <div class="spinner-small"></div>
+        <span>Обновление...</span>
+    </div>
+    <div class="panel-content" id="panelContent"></div>
+</div>
     <!-- Address Picker -->
-    <div id="addressPickerOverlay" style="display:none; position:fixed; top:0;left:0;right:0;bottom:0; z-index:3000; background:var(--overlay-bg);">
-        <div id="addressPickerContainer" style="position:absolute; top:5%; left:5%; right:5%; bottom:5%; background:var(--bg-secondary); border-radius:16px; overflow:hidden; display:flex; flex-direction:column;">
-            <div style="padding:12px; background:var(--bg-secondary); border-bottom:0.5px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:600;">Укажите дом на карте</span>
-                <button onclick="cancelAddressPicker()" style="background:none; border:none; color:var(--accent); font-size:16px; cursor:pointer;">Отмена</button>
-            </div>
-            <div id="addressPickerMap" style="flex:1;"></div>
-            <div style="padding:12px; background:var(--bg-secondary); border-top:0.5px solid var(--border-color);">
-                <button class="btn-primary" onclick="saveAddressFromPicker()">💾 Сохранить адрес</button>
-            </div>
+<div id="addressPickerOverlay">
+    <div id="addressPickerContainer">
+        <div class="address-picker-header">
+            <span>Укажите дом на карте</span>
+            <button type="button" onclick="cancelAddressPicker()">Отмена</button>
+        </div>
+        <div id="addressPickerMap"></div>
+        <div class="address-picker-footer">
+            <button type="button" class="btn-primary" onclick="saveAddressFromPicker()">💾 Сохранить адрес</button>
         </div>
     </div>
-
-    <!-- Address Editor -->
-    <div class="address-editor-overlay" id="addressEditorOverlay">
-        <div class="car-editor-box">
-            <h3>✏️ Редактировать адрес</h3>
-            <div class="form-group">
-                <label>Метка</label>
-                <select id="editAddrLabel" class="input-field">
-                    <option value="Дом">🏠 Дом</option>
-                    <option value="Работа">💼 Работа</option>
-                    <option value="Родственники">👨‍👩‍👧‍👦 Родственники</option>
-                    <option value="Другое">📍 Другое</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Город</label>
-                <input type="text" id="editAddrCity" class="input-field" placeholder="Москва">
-            </div>
-            <div class="form-group">
-                <label>Улица</label>
-                <input type="text" id="editAddrStreet" class="input-field" placeholder="ул. Тверская">
-            </div>
-            <div class="form-group">
-                <label>Номер дома</label>
-                <input type="text" id="editAddrHouse" class="input-field" placeholder="15">
-            </div>
-            <input type="hidden" id="editAddrId">
-            <button class="btn-primary" onclick="saveAddressChanges()">💾 Сохранить</button>
-            <button class="btn-secondary" onclick="closeAddressEditor()">Отмена</button>
+</div>
+<!-- Address Editor -->
+<div class="address-editor-overlay" id="addressEditorOverlay">
+    <div class="car-editor-box">
+        <h3>✏️ Редактировать адрес</h3>
+        <div class="form-group">
+            <label>Метка</label>
+            <select id="editAddrLabel" class="input-field">
+                <option value="Дом">🏠 Дом</option>
+                <option value="Работа">💼 Работа</option>
+                <option value="Родственники">👨‍👩‍👧‍👦 Родственники</option>
+                <option value="Другое">📍 Другое</option>
+            </select>
         </div>
-    </div>
-
-    <!-- Car Editor -->
-    <div class="car-editor-overlay" id="carEditorOverlay">
-        <div class="car-editor-box">
-            <h3>🚗 Мой автомобиль</h3>
-            <div class="form-group">
-                <label>Марка</label>
-                <select id="carBrandSelect" class="input-field" onchange="updateCarModelSelect()">
-                    <option value="">Выберите марку</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Модель</label>
-                <select id="carModelSelect" class="input-field">
-                    <option value="">Сначала выберите марку</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Цвет</label>
-                <select id="carColorSelect" class="input-field">
-                    <option value="">Выберите цвет</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Госномер</label>
-                <input type="text" id="carPlateInput" class="input-field" placeholder="А123БВ 177" maxlength="12">
-            </div>
-            <button class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
-            <button class="btn-secondary" onclick="closeCarEditor()">Отмена</button>
+        <div class="form-group">
+            <label>Город</label>
+            <input type="text" id="editAddrCity" class="input-field" placeholder="Москва">
         </div>
+        <div class="form-group">
+            <label>Улица</label>
+            <input type="text" id="editAddrStreet" class="input-field" placeholder="ул. Тверская">
+        </div>
+        <div class="form-group">
+            <label>Номер дома</label>
+            <input type="text" id="editAddrHouse" class="input-field" placeholder="15">
+        </div>
+        <input type="hidden" id="editAddrId">
+        <button type="button" class="btn-primary" onclick="saveAddressChanges()">💾 Сохранить</button>
+        <button type="button" class="btn-secondary" onclick="closeAddressEditor()">Отмена</button>
     </div>
-
+</div>
+<!-- Car Editor -->
+<div class="car-editor-overlay" id="carEditorOverlay">
+    <div class="car-editor-box">
+        <h3>🚗 Мой автомобиль</h3>
+        <div class="form-group">
+            <label>Марка</label>
+            <select id="carBrandSelect" class="input-field" onchange="updateCarModelSelect()">
+                <option value="">Выберите марку</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Модель</label>
+            <select id="carModelSelect" class="input-field">
+                <option value="">Сначала выберите марку</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Цвет</label>
+            <select id="carColorSelect" class="input-field">
+                <option value="">Выберите цвет</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Госномер</label>
+            <input type="text" id="carPlateInput" class="input-field" placeholder="А123БВ 177" maxlength="12">
+        </div>
+        <button type="button" class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
+        <button type="button" class="btn-secondary" onclick="closeCarEditor()">Отмена</button>
+    </div>
+</div>
     <!-- Label Picker -->
     <div class="label-picker-overlay" id="labelPickerOverlay">
         <div class="label-picker-box">
