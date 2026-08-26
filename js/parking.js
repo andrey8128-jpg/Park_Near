@@ -100,3 +100,37 @@ function loadAllParkings(city, force = false) {
         });
     });
 }
+function loadAllParkingsNoFilter() {
+    return new Promise(function(resolve, reject) {
+        database.ref('parkings').once('value').then(function(snapshot) {
+            const data = snapshot.val();
+            const newCache = {};
+            if (data) {
+                Object.keys(data).forEach(function(key) {
+                    const parking = data[key];
+                    if (!parking || parking.lat == null || parking.lng == null) return;
+                    parking.totalSpots = Number(parking.totalSpots) || 0;
+                    parking.occupiedSpots = Number(parking.occupiedSpots) || 0;
+                    parking.occupiedSpots = Math.max(0, Math.min(parking.occupiedSpots, parking.totalSpots));
+                    newCache[key] = parking;
+                });
+            }
+            parkingDataCache = newCache;
+            lastDataRefresh = Date.now();
+            try {
+                localStorage.setItem('parkingCache', JSON.stringify({ city: 'all', data: newCache, timestamp: Date.now() }));
+            } catch (e) {}
+            Object.keys(newCache).forEach(function(id) {
+                addMarkerToMap(id, newCache[id]);
+            });
+            if (typeof updateTotalFreeCircle === 'function') {
+                updateTotalFreeCircle();
+            }
+            console.log('⚠️ Загружены ВСЕ парковки (без фильтра) –', Object.keys(newCache).length);
+            resolve();
+        }).catch(function(error) {
+            console.error('❌ Ошибка загрузки всех парковок:', error);
+            reject(error);
+        });
+    });
+}
