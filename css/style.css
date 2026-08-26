@@ -5,231 +5,208 @@
 }
 
 :root {
-    /* ===== Основные цвета ===== */
-    --bg-primary: #F5F7F7;
-    --bg-secondary: #FFFFFF;
-    --bg-elevated: #FFFFFF;
-
-    --text-primary: #111516;
-    --text-secondary: #6B7375;
-    --text-tertiary: #9AA1A3;
-
-    /* ===== Акцент ===== */
-    --accent: #20A895;
-    --accent-rgb: 32, 168, 149;
-    --accent-hover: #178F7E;
-
-    /* ===== Статусы парковки ===== */
-    --green: #30D158;
-    --orange: #FF9F0A;
-    --red: #FF453A;
-    --gray: #8E8E93;
-
-    --status-free-bg: rgba(48, 209, 88, 0.12);
-    --status-occupied-bg: rgba(255, 69, 58, 0.12);
-    --status-unknown-bg: rgba(142, 142, 147, 0.12);
-
-    /* ===== Карточки и поля ===== */
-    --card-border: rgba(0, 0, 0, 0.08);
-    --input-border: rgba(0, 0, 0, 0.10);
-    --input-bg: #F8FAFA;
-
-    --card-shadow:
-        0 8px 30px rgba(0, 0, 0, 0.08);
-
-    /* ===== Системные элементы ===== */
-    --overlay-bg: rgba(0, 0, 0, 0.40);
-    --toast-bg: rgba(17, 21, 22, 0.94);
-
-    --history-occupied: #FF453A;
-    --history-freed: #30D158;
-
-    /* ===== Радиусы ===== */
-    --radius-sm: 12px;
-    --radius-md: 16px;
-    --radius-lg: 22px;
-    --radius-xl: 28px;
-
-    /* ===== Нижняя навигация ===== */
-    --tab-bar-height: 64px;
-    --tab-bar-bottom: 12px;
-
-    /* ===== Плавающие кнопки ===== */
-    --button-offset-from-tab: 20px;
-    --button-gap: 72px;
+    /* ===== ФОН ===== */
+    --bg-primary: #F5F7F7; /* основной фон приложения */
+    --bg-secondary: #FFFFFF; /* фон карточек, списков и элементов */
+    --bg-elevated: #FFFFFF; /* фон элементов, которые визуально находятся выше основного фона */
+    /* ===== ТЕКСТ ===== */
+    --text-primary: #111516; /* основной текст: заголовки, названия */
+    --text-secondary: #6B7375; /* вторичный текст: адреса, описания */
+    --text-tertiary: #9AA1A3; /* менее важный текст: подсказки, placeholder */
+    /* ===== АКЦЕНТ ===== */
+    --accent: #20A895; /* главный фирменный цвет ParkNear */
+    --accent-rgb: 32,168,149; /* RGB акцентного цвета для rgba() */
+    --accent-hover: #178F7E; /* акцентный цвет при наведении/нажатии */
+    /* ===== СОСТОЯНИЕ ПАРКОВКИ ===== */
+    --green: #30D158; /* много свободных мест */
+    --orange: #FF9F0A; /* мало свободных мест */
+    --red: #FF453A; /* парковка занята/нет свободных мест */
+    --gray: #8E8E93; /* неизвестное состояние */
+    /* ===== ФОНЫ СТАТУСОВ ===== */
+    --status-free-bg: rgba(48,209,88,0.12); /* светло-зелёный фон статуса */
+    --status-occupied-bg: rgba(255,69,58,0.12); /* светло-красный фон статуса */
+    --status-unknown-bg: rgba(142,142,147,0.12); /* фон неизвестного статуса */
+    /* ===== КАРТОЧКИ И ПОЛЯ ===== */
+    --card-border: rgba(0,0,0,0.08); /* граница карточек */
+    --input-border: rgba(0,0,0,0.10); /* граница полей ввода */
+    --input-bg: #F8FAFA; /* фон полей ввода */
+    --card-shadow: 0 8px 30px rgba(0,0,0,0.08); /* тень карточек */
+    /* ===== СИСТЕМНЫЕ ЭЛЕМЕНТЫ ===== */
+    --overlay-bg: rgba(0,0,0,0.40); /* затемнение экрана под модальным окном */
+    --toast-bg: rgba(17,21,22,0.94); /* фон уведомлений Toast */
+    /* ===== ИСТОРИЯ ПАРКОВКИ ===== */
+    --history-occupied: #FF453A; /* цвет события "занял место" */
+    --history-freed: #30D158; /* цвет события "освободил место" */
+    /* ===== РАДИУСЫ ===== */
+    --radius-sm: 12px; /* маленькое скругление */
+    --radius-md: 16px; /* стандартное скругление */
+    --radius-lg: 22px; /* крупное скругление карточек */
+    --radius-xl: 28px; /* очень крупное скругление панелей */
+    /* ===== НИЖНЯЯ НАВИГАЦИЯ ===== */
+    --tab-bar-height: 64px; /* высота нижнего меню */
+    --tab-bar-bottom: 12px; /* расстояние меню от нижнего края */
+    /* ===== ПЛАВАЮЩИЕ КНОПКИ ===== */
+    --button-offset-from-tab: 20px; /* расстояние кнопки от Tab Bar */
+    --button-gap: 72px; /* дополнительный промежуток над Tab Bar */
+    /* ===== СТИЛЬ TAB BAR ===== */
+    --tab-bg: rgba(255,255,255,0.82); /* фон нижнего меню */
+    --tab-icon: #6B7375; /* цвет неактивных иконок */
+    --tab-label: #6B7375; /* цвет текста неактивных вкладок */
+    --tab-active-bg: rgba(32,168,149,0.12); /* фон активной вкладки */
+    /* ===== ОСНОВНЫЕ КНОПКИ ===== */
+    --btn-primary-bg: #20A895; /* фон основной кнопки */
+    --btn-primary-active: #178F7E; /* цвет основной кнопки при нажатии */
+    /* ===== ВТОРИЧНЫЕ КНОПКИ ===== */
+    --btn-secondary-border: rgba(0,0,0,0.10); /* граница вторичной кнопки */
+    --btn-secondary-color: #20A895; /* текст/иконка вторичной кнопки */
+    /* ===== ОПАСНЫЕ КНОПКИ ===== */
+    --btn-danger-color: #FF453A; /* цвет удаления/опасного действия */
+    --btn-danger-border: rgba(255,69,58,0.25); /* граница опасной кнопки */
+    /* ===== РИСОВАНИЕ ПАРКОВКИ ===== */
+    --drawing-controls-bg: rgba(255,255,255,0.92); /* фон панели рисования */
+    --drawing-border: rgba(0,0,0,0.10); /* граница элементов рисования */
+    /* ===== НИЖНИЕ ПАНЕЛИ ===== */
+    --sheet-bg: #FFFFFF; /* фон Bottom Sheet */
+    /* ===== SPLASH SCREEN ===== */
+    --splash-bg: #F5F7F7; /* фон экрана загрузки */
+    --spinner-color: #20A895; /* цвет индикатора загрузки */
 }
-
 body.dark-theme {
-    /* ===== Основные цвета ===== */
-    --bg-primary: #0B0F10;
-    --bg-secondary: #151A1B;
-    --bg-elevated: #1C2223;
-
-    --text-primary: #F5F5F7;
-    --text-secondary: #A1A1A6;
-    --text-tertiary: #6E7476;
-
-    /* ===== Границы ===== */
-    --border-color: rgba(255, 255, 255, 0.08);
-    --card-border: rgba(255, 255, 255, 0.08);
-
-    /* ===== Поля ===== */
-    --input-bg: #151A1B;
-    --input-border: rgba(255, 255, 255, 0.10);
-
-    /* ===== Тени ===== */
-    --card-shadow:
-        0 8px 30px rgba(0, 0, 0, 0.30);
-
-    /* ===== Акцент ===== */
-    --accent: #30B8A5;
-    --accent-rgb: 48, 184, 165;
-    --accent-hover: #269C8D;
-
-    /* ===== Статусы ===== */
-    --green: #30D158;
-    --orange: #FF9F0A;
-    --red: #FF453A;
-    --gray: #8E8E93;
-
-    /* ===== Статусы карточек ===== */
-    --status-free-bg: rgba(48, 209, 88, 0.12);
-    --status-occupied-bg: rgba(255, 69, 58, 0.12);
-    --status-unknown-bg: rgba(142, 142, 147, 0.12);
-
-    /* ===== Нижняя навигация ===== */
-    --tab-bg: #151A1B;
-    --tab-icon: #A1A1A6;
-    --tab-label: #A1A1A6;
-    --tab-active-bg: rgba(48, 184, 165, 0.12);
-
-    /* ===== Основные кнопки ===== */
-    --btn-primary-bg: #30B8A5;
-    --btn-primary-active: #269C8D;
-
-    /* ===== Вторичные кнопки ===== */
-    --btn-secondary-border: rgba(255, 255, 255, 0.12);
-    --btn-secondary-color: #30B8A5;
-
-    /* ===== Опасные кнопки ===== */
-    --btn-danger-color: #FF453A;
-    --btn-danger-border: rgba(255, 69, 58, 0.35);
-
-    /* ===== Рисование на карте ===== */
-    --drawing-controls-bg: rgba(21, 26, 27, 0.92);
-    --drawing-border: rgba(255, 255, 255, 0.10);
-
-    /* ===== Затемнение ===== */
-    --overlay-bg: rgba(0, 0, 0, 0.60);
-
-    /* ===== Нижние панели ===== */
-    --sheet-bg: #151A1B;
-
-    /* ===== Уведомления ===== */
-    --toast-bg: rgba(28, 34, 35, 0.96);
-
-    /* ===== Splash Screen ===== */
-    --splash-bg: #0B0F10;
-    --spinner-color: #30B8A5;
-
-    /* ===== История ===== */
-    --history-occupied: #FF453A;
-    --history-freed: #30D158;
+    --bg-primary: #0B0F10; /* основной тёмный фон */
+    --bg-secondary: #151A1B; /* фон тёмных карточек */
+    --bg-elevated: #1C2223; /* приподнятые элементы в тёмной теме */
+    --text-primary: #F5F5F7; /* основной светлый текст */
+    --text-secondary: #A1A1A6; /* вторичный светлый текст */
+    --text-tertiary: #6E7476; /* менее важный текст */
+    --accent: #30B8A5; /* акцентный цвет в тёмной теме */
+    --accent-rgb: 48,184,165; /* RGB акцента для rgba() */
+    --accent-hover: #269C8D; /* акцент при нажатии */
+    --green: #30D158; /* свободные места */
+    --orange: #FF9F0A; /* мало свободных мест */
+    --red: #FF453A; /* занято */
+    --gray: #8E8E93; /* неизвестный статус */
+    --status-free-bg: rgba(48,209,88,0.12); /* фон свободных мест */
+    --status-occupied-bg: rgba(255,69,58,0.12); /* фон занятых мест */
+    --status-unknown-bg: rgba(142,142,147,0.12); /* неизвестный статус */
+    --card-border: rgba(255,255,255,0.08); /* граница тёмных карточек */
+    --input-border: rgba(255,255,255,0.10); /* граница полей */
+    --input-bg: #151A1B; /* фон поля ввода */
+    --card-shadow: 0 8px 30px rgba(0,0,0,0.30); /* тень карточек */
+    --overlay-bg: rgba(0,0,0,0.60); /* затемнение */
+    --toast-bg: rgba(28,34,35,0.96); /* уведомления */
+    --tab-bg: rgba(21,26,27,0.82); /* фон нижнего меню */
+    --tab-icon: #A1A1A6; /* неактивные иконки */
+    --tab-label: #A1A1A6; /* неактивные подписи */
+    --tab-active-bg: rgba(48,184,165,0.12); /* активная вкладка */
+    --btn-primary-bg: #30B8A5; /* основная кнопка */
+    --btn-primary-active: #269C8D; /* основная кнопка при нажатии */
+    --btn-secondary-border: rgba(255,255,255,0.12); /* граница вторичной кнопки */
+    --btn-secondary-color: #30B8A5; /* цвет вторичной кнопки */
+    --btn-danger-color: #FF453A; /* цвет опасной кнопки */
+    --btn-danger-border: rgba(255,69,58,0.35); /* граница опасной кнопки */
+    --drawing-controls-bg: rgba(21,26,27,0.92); /* панель рисования */
+    --drawing-border: rgba(255,255,255,0.10); /* граница рисования */
+    --sheet-bg: #151A1B; /* нижняя панель */
+    --splash-bg: #0B0F10; /* фон Splash Screen */
+    --spinner-color: #30B8A5; /* спиннер */
+    --history-occupied: #FF453A; /* история занятия места */
+    --history-freed: #30D158; /* история освобождения места */
 }
-
+/* ===== ОСНОВНОЕ ТЕЛО ПРИЛОЖЕНИЯ ===== */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    height: 100dvh;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    transition: background 0.4s ease, color 0.4s ease;
-    -webkit-font-smoothing: antialiased;
+    margin: 0; /* убирает стандартный внешний отступ браузера */
+    padding: 0; /* убирает стандартный внутренний отступ */
+    width: 100%; /* ширина на весь доступный экран */
+    height: 100%; /* высота на весь доступный экран */
+    min-height: 100dvh; /* минимальная высота = реальная высота экрана телефона */
+    overflow: hidden; /* запрещает прокрутку всей страницы */
+    overscroll-behavior: none; /* отключает эффект "оттягивания" страницы на телефоне */
+    background: var(--bg-primary); /* основной фон из нашей цветовой системы */
+    color: var(--text-primary); /* основной цвет текста из цветовой системы */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; /* системный шрифт iPhone/Android */
+    -webkit-font-smoothing: antialiased; /* делает текст более гладким на Apple-устройствах */
+    -webkit-text-size-adjust: 100%; /* запрещает Safari автоматически увеличивать текст */
+    -webkit-tap-highlight-color: transparent; /* убирает стандартную подсветку элемента при нажатии */
+    text-rendering: optimizeLegibility; /* улучшает визуальное отображение текста */
+    transition: background 0.3s ease, color 0.3s ease; /* плавное изменение фона и текста при смене темы */
 }
-
-/* === ГЛОБАЛЬНЫЕ СБРОСЫ ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА === */
-html,
-body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    padding-bottom: 0;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* === СПЛЕШ-ЭКРАН === */
+/* ===== ЭКРАН ЗАГРУЗКИ ===== */
 #splashScreen {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100dvh;
-    background: var(--splash-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    z-index: 10000;
-    margin: 0;
-    padding: 0;
-    transition: opacity 0.6s ease;
-    text-align: center;
+    position: fixed; /* закрепляет Splash поверх всего экрана */
+    inset: 0; /* top/right/bottom/left = 0, растягивает элемент на весь экран */
+    width: 100vw; /* ширина = вся ширина экрана */
+    height: 100dvh; /* высота = реальная динамическая высота экрана */
+    background: var(--splash-bg); /* цвет Splash из цветовой системы */
+    display: flex; /* включает Flexbox */
+    align-items: center; /* центрирует содержимое по горизонтали */
+    justify-content: center; /* центрирует содержимое по вертикали */
+    flex-direction: column; /* логотип и спиннер располагаются сверху вниз */
+    z-index: 10000; /* Splash находится поверх карты и остальных элементов */
+    margin: 0; /* убирает внешний отступ */
+    padding: 0; /* убирает внутренний отступ */
+    transition: opacity 0.6s ease; /* плавное исчезновение Splash */
+    text-align: center; /* центрирует текст внутри Splash */
 }
+/* ===== SVG-ФОН SPLASH ===== */
 #splashScreen svg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    pointer-events: none;
+    position: absolute; /* размещает SVG независимо от логотипа */
+    inset: 0; /* растягивает SVG на весь Splash */
+    width: 100%; /* ширина SVG на весь экран */
+    height: 100%; /* высота SVG на весь экран */
+    display: block; /* убирает лишнее пространство inline-элемента */
+    pointer-events: none; /* SVG не перехватывает нажатия пользователя */
 }
+/* ===== ЛОГОТИП SPLASH ===== */
 #splashScreen img {
-    position: relative;
-    z-index: 2;
-    display: block;
-    width: auto;
-    max-width: 180px;
-    height: auto;
-    margin: 0 auto 20px;
-    animation: splashLogoIn 0.7s ease-out both;
+    position: relative; /* позволяет управлять слоем через z-index */
+    z-index: 2; /* логотип находится поверх SVG */
+    display: block; /* убирает лишние пробелы вокруг изображения */
+    width: auto; /* ширина рассчитывается автоматически */
+    max-width: 180px; /* логотип не будет шире 180px */
+    height: auto; /* сохраняет пропорции логотипа */
+    margin: 0 auto 20px; /* центрирует логотип и оставляет 20px до спиннера */
+    animation: splashLogoIn 0.7s ease-out both; /* плавное появление логотипа */
 }
+/* ===== SPINNER ===== */
 #splashScreen .spinner {
-    position: relative;
-    z-index: 2;
-    width: 30px;
-    height: 30px;
-    margin: 0 auto;
-    flex-shrink: 0;
-    border: 3px solid rgba(255,255,255,0.18);
-    border-top-color: var(--spinner-color);
-    border-radius: 50%;
-    animation: splashSpinner 0.8s linear infinite;
+    position: relative; /* позволяет управлять положением и z-index */
+    z-index: 2; /* спиннер находится поверх SVG */
+    width: 30px; /* ширина спиннера */
+    height: 30px; /* высота спиннера */
+    margin: 0 auto; /* центрирует спиннер относительно Splash */
+    flex-shrink: 0; /* запрещает Flexbox уменьшать спиннер */
+    border: 3px solid rgba(255,255,255,0.18); /* полупрозрачная внешняя окружность */
+    border-top-color: var(--spinner-color); /* верхняя часть имеет акцентный цвет */
+    border-radius: 50%; /* превращает окружность в круг */
+    animation: splashSpinner 0.8s linear infinite; /* постоянное вращение */
 }
+/* ===== АНИМАЦИЯ ПОЯВЛЕНИЯ ЛОГОТИПА ===== */
 @keyframes splashLogoIn {
-    from { opacity: 0; transform: scale(0.92); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0; /* в начале логотип полностью прозрачный */
+        transform: scale(0.92); /* в начале логотип немного меньше */
+    }
+    to {
+        opacity: 1; /* становится полностью видимым */
+        transform: scale(1); /* возвращается к нормальному размеру */
+    }
 }
+/* ===== АНИМАЦИЯ ВРАЩЕНИЯ SPINNER ===== */
 @keyframes splashSpinner {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg); /* полный оборот на 360 градусов */
+    }
 }
-/* === КАРТА – НА ВЕСЬ ЭКРАН === */
+/* ===== КАРТА ===== */
 #map {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    width: 100vw;
-    height: 100dvh;
-    margin: 0;
-    padding: 0;
-    z-index: 1;
-    background: transparent;
+    position: fixed; /* карта закреплена относительно экрана */
+    inset: 0; /* карта касается всех четырёх краёв экрана */
+    width: 100vw; /* ширина всей области просмотра */
+    height: 100dvh; /* высота всей реальной области просмотра */
+    margin: 0; /* убирает внешний отступ */
+    padding: 0; /* убирает внутренний отступ */
+    z-index: 1; /* карта находится ниже Splash и плавающих элементов */
+    background: transparent; /* не перекрывает фон самой карты */
 }
 /* === ВЕРХНЯЯ ПАНЕЛЬ (не используется, но оставлено) === */
 .app-header {
@@ -283,83 +260,134 @@ body.dark-theme #map .ymaps-2-1-79-ground-pane img {
 }
 
 /* === ПЕРЕКЛЮЧАТЕЛЬ СЛОЁВ === */
+/* Кнопка выбора типа карты */
 .layer-switcher {
-    position: fixed;
-    top: calc(12px + env(safe-area-inset-top, 0px));
-    right: 12px;
-    z-index: 900;
-    background: var(--bg-secondary);
-    backdrop-filter: blur(20px);
-    border-radius: 14px;
-    box-shadow: var(--card-shadow);
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+    position: fixed; /* фиксирует кнопку относительно экрана */
+    top: calc(12px + env(safe-area-inset-top, 0px)); /* отступ сверху с учётом выреза iPhone */
+    right: 12px; /* отступ справа */
+    z-index: 900; /* располагает кнопку поверх карты */
+    width: 46px; /* ширина кнопки */
+    height: 46px; /* высота кнопки */
+    display: flex; /* включает Flexbox */
+    align-items: center; /* центрирует содержимое по вертикали */
+    justify-content: center; /* центрирует содержимое по горизонтали */
+    cursor: pointer; /* показывает, что элемент нажимаемый */
+    color: var(--text-primary); /* цвет иконки */
+    background: rgba(255,255,255,0.82); /* полупрозрачный светлый фон */
+    border: 1px solid var(--card-border); /* тонкая граница */
+    border-radius: 15px; /* скругление углов */
+    box-shadow: var(--card-shadow); /* тень */
+    backdrop-filter: blur(20px) saturate(180%); /* эффект стекла */
+    -webkit-backdrop-filter: blur(20px) saturate(180%); /* эффект стекла для Safari */
+    transition: transform 0.15s ease, background 0.2s ease; /* плавная анимация */
 }
+/* Фон кнопки в тёмной теме */
+body.dark-theme .layer-switcher {
+    background: rgba(21,26,27,0.82); /* тёмный полупрозрачный фон */
+}
+/* Анимация нажатия */
+.layer-switcher:active {
+    transform: scale(0.94); /* немного уменьшает кнопку при нажатии */
+}
+/* Выпадающее меню типов карты */
 .layer-menu {
-    position: absolute;
-    top: 48px;
-    right: 0;
-    background: var(--bg-secondary);
-    backdrop-filter: blur(20px);
-    border-radius: 14px;
-    box-shadow: var(--card-shadow);
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    z-index: 901;
+    position: absolute; /* позиционируется относительно кнопки */
+    top: 52px; /* расстояние от кнопки до меню */
+    right: 0; /* выравнивает меню по правому краю */
+    min-width: 150px; /* минимальная ширина меню */
+    display: none; /* меню скрыто по умолчанию */
+    flex-direction: column; /* пункты располагаются вертикально */
+    overflow: hidden; /* обрезает содержимое по скруглённым углам */
+    z-index: 901; /* меню выше кнопки и карты */
+    background: var(--bg-elevated); /* фон меню */
+    border: 1px solid var(--card-border); /* граница меню */
+    border-radius: 16px; /* скругление меню */
+    box-shadow: var(--card-shadow); /* тень меню */
+    backdrop-filter: blur(20px) saturate(180%); /* эффект стекла */
+    -webkit-backdrop-filter: blur(20px) saturate(180%); /* поддержка Safari */
 }
-.layer-menu.active { display: flex; }
+/* Показывает меню */
+.layer-menu.active {
+    display: flex; /* включает отображение меню */
+}
+/* Отдельный пункт меню */
 .layer-option {
-    padding: 12px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    border-bottom: 0.5px solid var(--border-color);
-    white-space: nowrap;
-    color: var(--text-primary);
+    padding: 13px 16px; /* внутренние отступы */
+    font-size: 14px; /* размер текста */
+    font-weight: 500; /* толщина текста */
+    cursor: pointer; /* показывает возможность нажатия */
+    white-space: nowrap; /* запрещает перенос текста */
+    color: var(--text-primary); /* цвет текста */
+    border-bottom: 1px solid var(--card-border); /* разделитель между пунктами */
+    transition: background 0.15s ease, color 0.15s ease; /* плавная смена цвета */
 }
-.layer-option:last-child { border-bottom: none; }
-.layer-option:active { background: var(--bg-primary); }
+/* У последнего пункта убираем разделитель */
+.layer-option:last-child {
+    border-bottom: none;
+}
+/* Эффект нажатия на пункт */
+.layer-option:active {
+    background: var(--bg-primary); /* меняет фон при нажатии */
+}
+/* Выбранный тип карты */
 .layer-option.selected {
-    color: var(--accent);
-    font-weight: 600;
+    color: var(--accent); /* акцентный цвет текста */
+    font-weight: 600; /* делает выбранный пункт заметнее */
+    background: var(--tab-active-bg); /* лёгкая подсветка выбранного пункта */
 }
 
 /* === КНОПКИ ГЕОЛОКАЦИИ И ДОБАВЛЕНИЯ === */
-#geoBtn, #addBtn {
-    position: fixed;
-    right: 20px;
-    z-index: 900;
-    border-radius: 50%;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    background: var(--bg-secondary);
-}
+/* ===== ПЛАВАЮЩИЕ КНОПКИ НА КАРТЕ ===== */
+#geoBtn,
 #addBtn {
-    width: 64px;
-    height: 64px;
-    font-size: 32px;
-    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + 0px);
-    background: #0A282C;
-    color: #E2E2E0;
+    position: fixed; /* фиксирует кнопки относительно экрана */
+    right: 20px; /* отступ справа */
+    z-index: 900; /* кнопки находятся поверх карты */
+    display: flex; /* включает Flexbox */
+    align-items: center; /* центрирует содержимое по вертикали */
+    justify-content: center; /* центрирует содержимое по горизонтали */
+    cursor: pointer; /* показывает, что кнопка нажимаемая */
+    border: none; /* убирает стандартную рамку */
+    box-shadow: var(--shadow-floating); /* современная мягкая тень */
+    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease; /* плавная анимация */
 }
+/* ===== КНОПКА ДОБАВЛЕНИЯ ПАРКОВКИ ===== */
+#addBtn {
+    width: 58px; /* ширина кнопки */
+    height: 58px; /* высота кнопки */
+    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab)); /* положение над нижним меню */
+    border-radius: 18px; /* квадратная форма со скруглёнными углами */
+    background: var(--btn-primary-bg); /* основной акцентный цвет */
+    color: #FFFFFF; /* цвет плюса */
+    font-size: 28px; /* размер плюса */
+    font-weight: 400; /* обычная толщина плюса */
+}
+/* Эффект нажатия */
+#addBtn:active {
+    transform: scale(0.92); /* слегка уменьшает кнопку */
+    background: var(--btn-primary-active); /* меняет цвет при нажатии */
+}
+/* ===== КНОПКА ГЕОЛОКАЦИИ ===== */
 #geoBtn {
-    width: 45px;
-    height: 45px;
-    font-size: 24px;
-    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + var(--button-gap) + 0px);
-    background: #0A282C;
-    color: #E2E2E0;
+    width: 46px; /* ширина кнопки */
+    height: 46px; /* высота кнопки */
+    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + var(--button-gap)); /* положение выше кнопки добавления */
+    border-radius: 50%; /* круглая кнопка */
+    background: rgba(255,255,255,0.88); /* полупрозрачный светлый фон */
+    color: var(--text-primary); /* цвет иконки */
+    font-size: 22px; /* размер иконки */
+    backdrop-filter: blur(20px) saturate(180%); /* эффект стекла */
+    -webkit-backdrop-filter: blur(20px) saturate(180%); /* эффект стекла Safari */
 }
-
+/* Тёмная тема */
+body.dark-theme #geoBtn {
+    background: rgba(28,34,35,0.90); /* тёмный стеклянный фон */
+    color: var(--text-primary); /* светлая иконка */
+}
+/* Эффект нажатия */
+#geoBtn:active {
+    transform: scale(0.92); /* слегка уменьшает кнопку */
+}
 /* === ТАБ-БАР (исправлен отступ снизу) === */
 .tabBar {
     position: fixed;
