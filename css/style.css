@@ -5,74 +5,134 @@
 }
 
 :root {
-    /* Палитра: Светлая тема */
-    --bg-primary: #F0F4F5;
+    /* ===== Основные цвета ===== */
+    --bg-primary: #F5F7F7;
     --bg-secondary: #FFFFFF;
-    --bg-elevated: #F8FAFA;
-    --text-primary: #0E2931;
-    --text-secondary: #5A787F;
-    --text-tertiary: #8DA7AE;
-    --accent: #12464C;
-    --accent-rgb: 18, 70, 76;
-    --accent-hover: #1A5E66;
-    
-    --green: #2E7D32;
-    --orange: #ED6C02;
-    --red: #D32F2F;
-    --gray: #757575;
+    --bg-elevated: #FFFFFF;
 
-    --status-free-bg: #E8F5E9;
-    --status-occupied-bg: #FFEBEE;
-    --status-unknown-bg: #F5F5F5;
+    --text-primary: #111516;
+    --text-secondary: #6B7375;
+    --text-tertiary: #9AA1A3;
 
-    --card-border: #D1E0E3;
-    --input-border: #BCD0D4;
+    /* ===== Акцент ===== */
+    --accent: #20A895;
+    --accent-rgb: 32, 168, 149;
+    --accent-hover: #178F7E;
+
+    /* ===== Статусы парковки ===== */
+    --green: #30D158;
+    --orange: #FF9F0A;
+    --red: #FF453A;
+    --gray: #8E8E93;
+
+    --status-free-bg: rgba(48, 209, 88, 0.12);
+    --status-occupied-bg: rgba(255, 69, 58, 0.12);
+    --status-unknown-bg: rgba(142, 142, 147, 0.12);
+
+    /* ===== Карточки и поля ===== */
+    --card-border: rgba(0, 0, 0, 0.08);
+    --input-border: rgba(0, 0, 0, 0.10);
     --input-bg: #F8FAFA;
-    --card-shadow: 0 4px 16px rgba(14, 41, 49, 0.08);
 
-    --overlay-bg: rgba(14, 41, 49, 0.4);
-    --toast-bg: rgba(14, 41, 49, 0.9);
-    --history-occupied: #D32F2F;
-    --history-freed: #2E7D32;
+    --card-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.08);
 
-    /* === Размеры и отступы интерфейса (исправлены) === */
-    --tab-bar-height: 60px;
-    --tab-bar-bottom: 16px;
+    /* ===== Системные элементы ===== */
+    --overlay-bg: rgba(0, 0, 0, 0.40);
+    --toast-bg: rgba(17, 21, 22, 0.94);
+
+    --history-occupied: #FF453A;
+    --history-freed: #30D158;
+
+    /* ===== Радиусы ===== */
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 22px;
+    --radius-xl: 28px;
+
+    /* ===== Нижняя навигация ===== */
+    --tab-bar-height: 64px;
+    --tab-bar-bottom: 12px;
+
+    /* ===== Плавающие кнопки ===== */
     --button-offset-from-tab: 20px;
-    --button-gap: 75px;
+    --button-gap: 72px;
 }
 
 body.dark-theme {
-    --bg-primary: #010304;
-    --bg-secondary: #0A282C;
-    --text-primary: #E2E2E0;
-    --text-secondary: #2B7574;
-    --border-color: #2B7574;
-    --input-bg: #0A282C;
-    --input-border: #2B7574;
-    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --accent: #2B7574;
-    --green: #2B7574;
-    --red: #861211;
-    --orange: #861211;
-    --gray: #2B7574;
-    --tab-bg: #12464C;
-    --tab-icon: #E2E2E0;
-    --tab-label: #E2E2E0;
-    --tab-active-bg: #E2E2E0;
-    --btn-primary-bg: #2B7574;
-    --btn-primary-active: #12464C;
-    --btn-secondary-border: #2B7574;
-    --btn-secondary-color: #2B7574;
-    --btn-danger-color: #861211;
-    --btn-danger-border: #861211;
-    --drawing-controls-bg: rgba(18, 70, 76, 0.8);
-    --drawing-border: rgba(255, 255, 255, 0.15);
-    --overlay-bg: rgba(14, 41, 49, 0.7);
-    --sheet-bg: #12464C;
-    --toast-bg: rgba(14, 41, 49, 0.9);
-    --splash-bg: #0E2931;
-    --spinner-color: #E2E2E0;
+    /* ===== Основные цвета ===== */
+    --bg-primary: #0B0F10;
+    --bg-secondary: #151A1B;
+    --bg-elevated: #1C2223;
+
+    --text-primary: #F5F5F7;
+    --text-secondary: #A1A1A6;
+    --text-tertiary: #6E7476;
+
+    /* ===== Границы ===== */
+    --border-color: rgba(255, 255, 255, 0.08);
+    --card-border: rgba(255, 255, 255, 0.08);
+
+    /* ===== Поля ===== */
+    --input-bg: #151A1B;
+    --input-border: rgba(255, 255, 255, 0.10);
+
+    /* ===== Тени ===== */
+    --card-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.30);
+
+    /* ===== Акцент ===== */
+    --accent: #30B8A5;
+    --accent-rgb: 48, 184, 165;
+    --accent-hover: #269C8D;
+
+    /* ===== Статусы ===== */
+    --green: #30D158;
+    --orange: #FF9F0A;
+    --red: #FF453A;
+    --gray: #8E8E93;
+
+    /* ===== Статусы карточек ===== */
+    --status-free-bg: rgba(48, 209, 88, 0.12);
+    --status-occupied-bg: rgba(255, 69, 58, 0.12);
+    --status-unknown-bg: rgba(142, 142, 147, 0.12);
+
+    /* ===== Нижняя навигация ===== */
+    --tab-bg: #151A1B;
+    --tab-icon: #A1A1A6;
+    --tab-label: #A1A1A6;
+    --tab-active-bg: rgba(48, 184, 165, 0.12);
+
+    /* ===== Основные кнопки ===== */
+    --btn-primary-bg: #30B8A5;
+    --btn-primary-active: #269C8D;
+
+    /* ===== Вторичные кнопки ===== */
+    --btn-secondary-border: rgba(255, 255, 255, 0.12);
+    --btn-secondary-color: #30B8A5;
+
+    /* ===== Опасные кнопки ===== */
+    --btn-danger-color: #FF453A;
+    --btn-danger-border: rgba(255, 69, 58, 0.35);
+
+    /* ===== Рисование на карте ===== */
+    --drawing-controls-bg: rgba(21, 26, 27, 0.92);
+    --drawing-border: rgba(255, 255, 255, 0.10);
+
+    /* ===== Затемнение ===== */
+    --overlay-bg: rgba(0, 0, 0, 0.60);
+
+    /* ===== Нижние панели ===== */
+    --sheet-bg: #151A1B;
+
+    /* ===== Уведомления ===== */
+    --toast-bg: rgba(28, 34, 35, 0.96);
+
+    /* ===== Splash Screen ===== */
+    --splash-bg: #0B0F10;
+    --spinner-color: #30B8A5;
+
+    /* ===== История ===== */
     --history-occupied: #FF453A;
     --history-freed: #30D158;
 }
@@ -89,76 +149,96 @@ body {
 }
 
 /* === ГЛОБАЛЬНЫЕ СБРОСЫ ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА === */
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #0E2931;
-    overscroll-behavior: none;              
-    padding-bottom: 0; 
+    overscroll-behavior: none;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding-bottom: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* === СПЛЕШ-ЭКРАН === */
 #splashScreen {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     width: 100%;
-    height: 100%;
-    height: 100dvh;              /* динамическая высота */
-    background: #0E2931;
+    height: 100dvh;
+    background: var(--splash-bg);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
     z-index: 10000;
-    transition: opacity 0.8s ease;
     margin: 0;
     padding: 0;
+    transition: opacity 0.6s ease;
 }
+
 #splashScreen svg {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
     display: block;
+    pointer-events: none;
 }
 #splashScreen img {
-    width: 100%;
-    max-width: 200px;
+    position: relative;
+    z-index: 1;
+    width: auto;
+    max-width: 180px;
     height: auto;
-    margin-bottom: 20px;
+    margin: 0 0 24px;
     display: block;
+    animation: splashLogoIn 0.7s ease-out both;
 }
+
 #splashScreen .spinner {
-    border-top-color: #E2E2E0;
-    border-color: rgba(226, 226, 224, 0.3);
-    width: 32px;
-    height: 32px;
-    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    border: 3px solid rgba(255, 255, 255, 0.18);
+    border-top-color: var(--spinner-color);
+    border-radius: 50%;
+    animation: splashSpinner 0.8s linear infinite;
+}
+@keyframes splashLogoIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes splashSpinner {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* === КАРТА – НА ВЕСЬ ЭКРАН === */
-#splashScreen, #map {
+#splashScreen,
+#map {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     width: 100%;
-    height: 100%;
     height: 100dvh;
     margin: 0;
     padding: 0;
 }
 #map {
-    background: #E5E5EA !important;
     z-index: 1;
+    background: transparent;
 }
 
 /* === ВЕРХНЯЯ ПАНЕЛЬ (не используется, но оставлено) === */
@@ -179,18 +259,29 @@ html, body {
     padding-top: env(safe-area-inset-top);
     transition: background 0.3s ease;
 }
-body.dark-theme .app-header {
-    background: rgba(14, 41, 49, 0.3);
-    border-bottom-color: rgba(255, 255, 255, 0.08);
+.app-header {
+    background: rgba(255, 255, 255, 0.72);
+    border-bottom: 1px solid var(--card-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
+
+body.dark-theme .app-header {
+    background: rgba(21, 26, 27, 0.78);
+    border-bottom-color: var(--card-border);
+}
+
 .app-title {
     font-size: 17px;
     font-weight: 700;
     letter-spacing: -0.3px;
-    color: #E2E2E0;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    color: var(--text-primary);
+    text-shadow: none;
 }
-.app-title span { color: #2B7574; }
+
+.app-title span {
+    color: var(--accent);
+}
 
 /* === ТЁМНАЯ ТЕМА ДЛЯ КАРТЫ (фильтр) === */
 body.dark-theme #map {
