@@ -594,34 +594,44 @@ select.input-field {
 }
 .list-item {
     background: var(--bg-secondary);
-    padding: 16px;
-    border-radius: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     gap: 12px;
     box-shadow: var(--card-shadow);
     cursor: pointer;
-    transition: transform 0.1s;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.list-item:active { transform: scale(0.98); }
+.list-item:active {
+    transform: scale(0.98);
+}
 .list-icon {
-    font-size: 24px;
-    width: 40px;
-    height: 40px;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-primary);
-    border-radius: 50%;
+    background: var(--status-free-bg);
+    border-radius: 14px;
+    font-size: 22px;
 }
-.list-info { flex: 1; }
+.list-info {
+    flex: 1;
+    min-width: 0;
+}
 .list-title {
     font-size: 16px;
     font-weight: 600;
-    margin-bottom: 4px;
+    line-height: 20px;
+    margin-bottom: 3px;
+    color: var(--text-primary);
 }
 .list-subtitle {
     font-size: 13px;
+    line-height: 18px;
     color: var(--text-secondary);
 }
 
