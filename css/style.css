@@ -3,7 +3,6 @@
     margin: 0;
     padding: 0;
 }
-
 :root {
     /* ===== ФОН ===== */
     --bg-primary: #F5F7F7; /* основной фон приложения */
@@ -207,6 +206,36 @@ body {
     padding: 0; /* убирает внутренний отступ */
     z-index: 1; /* карта находится ниже Splash и плавающих элементов */
     background: transparent; /* не перекрывает фон самой карты */
+}
+/* === ВЫБОР ГОРОДА НА КАРТЕ === */
+#citySelectorOnMap {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    background: var(--bg-secondary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 8px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: background 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+#citySelectorOnMap:active {
+    transform: translateX(-50%) scale(0.96);
+}
+.city-selector-arrow {
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 /* === ВЕРХНЯЯ ПАНЕЛЬ (не используется, но оставлено) === */
 .app-header {
