@@ -2241,7 +2241,12 @@ body.dark-theme .theme-slider:before {
 .parking-item .meta-row .dot {
     color: var(--text-secondary);
 }
-
+.parking-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
 .profile-section {
     margin-bottom: 10px;
     border-radius: 14px;
