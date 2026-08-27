@@ -2169,26 +2169,71 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
     }
 async function getAddressByCoordinates(lat, lng) {
     try {
-        const result = await ymaps.geocode([lat, lng], { results: 1 });
+        if (typeof ymaps === 'undefined' || !ymaps.geocode) {
+            throw new Error('Yandex Geocoder недоступен');
+        }
+        const result = await ymaps.geocode(
+            [Number(lat), Number(lng)],
+            {
+                results: 1
+            }
+        );
         const geo = result.geoObjects.get(0);
         if (!geo) return null;
-
         const address = geo.getAddressLine() || '';
         const meta = geo.properties.get('metaDataProperty.GeocoderMetaData');
         const components = meta?.Address?.Components || [];
-
         let city = '';
         let region = '';
         let street = '';
         let houseNumber = '';
-
         components.forEach(component => {
-            if (component.kind === 'locality') city = component.name;
-            else if (component.kind === 'province') region = component.name;
-            else if (component.kind === 'street') street = component.name;
-            else if (component.kind === 'house') houseNumber = component.name;
+            const kind = component.kind;
+            const name = component.name || '';
+            if (!name) return;
+            if (
+                kind === 'locality' ||
+                kind === 'area'
+            ) {
+                if (!city) city = name;
+            }
+            if (
+                kind === 'province' ||
+                kind === 'region'
+            ) {
+                if (!region) region = name;
+            }
+            if (kind === 'street') {
+                street = name;
+            }
+            if (kind === 'house') {
+                houseNumber = name;
+            }
         });
-
+        // Резервный способ определения города
+        if (!city && geo.getLocalities) {
+            const localities = geo.getLocalities();
+            if (localities && localities.length) {
+                city = localities[localities.length - 1];
+            }
+        }
+        // Резервный способ определения региона
+        if (!region && geo.getAdministrativeAreas) {
+            const areas = geo.getAdministrativeAreas();
+            if (areas && areas.length) {
+                region = areas[areas.length - 1];
+            }
+        }
+        console.log('📍 Геокодирование:', {
+            lat,
+            lng,
+            address,
+            city,
+            region,
+            street,
+            houseNumber,
+            components
+        });
         return {
             address,
             city,
@@ -2197,7 +2242,10 @@ async function getAddressByCoordinates(lat, lng) {
             houseNumber
         };
     } catch (error) {
-        console.error('❌ Ошибка определения адреса:', error);
+        console.error(
+            '❌ Ошибка определения адреса:',
+            error
+        );
         return null;
     }
 }
