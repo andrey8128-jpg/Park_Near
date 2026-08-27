@@ -2151,13 +2151,7 @@ async function getAddressByCoordinates(lat, lng) {
             else if (component.kind === 'house') houseNumber = component.name;
         });
 
-        return {
-            address,
-            city,
-            region,
-            street,
-            houseNumber
-        };
+        return { address, city, region, street, houseNumber };
     } catch (error) {
         console.error('❌ Ошибка определения адреса:', error);
         return null;
