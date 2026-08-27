@@ -1096,40 +1096,105 @@ function tryYandexGeolocation(resolve, reject) {
     }
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
 function loadAllParkings(city = '', force = false) {
-    console.log('🔍 Загрузка всех парковок');
+    console.log('🔍 Загрузка парковок');
+    const selectedCity = String(city || currentCity || '').trim().toLowerCase();
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
+        clearAllMarkers();
+        Object.entries(parkingDataCache).forEach(([id, parking]) => {
+            const parkingCity = String(parking.city || '').trim().toLowerCase();
+            if (!selectedCity || parkingCity === selectedCity) {
+                addMarkerToMap(id, parking);
+            }
+        });
+        updateTotalFreeCircle();
+        console.log('✅ Использован кэш парковок');
         return Promise.resolve();
     }
     clearAllMarkers();
-    return database.ref('parkings').once('value').then(snapshot => {
-        const data = snapshot.val() || {};
-        const newCache = {};
-        Object.keys(data).forEach(key => {
-            const parking = data[key];
-            if (!parking || parking.lat == null || parking.lng == null) return;
-            parking.totalSpots = Number(parking.totalSpots) || 0;
-            parking.occupiedSpots = Number(parking.occupiedSpots) || 0;
-            parking.occupiedSpots = Math.max(0, Math.min(parking.occupiedSpots, parking.totalSpots));
-            newCache[key] = parking;
+    return database.ref('parkings').once('value')
+        .then(snapshot => {
+            const data = snapshot.val() || {};
+            const newCache = {};
+            Object.keys(data).forEach(key => {
+                const parking = data[key];
+                if (!parking || parking.lat == null || parking.lng == null) {
+                    return;
+                }
+                parking.id = key;
+                parking.lat = Number(parking.lat);
+                parking.lng = Number(parking.lng);
+                parking.totalSpots = Number(parking.totalSpots) || 0;
+                parking.occupiedSpots = Number(parking.occupiedSpots) || 0;
+                parking.occupiedSpots = Math.max(
+                    0,
+                    Math.min(
+                        parking.occupiedSpots,
+                        parking.totalSpots
+                    )
+                );
+                newCache[key] = parking;
+            });
+            parkingDataCache = newCache;
+            lastDataRefresh = Date.now();
+            try {
+                localStorage.setItem(
+                    'parkingCache',
+                    JSON.stringify({
+                        city: 'all',
+                        data: newCache,
+                        timestamp: Date.now()
+                    })
+                );
+            } catch (e) {
+                console.warn('⚠️ Не удалось сохранить кэш парковок');
+            }
+            const cityToShow = String(
+                currentCity || city || ''
+            ).trim().toLowerCase();
+            let visibleCount = 0;
+            Object.entries(newCache).forEach(([id, parking]) => {
+                const parkingCity = String(
+                    parking.city || ''
+                ).trim().toLowerCase();
+                if (
+                    !cityToShow ||
+                    parkingCity === cityToShow
+                ) {
+                    addMarkerToMap(id, parking);
+                    visibleCount++;
+                }
+            });
+            updateTotalFreeCircle();
+            console.log(
+                '✅ Загружено парковок в кэш:',
+                Object.keys(newCache).length
+            );
+            console.log(
+                '🏙️ Показывается парковок города:',
+                cityToShow || 'все',
+                visibleCount
+            );
+        })
+        .catch(error => {
+            console.error(
+                '❌ Ошибка загрузки парковок:',
+                error
+            );
+            throw error;
         });
-        parkingDataCache = newCache;
-        lastDataRefresh = Date.now();
-        try {
-            localStorage.setItem('parkingCache', JSON.stringify({
-                city: 'all',
-                data: newCache,
-                timestamp: Date.now()
-            }));
-        } catch (e) {}
-        Object.keys(newCache).forEach(id => {
-            addMarkerToMap(id, newCache[id]);
-        });
-        updateTotalFreeCircle();
-        console.log('✅ Загружены ВСЕ парковки:', Object.keys(newCache).length);
-    }).catch(error => {
-        console.error('❌ Ошибка загрузки парковок:', error);
-        throw error;
+}
+function showParkingsForCity(city) {
+    if (!map || !city) return;
+    clearAllMarkers();
+    const normalizedCity = city.trim().toLowerCase();
+    Object.entries(parkingDataCache).forEach(([id, parking]) => {
+        const parkingCity = String(parking.city || '').trim().toLowerCase();
+        if (parkingCity === normalizedCity) {
+            addMarkerToMap(id, parking);
+        }
     });
+    updateTotalFreeCircle();
+    console.log(`🏙️ Показаны парковки города "${city}":`, Object.values(parkingDataCache).filter(p => String(p.city || '').trim().toLowerCase() === normalizedCity).length);
 }
 // ===== Вспомогательная функция для загрузки всех парковок (без фильтра) =====
 function loadAllParkingsNoFilter() {
@@ -4237,14 +4302,7 @@ function applyCityFromPicker() {
             );
         });
     }
-    // Загружаем парковки заново для выбранного города
-    loadAllParkings(city, true).catch(err => {
-        console.error(
-            'Ошибка загрузки парковок города:',
-            city,
-            err
-        );
-    });
+   showParkingsForCity(city);
 }
 function getCityCoordinates(city) {
     if (cityCoords && cityCoords.lat && cityCoords.lng) {
