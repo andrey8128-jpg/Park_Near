@@ -91,7 +91,6 @@
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
 const savedPrefs = localStorage.getItem('parknear_city');
-
 if (savedCity) {
     currentCity = savedCity;
     try {
@@ -99,7 +98,9 @@ if (savedCity) {
         userCityPrefs.city = prefs.city || savedCity;
         userCityPrefs.region = prefs.region || '';
     } catch (e) {
+        console.warn('⚠️ Не удалось прочитать настройки города:', e);
         userCityPrefs.city = savedCity;
+        userCityPrefs.region = '';
     }
 } else {
     currentCity = '';
