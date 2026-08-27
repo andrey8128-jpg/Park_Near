@@ -202,7 +202,7 @@ body {
     position: fixed; /* карта закреплена относительно экрана */
     inset: 0; /* карта касается всех четырёх краёв экрана */
     width: 100%; /* ширина всей области просмотра */
-    height: 100%; /* высота всей реальной области просмотра */
+    height: 100dvh; /* высота всей реальной области просмотра */
     margin: 0; /* убирает внешний отступ */
     padding: 0; /* убирает внутренний отступ */
     z-index: 1; /* карта находится ниже Splash и плавающих элементов */
@@ -435,12 +435,12 @@ body.dark-theme #geoBtn {
 .tab .icon svg {
     width: 24px;
     height: 24px;
-    fill: #E2E2E0;
+    fill:var(--tab-icon);
     transition: fill 0.3s ease, transform 0.3s ease;
 }
 .tab .label {
     font-size: 10px;
-    color: #E2E2E0;
+    color: var(--tab-label);
     font-weight: 500;
     transition: color 0.3s ease;
     margin-top: 2px;
