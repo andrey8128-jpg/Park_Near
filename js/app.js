@@ -7073,6 +7073,17 @@ function initApp() {
     if (!map) {
         initMap();
     }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/Park_Near/sw.js', {
+        scope: '/Park_Near/'
+    })
+    .then(registration => {
+        console.log('✅ Service Worker зарегистрирован:', registration.scope);
+    })
+    .catch(error => {
+        console.error('❌ Ошибка регистрации Service Worker:', error);
+    });
+}
     // ✅ ИСПРАВЛЕНО: передаём текущий город
     loadAllParkings();
     initPullToRefresh();
