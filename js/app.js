@@ -1908,14 +1908,16 @@ function initMap() {
                 });
         }, 1000);
 
-        // ===== Скрываем сплеш-экран =====
+       // ===== Скрываем сплеш-экран =====
+setTimeout(function() {
+    const splash = document.getElementById('splashScreen');
+    if (splash) {
+        splash.classList.add('splash-hidden');
         setTimeout(function() {
-            const splash = document.getElementById('splashScreen');
-            if (splash) {
-                splash.style.opacity = '0';
-                setTimeout(function() { splash.remove(); }, 300);
-            }
-        }, 5000);
+            splash.remove();
+        }, 700);
+    }
+}, 5000);
 
     } catch (e) {
 
