@@ -5292,8 +5292,8 @@ function saveCityFromSettingsInline() {
         }
 
         contentEl.innerHTML = html;
-    }
-
+syncThemeToggles();
+}
     function updateCitySelectInSettings() {
         const region = document.getElementById('settingsRegion')?.value;
         const citySelect = document.getElementById('settingsCity');
@@ -6116,7 +6116,14 @@ function createAuthScreenFallback() {
         renderSlide(0);
     }
     // ===================== НАСТРОЙКИ =====================
-    function toggleTheme() {
+   function syncThemeToggles() {
+    const isDark = document.body.classList.contains('dark-theme');
+    const toggle1 = document.getElementById('settingsThemeToggle');
+    const toggle2 = document.getElementById('settingsThemeToggleInline');
+    if (toggle1) toggle1.checked = isDark;
+    if (toggle2) toggle2.checked = isDark;
+}
+     function toggleTheme() {
     var isDark = document.body.classList.toggle('dark-theme');
     localStorage.setItem('darkTheme', isDark ? '1' : '0');
 
@@ -6135,11 +6142,7 @@ function createAuthScreenFallback() {
         tabBar.style.background = '';
     }
 
-    // Синхронизируем все переключатели темы
-    var toggle1 = document.getElementById('settingsThemeToggle');
-    var toggle2 = document.getElementById('settingsThemeToggleInline');
-    if (toggle1) toggle1.checked = isDark;
-    if (toggle2) toggle2.checked = isDark;
+    syncThemeToggles();
 
     if (window.Telegram && window.Telegram.WebApp) {
         try {
