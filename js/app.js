@@ -3271,11 +3271,12 @@ function loadHistoryPreview(parkingId) {
         currentParkingData = { ...currentParkingData, ...updates };
         parkingDataCache[currentParkingId] = currentParkingData;
         updateOccupancyDisplay(currentParkingData.occupiedSpots);
-        refreshParkingMarker();
-
-        // ✅ Пересчитываем кластеры
-        if (clusterer) clusterer.reload();
-
+       refreshParkingMarker();
+       const updatedPlacemark=mapMarkers[currentParkingId];
+       if(clusterer&&updatedPlacemark){
+       clusterer.remove(updatedPlacemark);
+       clusterer.add(updatedPlacemark);
+}
         // ... остальной код (закрытие панели, обновление интерфейса)
         closePanel();
         showMap();
@@ -3362,11 +3363,12 @@ function loadHistoryPreview(parkingId) {
         if (id === currentParkingId && currentParkingData) currentParkingData.occupiedSpots = newOccupied;
 
         updateOccupancyDisplay(newOccupied);
-        refreshParkingMarker();
-
-        // ✅ Пересчитываем кластеры, чтобы обновить сумму на иконках
-        if (clusterer) clusterer.reload();
-
+       refreshParkingMarker();
+       const updatedPlacemark=mapMarkers[id];
+       if(clusterer&&updatedPlacemark){
+       clusterer.remove(updatedPlacemark);
+       clusterer.add(updatedPlacemark);
+}
         if (document.getElementById('historyList')) loadHistoryPreview(id);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
@@ -3428,8 +3430,7 @@ async function deleteParking(parkingId) {
 
         delete parkingDataCache[parkingId];
 
-        // ✅ Пересчитываем кластеры
-        if (clusterer) clusterer.reload();
+        updateTotalFreeCircle();
 
         closePanel();
         showMap();
