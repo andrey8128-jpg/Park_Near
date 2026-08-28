@@ -2157,8 +2157,9 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             initMiniMap(coordinates);
             // Автозаполнение адреса
             if (coordinates && coordinates.length > 0) {
-                const center = coordinates[0];
-                ymaps.geocode(center, { results: 1 })
+                const centerLat = coordinates.reduce((sum, c) => sum + Number(c[0]), 0) / coordinates.length;
+                const centerLng = coordinates.reduce((sum, c) => sum + Number(c[1]), 0) / coordinates.length;
+             ymaps.geocode([centerLat, centerLng], { results: 1 })
                     .then(res => {
                         const geo = res.geoObjects.get(0);
                         if (geo) {
@@ -2198,212 +2199,81 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
         miniMap.geoObjects.add(polygon);
         miniMap.setBounds(polygon.geometry.getBounds(), { checkZoomRange: true });
     }
-async function getAddressByCoordinates(lat, lng) {
-    const latitude = Number(lat);
-    const longitude = Number(lng);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-        console.error('❌ Некорректные координаты:', lat, lng);
+async function getAddressByCoordinates(lat,lng){
+    const latitude=Number(lat);
+    const longitude=Number(lng);
+    if(!Number.isFinite(latitude)||!Number.isFinite(longitude)){
+        console.error('❌ Некорректные координаты:',lat,lng);
         return null;
     }
-    try {
-        if (typeof ymaps === 'undefined' || !ymaps.geocode) {
-            throw new Error('Яндекс.Геокодер недоступен');
+    if(typeof ymaps==='undefined'||!ymaps.geocode){
+        console.error('❌ Яндекс.Геокодер недоступен');
+        return null;
+    }
+    try{
+        const result=await ymaps.geocode([latitude,longitude],{results:1});
+        const geo=result.geoObjects.get(0);
+        if(!geo){
+            console.warn('⚠️ Яндекс не вернул адрес');
+            return null;
         }
-        // 1. Основной запрос — точный адрес
-        const result = await ymaps.geocode(
-            [latitude, longitude],
-            { results: 1 }
-        );
-        const geo = result.geoObjects.get(0);
-        if (!geo) {
-            throw new Error('Яндекс не вернул объект адреса');
-        }
-        const address = geo.getAddressLine() || '';
-        let city = '';
-        let region = '';
-        let street = '';
-        let houseNumber = '';
-        // 2. Получаем структурированные компоненты
-        const meta = geo.properties.get(
-            'metaDataProperty.GeocoderMetaData'
-        );
-        const components =
-            meta?.Address?.Components || [];
-        components.forEach(component => {
-            const kind = component.kind;
-            const name = String(component.name || '').trim();
-            if (!name) return;
-            if (!city && (
-                kind === 'locality' ||
-                kind === 'area'
-            )) {
-                city = name;
-            }
-            if (!region && (
-                kind === 'province' ||
-                kind === 'region'
-            )) {
-                region = name;
-            }
-            if (kind === 'street' && !street) {
-                street = name;
-            }
-            if (kind === 'house' && !houseNumber) {
-                houseNumber = name;
-            }
+        const address=geo.getAddressLine()||'';
+        let city='';
+        let region='';
+        let street='';
+        let houseNumber='';
+        const meta=geo.properties.get('metaDataProperty.GeocoderMetaData');
+        const components=meta?.Address?.Components||[];
+        components.forEach(component=>{
+            const kind=component.kind;
+            const name=String(component.name||'').trim();
+            if(!name)return;
+            if(!city&&(kind==='locality'||kind==='area'))city=name;
+            else if(!region&&(kind==='province'||kind==='region'))region=name;
+            else if(!street&&kind==='street')street=name;
+            else if(!houseNumber&&kind==='house')houseNumber=name;
         });
-        // 3. Резервный способ определения города
-        if (!city && typeof geo.getLocalities === 'function') {
-            const localities = geo.getLocalities();
-            if (Array.isArray(localities) && localities.length) {
-                city = String(
-                    localities[0] || ''
-                ).trim();
+        if(!city&&typeof geo.getLocalities==='function'){
+            const localities=geo.getLocalities();
+            if(Array.isArray(localities)&&localities.length){
+                city=String(localities[localities.length-1]||'').trim();
             }
         }
-        // 4. Резервный способ определения региона
-        if (!region && typeof geo.getAdministrativeAreas === 'function') {
-            const areas = geo.getAdministrativeAreas();
-            if (Array.isArray(areas) && areas.length) {
-                region = String(
-                    areas[areas.length - 1] || ''
-                ).trim();
+        if(!region&&typeof geo.getAdministrativeAreas==='function'){
+            const areas=geo.getAdministrativeAreas();
+            if(Array.isArray(areas)&&areas.length){
+                region=String(areas[areas.length-1]||'').trim();
             }
         }
-        // 5. Последний резерв — твой parseAddress()
-        if ((!city || !region) && address) {
-            try {
-                const parsed = parseAddress(address);
-                if (!city && parsed?.city) {
-                    city = parsed.city;
-                }
-                if (!region && parsed?.region) {
-                    region = parsed.region;
-                }
-                if (!street && parsed?.street) {
-                    street = parsed.street;
-                }
-                if (!houseNumber && parsed?.houseNumber) {
-                    houseNumber = parsed.houseNumber;
-                }
-            } catch (parseError) {
-                console.warn(
-                    '⚠️ Ошибка резервного разбора адреса:',
-                    parseError
-                );
+        if((!city||!region)&&address&&typeof parseAddress==='function'){
+            try{
+                const parsed=parseAddress(address)||{};
+                if(!city&&parsed.city)city=String(parsed.city).trim();
+                if(!region&&parsed.region)region=String(parsed.region).trim();
+                if(!street&&parsed.street)street=String(parsed.street).trim();
+                if(!houseNumber&&parsed.houseNumber)houseNumber=String(parsed.houseNumber).trim();
+            }catch(error){
+                console.warn('⚠️ Ошибка parseAddress:',error);
             }
         }
-        // 6. Если город всё ещё неизвестен,
-        // делаем отдельный запрос именно на населённый пункт
-        if (!city) {
-            try {
-                const localityResult = await ymaps.geocode(
-                    [latitude, longitude],
-                    {
-                        kind: 'locality',
-                        results: 1
-                    }
-                );
-                const localityGeo =
-                    localityResult.geoObjects.get(0);
-                if (localityGeo) {
-                    const localities =
-                        typeof localityGeo.getLocalities === 'function'
-                            ? localityGeo.getLocalities()
-                            : [];
-                    if (localities?.length) {
-                        city = String(
-                            localities[0] || ''
-                        ).trim();
-                    }
-                    if (!city) {
-                        const localityMeta =
-                            localityGeo.properties.get(
-                                'metaDataProperty.GeocoderMetaData'
-                            );
-                        const localityComponents =
-                            localityMeta?.Address?.Components || [];
-                        const localityComponent =
-                            localityComponents.find(
-                                component =>
-                                    component.kind === 'locality' ||
-                                    component.kind === 'area'
-                            );
-                        if (localityComponent?.name) {
-                            city =
-                                String(localityComponent.name).trim();
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn(
-                    '⚠️ Не удалось получить locality:',
-                    e
-                );
-            }
-        }
-        // 7. Отдельно определяем регион, если его всё ещё нет
-        if (!region) {
-            try {
-                const provinceResult = await ymaps.geocode(
-                    [latitude, longitude],
-                    {
-                        kind: 'province',
-                        results: 1
-                    }
-                );
-                const provinceGeo =
-                    provinceResult.geoObjects.get(0);
-                if (provinceGeo) {
-                    const areas =
-                        typeof provinceGeo.getAdministrativeAreas === 'function'
-                            ? provinceGeo.getAdministrativeAreas()
-                            : [];
-                    if (areas?.length) {
-                        region = String(
-                            areas[areas.length - 1] || ''
-                        ).trim();
-                    }
-                    if (!region) {
-                        const provinceMeta =
-                            provinceGeo.properties.get(
-                                'metaDataProperty.GeocoderMetaData'
-                            );
-                        const provinceComponents =
-                            provinceMeta?.Address?.Components || [];
-                        const provinceComponent =
-                            provinceComponents.find(
-                                component =>
-                                    component.kind === 'province' ||
-                                    component.kind === 'region'
-                            );
-                        if (provinceComponent?.name) {
-                            region =
-                                String(provinceComponent.name).trim();
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn(
-                    '⚠️ Не удалось получить province:',
-                    e
-                );
-            }
-        }
-        const resultData = {
+        console.log('📍 Геокодирование:',{
+            lat:latitude,
+            lng:longitude,
+            address,
+            city,
+            region,
+            street,
+            houseNumber
+        });
+        return{
             address,
             city,
             region,
             street,
             houseNumber
         };
-        console.log('📍 Результат геокодирования:', resultData);
-        return resultData;
-    } catch (error) {
-        console.error(
-            '❌ Ошибка определения адреса:',
-            error
-        );
+    }catch(error){
+        console.error('❌ Ошибка геокодирования:',error);
         return null;
     }
 }
@@ -2431,282 +2301,163 @@ async function fixParkingCity(parkingId, city, region) {
     }
 }
     async function submitParkingWithPolygon() {
-    const streetType = document.getElementById('parkStreetType')?.value || '';
-    const streetName = document.getElementById('parkStreetName')?.value.trim() || '';
-    const houseNumber = document.getElementById('parkHouseNumber')?.value.trim() || '';
-    const totalSpots = parseInt(document.getElementById('parkSpots')?.value, 10);
-
-    if (!currentUser) {
-        console.error('❌ Ошибка: пользователь не авторизован');
+    const streetType=document.getElementById('parkStreetType')?.value?.trim()||'';
+    const streetName=document.getElementById('parkStreetName')?.value?.trim()||'';
+    const houseNumber=document.getElementById('parkHouseNumber')?.value?.trim()||'';
+    const totalSpots=parseInt(document.getElementById('parkSpots')?.value,10);
+    if(!currentUser){
+        console.error('❌ Пользователь не авторизован');
         return;
     }
-    if (!totalSpots || totalSpots < 1) {
-        console.error('❌ Укажите количество парковочных мест');
+    if(!totalSpots||totalSpots<1){
+        alert('Укажите количество парковочных мест');
         return;
     }
-    if (!streetType && !streetName && !houseNumber) {
-        console.error('❌ Введите хотя бы улицу или номер дома');
-        return;
+    let coordsToSave=window.newParkingCoords||newParkingCoords;
+    if(!coordsToSave&&drawingPolygon?.geometry){
+        const raw=drawingPolygon.geometry.getCoordinates()[0];
+        coordsToSave=raw.map(c=>[Number(c[0]),Number(c[1])]);
     }
-    let coordsToSave = window.newParkingCoords || newParkingCoords;
-
-    if (!coordsToSave && drawingPolygon?.geometry) {
-        const raw = drawingPolygon.geometry.getCoordinates()[0];
-        coordsToSave = raw.map(c => [Number(c[0]), Number(c[1])]);
-    }
-    if (!coordsToSave || coordsToSave.length < 3) {
+    if(!coordsToSave||coordsToSave.length<3){
         console.error('❌ Координаты парковки не найдены');
+        alert('Не найдены координаты парковочной зоны');
         return;
     }
-    const btn = document.getElementById('saveParkBtn');
-    if (btn) {
-        btn.textContent = 'Определение адреса...';
-        btn.disabled = true;
+    const btn=document.getElementById('saveParkBtn');
+    const originalText=btn?.textContent||'Сохранить парковку';
+    if(btn){
+        btn.disabled=true;
+        btn.textContent='Определяем адрес...';
     }
-    try {
-        const centerLat = coordsToSave.reduce((sum, c) => sum + Number(c[0]), 0) / coordsToSave.length;
-        const centerLng = coordsToSave.reduce((sum, c) => sum + Number(c[1]), 0) / coordsToSave.length;
-
-        console.log('📍 Координаты парковки:', centerLat, centerLng);
-
-        const fullStreet = streetType && streetName
-            ? `${streetType} ${streetName}`
-            : streetName;
-
-        let name = fullStreet;
-        if (houseNumber) {
-            name = name
-                ? `${name}, ${houseNumber}`
-                : houseNumber;
+    try{
+        const centerLat=coordsToSave.reduce((sum,c)=>sum+Number(c[0]),0)/coordsToSave.length;
+        const centerLng=coordsToSave.reduce((sum,c)=>sum+Number(c[1]),0)/coordsToSave.length;
+        console.log('📍 Координаты парковки:',centerLat,centerLng);
+        if(btn)btn.textContent='Определяем город...';
+        const geoData=await getAddressByCoordinates(centerLat,centerLng);
+        const detectedCity=String(geoData?.city||'').trim();
+        const detectedRegion=String(geoData?.region||'').trim();
+        const detectedAddress=String(geoData?.address||'').trim();
+        const detectedStreet=String(geoData?.street||'').trim();
+        const detectedHouseNumber=String(geoData?.houseNumber||'').trim();
+        console.log('🏙️ Город:',detectedCity);
+        console.log('🗺️ Регион:',detectedRegion);
+        console.log('📬 Адрес:',detectedAddress);
+        if(!detectedCity){
+            throw new Error('Яндекс.Карты не смогли определить город по координатам');
         }
-        if (!name) {
-            name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
-        }
-        // ============================================================
-        // ОПРЕДЕЛЯЕМ ГОРОД, РЕГИОН И АДРЕС ПО КООРДИНАТАМ
-        // ============================================================
-
-        if (btn) btn.textContent = 'Определение города...';
-
-        const geoData = await getAddressByCoordinates(centerLat, centerLng);
-
-        console.log('🗺️ Ответ геокодера:', geoData);
-
-        const detectedCity = geoData?.city || '';
-        const detectedRegion = geoData?.region || '';
-      if (!detectedCity || !detectedRegion) {
-    console.error('❌ Не удалось определить город или регион:', {
-        lat: centerLat,
-        lng: centerLng,
-        geoData
-    });
-
-    alert(
-        'Не удалось определить город парковки по координатам.\n' +
-        'Проверьте интернет-соединение и попробуйте сохранить ещё раз.'
-    );
-
-    return;
-}
-        const detectedAddress = geoData?.address || '';
-        const detectedStreet = geoData?.street || '';
-        const detectedHouseNumber = geoData?.houseNumber || '';
-
-        if (!detectedCity) {
-            console.warn('⚠️ Яндекс не вернул город для координат:', centerLat, centerLng);
-        }
-
-        if (!detectedRegion) {
-            console.warn('⚠️ Яндекс не вернул регион для координат:', centerLat, centerLng);
-        }
-
-        console.log('🏙️ Город парковки:', detectedCity);
-        console.log('🗺️ Регион парковки:', detectedRegion);
-        console.log('🏠 Адрес парковки:', detectedAddress);
-
-        // ============================================================
-        // ФОРМИРУЕМ ДАННЫЕ ПАРКОВКИ
-        // ============================================================
-
-        const finalStreet = fullStreet || detectedStreet;
-        const finalHouseNumber = houseNumber || detectedHouseNumber;
-
-        const finalAddress = detectedAddress ||
-            [detectedCity, finalStreet, finalHouseNumber]
-                .filter(Boolean)
-                .join(', ') ||
-            `${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}`;
-
-        const parkingData = {
-            lat: centerLat,
-            lng: centerLng,
-            coordinates: coordsToSave,
-            totalSpots: totalSpots,
-            occupiedSpots: 0,
-            name: name,
-            isPaid: false,
-            address: finalAddress,
-
-            // ВАЖНО:
-            // город и регион берутся из координат,
-            // а НЕ из currentCity
-            city: detectedCity,
-            region: detectedRegion,
-
-            street: finalStreet,
-            houseNumber: finalHouseNumber,
-
-            authorId: currentUser.id,
-            authorName: currentUser.firstName || '',
-            authorUsername: currentUser.username || '',
-            lastUpdatedAt: Date.now(),
-            lastUpdatedBy:
-                currentUser.nickname ||
-                currentUser.firstName ||
-                currentUser.username ||
-                'Пользователь',
-            timestamp: Date.now(),
-            status: 'unknown',
-            statusConfirmations: 0
+        const fullStreet=streetType&&streetName?`${streetType} ${streetName}`:streetName;
+        const finalStreet=fullStreet||detectedStreet;
+        const finalHouseNumber=houseNumber||detectedHouseNumber;
+        const finalAddress=detectedAddress||[detectedCity,finalStreet,finalHouseNumber].filter(Boolean).join(', ');
+        const name=fullStreet&&houseNumber?`${fullStreet}, ${houseNumber}`:finalAddress||`Парковка ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
+        const now=Date.now();
+        const parkingData={
+            lat:centerLat,
+            lng:centerLng,
+            coordinates:coordsToSave,
+            totalSpots,
+            occupiedSpots:0,
+            name,
+            isPaid:false,
+            address:finalAddress,
+            city:detectedCity,
+            region:detectedRegion,
+            street:finalStreet,
+            houseNumber:finalHouseNumber,
+            authorId:currentUser.id,
+            authorName:currentUser.firstName||currentUser.username||'',
+            authorUsername:currentUser.username||'',
+            lastUpdatedAt:now,
+            lastUpdatedBy:currentUser.nickname||currentUser.firstName||currentUser.username||'Пользователь',
+            timestamp:now,
+            status:'unknown',
+            statusConfirmations:0
         };
-
-        console.log('💾 Данные парковки перед сохранением:', parkingData);
-
-        // ============================================================
-        // СОЗДАЁМ УНИКАЛЬНЫЙ КЛЮЧ FIREBASE
-        // ============================================================
-
-        const cleanKeyPart = value => String(value || '')
-            .trim()
-            .replace(/[.#$/[\]]/g, '')
-            .replace(/\s+/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
-
-        const cityKey = cleanKeyPart(detectedCity);
-        const streetKey = cleanKeyPart(finalStreet);     
-        const houseKey = cleanKeyPart(finalHouseNumber);
-
-        const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
-
-        let number = 1;
-        let parkingKey = `${baseKey}_(${number})`;
-
-        while ((await database.ref(`parkings/${parkingKey}`).once('value')).exists()) {
+        console.log('💾 Парковка перед сохранением:',parkingData);
+        const cleanKeyPart=value=>String(value||'').trim().replace(/[.#$/[\]]/g,'').replace(/\s+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+        const cityKey=cleanKeyPart(detectedCity);
+        const streetKey=cleanKeyPart(finalStreet)||'Неизвестная_улица';
+        const houseKey=cleanKeyPart(finalHouseNumber)||'Без_дома';
+        const baseKey=`${cityKey}_${streetKey}_${houseKey}`;
+        let number=1;
+        let parkingKey=`${baseKey}_(${number})`;
+        while((await database.ref(`parkings/${parkingKey}`).once('value')).exists()){
             number++;
-            parkingKey = `${baseKey}_(${number})`;
+            parkingKey=`${baseKey}_(${number})`;
         }
-
-        console.log('🔑 Ключ Firebase:', parkingKey);
-
-        // ============================================================
-        // СОХРАНЯЕМ В FIREBASE
-        // ============================================================
-
-        if (btn) btn.textContent = 'Сохранение...';
-
-        const parkingRef = database.ref(`parkings/${parkingKey}`);
-
+        console.log('🔑 Ключ Firebase:',parkingKey);
+        if(btn)btn.textContent='Сохраняем...';
+        const parkingRef=database.ref(`parkings/${parkingKey}`);
         await parkingRef.set(parkingData);
-
-        // ============================================================
-        // СТАТИСТИКА ПОЛЬЗОВАТЕЛЯ
-        // ============================================================
-
-        await database.ref(`users/${currentUser.id}/stats/parkingsCreated`)
-            .transaction(count => (count || 0) + 1);
-
-        // ============================================================
-        // ИСТОРИЯ СОЗДАНИЯ
-        // ============================================================
-
-        await parkingRef.child('history').push({
-            action: 'created',
-            timestamp: Date.now(),
-            userId: currentUser.id,
-            username: currentUser.username || ''
-        });
-
-        // ============================================================
-        // ОБНОВЛЯЕМ КАРТУ
-        // ============================================================
-
-        addMarkerToMap(parkingKey, parkingData);
-
-        if (drawingPolygon) {
-            try {
+        console.log('✅ Основные данные парковки записаны в Firebase');
+        try{
+            await database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count=>(count||0)+1);
+        }catch(error){
+            console.warn('⚠️ Не удалось обновить статистику:',error);
+        }
+        try{
+            await parkingRef.child('history').push({
+                action:'created',
+                timestamp:now,
+                userId:currentUser.id,
+                username:currentUser.username||''
+            });
+        }catch(error){
+            console.warn('⚠️ Не удалось сохранить history:',error);
+        }
+        parkingDataCache[parkingKey]={...parkingData,id:parkingKey};
+        try{
+            addMarkerToMap(parkingKey,parkingData);
+        }catch(error){
+            console.warn('⚠️ Маркер не добавлен:',error);
+        }
+        if(drawingPolygon){
+            try{
                 map.geoObjects.remove(drawingPolygon);
-            } catch (e) {
-                console.warn('⚠️ Не удалось удалить полигон:', e);
+            }catch(error){
+                console.warn('⚠️ Не удалось удалить полигон:',error);
             }
-
-            drawingPolygon = null;
+            drawingPolygon=null;
         }
-
-        window.newParkingCoords = null;
-        newParkingCoords = null;
-
-        // ============================================================
-        // ЦЕНТРИРУЕМ КАРТУ
-        // ============================================================
-
-        if (map) {
-            map.setCenter(
-                [centerLat, centerLng],
-                17,
-                { duration: 500 }
-            );
+        window.newParkingCoords=null;
+        newParkingCoords=null;
+        if(map){
+            map.setCenter([centerLat,centerLng],17,{duration:500});
         }
-
-        // ============================================================
-        // ОБНОВЛЯЕМ КЛАСТЕР
-        // ============================================================
-
-        if (clusterer) {
-            try {
+        try{
+            if(clusterer){
                 clusterer.removeAll();
-                clusterer.add(map.geoObjects);
-            } catch (e) {
-                console.warn('⚠️ Ошибка обновления кластеров:', e);
+                Object.entries(parkingDataCache).forEach(([id,parking])=>{
+                    const parkingCity=String(parking.city||'').trim().toLowerCase();
+                    if(parkingCity===detectedCity.trim().toLowerCase()){
+                        addMarkerToMap(id,parking);
+                    }
+                });
             }
+        }catch(error){
+            console.warn('⚠️ Ошибка обновления кластера:',error);
         }
-
-        // ============================================================
-        // ОБНОВЛЯЕМ СПИСОК
-        // ============================================================
-
-        if (typeof filterParkings === 'function' &&
-            document.getElementById('searchResults')) {
-            filterParkings();
+        try{
+            if(typeof filterParkings==='function'&&document.getElementById('searchResults')){
+                filterParkings();
+            }
+        }catch(error){
+            console.warn('⚠️ Ошибка обновления списка:',error);
         }
-
-        console.log('✅ Парковка сохранена:', parkingKey);
-        console.log('🏙️ Сохранённый город:', parkingData.city);
-        console.log('🗺️ Сохранённый регион:', parkingData.region);
-
-        // ============================================================
-        // ЗАКРЫВАЕМ ПАНЕЛЬ
-        // ============================================================
-
-        setTimeout(() => {
-            if (typeof closePanel === 'function') {
-                closePanel();
-            }
-
-            if (typeof showMap === 'function') {
-                showMap();
-            }
-        }, 100);
-
-    } catch (error) {
-        console.error('❌ Ошибка сохранения парковки:', error);
-
-        alert('Не удалось сохранить парковку.');
-
-    } finally {
-        if (btn) {
-            btn.textContent = 'Сохранить парковку';
-            btn.disabled = false;
+        console.log('✅ ПАРКОВКА ПОЛНОСТЬЮ СОХРАНЕНА');
+        console.log('🏙️ Город:',detectedCity);
+        console.log('🗺️ Регион:',detectedRegion);
+        console.log('🔑 ID:',parkingKey);
+        if(typeof closePanel==='function')closePanel();
+        if(typeof showMap==='function')showMap();
+    }catch(error){
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА СОХРАНЕНИЯ:',error);
+        alert(`Не удалось сохранить парковку.\n${error.message||'Неизвестная ошибка'}`);
+    }finally{
+        if(btn){
+            btn.textContent=originalText;
+            btn.disabled=false;
         }
     }
 }
