@@ -2249,6 +2249,29 @@ async function getAddressByCoordinates(lat, lng) {
         return null;
     }
 }
+async function fixParkingCity(parkingId, city, region) {
+    if (!parkingId || !city) {
+        console.error('Не указан ID парковки или город');
+        return;
+    }
+    try {
+        await database.ref(`parkings/${parkingId}`).update({
+            city: city.trim(),
+            region: region ? region.trim() : ''
+        });
+        console.log('✅ Город парковки обновлён:', {
+            parkingId,
+            city,
+            region
+        });
+        if (parkingDataCache[parkingId]) {
+            parkingDataCache[parkingId].city = city.trim();
+            parkingDataCache[parkingId].region = region ? region.trim() : '';
+        }
+    } catch (error) {
+        console.error('❌ Ошибка изменения города:', error);
+    }
+}
     async function submitParkingWithPolygon() {
     const streetType = document.getElementById('parkStreetType')?.value || '';
     const streetName = document.getElementById('parkStreetName')?.value.trim() || '';
@@ -2259,35 +2282,29 @@ async function getAddressByCoordinates(lat, lng) {
         console.error('❌ Ошибка: пользователь не авторизован');
         return;
     }
-
     if (!totalSpots || totalSpots < 1) {
         console.error('❌ Укажите количество парковочных мест');
         return;
     }
-
     if (!streetType && !streetName && !houseNumber) {
         console.error('❌ Введите хотя бы улицу или номер дома');
         return;
     }
-
     let coordsToSave = window.newParkingCoords || newParkingCoords;
 
     if (!coordsToSave && drawingPolygon?.geometry) {
         const raw = drawingPolygon.geometry.getCoordinates()[0];
         coordsToSave = raw.map(c => [Number(c[0]), Number(c[1])]);
     }
-
     if (!coordsToSave || coordsToSave.length < 3) {
         console.error('❌ Координаты парковки не найдены');
         return;
     }
-
     const btn = document.getElementById('saveParkBtn');
     if (btn) {
         btn.textContent = 'Определение адреса...';
         btn.disabled = true;
     }
-
     try {
         const centerLat = coordsToSave.reduce((sum, c) => sum + Number(c[0]), 0) / coordsToSave.length;
         const centerLng = coordsToSave.reduce((sum, c) => sum + Number(c[1]), 0) / coordsToSave.length;
@@ -2299,17 +2316,14 @@ async function getAddressByCoordinates(lat, lng) {
             : streetName;
 
         let name = fullStreet;
-
         if (houseNumber) {
             name = name
                 ? `${name}, ${houseNumber}`
                 : houseNumber;
         }
-
         if (!name) {
             name = `${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
         }
-
         // ============================================================
         // ОПРЕДЕЛЯЕМ ГОРОД, РЕГИОН И АДРЕС ПО КООРДИНАТАМ
         // ============================================================
