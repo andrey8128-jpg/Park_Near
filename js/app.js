@@ -4721,205 +4721,259 @@ function focusMap(lat, lng, parkingId) {
 
     // ===================== ПРОФИЛЬ =====================
 function renderProfile(content) {
+    if (!content) return;
     if (!currentUser) {
         content.innerHTML = `
-            <div class="profile-header">
-                <div class="profile-avatar">👤</div>
-                <div class="profile-name">Добро пожаловать</div>
-                <div class="profile-username">Войдите, чтобы сохранять данные</div>
-            </div>
-            <button class="telegram-btn" onclick="openTelegramBot()">Войти через Telegram</button>
-            <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
-        `;
+            <div class="pn-profile-login">
+                <div class="pn-profile-login-icon">👤</div>
+                <h2>Добро пожаловать</h2>
+                <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
+                <button class="telegram-btn" onclick="openTelegramBot()">Войти через Telegram</button>
+                <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
+            </div>`;
         return;
     }
 
     const isGuest = currentUser.id.startsWith('guest_');
 
-    database.ref(`users/${currentUser.id}/stats`).once('value').then(statsSnap => {
+    Promise.all([
+        database.ref(`users/${currentUser.id}/stats`).once('value'),
+        database.ref(`users/${currentUser.id}/car`).once('value'),
+        database.ref(`users/${currentUser.id}/cityPreferences`).once('value'),
+        database.ref(`users/${currentUser.id}/favorites`).once('value')
+    ]).then(([statsSnap, carSnap, citySnap, favSnap]) => {
         const stats = statsSnap.val() || {};
-        database.ref(`users/${currentUser.id}/car`).once('value').then(carSnap => {
-            const car = carSnap.val() || {};
-            database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(prefSnap => {
-                const prefs = prefSnap.val() || { region: '', city: '' };
-                userCityPrefs = prefs;
+        const car = carSnap.val() || {};
+        const prefs = citySnap.val() || userCityPrefs || {};
+        const favorites = favSnap.val() || {};
 
-                // ---- Расчёт XP и уровня ----
-                const created = stats.parkingsCreated || 0;
-                const updated = stats.parkingsUpdated || 0;
-                const confirmations = stats.confirmations || 0;
-                const views = stats.views || 0;
-                const favorites = stats.favorites || 0;
-                const activeDates = stats.activeDates || [];
-                const score = (created * 25) + (updated * 5) + (confirmations * 5) + Math.floor(views / 5) + (favorites * 5) + (activeDates.length * 5);
+        userCityPrefs = prefs;
 
-                const levels = [
-                    { xp: 0, name: "Пешеход", emoji: "👣" },
-                    { xp: 1000, name: "Водитель-любитель", emoji: "🚗" },
-                    { xp: 3000, name: "Начинающий парковщик", emoji: "🅿️" },
-                    { xp: 5000, name: "Городской водитель", emoji: "🏙️" },
-                    { xp: 10000, name: "Наблюдатель", emoji: "🔭" },
-                    { xp: 20000, name: "Помощник района", emoji: "🤝" },
-                    { xp: 40000, name: "Картограф", emoji: "🗺️" },
-                    { xp: 70000, name: "Инспектор", emoji: "👮" },
-                    { xp: 110000, name: "Ветеран дорог", emoji: "🏅" },
-                    { xp: 150000, name: "Страж парковки", emoji: "⚖️" },
-                    { xp: 250000, name: "Архитектор города", emoji: "🏗️" },
-                    { xp: 500000, name: "Легенда ParkNear", emoji: "💎" }
-                ];
+        const created = Number(stats.parkingsCreated || 0);
+        const updated = Number(stats.parkingsUpdated || 0);
+        const confirmations = Number(stats.confirmations || 0);
+        const views = Number(stats.views || 0);
+        const favoritesCount = Object.keys(favorites).length || Number(stats.favorites || 0);
+        const activeDates = Array.isArray(stats.activeDates) ? stats.activeDates : [];
 
-                let currentLevel = levels[0];
-                let nextLevel = levels[1];
-                for (let i = levels.length - 1; i >= 0; i--) {
-                    if (score >= levels[i].xp) {
-                        currentLevel = levels[i];
-                        nextLevel = levels[i + 1] || levels[i];
-                        break;
-                    }
-                }
+        const score =
+            created * 25 +
+            updated * 5 +
+            confirmations * 5 +
+            Math.floor(views / 5) +
+            favoritesCount * 5 +
+            activeDates.length * 5;
 
-                const xpForCurrent = currentLevel.xp;
-                const xpForNext = nextLevel.xp;
-                const xpProgress = xpForNext > xpForCurrent ? (score - xpForCurrent) / (xpForNext - xpForCurrent) : 1;
-                const progressPercent = Math.min(100, Math.round(xpProgress * 100));
-                const circumference = 2 * Math.PI * 45;
-                const strokeDashoffset = circumference * (1 - progressPercent / 100);
+        const levels = [
+            {xp:0,name:'Пешеход',emoji:'👣'},
+            {xp:1000,name:'Водитель-любитель',emoji:'🚗'},
+            {xp:3000,name:'Начинающий парковщик',emoji:'🅿️'},
+            {xp:5000,name:'Городской водитель',emoji:'🏙️'},
+            {xp:10000,name:'Наблюдатель',emoji:'🔭'},
+            {xp:20000,name:'Помощник района',emoji:'🤝'},
+            {xp:40000,name:'Картограф',emoji:'🗺️'},
+            {xp:70000,name:'Инспектор',emoji:'👮'},
+            {xp:110000,name:'Ветеран дорог',emoji:'🏅'},
+            {xp:150000,name:'Страж парковки',emoji:'⚖️'},
+            {xp:250000,name:'Архитектор города',emoji:'🏗️'},
+            {xp:500000,name:'Легенда ParkNear',emoji:'💎'}
+        ];
 
-                // ---- Шапка профиля с круговым индикатором ----
-                let html = `
-                    <div style="display: flex; align-items: center; padding: 20px 0 16px; gap: 16px;">
-                        <div style="font-size: 64px; flex-shrink: 0;">
-                            ${currentUser.photoUrl ? `<img src="${currentUser.photoUrl}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">` : '👤'}
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="font-size: 20px; font-weight: 700;">${currentUser.firstName}</div>
-                            <div style="font-size: 15px; color: var(--text-secondary);">@${currentUser.nickname || currentUser.username}</div>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
-                                <span style="font-size: 14px; background: var(--accent); color: #E2E2E0; padding: 2px 12px; border-radius: 12px; font-weight: 600;">
-                                    ${currentLevel.emoji} ${currentLevel.name}
-                                </span>
-                                ${isGuest ? '<span class="badge" style="font-size: 12px;">Гость</span>' : ''}
-                            </div>
-                        </div>
-                        <div style="position: relative; width: 64px; height: 64px; flex-shrink: 0;">
-                            <svg viewBox="0 0 100 100" style="transform: rotate(-90deg); width: 64px; height: 64px;">
-                                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--bg-primary)" stroke-width="8"/>
-                                <circle cx="50" cy="50" r="45" fill="none" stroke="url(#repGradient)" stroke-width="8"
-                                        stroke-linecap="round"
-                                        stroke-dasharray="${circumference}"
-                                        stroke-dashoffset="${strokeDashoffset}"
-                                        style="transition: stroke-dashoffset 0.8s ease;"/>
-                            </svg>
-                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; font-size: 11px; font-weight: 600; color: var(--text-primary); line-height: 1.2;">
-                                ${score}<br>
-                                <span style="font-size: 8px; color: var(--text-secondary);">XP</span>
-                            </div>
+        let currentLevel = levels[0];
+        let nextLevel = levels[1];
+
+        for (let i = levels.length - 1; i >= 0; i--) {
+            if (score >= levels[i].xp) {
+                currentLevel = levels[i];
+                nextLevel = levels[i + 1] || levels[i];
+                break;
+            }
+        }
+
+        const progress = nextLevel.xp > currentLevel.xp
+            ? Math.min(100, Math.round(((score - currentLevel.xp) / (nextLevel.xp - currentLevel.xp)) * 100))
+            : 100;
+
+        const firstName = escapeHtml(currentUser.firstName || currentUser.first_name || 'Пользователь');
+        const username = escapeHtml(currentUser.nickname || currentUser.username || '');
+        const city = escapeHtml(prefs.city || currentCity || 'Город не выбран');
+        const region = escapeHtml(prefs.region || '');
+        const carName = car.brand ? `${escapeHtml(car.brand)} ${escapeHtml(car.model || '')}`.trim() : 'Автомобиль не добавлен';
+
+        const avatar = currentUser.photoUrl
+            ? `<img src="${escapeHtml(currentUser.photoUrl)}" alt="">`
+            : '👤';
+
+        content.innerHTML = `
+            <div class="pn-profile">
+
+                <section class="pn-profile-hero">
+                    <div class="pn-profile-avatar">${avatar}</div>
+                    <div class="pn-profile-main">
+                        <div class="pn-profile-name">${firstName}</div>
+                        ${username ? `<div class="pn-profile-username">@${username}</div>` : ''}
+                        <div class="pn-profile-level">
+                            <span>${currentLevel.emoji}</span>
+                            <span>${currentLevel.name}</span>
                         </div>
                     </div>
-                `;
+                    ${isGuest ? '<span class="pn-profile-guest">Гость</span>' : ''}
+                </section>
 
-                // ---- Секция "Мой автомобиль" (исправлена: убрано дублирование) ----
-                html += `
-                    <div class="profile-section-header" onclick="toggleProfileSection('car')">
-                      <span>Мой автомобиль</span>
-                       <span style="font-size:12px; color:var(--text-secondary);">${car.brand ? '✅ Добавлен' : '➕ Не добавлен'}</span>
-                         <span class="arrow-span">▶</span>
+                <section class="pn-profile-city" onclick="openCityPicker()">
+                    <div class="pn-profile-city-icon">📍</div>
+                    <div class="pn-profile-city-info">
+                        <div class="pn-profile-label">Мой город</div>
+                        <div class="pn-profile-city-name">${city}</div>
+                        ${region ? `<div class="pn-profile-city-region">${region}</div>` : ''}
+                    </div>
+                    <div class="pn-profile-arrow">›</div>
+                </section>
+
+                <section class="pn-profile-progress">
+                    <div class="pn-profile-progress-top">
+                        <div>
+                            <div class="pn-profile-label">Прогресс</div>
+                            <div class="pn-profile-xp">${score} XP</div>
+                        </div>
+                        <div class="pn-profile-next">
+                            ${nextLevel === currentLevel ? 'Максимальный уровень' : `${progress}% до ${nextLevel.name}`}
+                        </div>
+                    </div>
+                    <div class="pn-progress-track">
+                        <div class="pn-progress-fill" style="width:${progress}%"></div>
+                    </div>
+                </section>
+
+                <div class="pn-profile-section-title">Мой ParkNear</div>
+
+                <section class="pn-profile-menu">
+                    <button class="pn-profile-row" onclick="toggleProfileSection('car')">
+                        <span class="pn-profile-row-icon">🚗</span>
+                        <span class="pn-profile-row-content">
+                            <strong>Мой автомобиль</strong>
+                            <small>${car.brand ? carName : 'Добавьте автомобиль для быстрой отметки парковки'}</small>
+                        </span>
+                        <span class="pn-profile-row-arrow">›</span>
+                    </button>
+
+                    <button class="pn-profile-row" onclick="toggleProfileSection('history')">
+                        <span class="pn-profile-row-icon">🕘</span>
+                        <span class="pn-profile-row-content">
+                            <strong>История</strong>
+                            <small>Ваши действия с парковками</small>
+                        </span>
+                        <span class="pn-profile-row-arrow">›</span>
+                    </button>
+
+                    <button class="pn-profile-row" onclick="toggleProfileSection('favorites')">
+                        <span class="pn-profile-row-icon">❤️</span>
+                        <span class="pn-profile-row-content">
+                            <strong>Избранные парковки</strong>
+                            <small>${favoritesCount} ${favoritesCount === 1 ? 'парковка' : 'парковок'}</small>
+                        </span>
+                        <span class="pn-profile-row-arrow">›</span>
+                    </button>
+                </section>
+
+                <div id="profileSectionCarContent" class="pn-profile-expand">
+                    ${car.brand ? `
+                        <div class="pn-car-card">
+                            <div>
+                                <strong>${carName}</strong>
+                                <small>${escapeHtml(car.plate || 'Номер не указан')}</small>
                             </div>
-                        <div class="profile-section-content" id="profileSectionCarContent">
-                            ${car.brand ? `
-                                <div style="padding: 4px 0;">
-                                    <div><strong>${car.brand} ${car.model || ''}</strong></div>
-                                    <div style="color: var(--text-secondary); font-size: 14px;">${car.plate || 'без номера'}</div>
-                                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                                        <button class="btn-secondary" style="flex:1;" onclick="editCarDataFromSettings()">Редактировать</button>
-                                        <button class="btn-danger" style="flex:1; padding:10px; margin:0;" onclick="removeCar()">🗑️ Удалить</button>
-                                    </div>
-                                </div>
-                            ` : `
-                                <div style="padding: 4px 0; color: var(--text-secondary);">
-                                    Автомобиль не добавлен
-                                    <button class="btn-secondary" style="width:100%; margin-top:8px;" onclick="editCarDataFromSettings()">➕ Добавить</button>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                `;
-
-                // ---- Остальные секции ----
-                html += `
-                    <div class="profile-section" id="profileSectionHistory">
-                        <div class="profile-section-header" onclick="toggleProfileSection('history')">
-                            <span>История парковок</span>
-                            <span>▶</span>
-                        </div>
-                        <div class="profile-section-content" id="profileSectionHistoryContent">
-                            <div id="historyListContainer" style="padding: 4px 0;">
-                                <div style="text-align:center; color:var(--text-secondary);">Загрузка...</div>
+                            <div class="pn-car-actions">
+                                <button onclick="editCarDataFromSettings()">Изменить</button>
+                                <button class="danger" onclick="removeCar()">Удалить</button>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="profile-section" id="profileSectionFavorites">
-                        <div class="profile-section-header" onclick="toggleProfileSection('favorites')">
-                            <span>Избранные парковки</span>
-                            <span>▶</span>
-                        </div>
-                        <div class="profile-section-content" id="profileSectionFavoritesContent">
-                            <div id="favoritesListContainer" style="padding: 4px 0;">
-                                <div style="text-align:center; color:var(--text-secondary);">Загрузка...</div>
+                    ` : `
+                        <div class="pn-empty-card">
+                            <span>🚗</span>
+                            <div>
+                                <strong>Автомобиль не добавлен</strong>
+                                <small>Добавьте его, чтобы использовать данные при парковке.</small>
                             </div>
+                            <button onclick="editCarDataFromSettings()">Добавить</button>
                         </div>
-                    </div>
+                    `}
+                </div>
 
-                    <div class="profile-section" id="profileSectionSettings">
-                        <div class="profile-section-header" onclick="toggleProfileSection('settings')">
-                            <span>Настройки</span>
-                            <span>▶</span>
-                        </div>
-                        <div class="profile-section-content" id="profileSectionSettingsContent">
-                            <div id="settingsContentInline" style="padding: 4px 0;"></div>
-                        </div>
-                    </div>
-                `;
+                <div id="profileSectionHistoryContent" class="pn-profile-expand">
+                    <div id="historyListContainer" class="pn-profile-loading">Загрузка...</div>
+                </div>
 
-                content.innerHTML = html;
-                renderSettingsInline();
-                window._historyLoaded = false;
-                window._favoritesLoaded = false;
-            });
-        });
+                <div id="profileSectionFavoritesContent" class="pn-profile-expand">
+                    <div id="favoritesListContainer" class="pn-profile-loading">Загрузка...</div>
+                </div>
+
+                <div class="pn-profile-section-title">Настройки</div>
+
+                <section class="pn-profile-menu">
+                    <button class="pn-profile-row" onclick="toggleProfileSection('settings')">
+                        <span class="pn-profile-row-icon">⚙️</span>
+                        <span class="pn-profile-row-content">
+                            <strong>Настройки приложения</strong>
+                            <small>Тема, уведомления и другие параметры</small>
+                        </span>
+                        <span class="pn-profile-row-arrow">›</span>
+                    </button>
+                </section>
+
+                <div id="profileSectionSettingsContent" class="pn-profile-expand">
+                    <div id="settingsContentInline" class="pn-profile-settings"></div>
+                </div>
+
+                <section class="pn-profile-stats">
+                    <div><strong>${created}</strong><span>Парковок создано</span></div>
+                    <div><strong>${confirmations}</strong><span>Подтверждений</span></div>
+                    <div><strong>${views}</strong><span>Просмотров</span></div>
+                </section>
+
+                ${!isGuest ? `
+                    <button class="pn-profile-delete" onclick="deleteAccount()">Удалить аккаунт</button>
+                ` : `
+                    <div class="pn-profile-guest-info">Вы используете ParkNear как гость</div>
+                `}
+
+                <div class="pn-profile-version">ParkNear · профиль</div>
+            </div>
+        `;
+
+        renderSettingsInline();
+
+        window._historyLoaded = false;
+        window._favoritesLoaded = false;
+    }).catch(error => {
+        console.error('Ошибка загрузки профиля:', error);
+        content.innerHTML = `
+            <div class="pn-profile-error">
+                <div>⚠️</div>
+                <strong>Не удалось загрузить профиль</strong>
+                <button onclick="renderProfile(document.getElementById('panelContent'))">Повторить</button>
+            </div>
+        `;
     });
 }
 // ---- Переключение секций профиля ----
 function toggleProfileSection(section) {
     const content = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}Content`);
     if (!content) return;
-    const isOpen = content.classList.contains('open');
-    if (isOpen) {
-        content.classList.remove('open');
-    } else {
-        content.classList.add('open');
-    }
-    // Обновляем стрелку
-    const header = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}`);
-    if (header) {
-        const arrow = header.querySelector('.arrow-span');
-if (arrow) {
-    arrow.textContent = isOpen ? '▶' : '▼';
-}
-    }
 
-    // Загружаем данные, если секция открыта
-    if (section === 'history' && !window._historyLoaded) {
+    const isOpen = content.classList.contains('open');
+    content.classList.toggle('open', !isOpen);
+
+    if (section === 'history' && !isOpen && !window._historyLoaded) {
         loadUserParkingHistory();
         window._historyLoaded = true;
-    } else if (section === 'favorites' && !window._favoritesLoaded) {
+    }
+
+    if (section === 'favorites' && !isOpen && !window._favoritesLoaded) {
         loadFavoritesInline();
         window._favoritesLoaded = true;
     }
 }
-
-// ---- Загрузка истории парковок пользователя ----
 // ---- Загрузка истории парковок пользователя (только последние 10) ----
 function loadUserParkingHistory() {
     const container = document.getElementById('historyListContainer');
