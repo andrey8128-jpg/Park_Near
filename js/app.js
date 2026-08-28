@@ -1608,6 +1608,35 @@ function clearAllMarkers() {
     }
 }
   // ===================== ИНИЦИАЛИЗАЦИЯ КАРТЫ =====================
+function createParkingClusterer() {
+    if (!map) return;
+    if (clusterer) {
+        try {
+            map.geoObjects.remove(clusterer);
+        } catch (e) {
+            console.warn('Не удалось удалить старый кластеризатор:', e);
+        }
+        clusterer = null;
+    }
+    clusterer = new ymaps.Clusterer({
+        preset: 'islands#invertedDarkGreenClusterIcons',
+        groupByCoordinates: false,
+        clusterDisableClickZoom: false,
+        clusterOpenBalloonOnClick: false,
+        clusterIconLayout: ymaps.templateLayoutFactory.createClass(
+            '<div class="parking-cluster">' +
+                '<div class="parking-cluster-count">$[properties.clusterCount]</div>' +
+                '<div class="parking-cluster-free">🅿️ $[properties.clusterFree]</div>' +
+            '</div>'
+        ),
+        clusterIconShape: {
+            type: 'Circle',
+            coordinates: [0, 0],
+            radius: 32
+        }
+    });
+    map.geoObjects.add(clusterer);
+}
 function initMap() {
     console.log('▶️ initMap вызвана');
     const mapContainer = document.getElementById('map');
