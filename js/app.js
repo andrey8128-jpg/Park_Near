@@ -6765,7 +6765,7 @@ function createAuthScreenFallback() {
         try {
             const cache = JSON.parse(cached);
             // ✅ Проверяем, что кеш соответствует текущему городу
-            if (cache && cache.city === currentCity && cache.data) {
+            if (cache && cache.data) {
                 cacheData = cache.data;
                 parkingDataCache = cacheData;
                 renderHomeContent(content, null);
