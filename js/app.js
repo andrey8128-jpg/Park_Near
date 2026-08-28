@@ -2199,79 +2199,206 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
         miniMap.setBounds(polygon.geometry.getBounds(), { checkZoomRange: true });
     }
 async function getAddressByCoordinates(lat, lng) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        console.error('❌ Некорректные координаты:', lat, lng);
+        return null;
+    }
     try {
         if (typeof ymaps === 'undefined' || !ymaps.geocode) {
-            throw new Error('Yandex Geocoder недоступен');
+            throw new Error('Яндекс.Геокодер недоступен');
         }
+        // 1. Основной запрос — точный адрес
         const result = await ymaps.geocode(
-            [Number(lat), Number(lng)],
-            {
-                results: 1
-            }
+            [latitude, longitude],
+            { results: 1 }
         );
         const geo = result.geoObjects.get(0);
-        if (!geo) return null;
+        if (!geo) {
+            throw new Error('Яндекс не вернул объект адреса');
+        }
         const address = geo.getAddressLine() || '';
-        const meta = geo.properties.get('metaDataProperty.GeocoderMetaData');
-        const components = meta?.Address?.Components || [];
         let city = '';
         let region = '';
         let street = '';
         let houseNumber = '';
+        // 2. Получаем структурированные компоненты
+        const meta = geo.properties.get(
+            'metaDataProperty.GeocoderMetaData'
+        );
+        const components =
+            meta?.Address?.Components || [];
         components.forEach(component => {
             const kind = component.kind;
-            const name = component.name || '';
+            const name = String(component.name || '').trim();
             if (!name) return;
-            if (
+            if (!city && (
                 kind === 'locality' ||
                 kind === 'area'
-            ) {
-                if (!city) city = name;
+            )) {
+                city = name;
             }
-            if (
+            if (!region && (
                 kind === 'province' ||
                 kind === 'region'
-            ) {
-                if (!region) region = name;
+            )) {
+                region = name;
             }
-            if (kind === 'street') {
+            if (kind === 'street' && !street) {
                 street = name;
             }
-            if (kind === 'house') {
+            if (kind === 'house' && !houseNumber) {
                 houseNumber = name;
             }
         });
-        // Резервный способ определения города
-        if (!city && geo.getLocalities) {
+        // 3. Резервный способ определения города
+        if (!city && typeof geo.getLocalities === 'function') {
             const localities = geo.getLocalities();
-            if (localities && localities.length) {
-                city = localities[localities.length - 1];
+            if (Array.isArray(localities) && localities.length) {
+                city = String(
+                    localities[0] || ''
+                ).trim();
             }
         }
-        // Резервный способ определения региона
-        if (!region && geo.getAdministrativeAreas) {
+        // 4. Резервный способ определения региона
+        if (!region && typeof geo.getAdministrativeAreas === 'function') {
             const areas = geo.getAdministrativeAreas();
-            if (areas && areas.length) {
-                region = areas[areas.length - 1];
+            if (Array.isArray(areas) && areas.length) {
+                region = String(
+                    areas[areas.length - 1] || ''
+                ).trim();
             }
         }
-        console.log('📍 Геокодирование:', {
-            lat,
-            lng,
-            address,
-            city,
-            region,
-            street,
-            houseNumber,
-            components
-        });
-        return {
+        // 5. Последний резерв — твой parseAddress()
+        if ((!city || !region) && address) {
+            try {
+                const parsed = parseAddress(address);
+                if (!city && parsed?.city) {
+                    city = parsed.city;
+                }
+                if (!region && parsed?.region) {
+                    region = parsed.region;
+                }
+                if (!street && parsed?.street) {
+                    street = parsed.street;
+                }
+                if (!houseNumber && parsed?.houseNumber) {
+                    houseNumber = parsed.houseNumber;
+                }
+            } catch (parseError) {
+                console.warn(
+                    '⚠️ Ошибка резервного разбора адреса:',
+                    parseError
+                );
+            }
+        }
+        // 6. Если город всё ещё неизвестен,
+        // делаем отдельный запрос именно на населённый пункт
+        if (!city) {
+            try {
+                const localityResult = await ymaps.geocode(
+                    [latitude, longitude],
+                    {
+                        kind: 'locality',
+                        results: 1
+                    }
+                );
+                const localityGeo =
+                    localityResult.geoObjects.get(0);
+                if (localityGeo) {
+                    const localities =
+                        typeof localityGeo.getLocalities === 'function'
+                            ? localityGeo.getLocalities()
+                            : [];
+                    if (localities?.length) {
+                        city = String(
+                            localities[0] || ''
+                        ).trim();
+                    }
+                    if (!city) {
+                        const localityMeta =
+                            localityGeo.properties.get(
+                                'metaDataProperty.GeocoderMetaData'
+                            );
+                        const localityComponents =
+                            localityMeta?.Address?.Components || [];
+                        const localityComponent =
+                            localityComponents.find(
+                                component =>
+                                    component.kind === 'locality' ||
+                                    component.kind === 'area'
+                            );
+                        if (localityComponent?.name) {
+                            city =
+                                String(localityComponent.name).trim();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn(
+                    '⚠️ Не удалось получить locality:',
+                    e
+                );
+            }
+        }
+        // 7. Отдельно определяем регион, если его всё ещё нет
+        if (!region) {
+            try {
+                const provinceResult = await ymaps.geocode(
+                    [latitude, longitude],
+                    {
+                        kind: 'province',
+                        results: 1
+                    }
+                );
+                const provinceGeo =
+                    provinceResult.geoObjects.get(0);
+                if (provinceGeo) {
+                    const areas =
+                        typeof provinceGeo.getAdministrativeAreas === 'function'
+                            ? provinceGeo.getAdministrativeAreas()
+                            : [];
+                    if (areas?.length) {
+                        region = String(
+                            areas[areas.length - 1] || ''
+                        ).trim();
+                    }
+                    if (!region) {
+                        const provinceMeta =
+                            provinceGeo.properties.get(
+                                'metaDataProperty.GeocoderMetaData'
+                            );
+                        const provinceComponents =
+                            provinceMeta?.Address?.Components || [];
+                        const provinceComponent =
+                            provinceComponents.find(
+                                component =>
+                                    component.kind === 'province' ||
+                                    component.kind === 'region'
+                            );
+                        if (provinceComponent?.name) {
+                            region =
+                                String(provinceComponent.name).trim();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn(
+                    '⚠️ Не удалось получить province:',
+                    e
+                );
+            }
+        }
+        const resultData = {
             address,
             city,
             region,
             street,
             houseNumber
         };
+        console.log('📍 Результат геокодирования:', resultData);
+        return resultData;
     } catch (error) {
         console.error(
             '❌ Ошибка определения адреса:',
@@ -2367,6 +2494,20 @@ async function fixParkingCity(parkingId, city, region) {
 
         const detectedCity = geoData?.city || '';
         const detectedRegion = geoData?.region || '';
+      if (!detectedCity || !detectedRegion) {
+    console.error('❌ Не удалось определить город или регион:', {
+        lat: centerLat,
+        lng: centerLng,
+        geoData
+    });
+
+    alert(
+        'Не удалось определить город парковки по координатам.\n' +
+        'Проверьте интернет-соединение и попробуйте сохранить ещё раз.'
+    );
+
+    return;
+}
         const detectedAddress = geoData?.address || '';
         const detectedStreet = geoData?.street || '';
         const detectedHouseNumber = geoData?.houseNumber || '';
@@ -2442,9 +2583,9 @@ async function fixParkingCity(parkingId, city, region) {
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
 
-        const cityKey = cleanKeyPart(detectedCity) || 'Неизвестный_город';
-        const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
-        const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
+        const cityKey = cleanKeyPart(detectedCity);
+        const streetKey = cleanKeyPart(finalStreet);     
+        const houseKey = cleanKeyPart(finalHouseNumber);
 
         const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
 
