@@ -6783,8 +6783,20 @@ function onTelegramAuth(user) {
         continueAsGuest();
     }
 }
-function initApp() {
-    if (checkTelegramAuthFromUrl()) {
+function hideSplashScreen(){
+    const splash=document.getElementById('splashScreen');
+    if(!splash)return;
+    splash.style.transition='opacity .4s ease, visibility .4s ease';
+    splash.style.opacity='0';
+    splash.style.visibility='hidden';
+    splash.style.pointerEvents='none';
+    setTimeout(()=>{
+        if(splash)splash.remove();
+    },450);
+}
+function initApp(){
+    hideSplashScreen();
+    if(checkTelegramAuthFromUrl()){
         showPanel('home');
         return;
     }
