@@ -1094,94 +1094,89 @@ function tryYandexGeolocation(resolve, reject) {
             reject(new Error('Геолокация не поддерживается'));
         }
     }
+function cleanFirebaseKeyPart(value){
+    return String(value||'').trim().replace(/[.#$/[\]]/g,'').replace(/\s+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+}
+function getParkingRef(parkingId,parkingData){
+    const data=parkingData||parkingDataCache[parkingId]||(parkingId===currentParkingId?currentParkingData:null);
+    const city=cleanFirebaseKeyPart(data?.city);
+    if(!city||!parkingId)return null;
+    return database.ref(`parkings/${city}/${parkingId}`);
+}
     // ===================== МАРКЕРЫ НА КАРТЕ =====================
-function loadAllParkings(city = '', force = false) {
+function loadAllParkings(city='',force=false){
     console.log('🔍 Загрузка парковок');
-    const selectedCity = String(city || currentCity || '').trim().toLowerCase();
-    if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
+    const selectedCity=String(city||currentCity||'').trim().toLowerCase();
+    if(!force&&Date.now()-lastDataRefresh<30000&&Object.keys(parkingDataCache).length>0){
         clearAllMarkers();
-        Object.entries(parkingDataCache).forEach(([id, parking]) => {
-            const parkingCity = String(parking.city || '').trim().toLowerCase();
-            if (!selectedCity || parkingCity === selectedCity) {
-                addMarkerToMap(id, parking);
-            }
+        Object.entries(parkingDataCache).forEach(([id,parking])=>{
+            const parkingCity=String(parking.city||'').trim().toLowerCase();
+            if(!selectedCity||parkingCity===selectedCity)addMarkerToMap(id,parking);
         });
         updateTotalFreeCircle();
-        console.log('✅ Использован кэш парковок');
         return Promise.resolve();
     }
     clearAllMarkers();
-    return database.ref('parkings').once('value')
-        .then(snapshot => {
-            const data = snapshot.val() || {};
-            const newCache = {};
-            Object.keys(data).forEach(key => {
-                const parking = data[key];
-                if (!parking || parking.lat == null || parking.lng == null) {
-                    return;
-                }
-                parking.id = key;
-                parking.lat = Number(parking.lat);
-                parking.lng = Number(parking.lng);
-                parking.totalSpots = Number(parking.totalSpots) || 0;
-                parking.occupiedSpots = Number(parking.occupiedSpots) || 0;
-                parking.occupiedSpots = Math.max(
-                    0,
-                    Math.min(
-                        parking.occupiedSpots,
-                        parking.totalSpots
-                    )
-                );
-                newCache[key] = parking;
-            });
-            parkingDataCache = newCache;
-            lastDataRefresh = Date.now();
-            try {
-                localStorage.setItem(
-                    'parkingCache',
-                    JSON.stringify({
-                        city: 'all',
-                        data: newCache,
-                        timestamp: Date.now()
-                    })
-                );
-            } catch (e) {
-                console.warn('⚠️ Не удалось сохранить кэш парковок');
+    return database.ref('parkings').once('value').then(snapshot=>{
+        const data=snapshot.val()||{};
+        const newCache={};
+
+        Object.entries(data).forEach(([cityKey,cityNode])=>{
+            if(!cityNode||typeof cityNode!=='object')return;
+
+            // Поддержка старых парковок, сохранённых без папки города
+            if(cityNode.lat!=null&&cityNode.lng!=null){
+                const parking={...cityNode,id:cityKey};
+                parking.lat=Number(parking.lat);
+                parking.lng=Number(parking.lng);
+                parking.totalSpots=Number(parking.totalSpots)||0;
+                parking.occupiedSpots=Number(parking.occupiedSpots)||0;
+                newCache[cityKey]=parking;
+                return;
             }
-            const cityToShow = String(
-                currentCity || city || ''
-            ).trim().toLowerCase();
-            let visibleCount = 0;
-            Object.entries(newCache).forEach(([id, parking]) => {
-                const parkingCity = String(
-                    parking.city || ''
-                ).trim().toLowerCase();
-                if (
-                    !cityToShow ||
-                    parkingCity === cityToShow
-                ) {
-                    addMarkerToMap(id, parking);
-                    visibleCount++;
-                }
+
+            Object.entries(cityNode).forEach(([parkingKey,parking])=>{
+                if(!parking||parking.lat==null||parking.lng==null)return;
+                parking={
+                    ...parking,
+                    id:parkingKey,
+                    city:parking.city||cityKey
+                };
+                parking.lat=Number(parking.lat);
+                parking.lng=Number(parking.lng);
+                parking.totalSpots=Number(parking.totalSpots)||0;
+                parking.occupiedSpots=Number(parking.occupiedSpots)||0;
+                parking.occupiedSpots=Math.max(0,Math.min(parking.occupiedSpots,parking.totalSpots));
+                newCache[parkingKey]=parking;
             });
-            updateTotalFreeCircle();
-            console.log(
-                '✅ Загружено парковок в кэш:',
-                Object.keys(newCache).length
-            );
-            console.log(
-                '🏙️ Показывается парковок города:',
-                cityToShow || 'все',
-                visibleCount
-            );
-        })
-        .catch(error => {
-            console.error(
-                '❌ Ошибка загрузки парковок:',
-                error
-            );
-            throw error;
         });
+
+        parkingDataCache=newCache;
+        lastDataRefresh=Date.now();
+
+        try{
+            localStorage.setItem('parkingCache',JSON.stringify({
+                city:'all',
+                data:newCache,
+                timestamp:Date.now()
+            }));
+        }catch(e){}
+
+        const cityToShow=String(currentCity||city||'').trim().toLowerCase();
+
+        Object.entries(newCache).forEach(([id,parking])=>{
+            const parkingCity=String(parking.city||'').trim().toLowerCase();
+            if(!cityToShow||parkingCity===cityToShow)addMarkerToMap(id,parking);
+        });
+
+        updateTotalFreeCircle();
+
+        console.log('✅ Загружено парковок:',Object.keys(newCache).length);
+        console.log('🏙️ Показывается город:',cityToShow||'все');
+    }).catch(error=>{
+        console.error('❌ Ошибка загрузки парковок:',error);
+        throw error;
+    });
 }
 function showParkingsForCity(city) {
     if (!map || !city) return;
@@ -2345,19 +2340,17 @@ if(!detectedCity){
         };
         console.log('💾 Парковка перед сохранением:',parkingData);
         const cleanKeyPart=value=>String(value||'').trim().replace(/[.#$/[\]]/g,'').replace(/\s+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
-        const cityKey=cleanKeyPart(detectedCity);
-        const streetKey=cleanKeyPart(finalStreet)||'Неизвестная_улица';
-        const houseKey=cleanKeyPart(finalHouseNumber)||'Без_дома';
-        const baseKey=`${cityKey}_${streetKey}_${houseKey}`;
-        let number=1;
-        let parkingKey=`${baseKey}_(${number})`;
-        while((await database.ref(`parkings/${parkingKey}`).once('value')).exists()){
-            number++;
-            parkingKey=`${baseKey}_(${number})`;
-        }
-        console.log('🔑 Ключ Firebase:',parkingKey);
-        if(btn)btn.textContent='Сохраняем...';
-        const parkingRef=database.ref(`parkings/${parkingKey}`);
+       const cityKey=cleanFirebaseKeyPart(detectedCity)||cleanFirebaseKeyPart(currentCity)||'Неизвестный_город';
+       const streetKey=cleanFirebaseKeyPart(finalStreet)||'Неизвестная_улица';
+       const houseKey=cleanFirebaseKeyPart(finalHouseNumber)||'Без_дома';
+       const baseKey=`${cityKey}_${streetKey}_${houseKey}`;
+       let number=1;
+       let parkingKey=`${baseKey}_(${number})`;
+       while((await database.ref(`parkings/${cityKey}/${parkingKey}`).once('value')).exists()){
+       number++;
+       parkingKey=`${baseKey}_(${number})`;
+}
+const parkingRef=database.ref(`parkings/${cityKey}/${parkingKey}`);
         await parkingRef.set(parkingData);
         console.log('✅ Основные данные парковки записаны в Firebase');
         try{
@@ -3266,7 +3259,12 @@ function loadHistoryPreview(parkingId) {
 
     const updates = { name: newName, street, houseNumber, totalSpots };
 
-    database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
+   const parkingRef=getParkingRef(currentParkingId,currentParkingData);
+if(!parkingRef){
+    alert('Не удалось определить город парковки');
+    return;
+}
+parkingRef.update(updates)
         if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
         currentParkingData = { ...currentParkingData, ...updates };
         parkingDataCache[currentParkingId] = currentParkingData;
@@ -3453,38 +3451,60 @@ async function deleteParking(parkingId) {
         });
     }
 
-    function toggleFavorite(parkingId, parkingData) {
-    if (!currentUser || !parkingId) return;
-    const data = parkingData || parkingDataCache[parkingId] || null;
-    if (!data) return;
-
-    const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
-    favRef.once('value').then(snap => {
-        if (snap.exists()) {
-            favRef.remove();
-            // Обновляем текст кнопки в центральном окне
-            const btn = document.querySelector('.center-actions .btn-secondary:first-child');
-            if (btn) btn.innerHTML = '⭐ Избранное';
-            if (data.authorId) {
-                database.ref(`users/${data.authorId}/stats/favorites`).transaction(c => Math.max(0, (c || 1) - 1));
-            }
-        } else {
-            const favData = {
-                parkingId: parkingId,
-                name: data.name || data.address || data.street || 'Парковка',
-                lat: data.lat || 0,
-                lng: data.lng || 0,
-                address: data.address || '',
-                timestamp: Date.now()
+  async function toggleFavorite(parkingId, parkingData){
+    if(!currentUser?.id){
+        showToast('Необходимо войти в аккаунт');
+        return;
+    }
+    if(!parkingId){
+        showToast('Не найден ID парковки');
+        return;
+    }
+    const data=parkingData||parkingDataCache[parkingId];
+    if(!data){
+        showToast('Данные парковки не найдены');
+        return;
+    }
+    const favRef=database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
+    const btn=document.querySelector('.parking-secondary-btn[onclick="toggleFavoriteCenter()"]');
+    try{
+        const snap=await favRef.once('value');
+        if(snap.exists()){
+            await favRef.remove();
+            if(btn)btn.innerHTML='⭐ Избранное';
+            showToast('Удалено из избранного');
+        }else{
+            const favData={
+                parkingId:String(parkingId),
+                name:data.name||data.address||data.street||'Парковка',
+                lat:Number(data.lat)||0,
+                lng:Number(data.lng)||0,
+                address:data.address||'',
+                city:data.city||'',
+                region:data.region||'',
+                timestamp:Date.now()
             };
-            favRef.set(favData);
-            const btn = document.querySelector('.center-actions .btn-secondary:first-child');
-            if (btn) btn.innerHTML = '✅ В избранном';
-            if (data.authorId) {
-                database.ref(`users/${data.authorId}/stats/favorites`).transaction(c => (c || 0) + 1);
+            await favRef.set(favData);
+            if(btn)btn.innerHTML='✅ В избранном';
+            showToast('Добавлено в избранное');
+        }
+        if(data.authorId){
+            try{
+                const statsRef=database.ref(`users/${data.authorId}/stats/favorites`);
+                if(snap.exists()){
+                    await statsRef.transaction(c=>Math.max(0,(c||0)-1));
+                }else{
+                    await statsRef.transaction(c=>(c||0)+1);
+                }
+            }catch(statsError){
+                console.warn('⚠️ Не удалось обновить статистику избранного:',statsError);
             }
         }
-    });
+    }catch(error){
+        console.error('❌ Ошибка сохранения избранного:',error);
+        showToast(`Не удалось изменить избранное: ${error.message||'ошибка Firebase'}`);
+        console.log('📌 Путь Firebase:',`users/${currentUser.id}/favorites/${parkingId}`);
+    }
 }
    // ===================== МАРШРУТ =====================
     function buildRouteToParking(parkingId) {
