@@ -27,36 +27,27 @@
 <body>
 <!-- Toast -->
 <div id="toast" aria-live="polite"></div>
-
 <!-- Splash Screen -->
 <div id="splashScreen">
-    <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-            <filter id="lavaBlur" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="50"/>
-            </filter>
-        </defs>
-        <circle cx="30%" cy="30%" r="90" fill="#30B8A5" filter="url(#lavaBlur)" opacity="0.8">
-            <animate attributeName="cx" values="30%;70%;40%;30%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-            <animate attributeName="cy" values="30%;60%;20%;30%" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-            <animate attributeName="r" values="90;120;80;90" dur="10s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-        </circle>
-        <circle cx="70%" cy="70%" r="110" fill="#20A895" filter="url(#lavaBlur)" opacity="0.7">
-            <animate attributeName="cx" values="70%;20%;80%;70%" dur="20s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-            <animate attributeName="cy" values="70%;40%;80%;70%" dur="16s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-            <animate attributeName="r" values="110;90;130;110" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-        </circle>
-        <circle cx="50%" cy="50%" r="70" fill="#178F7E" filter="url(#lavaBlur)" opacity="0.6">
-            <animate attributeName="cx" values="50%;30%;90%;50%" dur="22s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-            <animate attributeName="cy" values="50%;80%;10%;50%" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-            <animate attributeName="r" values="70;100;50;70" dur="14s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"/>
-        </circle>
-    </svg>
-    <div class="splash-content">
-        <img src="assets/images/logo.png" alt="ParkNear" onerror="this.style.display='none'">
-        <div class="splash-title">Park<span>Near</span></div>
-        <div class="spinner" aria-label="Загрузка"></div>
+    <div class="splash-bg">
+        <div class="splash-orb splash-orb-1"></div>
+        <div class="splash-orb splash-orb-2"></div>
+        <div class="splash-orb splash-orb-3"></div>
     </div>
+    <div class="splash-content">
+        <div class="splash-logo-wrap">
+            <div class="splash-logo-glow"></div>
+            <img src="assets/images/logo.png" alt="ParkNear" class="splash-logo" onerror="console.error('Ошибка загрузки изображения:', this.src)">
+        </div>
+        <div class="splash-title">Park<span>Near</span></div>
+        <div class="splash-subtitle">Найди место. Припаркуйся проще.</div>
+        <div class="splash-loader">
+            <div class="splash-loader-line">
+                <div class="splash-loader-progress"></div>
+            </div>
+        </div>
+    </div>
+    <div class="splash-version">PARK NEAR</div>
 </div>
 
 <!-- Карта -->
