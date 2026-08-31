@@ -574,17 +574,18 @@ function renderParkingItem(parking, userCoords) {
     const safeName = escapeHtml(parking.name || 'Без названия');
     const safeBadge = escapeHtml(String(badgeText));
     const parkingId = escapeHtml(parking.id || '');
-    return `
-        <div class="parking-item" onclick="focusMap(${lat}, ${lng}, '${parkingId}')">
-            <div class="info">
-                <div class="parking-item-header">
-                    <div class="name">${safeName}</div>
-                    <span class="free-badge ${badgeClass}">${safeBadge}</span>
-                </div>
-                ${distanceHtml}
+   return `
+    <div class="parking-item" onclick="focusMap(${lat}, ${lng}, '${parkingId}')">
+        <div class="info">
+            <div class="parking-item-header">
+                <span class="name">${safeName}</span>
+                <span class="free-badge ${badgeClass}">${safeBadge}</span>
             </div>
+            ${distanceHtml ? `<div class="addr">${distanceHtml}</div>` : ''}
+            ${distanceHtml ? `<div class="meta-row">${distanceHtml}</div>` : ''}
         </div>
-    `;
+    </div>
+`;
 }
 function formatDateTime(timestamp) {
     if (!timestamp) return 'Неизвестно';
@@ -2565,56 +2566,62 @@ async function openCenterSheet(parkingId, data) {
     const safeId = escapeHtml(parkingId);
 
     content.innerHTML = `
-        <div class="parking-card-compact">
-            <div class="parking-card-handle"></div>
-            <div class="parking-card-header">
-                <div class="parking-card-title">
-                    🅿️ ${escapeHtml(data.name || 'Парковка')}
-                </div>
-                <div class="parking-card-street">
-                    ${address}
-                </div>
-            </div>
-            <div class="parking-status-compact ${statusClass}">
-    <span class="parking-status-dot">${statusIcon}</span>
-    <strong>${statusTitle}</strong>
-    <span class="parking-status-available">${availableText}</span>
-</div>
-            <div class="parking-meta">
-                <div class="parking-meta-item">
-                    <strong>${total || '—'}</strong>
-                    <span>мест всего</span>
-                </div>
-                <div class="parking-meta-item">
-                    <strong>${confirmations}</strong>
-                    <span>подтверждений</span>
-                </div>
-                <div class="parking-meta-item">
-                    <strong>${lastUpdatedText}</strong>
-                    <span>обновлено</span>
-                </div>
-            </div>
-            <button class="parking-route-btn" onclick="buildRouteToParking('${safeId}')">
-                <span>🧭</span>
-                <span>Поехать</span>
-            </button>
-            <div class="parking-secondary-actions">
-                <button class="parking-secondary-btn parking-update-btn" onclick="reportParkingStatus('${safeId}')">
-                    <span>↻</span>
-                    <span>Обновить</span>
-                </button>
+    <div class="parking-card-compact">
+        <div class="parking-card-handle"></div>
 
-                <button class="parking-secondary-btn" onclick="toggleFavoriteCenter()">
-                    <span>♡</span>
-                    <span>Сохранить</span>
-                </button>
+        <div class="parking-card-header">
+            <div class="parking-card-title">
+                <span class="parking-icon">🅿️</span>
+                ${escapeHtml(data.name || 'Парковка')}
             </div>
-            <button class="parking-edit-btn" onclick="editFromCenter()">
-                ✎ Редактировать
+            <div class="parking-card-street">
+                ${escapeHtml(address)}
+            </div>
+        </div>
+
+        <div class="parking-status-compact ${statusClass}">
+            <span class="parking-status-dot"></span>
+            <strong>${statusTitle}</strong>
+            <span class="parking-status-available">${availableText}</span>
+        </div>
+
+        <div class="parking-meta">
+            <div class="parking-meta-item">
+                <strong>${total || '—'}</strong>
+                <span>Всего мест</span>
+            </div>
+            <div class="parking-meta-item">
+                <strong>${confirmations}</strong>
+                <span>Подтверждений</span>
+            </div>
+            <div class="parking-meta-item">
+                <strong>${lastUpdatedText}</strong>
+                <span>Обновлено</span>
+            </div>
+        </div>
+
+        <button class="parking-route-btn" onclick="buildRouteToParking('${safeId}')">
+            <span>🧭</span>
+            <span>Поехать</span>
+        </button>
+
+        <div class="parking-secondary-actions">
+            <button class="parking-secondary-btn" onclick="reportParkingStatus('${safeId}')">
+                <span class="btn-icon">↻</span>
+                <span>Обновить</span>
             </button>
-        </div>`;
-    sheet.classList.add('active');
-}
+            <button class="parking-secondary-btn" onclick="toggleFavoriteCenter()">
+                <span class="btn-icon">♡</span>
+                <span>Сохранить</span>
+            </button>
+        </div>
+
+        <button class="parking-edit-btn" onclick="editFromCenter()">
+            ✎ Редактировать
+        </button>
+    </div>
+`;
+
 function reportParkingStatus(parkingId) {
     const content = document.getElementById('centerSheetContent');
     if (!content) return;
