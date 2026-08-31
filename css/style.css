@@ -170,48 +170,6 @@ body {
     font-size: 12px;
     color: var(--text-secondary);
 }
-/* === ВЕРХНЯЯ ПАНЕЛЬ (не используется, но оставлено) === */
-.app-header {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: 0;
-    right: 0;
-    height: 44px;
-    background: rgba(226, 226, 224, 0.08);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-    padding-top: env(safe-area-inset-top);
-    transition: background 0.3s ease;
-}
-.app-header {
-    background: rgba(255, 255, 255, 0.72);
-    border-bottom: 1px solid var(--card-border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-}
-
-body.dark-theme .app-header {
-    background: rgba(21, 26, 27, 0.78);
-    border-bottom-color: var(--card-border);
-}
-
-.app-title {
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    color: var(--text-primary);
-    text-shadow: none;
-}
-
-.app-title span {
-    color: var(--accent);
-}
-
 /* === ТЁМНАЯ ТЕМА ДЛЯ КАРТЫ (фильтр) === */
 body.dark-theme #map {
     filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
@@ -1045,24 +1003,6 @@ body.dark-theme .theme-slider:before {
     border-radius: 0 16px 16px 0;
     cursor: pointer;
 }
-
-.bottom-sheet {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-secondary);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 2500;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    max-height: 70vh;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: env(safe-area-inset-bottom);
-}
-.bottom-sheet.active { transform: translateY(0); }
 .sheet-header {
     display: flex;
     justify-content: center;
@@ -1391,11 +1331,6 @@ body.dark-theme .theme-slider:before {
     font-size: 13px;
     color: var(--text-secondary);
 }
-
-.panel-content {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-}
 .panel-content::-webkit-scrollbar {
     width: 4px;
 }
@@ -1446,7 +1381,6 @@ body.dark-theme .theme-slider:before {
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes logoPulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -1970,36 +1904,6 @@ body.dark-theme .theme-slider:before {
     background: linear-gradient(90deg, #2B7574, #0A282C);
     transition: width 0.5s ease;
 }
-
-.onboarding-highlight {
-    position: relative;
-    z-index: 5001 !important;
-    box-shadow: 0 0 0 5px rgba(43, 117, 116, 0.4), 0 0 20px rgba(43, 117, 116, 0.6) !important;
-    border-radius: 16px !important;
-    animation: pulse 1.5s infinite;
-    cursor: pointer;
-}
-.onboarding-highlight::after {
-    content: '👆 Нажми меня';
-    position: absolute;
-    bottom: -32px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #2B7574;
-    color: #E2E2E0;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    z-index: 5002;
-}
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 5px rgba(43, 117, 116, 0.4), 0 0 20px rgba(43, 117, 116, 0.6); }
-    50% { box-shadow: 0 0 0 10px rgba(43, 117, 116, 0.8), 0 0 30px rgba(43, 117, 116, 0.9); }
-    100% { box-shadow: 0 0 0 5px rgba(43, 117, 116, 0.4), 0 0 20px rgba(43, 117, 116, 0.6); }
-}
-
 /* === СТИЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ === */
 .home-header {
     text-align: center;
@@ -2372,14 +2276,6 @@ body.dark-theme .theme-slider:before {
 .forecast-chart-area {
     fill: var(--accent);
     fill-opacity: 0.15;
-}
-
-/* === СКРЫТИЕ КОПИРАЙТА ЯНДЕКС === */
-.ymaps-2-1-79-copyright,
-.ymaps-2-1-79-logo,
-.ymaps-2-1-79-conditions {
-    bottom: -100px !important;
-    opacity: 0 !important;
 }
 .pull-indicator {
     display: none !important;
