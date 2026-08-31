@@ -2621,7 +2621,8 @@ async function openCenterSheet(parkingId, data) {
         </button>
     </div>
 `;
-
+ sheet.classList.add('active');
+}
 function reportParkingStatus(parkingId) {
     const content = document.getElementById('centerSheetContent');
     if (!content) return;
