@@ -1111,7 +1111,8 @@ function loadAllParkings(city = '', force = false) {
         return Promise.resolve();
     }
     clearAllMarkers();
-    return database.ref('parkings').once('value')
+    const cityPath = city ? `parkings/${city}` : 'parkings';
+     return database.ref(cityPath).once('value')
         .then(snapshot => {
             const data = snapshot.val() || {};
             const newCache = {};
