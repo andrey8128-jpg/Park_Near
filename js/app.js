@@ -2527,6 +2527,7 @@ async function openCenterSheet(parkingId, data) {
     currentParkingData = data;
     parkingDataCache[parkingId] = data;
     const total = Number(data.totalSpots) || 0;
+    const available = Number(data.availableSpots);
     const status = data.status || 'unknown';
 
     let statusIcon = '⚪', statusTitle = 'Нет свежих данных', statusClass = 'unknown';
@@ -2543,6 +2544,9 @@ async function openCenterSheet(parkingId, data) {
         statusTitle = 'Мест нет';
         statusClass = 'occupied';
     }
+    const availableText = Number.isFinite(available) && total > 0
+    ? ` · Свободно: ${Math.max(0, Math.min(available, total))} из ${total}`
+    : '';
     let lastUpdatedText = 'Нет данных';
     if (data.lastUpdatedAt) {
         const diff = Math.max(0, Date.now() - Number(data.lastUpdatedAt));
@@ -2571,9 +2575,10 @@ async function openCenterSheet(parkingId, data) {
                 </div>
             </div>
             <div class="parking-status-compact ${statusClass}">
-                <span class="parking-status-dot">${statusIcon}</span>
-                <strong>${statusTitle}</strong>
-            </div>
+    <span class="parking-status-dot">${statusIcon}</span>
+    <strong>${statusTitle}</strong>
+    <span class="parking-status-available">${availableText}</span>
+</div>
             <div class="parking-meta">
                 <div class="parking-meta-item">
                     <strong>${total || '—'}</strong>
