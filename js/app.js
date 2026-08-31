@@ -2519,7 +2519,6 @@ if(!detectedCity){
     });
 } 
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
-
 async function openCenterSheet(parkingId, data) {
     const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
@@ -2529,6 +2528,7 @@ async function openCenterSheet(parkingId, data) {
     parkingDataCache[parkingId] = data;
     const total = Number(data.totalSpots) || 0;
     const status = data.status || 'unknown';
+
     let statusIcon = '⚪', statusTitle = 'Нет свежих данных', statusClass = 'unknown';
     if (status === 'free') {
         statusIcon = '🟢';
@@ -2547,6 +2547,7 @@ async function openCenterSheet(parkingId, data) {
     if (data.lastUpdatedAt) {
         const diff = Math.max(0, Date.now() - Number(data.lastUpdatedAt));
         const minutes = Math.floor(diff / 60000);
+
         if (minutes < 1) lastUpdatedText = 'только что';
         else if (minutes < 60) lastUpdatedText = `${minutes} мин назад`;
         else {
@@ -2555,14 +2556,18 @@ async function openCenterSheet(parkingId, data) {
         }
     }
     const confirmations = Number(data.statusConfirmations) || 0;
-    const totalText = total > 0 ? `🅿️ ${total} ${getParkingPlacesWord(total)}` : '🅿️ Мест неизвестно';
     const address = data.address ? escapeHtml(data.address) : 'Адрес не указан';
+    const safeId = escapeHtml(parkingId);
+
     content.innerHTML = `
         <div class="parking-card-compact">
-            <div class="parking-card-top">
-                <div class="parking-card-title-block">
-                    <div class="parking-card-title">${escapeHtml(data.name || 'Парковка')}</div>
-                    <div class="parking-card-street">${address}</div>
+            <div class="parking-card-handle"></div>
+            <div class="parking-card-header">
+                <div class="parking-card-title">
+                    🅿️ ${escapeHtml(data.name || 'Парковка')}
+                </div>
+                <div class="parking-card-street">
+                    ${address}
                 </div>
             </div>
             <div class="parking-status-compact ${statusClass}">
@@ -2570,18 +2575,37 @@ async function openCenterSheet(parkingId, data) {
                 <strong>${statusTitle}</strong>
             </div>
             <div class="parking-meta">
-                <span>${totalText}</span>
-                <span>👥 ${confirmations}</span>
-                <span>🕐 ${lastUpdatedText}</span>
+                <div class="parking-meta-item">
+                    <strong>${total || '—'}</strong>
+                    <span>мест всего</span>
+                </div>
+                <div class="parking-meta-item">
+                    <strong>${confirmations}</strong>
+                    <span>подтверждений</span>
+                </div>
+                <div class="parking-meta-item">
+                    <strong>${lastUpdatedText}</strong>
+                    <span>обновлено</span>
+                </div>
             </div>
-            <div class="parking-main-actions">
-                <button class="parking-route-btn" onclick="buildRouteToParking('${escapeHtml(parkingId)}')">🧭 Поехать</button>
-                <button class="parking-update-btn" onclick="reportParkingStatus('${escapeHtml(parkingId)}')">🔄 Обновить</button>
-            </div>
+            <button class="parking-route-btn" onclick="buildRouteToParking('${safeId}')">
+                <span>🧭</span>
+                <span>Поехать</span>
+            </button>
             <div class="parking-secondary-actions">
-                <button class="parking-secondary-btn" onclick="toggleFavoriteCenter()">⭐ Избранное</button>
-                <button class="parking-secondary-btn" onclick="editFromCenter()">✏️ Редактировать</button>
+                <button class="parking-secondary-btn parking-update-btn" onclick="reportParkingStatus('${safeId}')">
+                    <span>↻</span>
+                    <span>Обновить</span>
+                </button>
+
+                <button class="parking-secondary-btn" onclick="toggleFavoriteCenter()">
+                    <span>♡</span>
+                    <span>Сохранить</span>
+                </button>
             </div>
+            <button class="parking-edit-btn" onclick="editFromCenter()">
+                ✎ Редактировать
+            </button>
         </div>`;
     sheet.classList.add('active');
 }
