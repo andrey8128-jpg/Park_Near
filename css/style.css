@@ -3007,67 +3007,319 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
         min-width:42px;
     }
 }
-/* ===== COMPACT PARKING CARD ===== */
+/* ==========================================================
+   🔥 НОВАЯ КРАСИВАЯ КАРТОЧКА ПАРКОВКИ
+   ========================================================== */
+/* --- Центральное всплывающее окно (Bottom Sheet) --- */
 .parking-card-compact {
-    padding: 5px 16px 14px;
+    padding: 20px 20px 30px;
     background: var(--bg-secondary);
-    border-radius: 22px 22px 0 0;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+    position: relative;
     overflow: hidden;
 }
-.parking-card-top {
-    margin-bottom: 8px;
+/* Декоративная полоса сверху (градиент) */
+.parking-card-compact::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), #4DA3A1, var(--accent));
+    background-size: 200% 100%;
+    animation: gradientMove 3s ease infinite;
+}
+/* Ручка для закрытия */
+.parking-card-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--gray);
+    border-radius: 3px;
+    margin: 0 auto 16px;
+    opacity: 0.5;
+}
+/* Заголовок */
+.parking-card-header {
+    margin-bottom: 16px;
 }
 .parking-card-title {
-    font-size: 18px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
     line-height: 1.2;
 }
-.parking-card-street {
-    margin-top: 4px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-size: 12px;
-    line-height: 1.1;
+.parking-card-title .parking-icon {
+    font-size: 26px;
 }
-.parking-status-compact {
+.parking-card-street {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    padding-left: 36px;
+    display: flex;
+    align-items: center;
     gap: 6px;
-    margin: 0 0 9px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 12px;
+}
+.parking-card-street::before {
+    content: '📍';
+    font-size: 14px;
+}
+/* Статусная плашка */
+.parking-status-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-radius: 16px;
+    background: var(--bg-primary);
+    margin: 12px 0 18px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: background 0.3s;
 }
 .parking-status-dot {
-    font-size: 11px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
 }
-.parking-meta {
-    gap: 6px;
-    margin-bottom: 10px;
+/* Цвета статуса */
+.status-free .parking-status-dot {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
 }
-.parking-meta span {
-    padding: 8px 4px;
-    border-radius: 12px;
-    font-size: 10px;
+.status-limited .parking-status-dot {
+    background: var(--orange);
+    box-shadow: 0 0 8px var(--orange);
 }
-.parking-main-actions {
-    gap: 8px;
+.status-occupied .parking-status-dot {
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
 }
-.parking-route-btn {
-    min-height: 50px;
-    border-radius: 14px;
-    padding: 0 14px;
+.status-unknown .parking-status-dot {
+    background: var(--gray);
+}
+.parking-status-compact strong {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.parking-status-available {
+    margin-left: auto;
     font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    padding: 4px 12px;
+    border-radius: 20px;
 }
-.parking-secondary-actions {
+/* Мета-информация (всего, подтверждения, обновлено) */
+.parking-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    margin-top: 8px;
+    margin: 16px 0 20px;
+}
+.parking-meta-item {
+    background: var(--bg-primary);
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+.parking-meta-item strong {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+.parking-meta-item span {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+/* Основная кнопка "Поехать" */
+.parking-route-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px;
+    border-radius: 18px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #0A282C);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(32, 168, 149, 0.35);
+}
+.parking-route-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 6px rgba(32, 168, 149, 0.2);
+}
+/* Вторичные кнопки (обновить, сохранить) */
+.parking-secondary-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
 }
 .parking-secondary-btn {
-    min-height: 46px;
-    border-radius: 13px;
-    padding: 0 8px;
-    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid var(--card-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
 }
+.parking-secondary-btn:active {
+    background: var(--bg-primary);
+    transform: scale(0.96);
+}
+.parking-secondary-btn .btn-icon {
+    font-size: 20px;
+}
+/* Кнопка "Редактировать" */
 .parking-edit-btn {
-    margin-top: 7px;
-    padding: 4px 8px;
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 14px;
+    transition: background 0.15s;
+}
+.parking-edit-btn:active {
+    background: var(--bg-primary);
+}
+/* Анимация появления */
+@keyframes slideUp {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+.parking-card-compact {
+    animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* --- Карточка в списке (главная / поиск) --- */
+.parking-item {
+    display: flex;
+    align-items: stretch;
+    background: var(--bg-secondary);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s, box-shadow 0.2s;
+    cursor: pointer;
+    border: 1px solid var(--card-border);
+}
+.parking-item:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.parking-item .info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.parking-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.parking-item .name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.parking-item .addr {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.parking-item .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
+    color: var(--text-secondary);
+}
+.parking-item .meta-row .dot {
+    color: var(--gray);
+}
+.free-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    background: var(--green);
+    flex-shrink: 0;
+    transition: background 0.3s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(48, 209, 88, 0.3);
+}
+.free-badge.low {
+    background: var(--orange);
+    box-shadow: 0 2px 8px rgba(255, 159, 10, 0.3);
+}
+.free-badge.critical {
+    background: var(--red);
+    box-shadow: 0 2px 8px rgba(255, 69, 58, 0.3);
+}
+/* Адаптивность для маленьких экранов */
+@media (max-width: 420px) {
+    .parking-card-title {
+        font-size: 19px;
+    }
+    .parking-meta {
+        grid-template-columns: 1fr 1fr;
+    }
+    .parking-secondary-actions {
+        grid-template-columns: 1fr;
+    }
+    .parking-item .name {
+        font-size: 15px;
+    }
 }
