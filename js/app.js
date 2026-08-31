@@ -2704,6 +2704,7 @@ async function submitParkingStatus(parkingId, status) {
         console.error('Ошибка обновления состояния парковки:', error);
         alert('Не удалось обновить состояние парковки.');
     }
+  } 
 }
 function getParkingPlacesWord(number) {
     number = Math.abs(Number(number));
