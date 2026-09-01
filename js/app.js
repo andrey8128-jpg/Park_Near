@@ -2727,201 +2727,7 @@ function closeCenterSheet() {
         map.setZoom(16, { duration: 300 });
     }
 }
-function generateForecastText(forecastData, now) {
-    if (!forecastData || forecastData.length === 0) {
-        return 'Прогноз недоступен';
-    }
-    // Берём прогноз на 2-й час (индекс 1) – можно настроить
-    const index = Math.min(1, forecastData.length - 1);
-    const forecast = forecastData[index];
-    const timeStr = forecast.time;
-    const value = forecast.value;
-    // Добавляем окончание для слова "мест"
-    const places = value % 10 === 1 && value % 100 !== 11 ? 'место' : (value % 10 >= 2 && value % 10 <= 4 && (value % 100 < 10 || value % 100 >= 20) ? 'места' : 'мест');
-    return `Ожидается примерно <b>${value}</b> ${places} к <b>${timeStr}</b>`;
-}
-async function loadForecastForEdit(parkingId) {
-    const container = document.getElementById('forecastContainerInEdit');
-    if (!container) return;
 
-    const data = parkingDataCache[parkingId];
-    if (!data) return;
-
-    const now = new Date();
-    const free = data.totalSpots - (data.occupiedSpots || 0);
-
-    try {
-        const forecastData = await generateForecastData(now, free, parkingId);
-        const chartHtml = renderForecastChart(forecastData);
-        const text = generateForecastText(forecastData, now);
-
-        const textContainer = container.querySelector('.center-forecast-text');
-        if (textContainer) textContainer.innerHTML = text;
-
-        const placeholder = document.getElementById('forecastChartPlaceholderInEdit');
-        if (placeholder) {
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = chartHtml;
-            placeholder.parentNode.replaceChild(wrapper.firstElementChild, placeholder);
-        }
-    } catch (e) {
-        console.warn('Ошибка загрузки прогноза:', e);
-        const textContainer = container.querySelector('.center-forecast-text');
-        if (textContainer) textContainer.innerHTML = 'Прогноз временно недоступен';
-        const placeholder = document.getElementById('forecastChartPlaceholderInEdit');
-        if (placeholder) {
-            placeholder.innerHTML = '<div style="color:var(--text-secondary);">Прогноз недоступен</div>';
-        }
-    }
-}
-// Генерация прогноза на основе истории за 7 дней
-async function generateForecastData(now, currentFree, parkingId) {
-    // Если parkingId не указан, возвращаем заглушку
-    if (!parkingId) {
-        const data = [];
-        for (let i = 1; i <= 5; i++) {
-            const future = new Date(now.getTime() + i * 60 * 60 * 1000);
-            const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            const base = currentFree + i * 0.8 + Math.random() * 2 - 1;
-            const value = Math.max(0, Math.round(base));
-            data.push({ time: timeStr, value });
-        }
-        return data;
-    }
-
-    // Загружаем историю за последние 7 дней (максимум 200 записей)
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const snapshot = await database.ref(`parkings/${parkingId}/history`)
-        .orderByChild('timestamp')
-        .startAt(sevenDaysAgo)
-        .limitToLast(200)
-        .once('value');
-    const history = snapshot.val();
-
-    // Если истории нет или она пуста, используем простой тренд
-    if (!history) {
-        const data = [];
-        for (let i = 1; i <= 5; i++) {
-            const future = new Date(now.getTime() + i * 60 * 60 * 1000);
-            const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            const base = currentFree - i * 0.5 + Math.random() * 1.5;
-            const value = Math.max(0, Math.round(base));
-            data.push({ time: timeStr, value });
-        }
-        return data;
-    }
-
-    // Группируем записи по часам (0-23)
-    const hourlyData = {};
-    const entries = Object.values(history);
-    entries.forEach(entry => {
-        const dt = new Date(entry.timestamp);
-        const hour = dt.getHours();
-        if (!hourlyData[hour]) hourlyData[hour] = [];
-        hourlyData[hour].push(entry.newOccupied || entry.occupiedSpots || 0);
-    });
-
-    // Вычисляем среднее для каждого часа
-    const hourlyAvg = {};
-    Object.keys(hourlyData).forEach(hour => {
-        const values = hourlyData[hour];
-        const avg = values.reduce((a, b) => a + b, 0) / values.length;
-        hourlyAvg[hour] = Math.round(avg);
-    });
-
-    // Получаем общее количество мест
-    const totalSpots = parkingDataCache[parkingId]?.totalSpots || 20;
-
-    // Строим прогноз на 5 часов вперёд
-    const forecast = [];
-    for (let i = 1; i <= 5; i++) {
-        const future = new Date(now.getTime() + i * 60 * 60 * 1000);
-        const hour = future.getHours();
-        const timeStr = future.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        let value;
-        if (hourlyAvg[hour] !== undefined) {
-            // Используем среднее за этот час
-            value = hourlyAvg[hour];
-        } else {
-            // Если данных для этого часа нет, используем ближайший существующий час
-            const hours = Object.keys(hourlyAvg).map(Number).sort((a, b) => a - b);
-            let closest = hours[0];
-            let minDiff = 24;
-            hours.forEach(h => {
-                const diff = Math.abs(h - hour);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    closest = h;
-                }
-            });
-            if (closest !== undefined) {
-                value = hourlyAvg[closest];
-            } else {
-                // Совсем нет данных – тренд
-                value = Math.max(0, Math.round(currentFree - i * 0.5));
-            }
-        }
-        // Корректируем, чтобы не выходить за пределы
-        value = Math.max(0, Math.min(totalSpots, value));
-        forecast.push({ time: timeStr, value });
-    }
-
-    return forecast;
-}
-// Отрисовка линейного графика в SVG
-function renderForecastChart(data) {
-    if (!data || data.length === 0) return '';
-
-    const maxVal = Math.max(...data.map(d => d.value), 1);
-    const padding = { top: 10, bottom: 20, left: 5, right: 5 };
-    const width = 300;  // базовый размер, масштабируется через viewBox
-    const height = 80;
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
-
-    const points = data.map((d, i) => {
-        const x = padding.left + (i / (data.length - 1)) * chartWidth;
-        const y = padding.top + chartHeight - (d.value / maxVal) * chartHeight;
-        return { x, y, value: d.value, time: d.time };
-    });
-
-    const linePath = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
-    const areaPath = 'M' + points[0].x.toFixed(1) + ',' + (padding.top + chartHeight) + ' ' +
-        points.map(p => 'L' + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ') +
-        ' L' + points[points.length-1].x.toFixed(1) + ',' + (padding.top + chartHeight) + ' Z';
-
-    // Метки времени (под осью X)
-    const labels = points.map(p =>
-        `<text x="${p.x}" y="${height - 2}" text-anchor="middle" class="forecast-chart-axis">${p.time}</text>`
-    ).join('');
-
-    // Точки
-    const dots = points.map(p =>
-        `<circle cx="${p.x}" cy="${p.y}" r="3" class="forecast-chart-dot" />`
-    ).join('');
-
-    // Подписи значений (над точками)
-    const valueLabels = points.map(p =>
-        `<text x="${p.x}" y="${p.y - 6}" text-anchor="middle" font-size="8" fill="var(--text-secondary)">${p.value}</text>`
-    ).join('');
-
-    return `
-        <div class="forecast-chart-container">
-            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
-                <!-- Область под графиком -->
-                <path d="${areaPath}" class="forecast-chart-area" />
-                <!-- Линия -->
-                <path d="${linePath}" class="forecast-chart-line" />
-                <!-- Точки -->
-                ${dots}
-                <!-- Подписи значений -->
-                ${valueLabels}
-                <!-- Метки времени -->
-                ${labels}
-            </svg>
-        </div>
-    `;
-}
 function toggleFavoriteCenter() {
     if (!currentParkingId || !currentParkingData) return;
     const parkingId = currentParkingId;
@@ -2970,80 +2776,74 @@ function editFromCenter() {
     }
 
    function renderEditPanel(data, isFavorite) {
-    const totalSpots = data.totalSpots || 0;
-    const occupiedSpots = data.occupiedSpots || 0;
-    const freeSpots = totalSpots - occupiedSpots;
-    const color = getOccupancyColor(occupiedSpots, totalSpots);
-    const occupancyPercent = totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0;
-    const isAuthor = currentUser && currentUser.id === data.authorId;
+    const totalSpots = Number(data.totalSpots) || 0;
+    const occupiedSpots = Math.min(Number(data.occupiedSpots) || 0, totalSpots);
+    const freeSpots = Math.max(0, totalSpots - occupiedSpots);
     const status = data.status || 'unknown';
     const statusClass = status === 'free' ? 'status-free' : status === 'occupied' ? 'status-occupied' : 'status-unknown';
+    const isAuthor = currentUser && currentUser.id === data.authorId;
+    const currentStreet = data.street || '';
+    const streetName = extractStreetName(currentStreet);
 
     document.getElementById('panel').classList.add('active');
-    document.getElementById('panelTitle').textContent = 'Редактирование';
+    document.getElementById('panelTitle').textContent = 'Парковка';
 
     let html = `
-    <div class="occupancy-header">
-        <div class="occupancy-title">
-            <span class="status-indicator ${statusClass}"></span>
-            ${escapeHtml(data.name || 'Без названия')}
-        </div>
-    </div>
-    <div class="occupancy-stats">
-        <div class="stat-card stat-total"><div class="stat-value" id="statTotal">${totalSpots}</div><div class="stat-label">Всего мест</div></div>
-        <div class="stat-card stat-free"><div class="stat-value" id="statFree">${freeSpots}</div><div class="stat-label">Свободно</div></div>
-        <div class="stat-card stat-occupied"><div class="stat-value" id="statOccupied">${occupiedSpots}</div><div class="stat-label">Занято</div></div>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:${occupancyPercent}%;background:${color};"></div></div>
-    <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:20px;" id="occupancyPercentText">Загруженность: ${occupancyPercent}%</div>
-    <div class="occupancy-control" style="margin-bottom:15px;">
-        <label>Изменить количество занятых мест:</label>
-        <div class="counter-row">
-            <button class="counter-btn minus" onclick="changeOccupancy(-1, '${currentParkingId}')">−</button>
-            <div class="counter-value" id="currentOccupied">${occupiedSpots}</div>
-            <button class="counter-btn plus" onclick="changeOccupancy(1, '${currentParkingId}')">+</button>
-        </div>
-    </div>
-
-    <!-- ===== ИСТОРИЯ ИЗМЕНЕНИЙ ===== -->
-    <div id="historyContainer" style="margin-top:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <span style="font-weight:600; font-size:16px;">📋 История изменений</span>
-            <span style="font-size:12px; color:var(--text-secondary);" id="historyCount"></span>
-            <button id="showAllHistoryBtn" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; display:none;">См. все</button>
-        </div>
-        <div id="historyList" style="max-height:200px; overflow-y:auto;"></div>
-        <div id="historyFullList" style="display:none; max-height:200px; overflow-y:auto; margin-top:8px;"></div>
-        <button id="hideAllHistoryBtn" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:4px;">Скрыть всё</button>
-    </div>
-
-    <!-- ===== ПРОГНОЗ (добавлен) ===== -->
-    <div id="forecastContainerInEdit" style="margin-top:20px; background:var(--bg-secondary); border-radius:16px; padding:16px; box-shadow:var(--card-shadow);">
-        <div class="center-forecast-title">📊 Прогноз</div>
-        <div class="center-forecast-text" style="font-size:14px; margin-bottom:8px;">Загрузка прогноза...</div>
-        <div id="forecastChartPlaceholderInEdit" style="text-align:center; padding:10px; color:var(--text-secondary);">
-            <div class="spinner" style="width:24px;height:24px;border-width:2px;"></div>
-            <p>Загрузка прогноза...</p>
-        </div>
-    </div>
-
-    <!-- ===== ТРИ КНОПКИ В РЯД ===== -->
-    <div style="display:flex; gap:8px; margin-top:16px;">
-        <button class="btn-secondary" style="flex:1; margin:0;" onclick="toggleParkingEditor()">✏️ Изменить</button>
-        <button class="btn-secondary" style="flex:1; margin:0;" onclick="buildRouteToParking('${currentParkingId}')">🧭 Маршрут</button>
-        <button class="btn-danger" style="flex:1; margin:0; padding:10px;" onclick="deleteParkingWithConfirm('${currentParkingId}')">🗑️ Удалить</button>
-    </div>
+        <div class="edit-parking">
+            <div class="edit-parking-header">
+                <div>
+                    <div class="edit-parking-title">
+                        <span class="status-indicator ${statusClass}"></span>
+                        ${escapeHtml(data.name || 'Без названия')}
+                    </div>
+                    <div class="edit-parking-address">📍 ${escapeHtml(currentStreet || 'Адрес не указан')}</div>
+                </div>
+            </div>
+            <div class="edit-parking-stats">
+                <div class="edit-stat">
+                    <strong id="statTotal">${totalSpots}</strong>
+                    <span>Всего мест</span>
+                </div>
+                <div class="edit-stat">
+                    <strong id="statFree">${freeSpots}</strong>
+                    <span>Свободно</span>
+                </div>
+                <div class="edit-stat">
+                    <strong id="statOccupied">${occupiedSpots}</strong>
+                    <span>Занято</span>
+                </div>
+            </div>
+            <div class="edit-section">
+                <div class="edit-section-title">🅿️ Занятые места</div>
+                <div class="edit-counter">
+                    <button class="edit-counter-btn" onclick="changeOccupancy(-1,'${currentParkingId}')">−</button>
+                    <div class="edit-counter-value" id="currentOccupied">${occupiedSpots}</div>
+                    <button class="edit-counter-btn" onclick="changeOccupancy(1,'${currentParkingId}')">+</button>
+                </div>
+            </div>
+            <div class="edit-section">
+                <div class="edit-section-title">📋 История изменений</div>
+                <div id="historyContainer">
+                    <div id="historyList"></div>
+                    <div id="historyFullList" style="display:none;"></div>
+                    <button id="showAllHistoryBtn" class="edit-history-btn" style="display:none;">См. все</button>
+                    <button id="hideAllHistoryBtn" class="edit-history-btn" style="display:none;">Скрыть</button>
+                </div>
+                <span id="historyCount"></span>
+            </div>
+            <div class="edit-actions">
+                <button class="btn-primary" onclick="buildRouteToParking('${currentParkingId}')">🧭 Построить маршрут</button>
+                ${isAuthor ? `<button class="btn-secondary" onclick="toggleParkingEditor()">✏️ Редактировать данные</button>` : ''}
+                <button class="btn-danger" onclick="deleteParkingWithConfirm('${currentParkingId}')">🗑️ Удалить парковку</button>
+            </div>
     `;
-
-    // ===== ПАНЕЛЬ РЕДАКТИРОВАНИЯ (скрыта по умолчанию) =====
-    if (currentUser && isAuthor) {
-        const currentStreet = data.street || '';
-        const streetName = extractStreetName(currentStreet);
+    if (isAuthor) {
         html += `
-        <div id="editPanel" style="display:none; margin-top:16px; background:var(--bg-secondary); border-radius:16px; padding:16px; box-shadow:var(--card-shadow);">
-            <div class="form-group">
-                <label>Название / улица</label>
-                <select id="editStreetType" class="input-field" style="margin-bottom:8px;">
+            <div id="editPanel" class="edit-form" style="display:none;">
+                <div class="edit-form-title">✏️ Данные парковки</div>
+
+                <label>Тип улицы</label>
+                <select id="editStreetType" class="input-field">
                     <option value="">-- выберите --</option>
                     <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
                     <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
@@ -3055,37 +2855,28 @@ function editFromCenter() {
                     <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
                     <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
                 </select>
+
+                <label>Название улицы</label>
                 <input type="text" id="editStreetName" class="input-field" value="${escapeHtml(streetName)}" placeholder="Название улицы">
-            </div>
-            <div class="form-group">
+
                 <label>Номер дома</label>
                 <input type="text" id="editHouseNumber" class="input-field" value="${escapeHtml(data.houseNumber || '')}" placeholder="15">
-            </div>
-            <div class="form-group">
-                <label>Количество мест</label>
+
+                <label>Количество парковочных мест</label>
                 <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1" max="500">
+
+                <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
+                <button class="btn-secondary" onclick="toggleParkingEditor()">Отмена</button>
             </div>
-            <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить</button>
-            <button class="btn-secondary" style="margin-top:8px;" onclick="toggleParkingEditor()">Отмена</button>
-        </div>
         `;
-    } else if (!isAuthor && currentUser) {
-        html += `<div style="text-align:center; margin-top:16px; font-size:14px; color:var(--text-secondary);">Вы не можете редактировать эту парковку</div>`;
+    } else if (currentUser) {
+        html += `<div class="edit-no-access">Вы не являетесь автором этой парковки</div>`;
     }
-
+    html += `</div>`;
     document.getElementById('panelContent').innerHTML = html;
-
-    // ===== ЗАГРУЗКА ИСТОРИИ =====
     if (currentUser && currentParkingId) {
         loadHistoryPreview(currentParkingId);
     }
-
-    // ===== ЗАГРУЗКА ПРОГНОЗА =====
-    if (currentParkingId) {
-        loadForecastForEdit(currentParkingId);
-    }
-
-    // ===== ОБРАБОТЧИКИ КНОПОК =====
     window.showAllHistory = function() {
         document.getElementById('historyList').style.display = 'none';
         document.getElementById('historyFullList').style.display = 'block';
@@ -3100,9 +2891,8 @@ function editFromCenter() {
     };
     window.toggleParkingEditor = function() {
         const panel = document.getElementById('editPanel');
-        if (panel) {
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        }
+        if (!panel) return;
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     };
     window.deleteParkingWithConfirm = function(parkingId) {
         if (confirm('Вы уверены, что хотите удалить эту парковку? Это действие необратимо!')) {
