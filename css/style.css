@@ -2386,17 +2386,23 @@ body.dark-theme .theme-slider:before {
 .pull-indicator {
     display: none !important;
 }
-#splashScreen{
-    position:fixed;
-    inset:0;
-    z-index:10000;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-    background:#07191E;
-    opacity:1;
-    transition:opacity .7s ease,visibility .7s ease;
+#splashScreen {
+    position: fixed; /* закрепляет экран загрузки относительно viewport */
+    top: 0; /* верхний край экрана */
+    right: 0; /* правый край экрана */
+    bottom: 0; /* нижний край экрана */
+    left: 0; /* левый край экрана */
+    width: 100%; /* ширина всего экрана */
+    height: 100%; /* занимает всю доступную область */
+    min-height: 100dvh; /* не позволяет стать ниже динамической высоты телефона */
+    z-index: 10000; /* Splash находится поверх карты и интерфейса */
+    display: flex; /* включает Flexbox */
+    align-items: center; /* центрирует содержимое по вертикали */
+    justify-content: center; /* центрирует содержимое по горизонтали */
+    overflow: hidden; /* ничего не выходит за границы Splash */
+    background: #07191E; /* цвет фона Splash */
+    opacity: 1; /* Splash полностью видимый при запуске */
+    transition: opacity .7s ease, visibility .7s ease; /* плавное исчезновение */
 }
 #splashScreen.splash-hidden{
     opacity:0;
