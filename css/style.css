@@ -706,110 +706,180 @@ select.input-field {
     20%, 80% { opacity: 1; }
 }
 
-.occupancy-header {
-    text-align: center;
-    padding: 10px 0 20px;
+/* ===== РЕДАКТИРОВАНИЕ ПАРКОВКИ ===== */
+.edit-parking {
+    padding: 4px 0 12px;
 }
-.occupancy-title {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 4px;
+.edit-parking-header {
+    margin-bottom: 12px;
 }
-.occupancy-stats {
+.edit-parking-title {
     display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-.stat-card {
-    flex: 1;
-    background: var(--bg-secondary);
-    border-radius: 16px;
-    padding: 16px;
-    text-align: center;
-    box-shadow: var(--card-shadow);
-}
-.stat-value {
-    font-size: 28px;
+    align-items: center;
+    gap: 8px;
+    font-size: 19px;
     font-weight: 700;
-    margin-bottom: 4px;
+    color: var(--text-primary);
 }
-.stat-label {
-    font-size: 12px;
+.edit-parking-address {
+    margin-top: 4px;
+    font-size: 13px;
     color: var(--text-secondary);
-    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.stat-total .stat-value { color: var(--accent); }
-.stat-free .stat-value { color: var(--green); }
-.stat-occupied .stat-value { color: var(--red); }
-
-.occupancy-control {
-    background: var(--bg-secondary);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: var(--card-shadow);
-    transition: background 0.3s;
+.edit-parking-stats {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 6px;
+    margin-bottom: 12px;
 }
-.occupancy-control label {
+.edit-stat {
+    padding: 9px 5px;
+    border-radius: 12px;
+    background: var(--bg-primary);
+    text-align: center;
+}
+.edit-stat strong {
     display: block;
+    font-size: 18px;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+.edit-stat span {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+.edit-section {
+    padding: 11px 12px;
+    margin-bottom: 9px;
+    border-radius: 14px;
+    background: var(--bg-primary);
+}
+.edit-section-title {
+    margin-bottom: 9px;
     font-size: 14px;
     font-weight: 600;
-    margin-bottom: 12px;
-    text-align: center;
+    color: var(--text-primary);
 }
-.counter-row {
+.edit-counter {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: 16px;
 }
-.counter-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: 1px solid var(--input-border);
+.edit-counter-btn {
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 13px;
     background: var(--bg-secondary);
     color: var(--text-primary);
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 25px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, transform 0.1s;
 }
-.counter-btn:active {
-    background: var(--bg-primary);
-    transform: scale(0.95);
+.edit-counter-btn:active {
+    transform: scale(.94);
 }
-.counter-btn.minus {
-    color: var(--red);
-    border-color: var(--red);
-}
-.counter-btn.plus {
-    color: var(--green);
-    border-color: var(--green);
-}
-.counter-value {
-    font-size: 32px;
-    font-weight: 700;
-    min-width: 60px;
+.edit-counter-value {
+    min-width: 48px;
     text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
 }
-
-.progress-bar {
-    height: 8px;
+.edit-history-btn {
+    border: 0;
+    padding: 5px 0;
+    background: none;
+    color: var(--accent);
+    font-size: 13px;
+    cursor: pointer;
+}
+#historyList,
+#historyFullList {
+    max-height: 150px;
+    overflow-y: auto;
+}
+.edit-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+.edit-actions .btn-primary,
+.edit-actions .btn-secondary,
+.edit-actions .btn-danger {
+    width: 100%;
+    margin: 0;
+}
+.edit-form {
+    margin-top: 10px;
+    padding: 14px;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--bg-secondary);
+}
+.edit-form-title {
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.edit-form label {
+    display: block;
+    margin: 9px 0 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.edit-form .input-field {
+    width: 100%;
+    margin: 0;
+}
+.edit-form .btn-primary {
+    width: 100%;
+    margin-top: 12px;
+}
+.edit-form .btn-secondary {
+    width: 100%;
+    margin-top: 7px;
+}
+.edit-no-access {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 12px;
     background: var(--bg-primary);
-    border-radius: 4px;
-    margin: 16px 0;
-    overflow: hidden;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
 }
-.progress-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s, background 0.3s;
-    background: var(--accent);
+@media (max-width:420px) {
+    .edit-parking-title {
+        font-size: 18px;
+    }
+    .edit-parking-stats {
+        gap: 5px;
+    }
+    .edit-stat {
+        padding: 8px 4px;
+    }
+    .edit-stat strong {
+        font-size: 16px;
+    }
+    .edit-stat span {
+        font-size: 9px;
+    }
+    .edit-section {
+        padding: 10px;
+    }
+    .edit-counter-btn {
+        width: 40px;
+        height: 40px;
+    }
 }
-
 .drawing-controls {
     position: fixed;
     bottom: 120px;
