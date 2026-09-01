@@ -1713,7 +1713,7 @@ function initMap() {
                         'text-align:center;' +
                         'transform:rotate(45deg);' +
                     '">' +
-                        '{{ properties.freeSpots || "0" }}' +
+                        '{{ properties.parkingCount || "0" }}' +
                     '</div>'
                 ),
 
@@ -2053,35 +2053,53 @@ function openParkingForm() {
     // Просто открываем панель с формой – без лишних задержек
     openAddPanelWithPolygon(_parkingFormCoords, _parkingFormSizeCheck);
 }
-    function cancelDrawing() {
+function cancelDrawing() {
     if (editingPolygon) {
         map.geoObjects.remove(editingPolygon);
         editingPolygon = null;
+
         if (originalPolyCoords && currentParkingId) {
-            addMarkerToMap(currentParkingId, { ...currentParkingData, coordinates: originalPolyCoords });
+            addMarkerToMap(currentParkingId, {
+                ...currentParkingData,
+                coordinates: originalPolyCoords
+            });
         }
+
         const controls = document.getElementById('drawingControls');
         if (controls) controls.remove();
-        document.getElementById('addBtn').classList.remove('drawing');
-        document.getElementById('addBtn').textContent = '+';
+
+        const addBtn = document.getElementById('addBtn');
+        if (addBtn) {
+            addBtn.classList.remove('drawing');
+            addBtn.textContent = '+';
+        }
+
         isDrawingMode = false;
         currentParkingId = null;
         currentParkingData = null;
         originalPolyCoords = null;
         _parkingFormCoords = null;
         _parkingFormSizeCheck = null;
+
         closePanel();
         return;
     }
+
     if (drawingPolygon) {
         map.geoObjects.remove(drawingPolygon);
         drawingPolygon = null;
     }
+
     isDrawingMode = false;
-    document.getElementById('addBtn').classList.remove('drawing');
-    document.getElementById('addBtn').textContent = '+';
+
+    const addBtn = document.getElementById('addBtn');
+    if (addBtn) {
+        addBtn.classList.remove('drawing');
+        addBtn.textContent = '+';
+    }
     const controls = document.getElementById('drawingControls');
     if (controls) controls.remove();
+
     _parkingFormCoords = null;
     _parkingFormSizeCheck = null;
 }
