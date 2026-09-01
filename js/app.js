@@ -2522,14 +2522,39 @@ if(!detectedCity){
 } 
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
 async function openCenterSheet(parkingId, data) {
-    const sheet = document.getElementById('centerSheet');
-    const content = document.getElementById('centerSheetContent');
-    if (!sheet || !content) return;
+    console.log('🔥 openCenterSheet вызвана', parkingId, data);
+
+    // 1. Закрываем все возможные оверлеи, чтобы они не перекрывали карточку
+    closeAddressPickerIfOpen();
+    closeLabelPickerIfOpen();
+    closeCenterSheet(); // закрываем старую, если была
+
+    // 2. Гарантируем наличие элементов
+    let sheet = document.getElementById('centerSheet');
+    let content = document.getElementById('centerSheetContent');
+
+    if (!sheet) {
+        console.warn('⚠️ #centerSheet не найден – создаём');
+        sheet = document.createElement('div');
+        sheet.id = 'centerSheet';
+        sheet.className = 'center-sheet';
+        document.body.appendChild(sheet);
+    }
+    if (!content) {
+        console.warn('⚠️ #centerSheetContent не найден – создаём');
+        content = document.createElement('div');
+        content.id = 'centerSheetContent';
+        sheet.appendChild(content);
+    }
+
+    // 3. Сохраняем данные
     currentParkingId = parkingId;
     currentParkingData = data;
     parkingDataCache[parkingId] = data;
+
+    // 4. Подготавливаем данные для отображения
     const total = Number(data.totalSpots) || 0;
-    const available = Number(data.availableSpots);
+    const available = Number(data.availableSpots) || 0; // если есть
     const status = data.status || 'unknown';
 
     let statusIcon = '⚪', statusTitle = 'Нет свежих данных', statusClass = 'unknown';
@@ -2546,14 +2571,15 @@ async function openCenterSheet(parkingId, data) {
         statusTitle = 'Мест нет';
         statusClass = 'occupied';
     }
-    const availableText = Number.isFinite(available) && total > 0
-    ? ` · Свободно: ${Math.max(0, Math.min(available, total))} из ${total}`
-    : '';
+
+    const availableText = (Number.isFinite(available) && total > 0)
+        ? ` · Свободно: ${Math.max(0, Math.min(available, total))} из ${total}`
+        : '';
+
     let lastUpdatedText = 'Нет данных';
     if (data.lastUpdatedAt) {
         const diff = Math.max(0, Date.now() - Number(data.lastUpdatedAt));
         const minutes = Math.floor(diff / 60000);
-
         if (minutes < 1) lastUpdatedText = 'только что';
         else if (minutes < 60) lastUpdatedText = `${minutes} мин назад`;
         else {
@@ -2561,10 +2587,12 @@ async function openCenterSheet(parkingId, data) {
             lastUpdatedText = hours < 24 ? `${hours} ч назад` : `${Math.floor(hours / 24)} дн назад`;
         }
     }
+
     const confirmations = Number(data.statusConfirmations) || 0;
     const address = data.address ? escapeHtml(data.address) : 'Адрес не указан';
     const safeId = escapeHtml(parkingId);
 
+    // 5. Генерируем HTML
     content.innerHTML = `
     <div class="parking-card-compact">
         <div class="parking-card-handle"></div>
@@ -2621,7 +2649,10 @@ async function openCenterSheet(parkingId, data) {
         </button>
     </div>
 `;
- sheet.classList.add('active');
+
+    // 6. Показываем карточку
+    sheet.classList.add('active');
+    console.log('✅ Карточка открыта, класс active добавлен');
 }
 function reportParkingStatus(parkingId) {
     const content = document.getElementById('centerSheetContent');
