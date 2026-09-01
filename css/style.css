@@ -115,26 +115,29 @@ body.dark-theme {
 body {
     margin: 0; /* убирает стандартный внешний отступ браузера */
     padding: 0; /* убирает стандартный внутренний отступ */
-    width: 100%; /* ширина на весь доступный экран */
-    height: 100%; /* высота на весь доступный экран */
-    min-height: 100dvh; /* минимальная высота = реальная высота экрана телефона */
+    width: 100%; /* ширина на весь экран */
+    min-height: 100dvh; /* минимальная высота = динамическая высота экрана */
     overflow: hidden; /* запрещает прокрутку всей страницы */
-    overscroll-behavior: none; /* отключает эффект "оттягивания" страницы на телефоне */
-    background: var(--bg-primary); /* основной фон из нашей цветовой системы */
-    color: var(--text-primary); /* основной цвет текста из цветовой системы */
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; /* системный шрифт iPhone/Android */
-    -webkit-font-smoothing: antialiased; /* делает текст более гладким на Apple-устройствах */
-    -webkit-text-size-adjust: 100%; /* запрещает Safari автоматически увеличивать текст */
-    -webkit-tap-highlight-color: transparent; /* убирает стандартную подсветку элемента при нажатии */
-    text-rendering: optimizeLegibility; /* улучшает визуальное отображение текста */
-    transition: background 0.3s ease, color 0.3s ease; /* плавное изменение фона и текста при смене темы */
+    overscroll-behavior: none; /* отключает эффект "оттягивания" страницы */
+    background: var(--bg-primary); /* основной фон приложения */
+    color: var(--text-primary); /* основной цвет текста */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; /* системный шрифт */
+    -webkit-font-smoothing: antialiased; /* сглаживание текста на Apple */
+    -webkit-text-size-adjust: 100%; /* запрещает Safari увеличивать текст */
+    -webkit-tap-highlight-color: transparent; /* убирает подсветку при нажатии */
+    text-rendering: optimizeLegibility; /* улучшает отображение текста */
+    transition: background 0.3s ease, color 0.3s ease; /* плавная смена темы */
 }
 /* ===== КАРТА ===== */
 #map {
     position: fixed; /* карта закреплена относительно экрана */
-    inset: 0; /* карта касается всех четырёх краёв экрана */
-    width: 100%; /* ширина всей области просмотра */
-    height: 100dvh; /* высота всей реальной области просмотра */
+    top: 0; /* прижимает карту к верхнему краю */
+    right: 0; /* прижимает карту к правому краю */
+    bottom: 0; /* прижимает карту к нижнему краю */
+    left: 0; /* прижимает карту к левому краю */
+    width: 100%; /* ширина всего экрана */
+    height: 100%; /* занимает всю область fixed-элемента */
+    min-height: 100dvh; /* не даёт карте стать ниже высоты viewport */
     margin: 0; /* убирает внешний отступ */
     padding: 0; /* убирает внутренний отступ */
     z-index: 1; /* карта находится ниже Splash и плавающих элементов */
@@ -220,7 +223,6 @@ body.dark-theme #map .ymaps-2-1-79-map-pane img,
 body.dark-theme #map .ymaps-2-1-79-ground-pane img {
     filter: invert(1) hue-rotate(180deg);
 }
-
 /* === ПЕРЕКЛЮЧАТЕЛЬ СЛОЁВ === */
 /* Кнопка выбора типа карты */
 .layer-switcher {
