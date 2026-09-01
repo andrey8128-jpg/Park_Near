@@ -2312,140 +2312,6 @@ body.dark-theme .theme-slider:before {
     cursor: pointer;
 }
 
-/* === ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО === */
-.center-sheet {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 3000;
-    align-items: flex-end;
-    justify-content: center;
-    pointer-events: none;
-}
-.center-sheet.active {
-    display: flex;
-}
-.center-sheet-overlay {
-    display: none;
-}
-.center-sheet-box {
-    position: relative;
-    background: var(--bg-secondary);
-    border-radius: 20px 20px 0 0;
-    padding: 20px 16px;
-    width: 85%;
-    max-width: 340px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 3001;
-    pointer-events: auto;
-    margin-bottom: calc(var(--tab-bar-height, 60px) + var(--tab-bar-bottom, 16px) + 20px);
-}
-.center-sheet-close {
-    position: absolute;
-    top: 10px;
-    right: 16px;
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-.center-sheet-title {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 16px;
-    text-align: center;
-}
-.center-stats {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-.center-stat {
-    flex: 1;
-    background: var(--bg-primary);
-    border-radius: 12px;
-    padding: 12px 8px;
-    text-align: center;
-}
-.center-stat-value {
-    font-size: 20px;
-    font-weight: 700;
-}
-.center-stat-label {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-}
-.center-stat .green { color: var(--green); }
-.center-stat .red { color: var(--red); }
-.center-stat .blue { color: var(--accent); }
-
-.center-forecast {
-    background: var(--bg-primary);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 16px;
-}
-.center-forecast-title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-.center-forecast-text {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-}
-.center-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-}
-.center-actions .btn-secondary {
-    flex: 1;
-    margin: 0;
-    padding: 10px;
-    font-size: 14px;
-}
-
-.forecast-chart-container {
-    margin-top: 8px;
-    width: 100%;
-    overflow: hidden;
-}
-.forecast-chart-container svg {
-    width: 100%;
-    height: auto;
-    display: block;
-    background: transparent;
-}
-.forecast-chart-axis {
-    font-size: 10px;
-    fill: var(--text-secondary);
-}
-.forecast-chart-line {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 2;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-}
-.forecast-chart-dot {
-    fill: var(--accent);
-    stroke: var(--bg-secondary);
-    stroke-width: 1.5;
-}
-.forecast-chart-area {
-    fill: var(--accent);
-    fill-opacity: 0.15;
-}
-
 /* === СКРЫТИЕ КОПИРАЙТА ЯНДЕКС === */
 .ymaps-2-1-79-copyright,
 .ymaps-2-1-79-logo,
@@ -3110,6 +2976,26 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     background: linear-gradient(90deg, var(--accent), #4DA3A1, var(--accent)); /* Градиент полоски. Если один цвет → полоска станет однотонной. */
     background-size: 200% 100%; /* Размер градиента. Если 100% → градиент будет занимать ширину полоски. Если 300% → движение градиента будет заметнее. */
     animation: gradientMove 3s ease infinite; /* Анимация 3 секунды. Если 1s → быстрее. Если 5s → медленнее. Если none → анимации не будет. */
+}
+.parking-card-close{
+    position:absolute;
+    top:10px;
+    right:12px;
+    width:34px;
+    height:34px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:0;
+    border-radius:50%;
+    background:var(--bg-primary);
+    color:var(--text-secondary);
+    font-size:22px;
+    cursor:pointer;
+    z-index:10;
+}
+.parking-card-close:active{
+    transform:scale(.92);
 }
 /* Ручка карточки */
 .parking-card-handle {
