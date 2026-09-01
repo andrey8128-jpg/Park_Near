@@ -3272,37 +3272,60 @@ async function deleteParking(parkingId) {
     }
 
     function toggleFavorite(parkingId, parkingData) {
-    if (!currentUser || !parkingId) return;
+    if (!currentUser || !parkingId) {
+        console.error('Избранное: нет пользователя или parkingId');
+        return;
+    }
+
     const data = parkingData || parkingDataCache[parkingId] || null;
-    if (!data) return;
+    if (!data) {
+        console.error('Избранное: данные парковки не найдены', parkingId);
+        return;
+    }
 
     const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
-    favRef.once('value').then(snap => {
-        if (snap.exists()) {
-            favRef.remove();
-            // Обновляем текст кнопки в центральном окне
-            const btn = document.querySelector('.center-actions .btn-secondary:first-child');
-            if (btn) btn.innerHTML = '⭐ Избранное';
-            if (data.authorId) {
-                database.ref(`users/${data.authorId}/stats/favorites`).transaction(c => Math.max(0, (c || 1) - 1));
+    const btn = document.querySelector('.center-actions .btn-secondary:first-child');
+
+    favRef.once('value')
+        .then(snap => {
+            if (snap.exists()) {
+                return favRef.remove().then(() => {
+                    if (btn) btn.innerHTML = '⭐ Избранное';
+
+                    if (data.authorId) {
+                        database.ref(`users/${data.authorId}/stats/favorites`)
+                            .transaction(c => Math.max(0, (c || 0) - 1));
+                    }
+
+                    console.log('Парковка удалена из избранного:', parkingId);
+                });
             }
-        } else {
+
             const favData = {
                 parkingId: parkingId,
                 name: data.name || data.address || data.street || 'Парковка',
-                lat: data.lat || 0,
-                lng: data.lng || 0,
+                lat: Number(data.lat) || 0,
+                lng: Number(data.lng) || 0,
                 address: data.address || '',
                 timestamp: Date.now()
             };
-            favRef.set(favData);
-            const btn = document.querySelector('.center-actions .btn-secondary:first-child');
-            if (btn) btn.innerHTML = '✅ В избранном';
-            if (data.authorId) {
-                database.ref(`users/${data.authorId}/stats/favorites`).transaction(c => (c || 0) + 1);
+
+            return favRef.set(favData).then(() => {
+                if (btn) btn.innerHTML = '✅ В избранном';
+
+                if (data.authorId) {
+                    database.ref(`users/${data.authorId}/stats/favorites`)
+                        .transaction(c => (c || 0) + 1);
+                }
+                console.log('Парковка добавлена в избранное:', parkingId);
+            });
+        })
+        .catch(err => {
+            console.error('Ошибка сохранения избранного:', err);
+            if (btn) {
+                btn.innerHTML = '⭐ Избранное';
             }
-        }
-    });
+        });
 }
    // ===================== МАРШРУТ =====================
     function buildRouteToParking(parkingId) {
