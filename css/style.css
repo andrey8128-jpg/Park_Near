@@ -3011,315 +3011,344 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
    🔥 НОВАЯ КРАСИВАЯ КАРТОЧКА ПАРКОВКИ
    ========================================================== */
 /* --- Центральное всплывающее окно (Bottom Sheet) --- */
-.parking-card-compact {
-    padding: 20px 20px 30px;
-    background: var(--bg-secondary);
-    border-radius: 28px 28px 0 0;
-    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(4px);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+.parking-card-compact { /* Основная карточка выбранной парковки */
+    padding: 20px 20px 30px; /* Внутренний отступ: сверху 20px, по бокам 20px, снизу 30px */
+    background: var(--bg-secondary); /* Цвет фона карточки */
+    border-radius: 28px 28px 0 0; /* Скругление верхних левого и правого углов */
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.1); /* Тень над карточкой */
+    backdrop-filter: blur(4px); /* Размытие фона позади карточки */
+    transition: all 0.3s ease; /* Плавность изменения всех свойств */
+    position: relative; /* Позволяет позиционировать дочерние элементы относительно карточки */
+    overflow: hidden; /* Обрезает всё, что выходит за границы карточки */
 }
-/* Декоративная полоса сверху (градиент) */
-.parking-card-compact::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--accent), #4DA3A1, var(--accent));
-    background-size: 200% 100%;
-    animation: gradientMove 3s ease infinite;
+/* Декоративная полоса сверху */
+.parking-card-compact::before { /* Создаёт дополнительный элемент без HTML */
+    content: ''; /* Обязательно для отображения псевдоэлемента */
+    position: absolute; /* Позиционирует полоску относительно карточки */
+    top: 0; /* Прижимает полоску к верхнему краю */
+    left: 0; /* Прижимает полоску к левому краю */
+    right: 0; /* Прижимает полоску к правому краю */
+    height: 4px; /* Высота полоски */
+    background: linear-gradient(90deg, var(--accent), #4DA3A1, var(--accent)); /* Градиент полоски */
+    background-size: 200% 100%; /* Увеличивает размер градиента для анимации */
+    animation: gradientMove 3s ease infinite; /* Запускает анимацию градиента */
 }
-/* Ручка для закрытия */
-.parking-card-handle {
-    width: 40px;
-    height: 4px;
-    background: var(--gray);
-    border-radius: 3px;
-    margin: 0 auto 16px;
-    opacity: 0.5;
+/* Ручка для закрытия/перетаскивания карточки */
+.parking-card-handle { /* Маленькая полоска в верхней части карточки */
+    width: 40px; /* Ширина ручки */
+    height: 4px; /* Высота ручки */
+    background: var(--gray); /* Цвет ручки */
+    border-radius: 3px; /* Скругление ручки */
+    margin: 0 auto 16px; /* Центрирует ручку и даёт 16px отступ снизу */
+    opacity: 0.5; /* Делает ручку полупрозрачной */
 }
-/* Заголовок */
-.parking-card-header {
-    margin-bottom: 16px;
+/* Заголовок карточки */
+.parking-card-header { /* Контейнер заголовка */
+    margin-bottom: 16px; /* Отступ после заголовка */
 }
-.parking-card-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    line-height: 1.2;
+/* Название парковки */
+.parking-card-title { /* Текст названия парковки */
+    font-size: 22px; /* Размер текста */
+    font-weight: 700; /* Жирность текста */
+    color: var(--text-primary); /* Основной цвет текста */
+    display: flex; /* Включает Flex-разметку */
+    align-items: center; /* Выравнивает элементы по вертикали */
+    gap: 10px; /* Расстояние между иконкой и текстом */
+    line-height: 1.2; /* Высота строки */
 }
-.parking-card-title .parking-icon {
-    font-size: 26px;
+/* Иконка парковки */
+.parking-card-title .parking-icon { /* Иконка внутри названия */
+    font-size: 26px; /* Размер иконки */
 }
-.parking-card-street {
-    font-size: 15px;
-    color: var(--text-secondary);
-    margin-top: 4px;
-    padding-left: 36px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+/* Адрес парковки */
+.parking-card-street { /* Строка с названием улицы/адресом */
+    font-size: 15px; /* Размер текста адреса */
+    color: var(--text-secondary); /* Вторичный цвет текста */
+    margin-top: 4px; /* Отступ сверху */
+    padding-left: 36px; /* Отступ слева */
+    display: flex; /* Включает Flex-разметку */
+    align-items: center; /* Выравнивает элементы по вертикали */
+    gap: 6px; /* Расстояние между элементами */
 }
-.parking-card-street::before {
-    content: '📍';
-    font-size: 14px;
+/* Значок местоположения перед адресом */
+.parking-card-street::before { /* Псевдоэлемент перед адресом */
+    content: '📍'; /* Добавляет значок геолокации */
+    font-size: 14px; /* Размер значка */
 }
-/* Статусная плашка */
-.parking-status-compact {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 18px;
-    border-radius: 16px;
-    background: var(--bg-primary);
-    margin: 12px 0 18px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: background 0.3s;
+/* Плашка состояния парковки */
+.parking-status-compact { /* Блок "Свободно / Занято / Мало мест" */
+    display: flex; /* Располагает элементы в одну строку */
+    align-items: center; /* Выравнивает элементы по вертикали */
+    gap: 12px; /* Расстояние между элементами */
+    padding: 12px 18px; /* Внутренние отступы */
+    border-radius: 16px; /* Скругление плашки */
+    background: var(--bg-primary); /* Цвет фона */
+    margin: 12px 0 18px; /* Отступ сверху 12px и снизу 18px */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Внутренняя тень */
+    transition: background 0.3s; /* Плавное изменение фона */
 }
-.parking-status-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    display: inline-block;
-    flex-shrink: 0;
+/* Кружок состояния */
+.parking-status-dot { /* Цветной кружок статуса */
+    width: 14px; /* Ширина кружка */
+    height: 14px; /* Высота кружка */
+    border-radius: 50%; /* Превращает элемент в круг */
+    display: inline-block; /* Позволяет задавать размеры */
+    flex-shrink: 0; /* Запрещает кружку сжиматься */
 }
-/* Цвета статуса */
-.status-free .parking-status-dot {
-    background: var(--green);
-    box-shadow: 0 0 8px var(--green);
+/* Свободно */
+.status-free .parking-status-dot { /* Кружок свободной парковки */
+    background: var(--green); /* Зелёный цвет */
+    box-shadow: 0 0 8px var(--green); /* Зелёное свечение */
 }
-.status-limited .parking-status-dot {
-    background: var(--orange);
-    box-shadow: 0 0 8px var(--orange);
+/* Мало мест */
+.status-limited .parking-status-dot { /* Кружок парковки с ограниченным количеством мест */
+    background: var(--orange); /* Оранжевый цвет */
+    box-shadow: 0 0 8px var(--orange); /* Оранжевое свечение */
 }
-.status-occupied .parking-status-dot {
-    background: var(--red);
-    box-shadow: 0 0 8px var(--red);
+/* Занято */
+.status-occupied .parking-status-dot { /* Кружок занятой парковки */
+    background: var(--red); /* Красный цвет */
+    box-shadow: 0 0 8px var(--red); /* Красное свечение */
 }
-.status-unknown .parking-status-dot {
-    background: var(--gray);
+/* Неизвестный статус */
+.status-unknown .parking-status-dot { /* Кружок неизвестного состояния */
+    background: var(--gray); /* Серый цвет */
 }
-.parking-status-compact strong {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text-primary);
+/* Текст статуса */
+.parking-status-compact strong { /* Например: "Свободно" */
+    font-size: 17px; /* Размер текста */
+    font-weight: 600; /* Жирность текста */
+    color: var(--text-primary); /* Цвет текста */
 }
-.parking-status-available {
-    margin-left: auto;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--bg-secondary);
-    padding: 4px 12px;
-    border-radius: 20px;
+/* Количество свободных мест */
+.parking-status-available { /* Например: "12 мест" */
+    margin-left: auto; /* Прижимает количество мест вправо */
+    font-size: 15px; /* Размер текста */
+    font-weight: 500; /* Толщина текста */
+    color: var(--text-secondary); /* Цвет текста */
+    background: var(--bg-secondary); /* Фон блока */
+    padding: 4px 12px; /* Внутренние отступы */
+    border-radius: 20px; /* Сильное скругление */
 }
-/* Мета-информация (всего, подтверждения, обновлено) */
-.parking-meta {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin: 16px 0 20px;
+/* Блок статистики */
+.parking-meta { /* Контейнер с общей статистикой */
+    display: grid; /* Использует CSS Grid */
+    grid-template-columns: repeat(3, 1fr); /* Создаёт 3 одинаковые колонки */
+    gap: 8px; /* Расстояние между колонками */
+    margin: 16px 0 20px; /* Отступ сверху 16px и снизу 20px */
 }
-.parking-meta-item {
-    background: var(--bg-primary);
-    border-radius: 14px;
-    padding: 12px 8px;
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+/* Отдельный блок статистики */
+.parking-meta-item { /* Например: "24 ВСЕГО" */
+    background: var(--bg-primary); /* Цвет фона */
+    border-radius: 14px; /* Скругление */
+    padding: 12px 8px; /* Внутренние отступы */
+    text-align: center; /* Выравнивает текст по центру */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); /* Лёгкая тень */
 }
-.parking-meta-item strong {
-    display: block;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
+/* Число в статистике */
+.parking-meta-item strong { /* Например: число "24" */
+    display: block; /* Переносит число на отдельную строку */
+    font-size: 20px; /* Размер числа */
+    font-weight: 700; /* Жирность числа */
+    color: var(--text-primary); /* Цвет числа */
+    line-height: 1.2; /* Высота строки */
 }
-.parking-meta-item span {
-    font-size: 11px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+/* Подпись статистики */
+.parking-meta-item span { /* Например: "ВСЕГО" */
+    font-size: 11px; /* Размер подписи */
+    color: var(--text-secondary); /* Цвет подписи */
+    text-transform: uppercase; /* Делает текст заглавными буквами */
+    letter-spacing: 0.4px; /* Расстояние между буквами */
 }
-/* Основная кнопка "Поехать" */
-.parking-route-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    padding: 16px;
-    border-radius: 18px;
-    border: none;
-    background: linear-gradient(135deg, var(--accent), #0A282C);
-    color: #fff;
-    font-size: 17px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.2s;
-    box-shadow: 0 4px 12px rgba(32, 168, 149, 0.35);
+/* Главная кнопка "Поехать" */
+.parking-route-btn { /* Большая кнопка маршрута */
+    display: flex; /* Включает Flex-разметку */
+    align-items: center; /* Центрирует содержимое по вертикали */
+    justify-content: center; /* Центрирует содержимое по горизонтали */
+    gap: 10px; /* Расстояние между иконкой и текстом */
+    width: 100%; /* Кнопка занимает всю доступную ширину */
+    padding: 16px; /* Внутренний отступ */
+    border-radius: 18px; /* Скругление кнопки */
+    border: none; /* Убирает рамку */
+    background: linear-gradient(135deg, var(--accent), #0A282C); /* Градиент кнопки */
+    color: #fff; /* Белый цвет текста */
+    font-size: 17px; /* Размер текста */
+    font-weight: 600; /* Жирность текста */
+    cursor: pointer; /* Показывает, что элемент можно нажать */
+    transition: transform 0.15s, box-shadow 0.2s; /* Плавность анимаций */
+    box-shadow: 0 4px 12px rgba(32, 168, 149, 0.35); /* Тень кнопки */
 }
-.parking-route-btn:active {
-    transform: scale(0.97);
-    box-shadow: 0 2px 6px rgba(32, 168, 149, 0.2);
+/* Эффект нажатия "Поехать" */
+.parking-route-btn:active { /* Срабатывает во время нажатия */
+    transform: scale(0.97); /* Немного уменьшает кнопку */
+    box-shadow: 0 2px 6px rgba(32, 168, 149, 0.2); /* Уменьшает тень */
 }
-/* Вторичные кнопки (обновить, сохранить) */
-.parking-secondary-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 12px;
+/* Блок вторичных кнопок */
+.parking-secondary-actions { /* Контейнер кнопок "Обновить / Сохранить" */
+    display: grid; /* Использует Grid */
+    grid-template-columns: 1fr 1fr; /* Две одинаковые колонки */
+    gap: 10px; /* Расстояние между кнопками */
+    margin-top: 12px; /* Отступ сверху */
 }
-.parking-secondary-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid var(--card-border);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+/* Вторичная кнопка */
+.parking-secondary-btn { /* Кнопка обновления/сохранения */
+    display: flex; /* Flex-разметка */
+    align-items: center; /* Центрирование по вертикали */
+    justify-content: center; /* Центрирование по горизонтали */
+    gap: 8px; /* Расстояние между иконкой и текстом */
+    padding: 14px; /* Внутренний отступ */
+    border-radius: 16px; /* Скругление */
+    border: 1px solid var(--card-border); /* Рамка кнопки */
+    background: var(--bg-secondary); /* Цвет фона */
+    color: var(--text-primary); /* Цвет текста */
+    font-size: 15px; /* Размер текста */
+    font-weight: 500; /* Толщина текста */
+    cursor: pointer; /* Показывает возможность нажатия */
+    transition: background 0.15s, transform 0.1s; /* Плавность изменения */
 }
-.parking-secondary-btn:active {
-    background: var(--bg-primary);
-    transform: scale(0.96);
+/* Эффект нажатия вторичной кнопки */
+.parking-secondary-btn:active { /* Срабатывает во время нажатия */
+    background: var(--bg-primary); /* Меняет фон */
+    transform: scale(0.96); /* Немного уменьшает кнопку */
 }
-.parking-secondary-btn .btn-icon {
-    font-size: 20px;
+/* Иконка вторичной кнопки */
+.parking-secondary-btn .btn-icon { /* Иконка внутри кнопки */
+    font-size: 20px; /* Размер иконки */
 }
 /* Кнопка "Редактировать" */
-.parking-edit-btn {
-    display: block;
-    width: 100%;
-    margin-top: 12px;
-    padding: 12px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    border-radius: 14px;
-    transition: background 0.15s;
+.parking-edit-btn { /* Нижняя кнопка редактирования */
+    display: block; /* Отображает как блочный элемент */
+    width: 100%; /* На всю ширину */
+    margin-top: 12px; /* Отступ сверху */
+    padding: 12px; /* Внутренний отступ */
+    border: none; /* Без рамки */
+    background: transparent; /* Прозрачный фон */
+    color: var(--text-secondary); /* Цвет текста */
+    font-size: 14px; /* Размер текста */
+    font-weight: 500; /* Толщина текста */
+    cursor: pointer; /* Показывает возможность нажатия */
+    border-radius: 14px; /* Скругление */
+    transition: background 0.15s; /* Плавное изменение фона */
 }
-.parking-edit-btn:active {
-    background: var(--bg-primary);
+/* Эффект нажатия "Редактировать" */
+.parking-edit-btn:active { /* Срабатывает при нажатии */
+    background: var(--bg-primary); /* Появляется фон */
 }
 /* Анимация появления */
-@keyframes slideUp {
-    from {
-        transform: translateY(40px);
-        opacity: 0;
+@keyframes slideUp { /* Создаёт анимацию движения вверх */
+    from { /* Начальное состояние */
+        transform: translateY(40px); /* Карточка находится на 40px ниже */
+        opacity: 0; /* Карточка невидима */
     }
-    to {
-        transform: translateY(0);
-        opacity: 1;
+    to { /* Конечное состояние */
+        transform: translateY(0); /* Карточка возвращается на место */
+        opacity: 1; /* Карточка становится полностью видимой */
     }
 }
-.parking-card-compact {
-    animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+/* Применение анимации к карточке */
+.parking-card-compact { /* Повторно обращаемся к основной карточке */
+    animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; /* Запускает появление снизу */
 }
-/* --- Карточка в списке (главная / поиск) --- */
-.parking-item {
-    display: flex;
-    align-items: stretch;
-    background: var(--bg-secondary);
-    border-radius: 18px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    transition: transform 0.15s, box-shadow 0.2s;
-    cursor: pointer;
-    border: 1px solid var(--card-border);
+/* Карточка парковки в списке */
+.parking-item { /* Компактная карточка на главной/в поиске */
+    display: flex; /* Flex-разметка */
+    align-items: stretch; /* Растягивает содержимое по высоте */
+    background: var(--bg-secondary); /* Цвет фона */
+    border-radius: 18px; /* Скругление */
+    padding: 14px 16px; /* Внутренние отступы */
+    margin-bottom: 10px; /* Расстояние до следующей карточки */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); /* Тень */
+    transition: transform 0.15s, box-shadow 0.2s; /* Плавность анимации */
+    cursor: pointer; /* Карточка кликабельна */
+    border: 1px solid var(--card-border); /* Рамка карточки */
 }
-.parking-item:active {
-    transform: scale(0.98);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+/* Эффект нажатия карточки */
+.parking-item:active { /* Срабатывает при нажатии */
+    transform: scale(0.98); /* Немного уменьшает карточку */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06); /* Уменьшает тень */
 }
-.parking-item .info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+/* Информация внутри карточки */
+.parking-item .info { /* Контейнер с текстом */
+    flex: 1; /* Занимает всё доступное пространство */
+    min-width: 0; /* Разрешает тексту корректно сжиматься */
+    display: flex; /* Flex-разметка */
+    flex-direction: column; /* Элементы располагаются сверху вниз */
+    gap: 6px; /* Расстояние между строками */
 }
-.parking-item-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+/* Верхняя часть карточки */
+.parking-item-header { /* Название + количество свободных мест */
+    display: flex; /* Flex-разметка */
+    align-items: center; /* Центрирование по вертикали */
+    justify-content: space-between; /* Раздвигает элементы по краям */
+    gap: 10px; /* Расстояние между элементами */
 }
-.parking-item .name {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* Название парковки в списке */
+.parking-item .name { /* Текст названия */
+    font-size: 17px; /* Размер текста */
+    font-weight: 600; /* Толщина текста */
+    color: var(--text-primary); /* Цвет текста */
+    white-space: nowrap; /* Запрещает перенос строки */
+    overflow: hidden; /* Скрывает лишний текст */
+    text-overflow: ellipsis; /* Добавляет ... при обрезке */
 }
-.parking-item .addr {
-    font-size: 13px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* Адрес парковки в списке */
+.parking-item .addr { /* Текст адреса */
+    font-size: 13px; /* Размер текста */
+    color: var(--text-secondary); /* Цвет адреса */
+    white-space: nowrap; /* Не переносит адрес */
+    overflow: hidden; /* Скрывает лишнее */
+    text-overflow: ellipsis; /* Добавляет ... */
 }
-.parking-item .meta-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-secondary);
+/* Дополнительная информация */
+.parking-item .meta-row { /* Строка с количеством мест/временем */
+    display: flex; /* Flex-разметка */
+    align-items: center; /* Выравнивание по вертикали */
+    gap: 6px; /* Расстояние между элементами */
+    font-size: 12px; /* Размер текста */
+    color: var(--text-secondary); /* Цвет текста */
 }
-.parking-item .meta-row .dot {
-    color: var(--gray);
+/* Разделительная точка */
+.parking-item .meta-row .dot { /* Точка между данными */
+    color: var(--gray); /* Цвет точки */
 }
-.free-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    font-weight: 700;
-    font-size: 16px;
-    color: #fff;
-    background: var(--green);
-    flex-shrink: 0;
-    transition: background 0.3s, transform 0.15s;
-    box-shadow: 0 2px 8px rgba(48, 209, 88, 0.3);
+/* Круг с количеством свободных мест */
+.free-badge { /* Большой круг справа от карточки */
+    display: inline-flex; /* Flex-разметка */
+    align-items: center; /* Центрирование по вертикали */
+    justify-content: center; /* Центрирование по горизонтали */
+    min-width: 44px; /* Минимальная ширина круга */
+    height: 44px; /* Высота круга */
+    border-radius: 50%; /* Делает элемент круглым */
+    font-weight: 700; /* Жирность числа */
+    font-size: 16px; /* Размер числа */
+    color: #fff; /* Белый цвет числа */
+    background: var(--green); /* Зелёный фон по умолчанию */
+    flex-shrink: 0; /* Не позволяет кругу сжиматься */
+    transition: background 0.3s, transform 0.15s; /* Плавность изменения */
+    box-shadow: 0 2px 8px rgba(48, 209, 88, 0.3); /* Зелёная тень */
 }
-.free-badge.low {
-    background: var(--orange);
-    box-shadow: 0 2px 8px rgba(255, 159, 10, 0.3);
+/* Мало свободных мест */
+.free-badge.low { /* Оранжевое состояние */
+    background: var(--orange); /* Оранжевый фон */
+    box-shadow: 0 2px 8px rgba(255, 159, 10, 0.3); /* Оранжевая тень */
 }
-.free-badge.critical {
-    background: var(--red);
-    box-shadow: 0 2px 8px rgba(255, 69, 58, 0.3);
+/* Критически мало свободных мест */
+.free-badge.critical { /* Красное состояние */
+    background: var(--red); /* Красный фон */
+    box-shadow: 0 2px 8px rgba(255, 69, 58, 0.3); /* Красная тень */
 }
-/* Адаптивность для маленьких экранов */
-@media (max-width: 420px) {
-    .parking-card-title {
-        font-size: 19px;
+/* Адаптация для маленьких экранов */
+@media (max-width: 420px) { /* Правила для экранов шириной до 420px */
+    .parking-card-title { /* Заголовок на маленьком экране */
+        font-size: 19px; /* Уменьшает размер заголовка */
     }
-    .parking-meta {
-        grid-template-columns: 1fr 1fr;
+    .parking-meta { /* Статистика на маленьком экране */
+        grid-template-columns: 1fr 1fr; /* Делает две колонки вместо трёх */
     }
-    .parking-secondary-actions {
-        grid-template-columns: 1fr;
+    .parking-secondary-actions { /* Дополнительные кнопки */
+        grid-template-columns: 1fr; /* Располагает кнопки друг под другом */
     }
-    .parking-item .name {
-        font-size: 15px;
+    .parking-item .name { /* Название парковки в списке */
+        font-size: 15px; /* Уменьшает размер названия */
     }
 }
