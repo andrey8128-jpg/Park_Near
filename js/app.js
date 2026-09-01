@@ -2583,6 +2583,7 @@ async function openCenterSheet(parkingId, data) {
 
     content.innerHTML = `
         <div class="parking-card-compact">
+        <button class="parking-card-close" onclick="closeCenterSheet()">✕</button>
             <div class="parking-card-handle"></div>
             <div class="parking-card-header">
                 <div class="parking-card-title">
