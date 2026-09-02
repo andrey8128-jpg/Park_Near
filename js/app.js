@@ -6604,6 +6604,7 @@ if (onboardingPrev) {
 
 if (onboardingSkip) {
     onboardingSkip.onclick = finishOnboarding;
+     }
 }
     // ===================== НАСТРОЙКИ =====================
    function syncThemeToggles() {
