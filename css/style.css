@@ -2951,6 +2951,58 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
         min-width:42px;
     }
 }
+/* ===== ЦЕНТРАЛЬНОЕ ОКНО КАРТОЧКИ ПАРКОВКИ ===== */
+.center-sheet {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: none;
+}
+.center-sheet.active {
+    display: flex;
+}
+.center-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--overlay-bg);
+    pointer-events: auto;
+}
+.center-sheet-box {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--sheet-bg);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.25);
+    z-index: 1;
+    pointer-events: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.center-sheet-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 10;
+}
+.center-sheet-close:active {
+    transform: scale(.92);
+}
 /* ==========================================================
    🔥 НОВАЯ КРАСИВАЯ КАРТОЧКА ПАРКОВКИ
    ========================================================== */
