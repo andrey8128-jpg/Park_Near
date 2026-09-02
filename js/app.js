@@ -2621,7 +2621,7 @@ async function openCenterSheet(parkingId, data) {
                     <span>Обновить</span>
                 </button>
 
-                <button class="parking-secondary-btn" onclick="toggleFavoriteCenter()">
+                <button class="parking-secondary-btn parking-favorite-btn" onclick="toggleFavoriteCenter()">
                     <span>♡</span>
                     <span>Сохранить</span>
                 </button>
@@ -2746,13 +2746,6 @@ function closeCenterSheet() {
     }
 }
 
-function toggleFavoriteCenter() {
-    if (!currentParkingId || !currentParkingData) return;
-    const parkingId = currentParkingId;
-    const data = currentParkingData;
-    toggleFavorite(parkingId, data);
-    // Окно не закрываем – кнопка обновится внутри toggleFavorite
-}
 function buildRouteFromCenter() {
     if (!currentParkingId) return;
     const parkingId = currentParkingId;
@@ -3289,62 +3282,7 @@ async function deleteParking(parkingId) {
         });
     }
 
-    function toggleFavorite(parkingId, parkingData) {
-    if (!currentUser || !parkingId) {
-        console.error('Избранное: нет пользователя или parkingId');
-        return;
-    }
-
-    const data = parkingData || parkingDataCache[parkingId] || null;
-    if (!data) {
-        console.error('Избранное: данные парковки не найдены', parkingId);
-        return;
-    }
-
-    const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
-    const btn = document.querySelector('.center-actions .btn-secondary:first-child');
-
-    favRef.once('value')
-        .then(snap => {
-            if (snap.exists()) {
-                return favRef.remove().then(() => {
-                    if (btn) btn.innerHTML = '⭐ Избранное';
-
-                    if (data.authorId) {
-                        database.ref(`users/${data.authorId}/stats/favorites`)
-                            .transaction(c => Math.max(0, (c || 0) - 1));
-                    }
-
-                    console.log('Парковка удалена из избранного:', parkingId);
-                });
-            }
-
-            const favData = {
-                parkingId: parkingId,
-                name: data.name || data.address || data.street || 'Парковка',
-                lat: Number(data.lat) || 0,
-                lng: Number(data.lng) || 0,
-                address: data.address || '',
-                timestamp: Date.now()
-            };
-
-            return favRef.set(favData).then(() => {
-                if (btn) btn.innerHTML = '✅ В избранном';
-
-                if (data.authorId) {
-                    database.ref(`users/${data.authorId}/stats/favorites`)
-                        .transaction(c => (c || 0) + 1);
-                }
-                console.log('Парковка добавлена в избранное:', parkingId);
-            });
-        })
-        .catch(err => {
-            console.error('Ошибка сохранения избранного:', err);
-            if (btn) {
-                btn.innerHTML = '⭐ Избранное';
-            }
-        });
-}
+    
    // ===================== МАРШРУТ =====================
     function buildRouteToParking(parkingId) {
         closeCenterSheet();
@@ -4474,7 +4412,7 @@ function renderProfile(content) {
         const updated = Number(stats.parkingsUpdated || 0);
         const confirmations = Number(stats.confirmations || 0);
         const views = Number(stats.views || 0);
-        const favoritesCount = Object.keys(favorites).length || Number(stats.favorites || 0);
+        const favoritesCount = Object.keys(favorites || {}).length;
         const activeDates = Array.isArray(stats.activeDates) ? stats.activeDates : [];
 
         const score =
@@ -4690,10 +4628,9 @@ function toggleProfileSection(section) {
         window._historyLoaded = true;
     }
 
-    if (section === 'favorites' && !isOpen && !window._favoritesLoaded) {
-        loadFavoritesInline();
-        window._favoritesLoaded = true;
-    }
+    if (section === 'favorites' && !isOpen) {
+    loadFavoritesInline(true);
+}
 }
 // ---- Загрузка истории парковок пользователя (только последние 10) ----
 function loadUserParkingHistory() {
@@ -4796,6 +4733,285 @@ function loadUserParkingHistory() {
         container.innerHTML = '<div style="text-align:center; color:var(--red);">Ошибка загрузки</div>';
     });
 }
+// ===================== ИЗБРАННОЕ =====================
+
+function getFavoritesRef() {
+    if (!currentUser?.id) return null;
+    return database.ref(`users/${currentUser.id}/favorites`);
+}
+
+function getFavoriteRef(parkingId) {
+    const ref = getFavoritesRef();
+    return ref && parkingId ? ref.child(String(parkingId)) : null;
+}
+
+// Проверка: находится ли парковка в избранном
+async function isFavorite(parkingId) {
+    const ref = getFavoriteRef(parkingId);
+    if (!ref) return false;
+    try {
+        const snap = await ref.once('value');
+        return snap.exists();
+    } catch (err) {
+        console.error('Ошибка проверки избранного:', err);
+        return false;
+    }
+}
+
+// Обновление кнопки избранного в центральной карточке
+async function updateFavoriteCenterButton() {
+    const btn = document.querySelector('#centerSheetContent .parking-favorite-btn');
+    if (!btn || !currentParkingId) return;
+    const favorite = await isFavorite(currentParkingId);
+    btn.innerHTML = favorite
+        ? '<span>♥</span><span>Сохранено</span>'
+        : '<span>♡</span><span>Сохранить</span>';
+    btn.classList.toggle('is-favorite', favorite);
+}
+
+// Добавить / удалить парковку из избранного
+async function toggleFavorite(parkingId, parkingData) {
+    if (!currentUser?.id || !parkingId) {
+        console.error('Избранное: отсутствует пользователь или parkingId');
+        return;
+    }
+
+    const ref = getFavoriteRef(parkingId);
+    if (!ref) return;
+
+    try {
+        const snap = await ref.once('value');
+
+        if (snap.exists()) {
+            await ref.remove();
+            console.log('❤️ Парковка удалена из избранного:', parkingId);
+        } else {
+            const data = parkingData || parkingDataCache?.[parkingId] || {};
+            const favoriteData = {
+                parkingId: String(parkingId),
+                name: data.name || 'Парковка',
+                address: data.address || data.street || '',
+                city: data.city || currentCity || '',
+                lat: Number(data.lat ?? data.latitude ?? data.coords?.[0]) || null,
+                lng: Number(data.lng ?? data.longitude ?? data.coords?.[1]) || null,
+                totalSpots: Number(data.totalSpots) || 0,
+                occupiedSpots: Number(data.occupiedSpots) || 0,
+                savedAt: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            await ref.set(favoriteData);
+            console.log('❤️ Парковка добавлена в избранное:', parkingId);
+        }
+
+        await updateFavoriteCenterButton();
+        await loadFavoritesInline(true);
+        await refreshProfileFavoritesCount();
+
+    } catch (err) {
+        console.error('Ошибка работы с избранным:', err);
+        alert('Не удалось изменить избранное');
+    }
+}
+
+// Кнопка «Сохранить» в центральной карточке
+async function toggleFavoriteCenter() {
+    if (!currentParkingId || !currentParkingData) {
+        console.error('Избранное: текущая парковка не определена');
+        return;
+    }
+
+    await toggleFavorite(currentParkingId, currentParkingData);
+}
+
+// Загрузка списка избранного
+async function loadFavoritesInline(force = false) {
+    const container = document.getElementById('favoritesListContainer');
+    if (!container || !currentUser?.id) return;
+
+    if (!force && window._favoritesLoading) return;
+    window._favoritesLoading = true;
+
+    container.innerHTML =
+        '<div style="text-align:center;color:var(--text-secondary);padding:20px;">Загрузка...</div>';
+
+    try {
+        const ref = getFavoritesRef();
+        if (!ref) throw new Error('Не найден пользователь');
+
+        const snap = await ref.once('value');
+        const favorites = snap.val() || {};
+        const entries = Object.entries(favorites);
+
+        if (!entries.length) {
+            container.innerHTML = `
+                <div style="text-align:center;color:var(--text-secondary);padding:25px 15px;">
+                    <div style="font-size:32px;margin-bottom:8px;">♡</div>
+                    <div>Нет сохранённых парковок</div>
+                </div>
+            `;
+            await refreshProfileFavoritesCount(0);
+            return;
+        }
+
+        entries.sort((a, b) => {
+            const timeA = Number(a[1]?.savedAt) || 0;
+            const timeB = Number(b[1]?.savedAt) || 0;
+            return timeB - timeA;
+        });
+
+        container.innerHTML = entries.map(([parkingId, data]) => {
+            const name = escapeHtml(data?.name || 'Парковка');
+            const address = escapeHtml(data?.address || data?.street || 'Адрес не указан');
+            const total = Number(data?.totalSpots) || 0;
+            const occupied = Number(data?.occupiedSpots) || 0;
+            const free = Math.max(0, total - occupied);
+
+            let status = 'Неизвестно';
+            let statusClass = 'status-unknown';
+
+            if (total > 0) {
+                if (free <= 0) {
+                    status = 'Занято';
+                    statusClass = 'status-occupied';
+                } else if (free <= Math.ceil(total * 0.3)) {
+                    status = 'Мало мест';
+                    statusClass = 'status-limited';
+                } else {
+                    status = 'Есть места';
+                    statusClass = 'status-free';
+                }
+            }
+
+            return `
+                <div class="favorite-parking-item" data-parking-id="${escapeHtml(String(parkingId))}">
+                    <div class="favorite-parking-info"
+                         onclick="openFavoriteParking('${escapeHtml(String(parkingId))}')">
+                        <div class="favorite-parking-title">${name}</div>
+                        <div class="favorite-parking-address">${address}</div>
+                        <div class="favorite-parking-status ${statusClass}">
+                            <span class="favorite-status-dot"></span>
+                            <span>${status}</span>
+                            ${total > 0 ? `<span class="favorite-free-count">${free} свободно</span>` : ''}
+                        </div>
+                    </div>
+                    <button class="favorite-remove-btn"
+                            onclick="removeFromFavorites('${escapeHtml(String(parkingId))}')"
+                            aria-label="Удалить из избранного">♥</button>
+                </div>
+            `;
+        }).join('');
+
+        await refreshProfileFavoritesCount(entries.length);
+
+    } catch (err) {
+        console.error('Ошибка загрузки избранного:', err);
+        container.innerHTML = `
+            <div style="text-align:center;color:var(--text-secondary);padding:20px;">
+                Не удалось загрузить избранное
+            </div>
+        `;
+    } finally {
+        window._favoritesLoading = false;
+    }
+}
+
+// Открытие парковки из списка избранного
+async function openFavoriteParking(parkingId) {
+    if (!parkingId) return;
+
+    try {
+        const ref = getFavoriteRef(parkingId);
+        if (!ref) return;
+
+        const snap = await ref.once('value');
+        if (!snap.exists()) {
+            await loadFavoritesInline(true);
+            return;
+        }
+
+        const data = snap.val() || {};
+        currentParkingId = parkingId;
+        currentParkingData = data;
+
+        if (data.lat != null && data.lng != null && map) {
+            map.setCenter([Number(data.lat), Number(data.lng)], 17, {
+                duration: 300
+            });
+        }
+
+        if (typeof openCenterSheet === 'function') {
+            openCenterSheet(parkingId, data);
+        }
+
+    } catch (err) {
+        console.error('Ошибка открытия избранной парковки:', err);
+    }
+}
+
+// Удаление из избранного
+async function removeFromFavorites(parkingId) {
+    if (!currentUser?.id || !parkingId) return;
+
+    const ref = getFavoriteRef(parkingId);
+    if (!ref) return;
+
+    try {
+        await ref.remove();
+
+        console.log('❤️ Парковка удалена из избранного:', parkingId);
+
+        if (currentParkingId === parkingId) {
+            await updateFavoriteCenterButton();
+        }
+
+        await loadFavoritesInline(true);
+        await refreshProfileFavoritesCount();
+
+    } catch (err) {
+        console.error('Ошибка удаления из избранного:', err);
+        alert('Не удалось удалить парковку');
+    }
+}
+
+// Реальное количество избранных парковок
+async function getFavoritesCount() {
+    const ref = getFavoritesRef();
+    if (!ref) return 0;
+
+    try {
+        const snap = await ref.once('value');
+        const favorites = snap.val() || {};
+        return Object.keys(favorites).length;
+    } catch (err) {
+        console.error('Ошибка получения количества избранного:', err);
+        return 0;
+    }
+}
+
+// Обновление счётчика в профиле
+async function refreshProfileFavoritesCount(count = null) {
+    if (count === null) {
+        count = await getFavoritesCount();
+    }
+
+    document.querySelectorAll('.pn-profile-row').forEach(row => {
+        const title = row.querySelector('strong');
+        const countElement = row.querySelector('small');
+
+        if (!title || !countElement) return;
+        if (title.textContent.trim() !== 'Избранные парковки') return;
+
+        countElement.textContent =
+            `${count} ${count === 1 ? 'парковка' : 'парковок'}`;
+    });
+
+    return count;
+}
+
+// Сброс флага старой системы
+window._favoritesLoaded = false;
+window._favoritesLoading = false;
+
 // ---- Вспомогательная функция для отрисовки одной записи истории ----
 function renderHistoryEntry(entry) {
     const date = new Date(entry.timestamp);
@@ -4816,39 +5032,6 @@ function renderHistoryEntry(entry) {
             </div>
         </div>
     `;
-}
-// ---- Загрузка избранного (для инлайн отображения) ----
-function loadFavoritesInline() {
-    const container = document.getElementById('favoritesListContainer');
-    if (!container) return;
-    container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Загрузка...</div>';
-
-    database.ref(`users/${currentUser.id}/favorites`).once('value').then(snap => {
-        const favs = snap.val() || {};
-        const entries = Object.values(favs).filter(f => f.parkingId);
-        if (entries.length === 0) {
-            container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Нет избранных парковок</div>';
-            return;
-        }
-        let html = '';
-        entries.forEach(item => {
-            // Получаем актуальные данные о парковке из кеша или из базы
-            const parking = parkingDataCache[item.parkingId];
-            const free = parking ? (parking.totalSpots - parking.occupiedSpots) : '?';
-            html += `
-                <div class="parking-item" style="margin-bottom: 6px;" onclick="focusMap(${item.lat || 0}, ${item.lng || 0}, '${item.parkingId}')">
-                    <div class="info">
-                        <div class="name">${item.name || 'Без названия'}</div>
-                        <div class="addr">${item.address || ''}</div>
-                    </div>
-                    <div class="free">${free} мест</div>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
-    }).catch(err => {
-        container.innerHTML = '<div style="text-align:center; color:var(--red);">Ошибка загрузки</div>';
-    });
 }
 
 // ---- Рендер настроек (инлайн) ----
@@ -5682,20 +5865,6 @@ function renderFavorites(content) {
             `;
         });
     }
-}
-
-function removeFromFavorites(parkingId) {
-    if (!currentUser || !parkingId) return;
-    const favRef = database.ref(`users/${currentUser.id}/favorites/${parkingId}`);
-    favRef.remove()
-        .then(() => {
-            const content = document.getElementById('panelContent');
-
-            if (content && document.getElementById('panel').classList.contains('active')) {
-                loadUserData('favorites', content);
-            }
-        })
-        .catch(err => console.error('Ошибка удаления из избранного:', err));
 }
     // ===================== UI КОНТРОЛЛЕРЫ =====================
     function attachSwipeToContainers(container) {
