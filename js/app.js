@@ -6992,6 +6992,7 @@ function checkTelegramAuthFromUrl() {
     return false;
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
+
 function onTelegramAuth(user) {
     try {
         currentUser = {
@@ -7011,24 +7012,28 @@ function onTelegramAuth(user) {
             lastActive: Date.now()
         }).catch(console.error);
 
-        // ✅ Проверяем, есть ли статистика, и создаём только если её нет
-        userRef.child('stats').once('value').then(function(snap) {
-            if (snap.exists()) {
-                // Статистика есть – обновляем только lastActive
-                userRef.child('stats/lastActive').set(Date.now());
-            } else {
-                // Статистики нет – создаём начальную
-                userRef.child('stats').set({
-                    registeredAt: Date.now(),
-                    lastActive: Date.now(),
-                    parkingsCreated: 0,
-                    parkingsUpdated: 0,
-                    confirmations: 0,
-                    views: 0,
-                    favorites: 0,
-                    activeDates: [new Date().toISOString().split('T')[0]]
-                });
+        // ФИКС: было once('value').then(...set(...)) — гонка при двойном
+        // вызове onTelegramAuth могла обнулить уже накопленную статистику.
+        // transaction() гарантирует, что начальные данные создадутся только
+        // один раз, даже при параллельных вызовах.
+        userRef.child('stats').transaction(current => {
+            if (current) {
+                // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
+                return current;
             }
+            return {
+                registeredAt: Date.now(),
+                lastActive: Date.now(),
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [new Date().toISOString().split('T')[0]]
+            };
+        }).then(() => {
+            // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
+            userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
         }).catch(console.error);
 
         hideAuthScreen();
@@ -7040,12 +7045,13 @@ function onTelegramAuth(user) {
         continueAsGuest();
     }
 }
+
 function initApp() {
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
-        return;
+    } else {
+        initAuth();
     }
-    initAuth();
 
     const savedCity = localStorage.getItem('parknear_city');
     if (savedCity) {
@@ -7071,18 +7077,19 @@ function initApp() {
     if (!map) {
         initMap();
     }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/Park_Near/sw.js', {
-        scope: '/Park_Near/'
-    })
-    .then(registration => {
-        console.log('✅ Service Worker зарегистрирован:', registration.scope);
-    })
-    .catch(error => {
-        console.error('❌ Ошибка регистрации Service Worker:', error);
-    });
-}
-    // ✅ ИСПРАВЛЕНО: передаём текущий город
+
+    if ('serviceWorker' in navigator) {
+      
+        const swScope = new URL('.', window.location.href).pathname;
+        navigator.serviceWorker.register(swScope + 'sw.js', { scope: swScope })
+            .then(registration => {
+                console.log('✅ Service Worker зарегистрирован:', registration.scope);
+            })
+            .catch(error => {
+                console.error('❌ Ошибка регистрации Service Worker:', error);
+            });
+    }
+
     loadAllParkings();
     initPullToRefresh();
     if (currentUser) {
@@ -7092,52 +7099,59 @@ function initApp() {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
 }
-    function openTelegramBot() {
-        console.log('openTelegramBot вызвана');
 
-        if (window.Telegram && window.Telegram.WebApp) {
-            var webApp = window.Telegram.WebApp;
-            if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-                var user = webApp.initDataUnsafe.user;
-                var savedUser = localStorage.getItem('tgUser');
-                if (!savedUser) {
-                    onTelegramAuth({
-                        id: user.id,
-                        first_name: user.first_name,
-                        last_name: user.last_name || '',
-                        username: user.username || '',
-                        photo_url: user.photo_url || '',
-                        auth_date: Math.floor(Date.now() / 1000),
-                        hash: webApp.initDataUnsafe.hash || ''
-                    });
-                } else {
-                    console.log('👤 Пользователь уже залогинен');
-                    hideAuthScreen();
-                    showPanel('home');
-                }
-                return;
+function openTelegramBot() {
+    console.log('openTelegramBot вызвана');
+
+    if (window.Telegram && window.Telegram.WebApp) {
+        var webApp = window.Telegram.WebApp;
+        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+            var user = webApp.initDataUnsafe.user;
+            var expectedId = 'tg_' + user.id;
+            var savedUserRaw = localStorage.getItem('tgUser');
+            var savedUser = null;
+            try {
+                savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
+            } catch (e) {
+                savedUser = null;
             }
-            webApp.openTelegramLink('https://t.me/parknear_bot');
+
+            if (!savedUser || savedUser.id !== expectedId) {
+                onTelegramAuth({
+                    id: user.id,
+                    first_name: user.first_name,
+                    last_name: user.last_name || '',
+                    username: user.username || '',
+                    photo_url: user.photo_url || '',
+                    auth_date: Math.floor(Date.now() / 1000),
+                    hash: webApp.initDataUnsafe.hash || ''
+                });
+            } else {
+                console.log('👤 Пользователь уже залогинен');
+                hideAuthScreen();
+                showPanel('home');
+            }
             return;
         }
-
-        window.open('https://t.me/parknear_bot', '_blank');
+        webApp.openTelegramLink('https://t.me/parknear_bot');
+        return;
     }
-
-    function closeAuthScreen() {
-        const overlay = document.getElementById('authOverlay');
-        if (overlay) {
-            overlay.style.display = 'none';
-        }
+    window.open('https://t.me/parknear_bot', '_blank');
+}
+function closeAuthScreen() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
     }
-
-    document.addEventListener('visibilitychange', function() {
+}
+document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
         if (!currentUser && localStorage.getItem('tgUser')) {
-            initAuth();   // ✅ Правильно
+            initAuth();
         }
     }
 });
+
     function rebuildRoute() {
         if (!routeStartCoords || !routeEndCoords) {
             alert('Сначала постройте маршрут');
