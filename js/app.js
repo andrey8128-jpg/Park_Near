@@ -4771,8 +4771,102 @@ function loadUserParkingHistory() {
         container.innerHTML = '<div style="text-align:center; color:var(--red);">Ошибка загрузки</div>';
     });
 }
-// ===================== ИЗБРАННОЕ =====================
+// ===================== ФИЛЬТР И ГРУППИРОВКА ПАРКОВОК =====================
 
+function normalizeCity(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/\s+/g, ' ');
+}
+
+function normalizeStreet(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/\s+/g, ' ');
+}
+
+function getParkingCity(parking) {
+    return parking?.city ||
+           parking?.addressCity ||
+           parking?.regionCity ||
+           '';
+}
+
+function getParkingStreet(parking) {
+    return parking?.street ||
+           parking?.addressStreet ||
+           '';
+}
+function getParkingHouse(parking) {
+    return parking?.houseNumber ||
+           parking?.house ||
+           '';
+}
+function filterParkingsByCurrentCity(parkings) {
+    const list = Array.isArray(parkings)
+        ? parkings
+        : Object.values(parkings || {});
+
+    if (!currentCity) return list;
+
+    const selectedCity = normalizeCity(currentCity);
+
+    return list.filter(parking => {
+        const parkingCity = normalizeCity(getParkingCity(parking));
+        return parkingCity === selectedCity;
+    });
+}
+function groupParkingsByNameAndStreet(parkings) {
+    const groups = new Map();
+
+    parkings.forEach(parking => {
+        const name = String(parking?.name || 'Без названия').trim();
+        const street = getParkingStreet(parking).trim();
+
+        const key =
+            `${normalizeCity(name)}|${normalizeStreet(street)}`;
+
+        if (!groups.has(key)) {
+            groups.set(key, {
+                id: `group_${key}`,
+                name,
+                street,
+                parkings: [],
+                totalSpots: 0,
+                occupiedSpots: 0,
+                freeSpots: 0
+            });
+        }
+        const group = groups.get(key);
+
+        group.parkings.push(parking);
+
+        const total = Number(parking?.totalSpots) || 0;
+        const occupied = Math.min(
+            Number(parking?.occupiedSpots) || 0,
+            total
+        );
+        group.totalSpots += total;
+        group.occupiedSpots += occupied;
+        group.freeSpots += Math.max(0, total - occupied);
+    });
+
+    return Array.from(groups.values());
+}
+
+function getHomeParkings() {
+    const parkings = Object.values(parkingDataCache || {});
+
+    const cityParkings =
+        filterParkingsByCurrentCity(parkings);
+
+    return groupParkingsByNameAndStreet(cityParkings);
+}
+// ===================== ИЗБРАННОЕ =====================
 function getFavoritesRef() {
     if (!currentUser?.id) return null;
     return database.ref(`users/${currentUser.id}/favorites`);
