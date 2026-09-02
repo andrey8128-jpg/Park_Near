@@ -2747,10 +2747,48 @@ function closeCenterSheet() {
 }
 
 function buildRouteFromCenter() {
-    if (!currentParkingId) return;
-    const parkingId = currentParkingId;
+    if (!currentParkingData) {
+        console.error('Маршрут: данные выбранной парковки отсутствуют');
+        return;
+    }
+    const data = currentParkingData;
+    const lat = Number(data.lat ?? data.latitude ?? data.coords?.[0]);
+    const lng = Number(data.lng ?? data.longitude ?? data.coords?.[1]);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        alert('Не удалось определить координаты парковки');
+        return;
+    }
     closeCenterSheet();
-    buildRouteToParking(parkingId);
+    const openRoute = (userLat = null, userLng = null) => {
+        let url = `https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`;
+
+        if (userLat !== null && userLng !== null) {
+            url = `https://yandex.ru/maps/?rtext=${userLat},${userLng}~${lat},${lng}&rtt=auto`;
+        }
+        window.open(url, '_blank');
+    };
+    if (!navigator.geolocation) {
+        openRoute();
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            openRoute(
+                position.coords.latitude,
+                position.coords.longitude
+            );
+        },
+        error => {
+            console.warn('Не удалось получить геолокацию:', error);
+            openRoute();
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 30000
+        }
+    );
 }
 function editFromCenter() {
     if (!currentParkingId) return;
