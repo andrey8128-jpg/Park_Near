@@ -593,45 +593,6 @@ function formatDateTime(timestamp) {
     if (Number.isNaN(d.getTime())) return 'Неизвестно';
     return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth() + 1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
-   function checkPolygonSize(coordinates) {
-    if (!Array.isArray(coordinates) || coordinates.length < 3) {
-        return {
-            valid: false,
-            error: 'Минимум 3 точки'
-        };
-    }
-    const validCoords = coordinates.filter(c =>
-        Array.isArray(c) &&
-        c.length >= 2 &&
-        Number.isFinite(Number(c[0])) &&
-        Number.isFinite(Number(c[1]))
-    );
-    if (validCoords.length < 3) {
-        return {
-            valid: false,
-            error: 'Некорректные координаты зоны'
-        };
-    }
-    const lats = validCoords.map(c => Number(c[0]));
-    const lngs = validCoords.map(c => Number(c[1]));
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng);
-    const lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
-    if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) {
-        return {
-            valid: false,
-            error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH} м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)} м`
-        };
-    }
-    return {
-        valid: true,
-        width: widthM,
-        length: lengthM
-    };
-}
    // ===================== ТОЧНЫЙ РАСЧЁТ ПАРКОВОЧНЫХ МЕСТ =====================
 function calculatePolygonArea(coordinates) {
     if (!Array.isArray(coordinates) || coordinates.length < 3) return 0;
@@ -934,25 +895,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
     // Если пользователь не найден – показываем экран входа
     showAuthScreen();
 }
-// Немедленное восстановление сессии (выполняется до загрузки карт)
-(function() {
-    const saved = localStorage.getItem('tgUser');
-    if (saved) {
-        try {
-            const user = JSON.parse(saved);
-            currentUser = user;
-            window.currentUser = user;
-            hideAuthScreen();
-            const panel = document.getElementById('panel');
-            if (!panel.classList.contains('active')) {
-                showPanel('home');
-            }
-            console.log('✅ Вход восстановлен (ранний вызов)');
-        } catch (e) {
-            localStorage.removeItem('tgUser');
-        }
-    }
-})();
     // ===================== ГЕОЛОКАЦИЯ =====================
     function getUserLocation() {
     return new Promise((resolve, reject) => {
@@ -1784,6 +1726,13 @@ function initMap() {
                 });
             }
         );
+        function refreshClusterer() {
+    if (!clusterer) return;
+    clusterer.removeAll();
+    Object.values(mapMarkers).forEach(marker => {
+        if (marker) clusterer.add(marker);
+    });
+}
 
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
@@ -2614,7 +2563,13 @@ function checkPolygonSize(coordinates) {
         return;
     }
 
-    var addr = data.address || (data.lat && data.lng ? data.lat.toFixed(6) + ', ' + data.lng.toFixed(6) : 'Адрес не указан');
+    const lat = Number(data.lat);
+const lng = Number(data.lng);
+const addr = data.address || (
+    Number.isFinite(lat) && Number.isFinite(lng)
+        ? `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        : 'Адрес не указан'
+);
     var free = data.totalSpots - (data.occupiedSpots || 0);
 
     // Функция рендеринга содержимого с расстоянием
@@ -3252,7 +3207,7 @@ function loadHistoryPreview(parkingId) {
         refreshParkingMarker();
 
         // ✅ Пересчитываем кластеры
-        if (clusterer) clusterer.reload();
+        refreshClusterer();
 
         // ... остальной код (закрытие панели, обновление интерфейса)
         closePanel();
@@ -3343,7 +3298,7 @@ function loadHistoryPreview(parkingId) {
         refreshParkingMarker();
 
         // ✅ Пересчитываем кластеры, чтобы обновить сумму на иконках
-        if (clusterer) clusterer.reload();
+        refreshClusterer();
 
         if (document.getElementById('historyList')) loadHistoryPreview(id);
         if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -3407,7 +3362,7 @@ async function deleteParking(parkingId) {
         delete parkingDataCache[parkingId];
 
         // ✅ Пересчитываем кластеры
-        if (clusterer) clusterer.reload();
+        refreshClusterer();
 
         closePanel();
         showMap();
@@ -3759,11 +3714,14 @@ async function deleteParking(parkingId) {
                 document.getElementById('addressPickerOverlay').style.display = 'none';
                 document.getElementById('labelPickerOverlay').classList.add('active');
             })
-            .finally(() => {
-                saveBtn.textContent = origText;
-                saveBtn.disabled = false;
-            });
-    }
+              .then(() => {
+               saveBtn.textContent = origText;
+               saveBtn.disabled = false;
+                }, () => {
+               saveBtn.textContent = origText;
+               saveBtn.disabled = false;
+                });
+             }
 
     function selectLabel(label) {
         if (!pendingAddressData) return;
@@ -6605,6 +6563,7 @@ if (onboardingPrev) {
 if (onboardingSkip) {
     onboardingSkip.onclick = finishOnboarding;
 }
+}
     // ===================== НАСТРОЙКИ =====================
    function syncThemeToggles() {
     const isDark = document.body.classList.contains('dark-theme');
@@ -6661,41 +6620,6 @@ if (onboardingSkip) {
             toast.style.transform = 'translateX(-50%) translateY(-20px)';
         }, duration);
     }
-  function loginAsGuest() {
-    const userId = 'guest_' + Date.now();
-    const user = {
-        id: userId,
-        username: 'guest',
-        firstName: 'Гость',
-        photoUrl: '',
-        isGuest: true
-    };
-    currentUser = user;
-    currentUserId = userId;
-    localStorage.setItem('tgUser', JSON.stringify(user));
-    const userRef = database.ref(`users/${userId}`);
-    userRef.update({
-        id: userId,
-        username: user.username,
-        firstName: user.firstName,
-        photoUrl: user.photoUrl,
-        isGuest: true,
-        lastActive: firebase.database.ServerValue.TIMESTAMP
-    }).catch(console.error);
-    userRef.child('stats').set({
-        registeredAt: firebase.database.ServerValue.TIMESTAMP,
-        lastActive: firebase.database.ServerValue.TIMESTAMP,
-        parkingsCreated: 0,
-        parkingsUpdated: 0,
-        confirmations: 0,
-        views: 0,
-        favorites: 0,
-        activeDates: [new Date().toISOString().split('T')[0]]
-    }).catch(console.error);
-    hideAuthScreen();
-    showPanel('home');
-    showOnboarding();
-}
  function renderHomePanel(content) {
     const cached = localStorage.getItem('parkingCache');
     let cacheData = null;
@@ -6758,8 +6682,12 @@ if (onboardingSkip) {
 function renderHomeContent(content, coords) {
     const city = currentCity || userCityPrefs?.city || '';
     const allParkings = filterParkingsByCurrentCity(
-        Object.values(parkingDataCache || {})
-    ).filter(p =>
+    Object.values(parkingDataCache || {})
+).map(p => ({
+    ...p,
+    lat: Number(p.lat),
+    lng: Number(p.lng)
+})).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
         Number.isFinite(Number(p.lat)) &&
         Number.isFinite(Number(p.lng))
     );
@@ -6827,12 +6755,18 @@ function showNearbyParkings(coords, limit) {
     if (!container || !coords) return;
     const radius = 1000;
     const parkings = filterParkingsByCurrentCity(Object.values(parkingDataCache || {}))
-        .map(data => ({
+    .map(data => {
+        const lat = Number(data.lat);
+        const lng = Number(data.lng);
+        return {
             ...data,
-            distance: getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng)
-        }))
-        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.distance <= radius)
-        .sort((a, b) => a.distance - b.distance);
+            lat,
+            lng,
+            distance: getDistanceInMeters(coords.lat, coords.lng, lat, lng)
+        };
+    })
+    .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.distance <= radius)
+    .sort((a, b) => a.distance - b.distance);
     if (!parkings.length) {
         container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
         return;
