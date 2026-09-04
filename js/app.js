@@ -10,6 +10,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+    const auth = firebase.auth();
     // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
    (function restoreTheme() {
     const darkTheme = localStorage.getItem('darkTheme');
@@ -591,45 +592,6 @@ function formatDateTime(timestamp) {
     const d = new Date(Number(timestamp));
     if (Number.isNaN(d.getTime())) return 'Неизвестно';
     return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth() + 1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-}
-   function checkPolygonSize(coordinates) {
-    if (!Array.isArray(coordinates) || coordinates.length < 3) {
-        return {
-            valid: false,
-            error: 'Минимум 3 точки'
-        };
-    }
-    const validCoords = coordinates.filter(c =>
-        Array.isArray(c) &&
-        c.length >= 2 &&
-        Number.isFinite(Number(c[0])) &&
-        Number.isFinite(Number(c[1]))
-    );
-    if (validCoords.length < 3) {
-        return {
-            valid: false,
-            error: 'Некорректные координаты зоны'
-        };
-    }
-    const lats = validCoords.map(c => Number(c[0]));
-    const lngs = validCoords.map(c => Number(c[1]));
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng);
-    const lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
-    if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) {
-        return {
-            valid: false,
-            error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH} м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)} м`
-        };
-    }
-    return {
-        valid: true,
-        width: widthM,
-        length: lengthM
-    };
 }
    // ===================== ТОЧНЫЙ РАСЧЁТ ПАРКОВОЧНЫХ МЕСТ =====================
 function calculatePolygonArea(coordinates) {
@@ -2603,49 +2565,7 @@ function checkPolygonSize(coordinates) {
 
     return { valid: true, width: widthM, length: lengthM };
 }
-    // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
-    function openParkingSheet(parkingId, data) {
-    // Получаем элементы bottom-sheet
-    var sheet = document.getElementById('parkingSheet');
-    var content = document.getElementById('sheetContent');
-    if (!sheet || !content) {
-        console.error('❌ Bottom-sheet элементы не найдены');
-        return;
-    }
-
-    var addr = data.address || (data.lat && data.lng ? data.lat.toFixed(6) + ', ' + data.lng.toFixed(6) : 'Адрес не указан');
-    var free = data.totalSpots - (data.occupiedSpots || 0);
-
-    // Функция рендеринга содержимого с расстоянием
-    function renderContent(distKm, driveTime) {
-        var html = '';
-        html += '<h3>' + data.name + '</h3>';
-        html += '<p>📍 ' + addr + '</p>';
-        if (distKm !== undefined) {
-            html += '<p>📏 ' + distKm + ' км от вас</p>';
-            html += '<p>🚗 На авто: ' + driveTime + ' мин</p>';
-        } else {
-            html += '<p>📏 Расстояние неизвестно</p>';
-        }
-        html += '<p>🅿️ Свободно: ' + free + ' / ' + data.totalSpots + '</p>';
-        html += '<button class="btn-secondary" onclick="openOccupancyPanel(\'' + parkingId + '\')" style="margin-top:12px;">✏️ Редактировать</button>';
-        html += '<button class="btn-secondary" onclick="buildRouteToParking(\'' + parkingId + '\')" style="margin-top:8px;">🧭 Построить маршрут</button>';
-        content.innerHTML = html;
-        sheet.classList.add('active');
-    }
-
-    // Пытаемся получить геолокацию для расчёта расстояния
-    getUserLocation().then(function(coords) {
-        var dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
-        var distKm = (dist / 1000).toFixed(1);
-        var driveTime = Math.round(dist / 500);
-        renderContent(distKm, driveTime);
-    }).catch(function() {
-        // Если геолокация недоступна – показываем без расстояния
-        renderContent();
-    });
-} 
-// ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
+    // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
 async function openCenterSheet(parkingId, data) {
     const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
@@ -3428,6 +3348,8 @@ async function deleteParking(parkingId) {
             }
         });
     }
+
+    
    // ===================== МАРШРУТ =====================
     function buildRouteToParking(parkingId) {
         closeCenterSheet();
@@ -3555,84 +3477,62 @@ async function deleteParking(parkingId) {
         });
     }
 
-   function showDirectLine() {
-    if (!routeStartCoords || !routeEndCoords) return;
-
-    if (currentRoute) {
-        map.geoObjects.remove(currentRoute);
-        currentRoute = null;
-    }
-
-    const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-
-    currentRoute = new ymaps.multiRouter.MultiRoute({
-        referencePoints: [routeStartCoords, routeEndCoords],
-        params: {
-            routingMode: 'auto',
-            avoidTrafficJams: true
+    function showDirectLine() {
+        if (!routeStartCoords || !routeEndCoords) return;
+        if (currentRoute) {
+            map.geoObjects.remove(currentRoute);
+            currentRoute = null;
         }
-    }, {
-        boundsAutoApply: true,
-        routeStrokeColor: '#2B7574',
-        routeStrokeWidth: 5,
-        routeActiveStrokeColor: '#2B7574',
-        routeActiveStrokeWidth: 5,
-        wayPointVisible: false
-    });
-
-    map.geoObjects.add(currentRoute);
-
-    currentRoute.model.events.add('requestsuccess', function() {
-        const activeRoute = currentRoute.getActiveRoute();
-        if (!activeRoute) return;
-
-        const distance = activeRoute.properties.get('distance');
-        const duration = activeRoute.properties.get('duration');
-
+        const line = new ymaps.Polyline([routeStartCoords, routeEndCoords], {}, {
+            strokeColor: '#2B7574',
+            strokeWidth: 4,
+            strokeOpacity: 0.8
+        });
+        map.geoObjects.add(line);
+        currentRoute = line;
+        const dist = getDistanceInMeters(
+            routeStartCoords[0], routeStartCoords[1],
+            routeEndCoords[0], routeEndCoords[1]
+        ) / 1000;
+        const time = Math.round(dist * 2);
+        const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
         document.getElementById('routeInfo').innerHTML = `
-            <div>🚗 До парковки</div>
-            <div>📍 ${distance.text}</div>
-            <div>⏱ ${duration.text}</div>
-            <div>Свободных мест: ${free}</div>
-            <div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
-        `;
-
+        <div>🚗 До парковки (по прямой)</div>
+        <div> ${dist.toFixed(1)} км</div>
+        <div>⏱ ~${time} мин (приблизительно)</div>
+        <div> Свободных мест: ${free}</div>
+        <div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
+    `;
         document.getElementById('routeCard').classList.add('active');
-    });
-
-    currentRoute.model.events.add('requestfail', function() {
-        document.getElementById('routeInfo').innerHTML = `
-            <div>❌ Не удалось построить маршрут</div>
-            <div>Проверьте подключение к интернету</div>
-            <div>Свободных мест: ${free}</div>
-        `;
-    });
-}
-
-function startNavigation() {
-    if (!routeEndCoords) {
-        alert('Сначала постройте маршрут');
-        return;
+        map.setBounds([
+            [Math.min(routeStartCoords[0], routeEndCoords[0]), Math.min(routeStartCoords[1], routeEndCoords[1])],
+            [Math.max(routeStartCoords[0], routeEndCoords[0]), Math.max(routeStartCoords[1], routeEndCoords[1])]
+        ], { duration: 500 });
     }
 
-    getUserLocation()
-        .then(coords => {
-            const fromLat = coords.lat;
-            const fromLng = coords.lng;
-            const toLat = routeEndCoords[0];
-            const toLng = routeEndCoords[1];
+    function startNavigation() {
+        if (!routeEndCoords) {
+            alert('Сначала постройте маршрут');
+            return;
+        }
 
-            const url = `https://yandex.ru/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;
-            window.open(url, '_blank');
-        })
-        .catch(() => {
-            const toLat = routeEndCoords[0];
-            const toLng = routeEndCoords[1];
+        getUserLocation()
+            .then(coords => {
+                const fromLat = coords.lat;
+                const fromLng = coords.lng;
+                const toLat = routeEndCoords[0];
+                const toLng = routeEndCoords[1];
+                const url = `https://yandex.ru/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;
+                window.open(url, '_blank');
+            })
+            .catch(() => {
+                const toLat = routeEndCoords[0];
+                const toLng = routeEndCoords[1];
+                const url = `https://yandex.ru/maps/?rtext=~${toLat},${toLng}&rtt=auto`;
+                window.open(url, '_blank');
+            });
+    }
 
-            const url = `https://yandex.ru/maps/?rtext=~${toLat},${toLng}&rtt=auto`;
-            window.open(url, '_blank');
-        });
-}
     function closeRoute() {
         if (currentRoute) { map.geoObjects.remove(currentRoute);
             currentRoute = null; }
@@ -3681,60 +3581,44 @@ function startNavigation() {
         }, 8000);
     }
 
-  function openAddressPicker() {
-    if (!currentUser) {
-        alert('Необходимо войти');
-        return;
+    function openAddressPicker() {
+        if (!currentUser) { alert('Необходимо войти'); return; }
+        isAddressPickerOpen = true;
+        document.getElementById('addressPickerOverlay').style.display = 'block';
+        setTimeout(() => {
+            if (!addressPickerMap) {
+                addressPickerMap = new ymaps.Map('addressPickerMap', {
+                    center: map.getCenter() || [55.7558, 37.6173],
+                    zoom: 15,
+                    controls: ['zoomControl']
+                });
+                addressPickerMap.events.add('click', e => setAddressPickerCoords(e.get('coords')));
+                setAddressPickerCoords(addressPickerMap.getCenter());
+            } else {
+                addressPickerMap.container.fitToViewport();
+            }
+        }, 100);
     }
 
-    isAddressPickerOpen = true;
-    const overlay = document.getElementById('addressPickerOverlay');
-    if (!overlay) return;
-
-    overlay.style.display = 'block';
-
-    setTimeout(() => {
-        const center = map?.getCenter?.() || [55.7558, 37.6173];
-
-        if (!addressPickerMap) {
-            addressPickerMap = new ymaps.Map('addressPickerMap', {
-                center,
-                zoom: 15,
-                controls: ['zoomControl']
-            });
-            addressPickerMap.events.add('click', e => {
-                setAddressPickerCoords(e.get('coords'));
-            });
-            setAddressPickerCoords(center);
+    function setAddressPickerCoords(coords) {
+        addressPickerCoords = coords;
+        if (addressPickerPlacemark) {
+            addressPickerPlacemark.geometry.setCoordinates(coords);
         } else {
-            addressPickerMap.container.fitToViewport();
-            addressPickerMap.setCenter(center, 15, { duration: 300 });
+            addressPickerPlacemark = new ymaps.Placemark(coords, {
+                hintContent: 'Ваш адрес',
+                balloonContent: 'Перетащите метку'
+            }, {
+                preset: 'islands#redHomeIcon',
+                draggable: true
+            });
+            addressPickerMap.geoObjects.add(addressPickerPlacemark);
+            addressPickerPlacemark.events.add('dragend', () => {
+                addressPickerCoords = addressPickerPlacemark.geometry.getCoordinates();
+            });
         }
-    }, 100);
-}
-function setAddressPickerCoords(coords) {
-    if (!Array.isArray(coords) || coords.length < 2) return;
-
-    addressPickerCoords = [Number(coords[0]), Number(coords[1])];
-
-    if (addressPickerPlacemark) {
-        addressPickerPlacemark.geometry.setCoordinates(addressPickerCoords);
-        return;
     }
-    addressPickerPlacemark = new ymaps.Placemark(addressPickerCoords, {
-        hintContent: 'Ваш адрес',
-        balloonContent: 'Перетащите метку'
-    }, {
-        preset: 'islands#redHomeIcon',
-        draggable: true
-    });
-    addressPickerMap.geoObjects.add(addressPickerPlacemark);
 
-    addressPickerPlacemark.events.add('dragend', () => {
-        const coords = addressPickerPlacemark.geometry.getCoordinates();
-        addressPickerCoords = [Number(coords[0]), Number(coords[1])];
-    });
-}
     function cancelAddressPicker() {
         document.getElementById('addressPickerOverlay').style.display = 'none';
         isAddressPickerOpen = false;
@@ -3848,35 +3732,23 @@ function setAddressPickerCoords(coords) {
     }
 
     // ===================== РЕДАКТОР АДРЕСА =====================
-  function openAddressEditor(addressId) {
-    if (!currentUser || !addressId) return;
+    function openAddressEditor(addressId) {
+        if (!currentUser) return;
+        const overlay = document.getElementById('addressEditorOverlay');
+        if (!overlay) return;
+        document.getElementById('editAddrId').value = addressId;
 
-    const overlay = document.getElementById('addressEditorOverlay');
-    if (!overlay) return;
+        database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).once('value')
+            .then(snap => {
+                const addr = snap.val() || {};
+                document.getElementById('editAddrLabel').value = addr.label || 'Дом';
+                document.getElementById('editAddrCity').value = addr.city || '';
+                document.getElementById('editAddrStreet').value = addr.street || '';
+                document.getElementById('editAddrHouse').value = addr.houseNumber || '';
+                overlay.classList.add('active');
+            });
+    }
 
-    document.getElementById('editAddrId').value = addressId;
-
-    database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).once('value')
-        .then(snap => {
-            if (!snap.exists()) {
-                alert('Адрес не найден');
-                return;
-            }
-
-            const addr = snap.val() || {};
-
-            document.getElementById('editAddrLabel').value = addr.label || 'Дом';
-            document.getElementById('editAddrCity').value = addr.city || '';
-            document.getElementById('editAddrStreet').value = addr.street || '';
-            document.getElementById('editAddrHouse').value = addr.houseNumber || '';
-
-            overlay.classList.add('active');
-        })
-        .catch(err => {
-            console.error('Ошибка загрузки адреса:', err);
-            alert('Не удалось загрузить адрес');
-        });
-}
     function closeAddressEditor() {
         document.getElementById('addressEditorOverlay').classList.remove('active');
     }
@@ -4288,32 +4160,6 @@ function getCityCoordinates(city) {
     return coordsMap[city] || null;
 }
 
-function createMarkersAndCluster(parkings) {
-    // Удаляем старый кластер
-    if (clustererInstance) {
-        mapInstance.geoObjects.remove(clustererInstance);
-        clustererInstance = null;
-    }
-
-    // Создаём метки
-    const newPlacemarks = parkings.map(parking => {
-        const coords = [parking.latitude, parking.longitude];
-        return new ymaps.Placemark(coords, {
-            balloonContent: `<b>${parking.name}</b><br>${parking.address}`
-        });
-    });
-
-    // Создаём кластер
-    clustererInstance = new ymaps.Clusterer({
-        clusterDisableClickZoom: false,
-        clusterOpenBalloonOnClick: true,
-        gridSize: 32,
-        minClusterSize: 3
-    });
-    clustererInstance.add(newPlacemarks);
-    mapInstance.geoObjects.add(clustererInstance);
-    placemarks = newPlacemarks; // сохраняем для очистки
-}
     function updateCityDisplay() {
     const cityName = currentCity || userCityPrefs.city || mapCity?.city || 'Не указан';
     const displayEl = document.getElementById('cityDisplayName');
@@ -5728,8 +5574,7 @@ function renderFavorites(content) {
     </button>
 </div>
 
-<div id="pnFavoritesTabContent"></div>
-<div id="pnAddressesTabContent" style="display:none;"></div>
+<div id="pnFavoritesTabContent">
             <div class="pn-fav-search">
                 <span>⌕</span>
                 <input id="pnFavSearch" type="search" placeholder="Поиск парковки или адреса..." autocomplete="off">
@@ -5748,6 +5593,15 @@ function renderFavorites(content) {
                     <span>Загрузка...</span>
                 </div>
             </div>
+</div>
+<div id="pnAddressesTabContent" style="display:none;">
+            <div class="addresses-list" id="pnAddressesList">
+                <div class="pn-fav-loading">
+                    <div class="pn-fav-spinner"></div>
+                    <span>Загрузка...</span>
+                </div>
+            </div>
+</div>
         </div>
     `;
 
@@ -6046,6 +5900,77 @@ function renderFavorites(content) {
         });
     });
 }
+// ---- Переключение вкладок "Избранное" / "Мои адреса" ----
+function switchFavoritesTab(tab) {
+    const favTabBtn = document.getElementById('pnFavTabFavorites');
+    const addrTabBtn = document.getElementById('pnFavTabAddresses');
+    const favContent = document.getElementById('pnFavoritesTabContent');
+    const addrContent = document.getElementById('pnAddressesTabContent');
+    if (!favTabBtn || !addrTabBtn || !favContent || !addrContent) return;
+
+    const isAddresses = tab === 'addresses';
+    favTabBtn.classList.toggle('active', !isAddresses);
+    addrTabBtn.classList.toggle('active', isAddresses);
+    favContent.style.display = isAddresses ? 'none' : '';
+    addrContent.style.display = isAddresses ? '' : 'none';
+
+    if (isAddresses) {
+        loadHomeAddressesInline();
+    }
+}
+// ---- Загрузка "Мои адреса" во вкладку избранного ----
+function loadHomeAddressesInline() {
+    const container = document.getElementById('pnAddressesList');
+    if (!container || !currentUser) return;
+
+    database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
+        const addrs = snap.val() || {};
+        const entries = Object.entries(addrs);
+
+        if (!entries.length) {
+            container.innerHTML = `
+                <button class="address-card address-card-add" onclick="addHomeAddress()">
+                    <div class="address-card-icon">➕</div>
+                    <div class="address-card-info">
+                        <div class="address-card-label">Добавить адрес</div>
+                        <div class="address-card-text">Дом, работа и другие места</div>
+                    </div>
+                </button>`;
+            return;
+        }
+
+        const labelIcons = { 'Дом': '🏠', 'Работа': '💼' };
+
+        container.innerHTML = entries.map(([id, addr]) => {
+            const label = escapeHtml(addr.label || 'Адрес');
+            const icon = labelIcons[addr.label] || '📍';
+            const text = escapeHtml(addr.address || [addr.city, addr.street, addr.houseNumber].filter(Boolean).join(', ') || 'Без адреса');
+            const lat = Number(addr.lat);
+            const lng = Number(addr.lng);
+            return `
+                <div class="address-card">
+                    <div class="address-card-left" onclick="centerMapOnAddress(${Number.isFinite(lat) ? lat : 'null'}, ${Number.isFinite(lng) ? lng : 'null'})">
+                        <div class="address-card-icon">${icon}</div>
+                        <div class="address-card-info">
+                            <div class="address-card-label">${label}</div>
+                            <div class="address-card-text">${text}</div>
+                        </div>
+                    </div>
+                    <button class="address-card-delete" onclick="event.stopPropagation(); removeHomeAddress('${escapeHtml(id)}')" aria-label="Удалить адрес">✕</button>
+                </div>`;
+        }).join('') + `
+                <button class="address-card address-card-add" onclick="addHomeAddress()">
+                    <div class="address-card-icon">➕</div>
+                    <div class="address-card-info">
+                        <div class="address-card-label">Добавить адрес</div>
+                        <div class="address-card-text">Максимум 3</div>
+                    </div>
+                </button>`;
+    }).catch(err => {
+        console.error('Ошибка загрузки адресов:', err);
+        container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px;">Не удалось загрузить адреса</div>';
+    });
+}
     function loadUserData(type, content) {
     if (!currentUser) {
         if (content) {
@@ -6286,14 +6211,11 @@ function showPanel(type, keepFilter = false) {
     lastClickTime = 0;
     resetHighlightedParkings();
 }
-
    function showMap() {
     closePanel();
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab')[1].classList.add('active');
 }
-
-
     function resetHighlightedParkings() {
         Object.keys(highlightedParkings).forEach(id => {
             if (mapMarkers[id]) {
@@ -6305,7 +6227,6 @@ function showPanel(type, keepFilter = false) {
         });
         highlightedParkings = {};
     }
-
     // ===================== АУТЕНТИФИКАЦИЯ =====================
 function getGuestId() {
     let guestId = localStorage.getItem('parknear_guest_id');
@@ -6316,112 +6237,88 @@ function getGuestId() {
     return guestId;
 }
    function continueAsGuest() {
-    // 1. Пытаемся восстановить существующего гостя
-    let guestId = localStorage.getItem('parknear_guest_id');
-    let user;
+    const guestId = getGuestId();
+    const user = {
+        id: guestId,
+        username: 'guest',
+        firstName: 'Гость',
+        photoUrl: '',
+        isGuest: true
+    };
 
-    if (guestId) {
-        // Восстанавливаем существующего гостя
-        user = {
-            id: guestId,
-            username: 'guest',
-            firstName: 'Гость',
-            photoUrl: '',
-            isGuest: true
-        };
-        console.log('👤 Восстановлен гость:', guestId);
-    } else {
-        // Создаём нового гостя
-        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('parknear_guest_id', guestId);
-        user = {
-            id: guestId,
-            username: 'guest',
-            firstName: 'Гость',
-            photoUrl: '',
-            isGuest: true
-        };
-        console.log('🆕 Создан новый гость:', guestId);
-
-        // Создаём статистику в Firebase только для нового гостя
-        database.ref('users/' + guestId + '/stats').set({
-            registeredAt: Date.now(),
-            lastActive: Date.now(),
-            parkingsCreated: 0,
-            parkingsUpdated: 0,
-            confirmations: 0,
-            views: 0,
-            favorites: 0,
-            activeDates: [new Date().toISOString().split('T')[0]]
-        }).catch(function(err) {
-            console.warn('Ошибка создания статистики гостя:', err);
-        });
-    }
-
-    // 2. Устанавливаем текущего пользователя
     currentUser = user;
+    currentUserId = guestId;
     window.currentUser = user;
-
-    // 3. Сохраняем в localStorage (для совместимости с initAuth)
     localStorage.setItem('tgUser', JSON.stringify(user));
 
-    // 4. Обновляем активность (последний вход)
-    database.ref('users/' + guestId + '/stats/lastActive').set(Date.now())
-        .catch(function(err) {
-            console.warn('Не удалось обновить lastActive:', err);
-        });
+    const userRef = database.ref(`users/${guestId}`);
+    userRef.update({
+        id: guestId,
+        username: 'guest',
+        firstName: 'Гость',
+        photoUrl: '',
+        isGuest: true,
+        lastActive: firebase.database.ServerValue.TIMESTAMP
+    }).catch(err => console.warn('Ошибка обновления гостя:', err));
 
-    // 5. Обновляем активные дни (если сегодня ещё не было)
-    const today = new Date().toISOString().split('T')[0];
-    database.ref('users/' + guestId + '/stats/activeDates').once('value')
-        .then(function(snap) {
-            var dates = snap.val() || [];
-            if (!dates.includes(today)) {
-                dates.push(today);
-                database.ref('users/' + guestId + '/stats/activeDates').set(dates);
-            }
-        })
-        .catch(function(err) {
-            console.warn('Не удалось обновить активные дни:', err);
-        });
+    userRef.child('stats').once('value').then(snap => {
+        if (!snap.exists()) {
+            return userRef.child('stats').set({
+                registeredAt: firebase.database.ServerValue.TIMESTAMP,
+                lastActive: firebase.database.ServerValue.TIMESTAMP,
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [new Date().toISOString().split('T')[0]]
+            });
+        }
+        return userRef.child('stats/lastActive').set(firebase.database.ServerValue.TIMESTAMP);
+    }).catch(err => console.warn('Ошибка статистики гостя:', err));
 
-    // 6. Скрываем экран входа
     hideAuthScreen();
-
-    // 7. Показываем главную панель и онбординг (если ещё не показывали)
     showPanel('home');
     showOnboarding();
 
-    console.log('✅ Гостевой вход выполнен');
+    console.log('✅ Гостевой вход выполнен:', guestId);
 }
-
-    function logout() {
-        localStorage.removeItem('tgUser');
-        currentUser = null;
-        showAuthScreen();
+  function logout() {
+    localStorage.removeItem('tgUser');
+    currentUser = null;
+    currentUserId = null;
+    window.currentUser = null;
+    showAuthScreen();
+}
+   function deleteAccount() {
+    if (!currentUser || currentUser.isGuest) {
+        alert('Гостевой аккаунт нельзя удалить');
+        return;
     }
+    if (!confirm('Безвозвратно удалить аккаунт и все данные?')) return;
 
-    function deleteAccount() {
-        if (!currentUser || currentUser.id.startsWith('guest_')) {
-            alert('Гостевой аккаунт нельзя удалить');
-            return;
-        }
-        if (!confirm('Безвозвратно удалить аккаунт и все данные?')) return;
-        const uid = currentUser.id;
-        database.ref('parkings').once('value').then(snap => {
+    const uid = currentUser.id;
+
+    database.ref('parkings').once('value')
+        .then(snap => {
             const updates = {};
             snap.forEach(child => {
-                if (child.val().authorId === uid) updates[child.key] = null;
+                if (child.val()?.authorId === uid) {
+                    updates[child.key] = null;
+                }
             });
             return database.ref('parkings').update(updates);
-        }).then(() => database.ref(`users/${uid}`).remove())
-            .then(() => {
-                localStorage.removeItem('tgUser');
-                currentUser = null;
-                showPanel('home');
-            }).catch(err => alert('Ошибка: ' + err.message));
-    }
-
+        })
+        .then(() => database.ref(`users/${uid}`).remove())
+        .then(() => {
+            localStorage.removeItem('tgUser');
+            currentUser = null;
+            currentUserId = null;
+            window.currentUser = null;
+            showAuthScreen();
+        })
+        .catch(err => alert('Ошибка: ' + err.message));
+}
     // ===================== ОНБОРДИНГ С ПОДСВЕТКОЙ =====================
     const onboardingSlides = [
     {
@@ -6487,18 +6384,17 @@ function getGuestId() {
     let isOnboardingActive = false;
     let clickHandlerForHighlight = null;
 
-   function showAuthScreen() {
-    const overlay = document.getElementById('authOverlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-        // Сбрасываем анимацию, если она была
-        overlay.style.opacity = '1';
-        overlay.style.pointerEvents = 'auto';
-    } else {
+  function showAuthScreen() {
+    let overlay = document.getElementById('authOverlay');
+    if (!overlay) {
         console.error('Элемент #authOverlay не найден в DOM');
-        // Создаём оверлей на лету (запасной вариант)
         createAuthScreenFallback();
+        overlay = document.getElementById('authOverlay');
     }
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
 }
 // Скрывает экран входа
 function hideAuthScreen() {
@@ -6508,199 +6404,179 @@ function hideAuthScreen() {
     }
 }
 function createAuthScreenFallback() {
-    // Удаляем старый, если есть
     const old = document.getElementById('authOverlay');
     if (old) old.remove();
 
     const overlay = document.createElement('div');
     overlay.id = 'authOverlay';
     overlay.style.cssText = `
-        display: flex;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: var(--overlay-bg, rgba(14,41,49,0.8));
-        z-index: 6000;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        padding: 20px;
+        display:flex;
+        position:fixed;
+        inset:0;
+        background:var(--overlay-bg,rgba(14,41,49,.8));
+        z-index:6000;
+        align-items:center;
+        justify-content:center;
+        flex-direction:column;
+        padding:20px;
     `;
 
     overlay.innerHTML = `
-        <div style="background: var(--bg-secondary, #fff); border-radius: 24px; padding: 30px 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative;">
-            <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary, #888); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
-            <div style="font-size:48px; margin-bottom:12px;">🚗</div>
-            <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
-            <p style="color:var(--text-secondary, #666); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
-            <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
-                data-telegram-login="parknear_bot"
-                data-size="large"
-                data-onauth="onTelegramAuth(user)"
-                data-request-access="write">
-            <\/script>
-            <div style="margin:12px 0; color:var(--text-secondary, #666); font-size:14px;">— или —</div>
-            <button class="guest-btn" onclick="continueAsGuest()" style="width:100%; padding:16px; border-radius:14px; border:none; font-size:16px; font-weight:600; cursor:pointer; background:var(--bg-secondary, #fff); color:var(--accent, #007AFF); border:1px solid var(--accent, #007AFF);">Продолжить как гость</button>
+        <div style="background:var(--bg-secondary,#fff);border-radius:24px;padding:30px 20px;width:90%;max-width:380px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,.4);position:relative;">
+            <button onclick="closeAuthScreen()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;color:var(--text-secondary,#888);cursor:pointer;line-height:1;padding:4px;z-index:10;">✕</button>
+            <div style="font-size:48px;margin-bottom:12px;">🚗</div>
+            <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;">Добро пожаловать в ParkNear</h2>
+            <p style="color:var(--text-secondary,#666);margin-bottom:20px;font-size:15px;">Войдите в аккаунт, чтобы сохранять данные и пользоваться всеми функциями</p>
+            <button onclick="loginWithFirebase()" style="width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:600;cursor:pointer;background:var(--accent,#007AFF);color:#fff;">Войти</button>
+            <div style="margin:12px 0;color:var(--text-secondary,#666);font-size:14px;">— или —</div>
+            <button class="guest-btn" onclick="continueAsGuest()" style="width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:600;cursor:pointer;background:var(--bg-secondary,#fff);color:var(--accent,#007AFF);border:1px solid var(--accent,#007AFF);">Продолжить как гость</button>
         </div>
     `;
 
     document.body.appendChild(overlay);
-    document.getElementById('authOverlay').style.display = 'flex';
 }
     function showOnboarding() {
-        if (localStorage.getItem('onboardingSeen') === 'true') return;
-        isOnboardingActive = true;
-        const overlay = document.getElementById('onboardingOverlay');
-        overlay.style.display = 'flex';
-
-        function updateProgress(index) {
-            const fill = document.getElementById('onboardingProgressFill');
-            if (fill) {
-                const percent = ((index + 1) / onboardingSlides.length) * 100;
-                fill.style.width = percent + '%';
-            }
-        }
-
-        function removeHighlight() {
-            if (highlightedElement) {
-                highlightedElement.classList.remove('onboarding-highlight');
-                highlightedElement = null;
-            }
-            if (clickHandlerForHighlight) {
-                document.removeEventListener('click', clickHandlerForHighlight, true);
-                clickHandlerForHighlight = null;
-            }
-        }
-
-        function renderSlide(index) {
-            const slide = onboardingSlides[index];
-            removeHighlight();
-            updateProgress(index);
-
-            document.getElementById('onboardingSlide').innerHTML = `
-            <div class="onboarding-icon">${slide.icon}</div>
-            <div class="onboarding-title">${slide.title}</div>
-            <div class="onboarding-text">${slide.text}</div>
-        `;
-
-            const dotsContainer = document.getElementById('onboardingDots');
-            dotsContainer.innerHTML = onboardingSlides.map((_, i) =>
-                `<div class="onboarding-dot ${i === index ? 'active' : ''}"></div>`
-            ).join('');
-
-            const nextBtn = document.getElementById('onboardingNext');
-            const prevBtn = document.getElementById('onboardingPrev');
-            const skipBtn = document.getElementById('onboardingSkip');
-
-            if (slide.requiredAction) {
-                nextBtn.style.display = 'none';
-                prevBtn.style.display = 'none';
-                skipBtn.textContent = 'Пропустить шаг';
-                skipBtn.style.display = 'block';
-
-                const selector = slide.highlightSelector;
-                if (selector) {
-                    const el = document.querySelector(selector);
-                    if (el) {
-                        el.classList.add('onboarding-highlight');
-                        highlightedElement = el;
-                        if (clickHandlerForHighlight) {
-                            document.removeEventListener('click', clickHandlerForHighlight, true);
-                        }
-                        clickHandlerForHighlight = function(e) {
-                            const target = e.target.closest(selector);
-                            if (target) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (index < onboardingSlides.length - 1) {
-                                    currentSlide = index + 1;
-                                    renderSlide(currentSlide);
-                                } else {
-                                    finishOnboarding();
-                                }
-                            }
-                        };
-                        document.addEventListener('click', clickHandlerForHighlight, true);
-                    } else {
-                        console.warn('Элемент не найден:', selector);
-                        setTimeout(() => {
-                            if (index < onboardingSlides.length - 1) {
-                                currentSlide = index + 1;
-                                renderSlide(currentSlide);
-                            } else {
-                                finishOnboarding();
-                            }
-                        }, 2000);
-                    }
-                }
-            } else {
-                nextBtn.style.display = 'block';
-                prevBtn.style.display = 'block';
-                skipBtn.textContent = '✕';
-                skipBtn.style.display = 'block';
-
-                nextBtn.textContent = index === onboardingSlides.length - 1 ? 'Понятно' : 'Далее →';
-                prevBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
-            }
-        }
-        function finishOnboarding() {
-            localStorage.setItem('onboardingSeen', 'true');
-            document.getElementById('onboardingOverlay').style.display = 'none';
-            removeHighlight();
-            isOnboardingActive = false;
-            if (typeof showToast === 'function') {
-                showToast('🎉 Добро пожаловать! Теперь вы готовы пользоваться ParkNear.', 4000);
-            }
-        }
-
-        document.getElementById('onboardingNext').onclick = function() {
-            if (currentSlide === onboardingSlides.length - 1) {
-                finishOnboarding();
-            } else {
-                currentSlide++;
-                renderSlide(currentSlide);
-            }
-        };
-
-        document.getElementById('onboardingPrev').onclick = function() {
-            if (currentSlide > 0) {
-                currentSlide--;
-                renderSlide(currentSlide);
-            }
-        };
-
-        document.getElementById('onboardingSkip').onclick = function() {
-            finishOnboarding();
-        };
-
-        let touchStartX = 0;
-        const modal = document.querySelector('#onboardingOverlay > div');
-        if (modal) {
-            modal.addEventListener('touchstart', function(e) {
-                touchStartX = e.changedTouches[0].screenX;
-            }, { passive: true });
-            modal.addEventListener('touchend', function(e) {
-                const diff = touchStartX - e.changedTouches[0].screenX;
-                if (Math.abs(diff) > 50) {
-                    if (diff > 0 && currentSlide < onboardingSlides.length - 1) {
-                        const slide = onboardingSlides[currentSlide];
-                        if (!slide.requiredAction) {
-                            currentSlide++;
-                            renderSlide(currentSlide);
-                        }
-                    } else if (diff < 0 && currentSlide > 0) {
-                        const slide = onboardingSlides[currentSlide];
-                        if (!slide.requiredAction) {
-                            currentSlide--;
-                            renderSlide(currentSlide);
-                        }
-                    }
-                }
-            }, { passive: true });
-        }
-
-        currentSlide = 0;
-        renderSlide(0);
+    if (localStorage.getItem('onboardingSeen') === 'true') return;
+    const overlay = document.getElementById('onboardingOverlay');
+    if (!overlay) {
+        console.warn('Элемент onboardingOverlay не найден');
+        return;
     }
+    isOnboardingActive = true;
+    overlay.style.display = 'flex';
+
+    function updateProgress(index) {
+        const fill = document.getElementById('onboardingProgressFill');
+        if (fill) {
+            const percent = ((index + 1) / onboardingSlides.length) * 100;
+            fill.style.width = percent + '%';
+        }
+    }
+
+    function removeHighlight() {
+        if (highlightedElement) {
+            highlightedElement.classList.remove('onboarding-highlight');
+            highlightedElement = null;
+        }
+        if (clickHandlerForHighlight) {
+            document.removeEventListener('click', clickHandlerForHighlight, true);
+            clickHandlerForHighlight = null;
+        }
+    }
+       function renderSlide(index) {
+    const slide = onboardingSlides[index];
+    if (!slide) return;
+    removeHighlight();
+    updateProgress(index);
+
+    const slideEl = document.getElementById('onboardingSlide');
+    const dotsContainer = document.getElementById('onboardingDots');
+    const nextBtn = document.getElementById('onboardingNext');
+    const prevBtn = document.getElementById('onboardingPrev');
+    const skipBtn = document.getElementById('onboardingSkip');
+    if (!slideEl || !dotsContainer || !nextBtn || !prevBtn || !skipBtn) return;
+
+    slideEl.innerHTML = `
+        <div class="onboarding-icon">${slide.icon}</div>
+        <div class="onboarding-title">${slide.title}</div>
+        <div class="onboarding-text">${slide.text}</div>
+    `;
+
+    dotsContainer.innerHTML = onboardingSlides.map((_, i) =>
+        `<div class="onboarding-dot ${i === index ? 'active' : ''}"></div>`
+    ).join('');
+
+    if (slide.requiredAction) {
+        nextBtn.style.display = 'none';
+        prevBtn.style.display = 'none';
+        skipBtn.textContent = 'Пропустить шаг';
+        skipBtn.style.display = 'block';
+
+        const selector = slide.highlightSelector;
+        if (selector) {
+            const el = document.querySelector(selector);
+            if (el) {
+                el.classList.add('onboarding-highlight');
+                highlightedElement = el;
+
+                if (clickHandlerForHighlight) {
+                    document.removeEventListener('click', clickHandlerForHighlight, true);
+                }
+
+                clickHandlerForHighlight = function(e) {
+                    const target = e.target.closest(selector);
+                    if (!target) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (index < onboardingSlides.length - 1) {
+                        currentSlide = index + 1;
+                        renderSlide(currentSlide);
+                    } else {
+                        finishOnboarding();
+                    }
+                };
+
+                document.addEventListener('click', clickHandlerForHighlight, true);
+            } else {
+                console.warn('Элемент не найден:', selector);
+                setTimeout(() => {
+                    if (currentSlide !== index || !isOnboardingActive) return;
+                    if (index < onboardingSlides.length - 1) {
+                        currentSlide = index + 1;
+                        renderSlide(currentSlide);
+                    } else {
+                        finishOnboarding();
+                    }
+                }, 2000);
+            }
+        }
+    } else {
+        nextBtn.style.display = 'block';
+        prevBtn.style.display = 'block';
+        skipBtn.textContent = '✕';
+        skipBtn.style.display = 'block';
+        nextBtn.textContent = index === onboardingSlides.length - 1 ? 'Понятно' : 'Далее →';
+        prevBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
+    }
+}
+        function finishOnboarding() {
+    localStorage.setItem('onboardingSeen', 'true');
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) overlay.style.display = 'none';
+    removeHighlight();
+    isOnboardingActive = false;
+    if (typeof showToast === 'function') {
+        showToast('🎉 Добро пожаловать! Теперь вы готовы пользоваться ParkNear.', 4000);
+    }
+}
+
+const onboardingNext = document.getElementById('onboardingNext');
+const onboardingPrev = document.getElementById('onboardingPrev');
+const onboardingSkip = document.getElementById('onboardingSkip');
+
+if (onboardingNext) {
+    onboardingNext.onclick = function() {
+        if (currentSlide === onboardingSlides.length - 1) {
+            finishOnboarding();
+        } else {
+            currentSlide++;
+            renderSlide(currentSlide);
+        }
+    };
+}
+
+if (onboardingPrev) {
+    onboardingPrev.onclick = function() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            renderSlide(currentSlide);
+        }
+    };
+}
+
+if (onboardingSkip) {
+    onboardingSkip.onclick = finishOnboarding;
+}
     // ===================== НАСТРОЙКИ =====================
    function syncThemeToggles() {
     const isDark = document.body.classList.contains('dark-theme');
@@ -6709,30 +6585,15 @@ function createAuthScreenFallback() {
     if (toggle1) toggle1.checked = isDark;
     if (toggle2) toggle2.checked = isDark;
 }
-     function toggleTheme() {
-    var isDark = document.body.classList.toggle('dark-theme');
+    function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
     localStorage.setItem('darkTheme', isDark ? '1' : '0');
-
-    var mapEl = document.getElementById('map');
-    if (mapEl && map) {
-        var currentType = map.getType ? map.getType() : 'yandex#map';
-        if (isDark && currentType === 'yandex#map') {
-            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-        } else {
-            mapEl.style.filter = 'none';
-        }
-    }
-
-    var tabBar = document.querySelector('.tabBar');
-    if (tabBar) {
-        tabBar.style.background = '';
-    }
-
+    updateMapTheme();
     syncThemeToggles();
 
-    if (window.Telegram && window.Telegram.WebApp) {
+    if (window.Telegram?.WebApp) {
         try {
-            var tg = window.Telegram.WebApp;
+            const tg = window.Telegram.WebApp;
             if (isDark) {
                 tg.setHeaderColor('#1C1C1E');
                 tg.setBackgroundColor('#000000');
@@ -6743,8 +6604,10 @@ function createAuthScreenFallback() {
         } catch (e) {}
     }
 
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        try {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        } catch (e) {}
     }
 }
     function updateMapTheme() {
@@ -6780,18 +6643,20 @@ function createAuthScreenFallback() {
         isGuest: true
     };
     currentUser = user;
+    currentUserId = userId;
     localStorage.setItem('tgUser', JSON.stringify(user));
-    const userRef = database.ref('users/' + currentUser.id);
+    const userRef = database.ref(`users/${userId}`);
     userRef.update({
-        username: currentUser.username,
-        firstName: currentUser.firstName,
-        photoUrl: currentUser.photoUrl,
-        lastActive: Date.now()
+        id: userId,
+        username: user.username,
+        firstName: user.firstName,
+        photoUrl: user.photoUrl,
+        isGuest: true,
+        lastActive: firebase.database.ServerValue.TIMESTAMP
     }).catch(console.error);
-
     userRef.child('stats').set({
-        registeredAt: Date.now(),
-        lastActive: Date.now(),
+        registeredAt: firebase.database.ServerValue.TIMESTAMP,
+        lastActive: firebase.database.ServerValue.TIMESTAMP,
         parkingsCreated: 0,
         parkingsUpdated: 0,
         confirmations: 0,
@@ -6799,32 +6664,32 @@ function createAuthScreenFallback() {
         favorites: 0,
         activeDates: [new Date().toISOString().split('T')[0]]
     }).catch(console.error);
-
     hideAuthScreen();
     showPanel('home');
     showOnboarding();
 }
-   function renderHomePanel(content) {
+ function renderHomePanel(content) {
     const cached = localStorage.getItem('parkingCache');
     let cacheData = null;
     if (cached) {
         try {
             const cache = JSON.parse(cached);
-            // ✅ Проверяем, что кеш соответствует текущему городу
-            if (cache && cache.data) {
+            const cacheCity = normalizeCity(cache?.city || '');
+            const selectedCity = normalizeCity(currentCity || '');
+            if (cache?.data && cacheCity === selectedCity) {
                 cacheData = cache.data;
                 parkingDataCache = cacheData;
                 renderHomeContent(content, null);
                 const list = document.getElementById('homeParkingList');
                 if (list) {
-                    list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;">🔄 Обновление данных...</div>');
+                    list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center;color:var(--text-secondary);font-size:13px;margin-top:8px;">🔄 Обновление данных...</div>');
                 }
             } else {
-                // Если город не совпадает – удаляем устаревший кеш
                 localStorage.removeItem('parkingCache');
-                console.log('🗑️ Удалён устаревший кеш парковок');
+                console.log('🗑️ Удалён кеш парковок другого города');
             }
         } catch (e) {
+            console.error('Ошибка чтения кеша:', e);
             localStorage.removeItem('parkingCache');
         }
     }
@@ -6835,7 +6700,6 @@ function createAuthScreenFallback() {
 
     const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
     if (needRefresh) {
-        // ✅ Передаём текущий город
         Promise.all([
             loadAllParkings(currentCity, true),
             getUserLocation().catch(() => null)
@@ -6844,8 +6708,8 @@ function createAuthScreenFallback() {
             renderHomeContent(content, coords);
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.remove();
-            console.log('🏠 На главной загружено парковок:', Object.keys(parkingDataCache).length);
-        }).catch((err) => {
+            console.log('🏠 На главной загружено парковок:', Object.keys(parkingDataCache || {}).length);
+        }).catch(err => {
             console.error('Ошибка загрузки парковок:', err);
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.textContent = '⚠️ Не удалось обновить данные';
@@ -6864,7 +6728,15 @@ function createAuthScreenFallback() {
     }
 }
 function renderHomeContent(content, coords) {
-    var html = `
+    const city = currentCity || userCityPrefs?.city || '';
+    const allParkings = filterParkingsByCurrentCity(
+        Object.values(parkingDataCache || {})
+    ).filter(p =>
+        Number.isFinite(Number(p.lat)) &&
+        Number.isFinite(Number(p.lng))
+    );
+
+    const html = `
         <div class="home-header">
             <div class="home-title">Парковка без забот</div>
             <div class="home-subtitle">найдите свободное место рядом с домом</div>
@@ -6884,95 +6756,101 @@ function renderHomeContent(content, coords) {
             <div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>
         </div>
     `;
+
     content.innerHTML = html;
 
-    // Получаем список парковок из кеша
-    var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
-    console.log('📊 Всего парковок в кеше:', allParkings.length);
-    // Если данных нет – показываем сообщение
-    if (allParkings.length === 0) {
-        var container = document.getElementById('homeParkingList');
-        if (container) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <p>😕 Нет парковок в городе <strong>${currentCity || 'не выбран'}</strong></p>
-                    <p style="font-size:13px; margin-top:8px; color:var(--text-secondary);">
-                        Попробуйте изменить город в настройках профиля
-                    </p>
-                </div>
-            `;
-        }
+    console.log('📊 Парковок текущего города:', allParkings.length, city);
+
+    const container = document.getElementById('homeParkingList');
+    if (!container) return;
+
+    if (!city) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>🏙️ Выберите город</p>
+                <p style="font-size:13px;margin-top:8px;color:var(--text-secondary);">
+                    Выберите город, чтобы увидеть парковки
+                </p>
+            </div>
+        `;
         return;
     }
 
-    // Если координаты есть – показываем ближайшие
+    if (allParkings.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>😕 В городе ${escapeHtml(city)} пока нет парковок</p>
+                <p style="font-size:13px;margin-top:8px;color:var(--text-secondary);">
+                    Попробуйте добавить первую парковку
+                </p>
+            </div>
+        `;
+        return;
+    }
+
     if (coords) {
         showNearbyParkings(coords, 5);
     } else {
-        // Иначе показываем все (без сортировки по расстоянию)
-        var container = document.getElementById('homeParkingList');
-        if (container) {
-            renderParkingList(container, allParkings);
-        }
+        renderParkingList(container, allParkings);
     }
 }
 function showNearbyParkings(coords, limit) {
     const container = document.getElementById('homeParkingList');
-    if (!container) return;
+    if (!container || !coords) return;
     const radius = 1000;
-    const parkings = Object.entries(parkingDataCache)
-        .map(([id, data]) => ({ id, ...data, distance: getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng) }))
-        .filter(p => p.lat && p.lng && p.distance <= radius)
-        .sort((a,b) => a.distance - b.distance);
-
-    if (parkings.length === 0) {
+    const parkings = filterParkingsByCurrentCity(Object.values(parkingDataCache || {}))
+        .map(data => ({
+            ...data,
+            distance: getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng)
+        }))
+        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.distance <= radius)
+        .sort((a, b) => a.distance - b.distance);
+    if (!parkings.length) {
         container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
         return;
     }
-    const show = parkings.slice(0, limit);
-    container.innerHTML = show.map(p => renderParkingItem(p, coords)).join('');
+    container.innerHTML = parkings.slice(0, limit).map(p => renderParkingItem(p, coords)).join('');
 }
 function showAllNearby() {
-    var coords = userLocationForSearch;
+    const coords = userLocationForSearch;
     if (!coords) {
         alert('Геолокация не определена');
         return;
     }
-    var container = document.getElementById('homeParkingList');
-    if (container) {
-        showNearbyParkings(coords, 9999);
-        var seeAll = document.querySelector('.section-header .see-all');
-        if (seeAll) {
-            seeAll.textContent = 'Скрыть';
-            seeAll.onclick = function() {
-                showNearbyParkings(coords, 5);
-                this.textContent = 'См. все →';
-                this.onclick = showAllNearby;
-            };
-        }
+    const container = document.getElementById('homeParkingList');
+    if (!container) return;
+    showNearbyParkings(coords, 9999);
+    const seeAll = document.querySelector('.section-header .see-all');
+    if (seeAll) {
+        seeAll.textContent = 'Скрыть';
+        seeAll.onclick = function() {
+            showNearbyParkings(coords, 5);
+            this.textContent = 'См. все →';
+            this.onclick = showAllNearby;
+        };
     }
 }
 function filterHomeParkings() {
-    const query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
+    const query = document.getElementById('homeSearchInput')?.value.trim().toLowerCase() || '';
     const container = document.getElementById('homeParkingList');
     if (!container) return;
+    const allParkings = filterParkingsByCurrentCity(Object.values(parkingDataCache || {})).filter(p => p.lat && p.lng);
     if (!query) {
         if (userLocationForSearch) {
             showNearbyParkings(userLocationForSearch, 5);
         } else {
-            const all = Object.values(parkingDataCache).filter(p => p.lat && p.lng);
-            renderParkingList(container, all);
+            renderParkingList(container, allParkings);
         }
         return;
     }
-    const filtered = Object.entries(parkingDataCache)
-        .map(([id, data]) => ({ id, ...data }))
-        .filter(p => {
-            const name = (p.name || '').toLowerCase();
-            const addr = (p.address || '').toLowerCase();
-            return name.includes(query) || addr.includes(query);
-        });
-    if (filtered.length === 0) {
+    const filtered = allParkings.filter(p => {
+        const name = String(p.name || '').toLowerCase();
+        const address = String(p.address || '').toLowerCase();
+        const street = String(p.street || '').toLowerCase();
+        const house = String(p.house || p.houseNumber || '').toLowerCase();
+        return name.includes(query) || address.includes(query) || street.includes(query) || house.includes(query);
+    });
+    if (!filtered.length) {
         container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
         return;
     }
