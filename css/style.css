@@ -166,16 +166,22 @@ body {
     left: 0;
     right: 0;
     height: 44px;
-    background: rgba(255,255,255,.72);
+    background: rgba(226, 226, 224, 0.08);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-bottom: 1px solid var(--card-border);
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
     padding-top: env(safe-area-inset-top);
-    transition: background .3s ease;
+    transition: background 0.3s ease;
+}
+.app-header {
+    background: rgba(255, 255, 255, 0.72);
+    border-bottom: 1px solid var(--card-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 body.dark-theme .app-header {
@@ -345,7 +351,7 @@ body.dark-theme #geoBtn {
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-radius: 32px;
-    z-index: 2000;
+    z-index: 2001;
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -1090,6 +1096,7 @@ body.dark-theme .theme-slider:before {
     border-radius: 0 16px 16px 0;
     cursor: pointer;
 }
+
 .sheet-header {
     display: flex;
     justify-content: center;
@@ -1187,27 +1194,30 @@ body.dark-theme .theme-slider:before {
 .label-picker-overlay {
     display: none;
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--overlay-bg);
     z-index: 4000;
     align-items: center;
     justify-content: center;
-    background: var(--overlay-bg);
 }
-
-.label-picker-overlay.active {
-    display: flex;
-}
-
+.label-picker-overlay.active { display: flex; }
 .label-picker-box {
-    position: relative;
-    z-index: 1;
-    width: min(90%, 340px);
-    max-height: 80dvh;
-    overflow-y: auto;
-    padding: 24px;
-    background: var(--bg-secondary);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background: var(--bg-secondary, #ffffff);
     border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0,0,0,.3);
+    padding: 24px;
+    width: 90%;
+    max-width: 340px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 .label-picker-box h3 {
     text-align: center;
@@ -1283,6 +1293,29 @@ body.dark-theme .theme-slider:before {
     background: var(--accent);
     width: 24px;
     border-radius: 4px;
+}
+.onboarding-highlight {
+    position: relative;
+    z-index: 5001 !important;
+    box-shadow: 0 0 0 5px rgba(43, 117, 116, 0.4), 0 0 20px rgba(43, 117, 116, 0.6) !important;
+    border-radius: 16px !important;
+    animation: pulse 1.5s infinite;
+    cursor: pointer;
+}
+.onboarding-highlight::after {
+    content: '👆 Нажми меня';
+    position: absolute;
+    bottom: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2B7574;
+    color: #E2E2E0;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    z-index: 5002;
 }
 @keyframes pulse {
     0% { box-shadow: 0 0 0 5px rgba(43, 117, 116, 0.4), 0 0 20px rgba(43, 117, 116, 0.6); }
@@ -1447,6 +1480,7 @@ body.dark-theme .theme-slider:before {
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes logoPulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -2205,6 +2239,13 @@ body.dark-theme .theme-slider:before {
 }
 .profile-section-content.open { display: block; }
 
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 0.5px solid var(--border-color);
+}
 .settings-row:last-child { border-bottom: none; }
 .settings-label {
     font-size: 16px;
@@ -2217,8 +2258,29 @@ body.dark-theme .theme-slider:before {
     align-items: center;
     gap: 6px;
 }
+.settings-edit-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+}
+.btn-danger-text {
+    background: none;
+    border: none;
+    color: var(--red);
+    font-size: 16px;
+    cursor: pointer;
+}
 
 /* === СКРЫТИЕ КОПИРАЙТА ЯНДЕКС === */
+.ymaps-2-1-79-copyright,
+.ymaps-2-1-79-logo,
+.ymaps-2-1-79-conditions {
+    bottom: -100px !important;
+    opacity: 0 !important;
+}
 .pull-indicator {
     display: none !important;
 }
