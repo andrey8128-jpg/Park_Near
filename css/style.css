@@ -99,35 +99,31 @@ body.dark-theme {
 }
 /* ===== ОСНОВНОЕ ТЕЛО ПРИЛОЖЕНИЯ ===== */
 body {
-    margin: 0; /* убирает стандартный внешний отступ браузера */
-    padding: 0; /* убирает стандартный внутренний отступ */
-    width: 100%; /* ширина на весь экран */
-    min-height: 100dvh; /* минимальная высота = динамическая высота экрана */
-    overflow: hidden; /* запрещает прокрутку всей страницы */
-    overscroll-behavior: none; /* отключает эффект "оттягивания" страницы */
-    background: var(--bg-primary); /* основной фон приложения */
-    color: var(--text-primary); /* основной цвет текста */
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; /* системный шрифт */
-    -webkit-font-smoothing: antialiased; /* сглаживание текста на Apple */
-    -webkit-text-size-adjust: 100%; /* запрещает Safari увеличивать текст */
-    -webkit-tap-highlight-color: transparent; /* убирает подсветку при нажатии */
-    text-rendering: optimizeLegibility; /* улучшает отображение текста */
-    transition: background 0.3s ease, color 0.3s ease; /* плавная смена темы */
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%; /* было min-height: 100dvh → меняем на 100% */
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 /* ===== КАРТА ===== */
 #map {
-    position: fixed; /* карта закреплена относительно экрана */
-    top: 0; /* прижимает карту к верхнему краю */
-    right: 0; /* прижимает карту к правому краю */
-    bottom: 0; /* прижимает карту к нижнему краю */
-    left: 0; /* прижимает карту к левому краю */
-    width: 100%; /* ширина всего экрана */
-    height: 100%; /* занимает всю область fixed-элемента */
-    min-height: 100dvh; /* не даёт карте стать ниже высоты viewport */
-    margin: 0; /* убирает внешний отступ */
-    padding: 0; /* убирает внутренний отступ */
-    z-index: 1; /* карта находится ниже Splash и плавающих элементов */
-    background: transparent; /* не перекрывает фон самой карты */
+  position: fixed;
+  inset: 0; /* эквивалент top/right/bottom/left: 0 */
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  z-index: 1;
+  background: transparent;
 }
 /* === ВЫБОР ГОРОДА НА КАРТЕ === */
 #citySelectorOnMap {
@@ -2285,22 +2281,22 @@ body.dark-theme .theme-slider:before {
     display: none !important;
 }
 #splashScreen {
-    position: fixed; /* закрепляет экран загрузки относительно viewport */
-    top: 0; /* верхний край экрана */
-    right: 0; /* правый край экрана */
-    bottom: 0; /* нижний край экрана */
-    left: 0; /* левый край экрана */
-    width: 100%; /* ширина всего экрана */
-    height: 100%; /* занимает всю доступную область */
-    min-height: 100dvh; /* не позволяет стать ниже динамической высоты телефона */
-    z-index: 10000; /* Splash находится поверх карты и интерфейса */
-    display: flex; /* включает Flexbox */
-    align-items: center; /* центрирует содержимое по вертикали */
-    justify-content: center; /* центрирует содержимое по горизонтали */
-    overflow: hidden; /* ничего не выходит за границы Splash */
-    background: #07191E; /* цвет фона Splash */
-    opacity: 1; /* Splash полностью видимый при запуске */
-    transition: opacity .7s ease, visibility .7s ease; /* плавное исчезновение */
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* min-height: 100dvh; ← убрать эту строку */
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #07191E;
+  opacity: 1;
+  transition: opacity .7s ease, visibility .7s ease;
 }
 #splashScreen.splash-hidden{
     opacity:0;
