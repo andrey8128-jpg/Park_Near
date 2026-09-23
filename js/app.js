@@ -5719,15 +5719,6 @@ function renderFavorites(content) {
                     <strong>${escapeHtml(userCityPrefs?.city || currentCity || 'Все города')}</strong>
                 </div>
             </div>
-<div class="pn-fav-tabs">
-    <button class="pn-fav-tab active" id="pnFavTabFavorites" onclick="switchFavoritesTab('favorites')">
-        ♥ Избранное
-    </button>
-    <button class="pn-fav-tab" id="pnFavTabAddresses" onclick="switchFavoritesTab('addresses')">
-        📍 Мои адреса
-    </button>
-</div>
-
 <div id="pnFavoritesTabContent"></div>
 <div id="pnAddressesTabContent" style="display:none;"></div>
             <div class="pn-fav-search">
