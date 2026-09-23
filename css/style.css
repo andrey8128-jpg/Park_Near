@@ -931,8 +931,8 @@ select.input-field {
     position: absolute;
     cursor: pointer;
     top: 0;
-    left: 0;
-    right: 0;
+    left: -8px;
+    right: 10px;
     bottom: 0;
     background-color: #C7C7CC;
     transition: .3s;
@@ -1650,7 +1650,7 @@ body.dark-theme .theme-slider:before {
     font-weight: 400;
     padding: 12px 16px;
     width: 100%;
-    text-align: left;
+    text-align: center;
     cursor: pointer;
 }
 .btn-danger-text:active { background: var(--bg-primary); }
@@ -2244,6 +2244,7 @@ body.dark-theme .theme-slider:before {
 }
 .settings-row:last-child { border-bottom: none; }
 .settings-label {
+    padding-left: 12px;
     font-size: 16px;
     color: var(--text-primary);
 }
@@ -3053,7 +3054,7 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     padding: 9px 12px;
     border-radius: 13px;
     background: var(--bg-primary);
-    margin: 8px 0 11px;
+    margin:  11px;
     box-shadow: inset 0 1px 3px rgba(0,0,0,.05);
     transition: background .3s;
 }
