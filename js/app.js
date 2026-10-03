@@ -907,49 +907,66 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
                 break;
         }
     }
-
-    // ===================== АВТОРИЗАЦИЯ =====================
-    function initAuth() {
+// ============================================
+// ВОССТАНОВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
+// ============================================
+function restoreSavedUser() {
     const saved = localStorage.getItem('tgUser');
-    if (saved) {
-        try {
-            const user = JSON.parse(saved);
-            if (!currentUser || currentUser.id !== user.id) {
-                currentUser = user;
-                window.currentUser = user;
-                hideAuthScreen();
-                // Если панель не активна, открываем главную
-                const panel = document.getElementById('panel');
-                if (!panel.classList.contains('active')) {
-                    showPanel('home');
-                }
-                console.log('✅ Пользователь восстановлен в initAuth()');
-            }
-            return; // если пользователь уже есть, ничего не делаем
-        } catch (e) {
-            localStorage.removeItem('tgUser');
-        }
+    if (!saved) {
+        return false;
     }
-    // Если пользователь не найден – показываем экран входа
+    try {
+        const user = JSON.parse(saved);
+        // Проверяем, что в сохранённых данных действительно есть ID
+        if (!user || !user.id) {
+            throw new Error('Некорректные данные пользователя');
+        }
+        currentUser = user;
+        window.currentUser = user;
+        console.log('✅ Пользователь восстановлен:', user.id);
+        return true;
+    } catch (e) {
+        console.warn('⚠️ Не удалось восстановить пользователя:', e);
+        localStorage.removeItem('tgUser');
+        currentUser = null;
+        window.currentUser = null;
+        return false;
+    }
+}
+// ============================================
+// ИНИЦИАЛИЗАЦИЯ АВТОРИЗАЦИИ
+// ============================================
+function initAuth() {
+    // Пытаемся восстановить предыдущую сессию
+    const restored = restoreSavedUser();
+    if (restored) {
+        // Пользователь уже авторизован
+        hideAuthScreen();
+        // Если панель ещё не открыта — открываем главную
+        const panel = document.getElementById('panel');
+        if (panel && !panel.classList.contains('active')) {
+            showPanel('home');
+        }
+        console.log('✅ Авторизация восстановлена');
+        return;
+    }
+    // Пользователь не найден
+    console.log('ℹ️ Пользователь не авторизован');
     showAuthScreen();
 }
-// Немедленное восстановление сессии (выполняется до загрузки карт)
+// ============================================
+// БЫСТРОЕ ВОССТАНОВЛЕНИЕ СЕССИИ
+// Выполняется сразу, не дожидаясь загрузки карты
+// ============================================
 (function() {
-    const saved = localStorage.getItem('tgUser');
-    if (saved) {
-        try {
-            const user = JSON.parse(saved);
-            currentUser = user;
-            window.currentUser = user;
-            hideAuthScreen();
-            const panel = document.getElementById('panel');
-            if (!panel.classList.contains('active')) {
-                showPanel('home');
-            }
-            console.log('✅ Вход восстановлен (ранний вызов)');
-        } catch (e) {
-            localStorage.removeItem('tgUser');
+    const restored = restoreSavedUser();
+    if (restored) {
+        hideAuthScreen();
+        const panel = document.getElementById('panel');
+        if (panel && !panel.classList.contains('active')) {
+            showPanel('home');
         }
+        console.log('✅ Вход восстановлен (ранний вызов)');
     }
 })();
     // ===================== ГЕОЛОКАЦИЯ =====================
@@ -2653,11 +2670,13 @@ async function openCenterSheet(parkingId, data) {
     currentParkingId = parkingId;
     currentParkingData = data;
     parkingDataCache[parkingId] = data;
-    const total = Number(data.totalSpots) || 0;
-    const available = Number(data.availableSpots);
+    // ============================
+    // ТЕКУЩИЙ СТАТУС ПАРКОВКИ
+    // ============================
     const status = data.status || 'unknown';
-
-    let statusIcon = '⚪', statusTitle = 'Нет свежих данных', statusClass = 'unknown';
+    let statusIcon = '⚪';
+    let statusTitle = 'Нет свежих данных';
+    let statusClass = 'unknown';
     if (status === 'free') {
         statusIcon = '🟢';
         statusTitle = 'Есть места';
@@ -2671,157 +2690,305 @@ async function openCenterSheet(parkingId, data) {
         statusTitle = 'Мест нет';
         statusClass = 'occupied';
     }
-    const availableText = Number.isFinite(available) && total > 0
-    ? ` · Свободно: ${Math.max(0, Math.min(available, total))} из ${total}`
-    : '';
+    // ============================
+    // ВРЕМЯ ПОСЛЕДНЕГО ОБНОВЛЕНИЯ
+    // ============================
     let lastUpdatedText = 'Нет данных';
     if (data.lastUpdatedAt) {
-        const diff = Math.max(0, Date.now() - Number(data.lastUpdatedAt));
+        const diff = Math.max(
+            0,
+            Date.now() - Number(data.lastUpdatedAt)
+        );
         const minutes = Math.floor(diff / 60000);
 
-        if (minutes < 1) lastUpdatedText = 'только что';
-        else if (minutes < 60) lastUpdatedText = `${minutes} мин назад`;
-        else {
+        if (minutes < 1) {
+            lastUpdatedText = 'только что';
+
+        } else if (minutes < 60) {
+            lastUpdatedText = `${minutes} мин назад`;
+
+        } else {
             const hours = Math.floor(minutes / 60);
-            lastUpdatedText = hours < 24 ? `${hours} ч назад` : `${Math.floor(hours / 24)} дн назад`;
+
+            lastUpdatedText =
+                hours < 24
+                    ? `${hours} ч назад`
+                    : `${Math.floor(hours / 24)} дн назад`;
         }
     }
-    const confirmations = Number(data.statusConfirmations) || 0;
-    const address = data.address ? escapeHtml(data.address) : 'Адрес не указан';
+    // ============================
+    // КОЛИЧЕСТВО ПОДТВЕРЖДЕНИЙ
+    // ============================
+    const confirmations =
+        Number(data.statusConfirmations) || 0;
+    // ============================
+    // АДРЕС И ID
+    // ============================
+    const address = data.address
+        ? escapeHtml(data.address)
+        : 'Адрес не указан';
     const safeId = escapeHtml(parkingId);
-
+    // ============================
+    // СОЗДАЁМ КАРТОЧКУ
+    // ============================
     content.innerHTML = `
         <div class="parking-card-compact">
+
             <div class="parking-card-handle"></div>
+
             <div class="parking-card-header">
+
                 <div class="parking-card-title">
                     🅿️ ${escapeHtml(data.name || 'Парковка')}
                 </div>
+
                 <div class="parking-card-street">
                     ${address}
                 </div>
+
             </div>
+
+            <!-- ТЕКУЩИЙ СТАТУС -->
             <div class="parking-status-compact ${statusClass}">
-    <span class="parking-status-dot">${statusIcon}</span>
-    <strong>${statusTitle}</strong>
-    <span class="parking-status-available">${availableText}</span>
-</div>
+
+                <span class="parking-status-dot">
+                    ${statusIcon}
+                </span>
+
+                <strong>
+                    ${statusTitle}
+                </strong>
+
+            </div>
+
+            <!-- МЕТА-ИНФОРМАЦИЯ -->
             <div class="parking-meta">
-                <div class="parking-meta-item">
-                    <strong>${total || '—'}</strong>
-                    <span>мест всего</span>
-                </div>
+
                 <div class="parking-meta-item">
                     <strong>${confirmations}</strong>
                     <span>подтверждений</span>
                 </div>
+
                 <div class="parking-meta-item">
                     <strong>${lastUpdatedText}</strong>
                     <span>обновлено</span>
                 </div>
+
             </div>
-            <button class="parking-route-btn" onclick="buildRouteToParking('${safeId}')">
+
+            <!-- ПОЕХАТЬ -->
+            <button
+                class="parking-route-btn"
+                onclick="buildRouteToParking('${safeId}')"
+            >
                 <span>🧭</span>
                 <span>Поехать</span>
             </button>
+
+            <!-- ДОПОЛНИТЕЛЬНЫЕ ДЕЙСТВИЯ -->
             <div class="parking-secondary-actions">
-                <button class="parking-secondary-btn parking-update-btn" onclick="reportParkingStatus('${safeId}')">
+
+                <button
+                    class="parking-secondary-btn parking-update-btn"
+                    onclick="reportParkingStatus('${safeId}')"
+                >
                     <span>↻</span>
                     <span>Обновить</span>
                 </button>
 
-                <button class="parking-secondary-btn parking-favorite-btn" onclick="toggleFavoriteCenter()">
+                <button
+                    class="parking-secondary-btn parking-favorite-btn"
+                    onclick="toggleFavoriteCenter()"
+                >
                     <span>♡</span>
                     <span>Сохранить</span>
                 </button>
+
             </div>
-            <button class="parking-edit-btn" onclick="editFromCenter()">
+            <!-- РЕДАКТИРОВАНИЕ -->
+            <button
+                class="parking-edit-btn"
+                onclick="editFromCenter()"
+            >
                 ✎ Редактировать
             </button>
-        </div>`;
+
+        </div>
+    `;
     sheet.classList.add('active');
 }
+// ===================== ОБНОВЛЕНИЕ СТАТУСА =====================
 function reportParkingStatus(parkingId) {
     const content = document.getElementById('centerSheetContent');
     if (!content) return;
     const safeId = escapeHtml(parkingId);
     content.innerHTML = `
         <div class="parking-status-panel">
-            <div class="parking-status-panel-title">Как сейчас выглядит парковка?</div>
-            <div class="parking-status-panel-subtitle">Выберите наиболее подходящий вариант</div>
-            <button class="status-choice status-choice-free" onclick="submitParkingStatus('${safeId}','free')">
-                <span class="status-choice-icon">🟢</span>
-                <span class="status-choice-content"><strong>Есть места</strong><small>Свободных мест достаточно</small></span>
+
+            <div class="parking-status-panel-title">
+                Как сейчас выглядит парковка?
+            </div>
+
+            <div class="parking-status-panel-subtitle">
+                Выберите наиболее подходящий вариант
+            </div>
+
+            <!-- ЕСТЬ МЕСТА -->
+            <button
+                class="status-choice status-choice-free"
+                onclick="submitParkingStatus('${safeId}', 'free')"
+            >
+                <span class="status-choice-icon">
+                    🟢
+                </span>
+
+                <span class="status-choice-content">
+                    <strong>Есть места</strong>
+                    <small>Свободных мест достаточно</small>
+                </span>
             </button>
-            <button class="status-choice status-choice-limited" onclick="submitParkingStatus('${safeId}','limited')">
-                <span class="status-choice-icon">🟡</span>
-                <span class="status-choice-content"><strong>Мало мест</strong><small>Парковка почти заполнена</small></span>
+
+            <!-- МАЛО МЕСТ -->
+            <button
+                class="status-choice status-choice-limited"
+                onclick="submitParkingStatus('${safeId}', 'limited')"
+            >
+                <span class="status-choice-icon">
+                    🟡
+                </span>
+
+                <span class="status-choice-content">
+                    <strong>Мало мест</strong>
+                    <small>Парковка почти заполнена</small>
+                </span>
             </button>
-            <button class="status-choice status-choice-occupied" onclick="submitParkingStatus('${safeId}','occupied')">
-                <span class="status-choice-icon">🔴</span>
-                <span class="status-choice-content"><strong>Мест нет</strong><small>Свободное место найти сложно</small></span>
+
+            <!-- МЕСТ НЕТ -->
+            <button
+                class="status-choice status-choice-occupied"
+                onclick="submitParkingStatus('${safeId}', 'occupied')"
+            >
+                <span class="status-choice-icon">
+                    🔴
+                </span>
+
+                <span class="status-choice-content">
+                    <strong>Мест нет</strong>
+                    <small>Свободное место найти сложно</small>
+                </span>
             </button>
-            <button class="btn-secondary" onclick="openCenterSheet('${safeId}', currentParkingData)" style="margin-top:12px;">← Назад</button>
-        </div>`;
+
+            <!-- НАЗАД -->
+            <button
+                class="btn-secondary"
+                onclick="openCenterSheet('${safeId}', currentParkingData)"
+                style="margin-top:12px;"
+            >
+                ← Назад
+            </button>
+        </div>
+    `;
 }
 async function submitParkingStatus(parkingId, status) {
-    if (!parkingId) return;
-    if (!currentUser?.id) {
-        alert('Чтобы обновлять состояние парковки, необходимо войти в аккаунт.');
+    if (!parkingId || !currentUser?.id) {
+        if (!currentUser?.id) {
+            alert('Чтобы обновлять состояние парковки, необходимо войти в аккаунт.');
+        }
         return;
     }
-    const allowedStatuses = ['free', 'limited', 'occupied'];
-    if (!allowedStatuses.includes(status)) {
+    if (!['free', 'limited', 'occupied'].includes(status)) {
         console.error('Недопустимый статус:', status);
         return;
     }
+    // Защита от двойного клика
+    if (window.isSubmittingParkingStatus) return;
+    window.isSubmittingParkingStatus = true;
     try {
+        const userId = String(currentUser.id);
         const parkingRef = database.ref(`parkings/${parkingId}`);
         const snapshot = await parkingRef.once('value');
         const parking = snapshot.val();
         if (!parking) {
             console.error('Парковка не найдена:', parkingId);
+            alert('Парковка не найдена.');
             return;
         }
         const now = Date.now();
-        const userName = currentUser.nickname || currentUser.firstName || currentUser.username || 'Пользователь';
-        const confirmations = Number(parking.statusConfirmations) || 0;
+        const cooldown = 30 * 60 * 1000;
+        // Последнее сообщение этого пользователя по этой парковке
+        const lastReport = Number(
+            parking.statusReports?.[userId]?.timestamp
+        ) || 0;
+        if (now - lastReport < cooldown) {
+            const minutes = Math.ceil(
+                (cooldown - (now - lastReport)) / 60000
+            );
+            alert(
+                `Вы уже сообщали о состоянии этой парковки.\n\n` +
+                `Следующее изменение будет доступно через ${minutes} мин.`
+            );
+            return;
+        }
+        const userName =
+            currentUser.nickname ||
+            currentUser.firstName ||
+            currentUser.username ||
+            'Пользователь';
+        const confirmations =
+            Number(parking.statusConfirmations) || 0;
+        const report = {
+            status,
+            timestamp: now,
+            userId,
+            username: currentUser.username || currentUser.firstName || ''
+        };
+        // Обновляем парковку и одновременно сохраняем отчёт пользователя
+        await parkingRef.update({
+            status,
+            lastUpdatedAt: now,
+            lastUpdatedBy: userName,
+            statusConfirmations: confirmations + 1,
+            [`statusReports/${userId}`]: report
+        });
+        // История изменений
+        await parkingRef.child('history').push({
+            action: 'status_update',
+            ...report
+        });
+        // Обновляем локальные данные
         const updatedData = {
             ...parking,
             status,
             lastUpdatedAt: now,
             lastUpdatedBy: userName,
-            statusConfirmations: confirmations + 1
+            statusConfirmations: confirmations + 1,
+            statusReports: {
+                ...(parking.statusReports || {}),
+                [userId]: report
+            }
         };
-        await parkingRef.update({
-            status,
-            lastUpdatedAt: now,
-            lastUpdatedBy: userName,
-            statusConfirmations: confirmations + 1
-        });
-        await parkingRef.child('history').push({
-            action: 'status_update',
-            status,
-            timestamp: now,
-            userId: currentUser.id,
-            username: currentUser.username || currentUser.firstName || ''
-        });
         currentParkingData = updatedData;
         parkingDataCache[parkingId] = updatedData;
+
+        // Обновляем маркер
         try {
             refreshParkingMarker();
         } catch (e) {
             console.warn('Не удалось обновить маркер:', e);
         }
         await openCenterSheet(parkingId, updatedData);
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            try {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            } catch (e) {}
-        }
+
+        // Вибрация Telegram
+        try {
+            window.Telegram?.WebApp?.HapticFeedback
+                ?.notificationOccurred('success');
+        } catch (e) {}
+
     } catch (error) {
         console.error('Ошибка обновления состояния парковки:', error);
         alert('Не удалось обновить состояние парковки.');
+    } finally {
+        window.isSubmittingParkingStatus = false;
     }
 }
 function getParkingPlacesWord(number) {
