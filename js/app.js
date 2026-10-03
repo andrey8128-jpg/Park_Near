@@ -2663,120 +2663,128 @@ function checkPolygonSize(coordinates) {
     });
 } 
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
-async function openCenterSheet(parkingId, data) {
-    const sheet = document.getElementById('centerSheet');
-    const content = document.getElementById('centerSheetContent');
-    if (!sheet || !content) return;
-    currentParkingId = parkingId;
-    currentParkingData = data;
-    parkingDataCache[parkingId] = data;
-    // ============================
-    // ТЕКУЩИЙ СТАТУС ПАРКОВКИ
-    // ============================
-    const status = data.status || 'unknown';
-    let statusIcon = '⚪';
-    let statusTitle = 'Нет свежих данных';
-    let statusClass = 'unknown';
-    if (status === 'free') {
-        statusIcon = '🟢';
-        statusTitle = 'Есть места';
-        statusClass = 'free';
-    } else if (status === 'limited') {
-        statusIcon = '🟡';
-        statusTitle = 'Мало мест';
-        statusClass = 'limited';
-    } else if (status === 'occupied') {
-        statusIcon = '🔴';
-        statusTitle = 'Мест нет';
-        statusClass = 'occupied';
+async function openCenterSheet(parkingId,data){
+    const sheet=document.getElementById('centerSheet');
+    const content=document.getElementById('centerSheetContent');
+    if(!sheet||!content)return;
+
+    currentParkingId=parkingId;
+    currentParkingData=data;
+    parkingDataCache[parkingId]=data;
+
+    const totalSpots=Number(data.totalSpots)||0;
+    let occupiedSpots=0;
+    try{
+        occupiedSpots=await getParkingOccupancy(parkingId);
+    }catch(error){
+        console.error('Ошибка получения занятости:',error);
     }
-    // ============================
-    // ВРЕМЯ ПОСЛЕДНЕГО ОБНОВЛЕНИЯ
-    // ============================
-    let lastUpdatedText = 'Нет данных';
-    if (data.lastUpdatedAt) {
-        const diff = Math.max(
-            0,
-            Date.now() - Number(data.lastUpdatedAt)
-        );
-        const minutes = Math.floor(diff / 60000);
 
-        if (minutes < 1) {
-            lastUpdatedText = 'только что';
+    const freeSpots=Math.max(0,totalSpots-occupiedSpots);
 
-        } else if (minutes < 60) {
-            lastUpdatedText = `${minutes} мин назад`;
+    let status='unknown';
 
-        } else {
-            const hours = Math.floor(minutes / 60);
-
-            lastUpdatedText =
-                hours < 24
-                    ? `${hours} ч назад`
-                    : `${Math.floor(hours / 24)} дн назад`;
+    if(totalSpots>0){
+        const occupancy=occupiedSpots/totalSpots;
+        if(occupancy>=0.9){
+            status='occupied';
+        }else if(occupancy>=0.6){
+            status='limited';
+        }else{
+            status='free';
         }
     }
-    // ============================
-    // КОЛИЧЕСТВО ПОДТВЕРЖДЕНИЙ
-    // ============================
-    const confirmations =
-        Number(data.statusConfirmations) || 0;
-    // ============================
-    // АДРЕС И ID
-    // ============================
-    const address = data.address
-        ? escapeHtml(data.address)
-        : 'Адрес не указан';
-    const safeId = escapeHtml(parkingId);
-    // ============================
-    // СОЗДАЁМ КАРТОЧКУ
-    // ============================
-    content.innerHTML = `
+    let statusIcon='⚪';
+    let statusTitle='Нет данных';
+    let statusClass='unknown';
+    if(status==='free'){
+        statusIcon='🟢';
+        statusTitle='Есть места';
+        statusClass='free';
+    }else if(status==='limited'){
+        statusIcon='🟡';
+        statusTitle='Мало мест';
+        statusClass='limited';
+    }else if(status==='occupied'){
+        statusIcon='🔴';
+        statusTitle='Мест нет';
+        statusClass='occupied';
+    }
+    const address=data.address
+        ?escapeHtml(data.address)
+        :escapeHtml(data.street||'Адрес не указан');
+    const safeId=escapeHtml(parkingId);
+    let userSession=null;
+    if(currentUser?.id){
+        try{
+            userSession=await getUserActiveParkingSession();
+        }catch(error){
+            console.error('Ошибка проверки парковочной сессии:',error);
+        }
+    }
+    const isParked=
+        userSession&&
+        userSession.parkingId===parkingId;
+    let parkingButton='';
+    if(isParked){
+        parkingButton=`
+            <button
+                class="parking-park-btn parking-leave-btn"
+                onclick="endParkingSession('${safeId}')"
+            >
+                <span>🚗</span>
+                <span>Я уехал</span>
+            </button>
+        `;
+    }else if(currentUser?.id){
+        parkingButton=`
+            <button
+                class="parking-park-btn"
+                onclick="startParkingSession('${safeId}')"
+            >
+                <span>🅿️</span>
+                <span>Припарковаться</span>
+            </button>
+        `;
+    }
+    content.innerHTML=`
         <div class="parking-card-compact">
 
             <div class="parking-card-handle"></div>
 
             <div class="parking-card-header">
-
-                <div class="parking-card-title">
-                    🅿️ ${escapeHtml(data.name || 'Парковка')}
+                <div>
+                    <div class="parking-card-title">
+                        🅿️ ${escapeHtml(data.name||'Парковка')}
+                    </div>
+                    <div class="parking-card-street">
+                        ${address}
+                    </div>
                 </div>
-
-                <div class="parking-card-street">
-                    ${address}
-                </div>
-
             </div>
-
-            <!-- ТЕКУЩИЙ СТАТУС -->
             <div class="parking-status-compact ${statusClass}">
-
                 <span class="parking-status-dot">
                     ${statusIcon}
                 </span>
-
                 <strong>
                     ${statusTitle}
                 </strong>
-
             </div>
-
-            <!-- МЕТА-ИНФОРМАЦИЯ -->
             <div class="parking-meta">
-
                 <div class="parking-meta-item">
-                    <strong>${confirmations}</strong>
-                    <span>подтверждений</span>
+                    <strong>${totalSpots||'—'}</strong>
+                    <span>всего мест</span>
                 </div>
-
                 <div class="parking-meta-item">
-                    <strong>${lastUpdatedText}</strong>
-                    <span>обновлено</span>
+                    <strong>${occupiedSpots}</strong>
+                    <span>занято примерно</span>
                 </div>
-
+                <div class="parking-meta-item">
+                    <strong>${freeSpots}</strong>
+                    <span>свободно примерно</span>
+                </div>
             </div>
-
-            <!-- ПОЕХАТЬ -->
+            ${parkingButton}
             <button
                 class="parking-route-btn"
                 onclick="buildRouteToParking('${safeId}')"
@@ -2784,18 +2792,7 @@ async function openCenterSheet(parkingId, data) {
                 <span>🧭</span>
                 <span>Поехать</span>
             </button>
-
-            <!-- ДОПОЛНИТЕЛЬНЫЕ ДЕЙСТВИЯ -->
             <div class="parking-secondary-actions">
-
-                <button
-                    class="parking-secondary-btn parking-update-btn"
-                    onclick="reportParkingStatus('${safeId}')"
-                >
-                    <span>↻</span>
-                    <span>Обновить</span>
-                </button>
-
                 <button
                     class="parking-secondary-btn parking-favorite-btn"
                     onclick="toggleFavoriteCenter()"
@@ -2805,7 +2802,6 @@ async function openCenterSheet(parkingId, data) {
                 </button>
 
             </div>
-            <!-- РЕДАКТИРОВАНИЕ -->
             <button
                 class="parking-edit-btn"
                 onclick="editFromCenter()"
@@ -2817,178 +2813,133 @@ async function openCenterSheet(parkingId, data) {
     `;
     sheet.classList.add('active');
 }
-// ===================== ОБНОВЛЕНИЕ СТАТУСА =====================
-function reportParkingStatus(parkingId) {
-    const content = document.getElementById('centerSheetContent');
-    if (!content) return;
-    const safeId = escapeHtml(parkingId);
-    content.innerHTML = `
-        <div class="parking-status-panel">
+async function getParkingOccupancy(parkingId){
+    if(!parkingId)return 0;
 
-            <div class="parking-status-panel-title">
-                Как сейчас выглядит парковка?
-            </div>
+    try{
+        const snapshot=await database.ref('parkingSessions')
+            .orderByChild('parkingId')
+            .equalTo(parkingId)
+            .once('value');
 
-            <div class="parking-status-panel-subtitle">
-                Выберите наиболее подходящий вариант
-            </div>
+        const sessions=snapshot.val()||{};
 
-            <!-- ЕСТЬ МЕСТА -->
-            <button
-                class="status-choice status-choice-free"
-                onclick="submitParkingStatus('${safeId}', 'free')"
-            >
-                <span class="status-choice-icon">
-                    🟢
-                </span>
-
-                <span class="status-choice-content">
-                    <strong>Есть места</strong>
-                    <small>Свободных мест достаточно</small>
-                </span>
-            </button>
-
-            <!-- МАЛО МЕСТ -->
-            <button
-                class="status-choice status-choice-limited"
-                onclick="submitParkingStatus('${safeId}', 'limited')"
-            >
-                <span class="status-choice-icon">
-                    🟡
-                </span>
-
-                <span class="status-choice-content">
-                    <strong>Мало мест</strong>
-                    <small>Парковка почти заполнена</small>
-                </span>
-            </button>
-
-            <!-- МЕСТ НЕТ -->
-            <button
-                class="status-choice status-choice-occupied"
-                onclick="submitParkingStatus('${safeId}', 'occupied')"
-            >
-                <span class="status-choice-icon">
-                    🔴
-                </span>
-
-                <span class="status-choice-content">
-                    <strong>Мест нет</strong>
-                    <small>Свободное место найти сложно</small>
-                </span>
-            </button>
-
-            <!-- НАЗАД -->
-            <button
-                class="btn-secondary"
-                onclick="openCenterSheet('${safeId}', currentParkingData)"
-                style="margin-top:12px;"
-            >
-                ← Назад
-            </button>
-        </div>
-    `;
+        return Object.values(sessions).filter(session=>{
+            return session&&session.active===true;
+        }).length;
+    }catch(error){
+        console.error('Ошибка получения занятости парковки:',error);
+        return 0;
+    }
 }
-async function submitParkingStatus(parkingId, status) {
-    if (!parkingId || !currentUser?.id) {
-        if (!currentUser?.id) {
-            alert('Чтобы обновлять состояние парковки, необходимо войти в аккаунт.');
+async function startParkingSession(parkingId){
+    if(!currentUser?.id){
+        alert('Чтобы припарковаться, необходимо войти в аккаунт.');
+        return;
+    }
+
+    if(!parkingId)return;
+
+    try{
+        const existingSnapshot=await database.ref('parkingSessions')
+            .orderByChild('userId')
+            .equalTo(String(currentUser.id))
+            .once('value');
+
+        const existingSessions=existingSnapshot.val()||{};
+
+        const alreadyParked=Object.values(existingSessions).some(session=>{
+            return session&&session.active===true;
+        });
+
+        if(alreadyParked){
+            alert('Вы уже припаркованы.');
+            return;
         }
-        return;
-    }
-    if (!['free', 'limited', 'occupied'].includes(status)) {
-        console.error('Недопустимый статус:', status);
-        return;
-    }
-    // Защита от двойного клика
-    if (window.isSubmittingParkingStatus) return;
-    window.isSubmittingParkingStatus = true;
-    try {
-        const userId = String(currentUser.id);
-        const parkingRef = database.ref(`parkings/${parkingId}`);
-        const snapshot = await parkingRef.once('value');
-        const parking = snapshot.val();
-        if (!parking) {
-            console.error('Парковка не найдена:', parkingId);
+
+        const parkingSnapshot=await database.ref(`parkings/${parkingId}`).once('value');
+        const parking=parkingSnapshot.val();
+
+        if(!parking){
             alert('Парковка не найдена.');
             return;
         }
-        const now = Date.now();
-        const cooldown = 30 * 60 * 1000;
-        // Последнее сообщение этого пользователя по этой парковке
-        const lastReport = Number(
-            parking.statusReports?.[userId]?.timestamp
-        ) || 0;
-        if (now - lastReport < cooldown) {
-            const minutes = Math.ceil(
-                (cooldown - (now - lastReport)) / 60000
-            );
-            alert(
-                `Вы уже сообщали о состоянии этой парковки.\n\n` +
-                `Следующее изменение будет доступно через ${minutes} мин.`
-            );
+
+        const totalSpots=Number(parking.totalSpots)||0;
+        const occupiedSpots=await getParkingOccupancy(parkingId);
+
+        if(totalSpots>0&&occupiedSpots>=totalSpots){
+            alert('По данным приложения, свободных мест сейчас нет.');
             return;
         }
-        const userName =
-            currentUser.nickname ||
-            currentUser.firstName ||
-            currentUser.username ||
-            'Пользователь';
-        const confirmations =
-            Number(parking.statusConfirmations) || 0;
-        const report = {
-            status,
-            timestamp: now,
-            userId,
-            username: currentUser.username || currentUser.firstName || ''
-        };
-        // Обновляем парковку и одновременно сохраняем отчёт пользователя
-        await parkingRef.update({
-            status,
-            lastUpdatedAt: now,
-            lastUpdatedBy: userName,
-            statusConfirmations: confirmations + 1,
-            [`statusReports/${userId}`]: report
-        });
-        // История изменений
-        await parkingRef.child('history').push({
-            action: 'status_update',
-            ...report
-        });
-        // Обновляем локальные данные
-        const updatedData = {
-            ...parking,
-            status,
-            lastUpdatedAt: now,
-            lastUpdatedBy: userName,
-            statusConfirmations: confirmations + 1,
-            statusReports: {
-                ...(parking.statusReports || {}),
-                [userId]: report
-            }
-        };
-        currentParkingData = updatedData;
-        parkingDataCache[parkingId] = updatedData;
 
-        // Обновляем маркер
-        try {
-            refreshParkingMarker();
-        } catch (e) {
-            console.warn('Не удалось обновить маркер:', e);
+        const sessionRef=database.ref('parkingSessions').push();
+
+        await sessionRef.set({
+            parkingId,
+            userId:String(currentUser.id),
+            startedAt:Date.now(),
+            endedAt:null,
+            active:true
+        });
+
+        await openCenterSheet(parkingId,parking);
+
+        if(window.Telegram?.WebApp?.HapticFeedback){
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
-        await openCenterSheet(parkingId, updatedData);
+    }catch(error){
+        console.error('Ошибка создания парковочной сессии:',error);
+        alert('Не удалось отметить парковку.');
+    }
+}
+async function endParkingSession(parkingId){
+    if(!currentUser?.id)return;
 
-        // Вибрация Telegram
-        try {
-            window.Telegram?.WebApp?.HapticFeedback
-                ?.notificationOccurred('success');
-        } catch (e) {}
+    try{
+        const snapshot=await database.ref('parkingSessions')
+            .orderByChild('userId')
+            .equalTo(String(currentUser.id))
+            .once('value');
 
-    } catch (error) {
-        console.error('Ошибка обновления состояния парковки:', error);
-        alert('Не удалось обновить состояние парковки.');
-    } finally {
-        window.isSubmittingParkingStatus = false;
+        const sessions=snapshot.val()||{};
+
+        let sessionKey=null;
+
+        Object.entries(sessions).some(([key,session])=>{
+            if(
+                session&&
+                session.active===true&&
+                session.parkingId===parkingId
+            ){
+                sessionKey=key;
+                return true;
+            }
+            return false;
+        });
+
+        if(!sessionKey){
+            alert('Активная парковка не найдена.');
+            return;
+        }
+
+        await database.ref(`parkingSessions/${sessionKey}`).update({
+            active:false,
+            endedAt:Date.now()
+        });
+
+        const parking=currentParkingData||parkingDataCache[parkingId];
+
+        if(parking){
+            await openCenterSheet(parkingId,parking);
+        }
+
+        if(window.Telegram?.WebApp?.HapticFeedback){
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    }catch(error){
+        console.error('Ошибка завершения парковочной сессии:',error);
+        alert('Не удалось завершить парковку.');
     }
 }
 function getParkingPlacesWord(number) {
@@ -3100,345 +3051,133 @@ function editFromCenter() {
         });
     }
 
- function renderEditPanel(data, isFavorite) {
-    const totalSpots = Number(data.totalSpots) || 0;
-    const occupiedSpots = Number(data.occupiedSpots) || 0;
-    const status = data.status || 'unknown';
-    const statusClass =
-        status === 'free'
-            ? 'status-free'
-            : status === 'limited'
-                ? 'status-limited'
-                : status === 'occupied'
-                    ? 'status-occupied'
-                    : 'status-unknown';
+function renderEditPanel(data,isFavorite){
+    const totalSpots=Number(data.totalSpots)||0;
+    const isAuthor=currentUser&&currentUser.id===data.authorId;
+    const currentStreet=data.street||'';
+    const streetName=extractStreetName(currentStreet);
 
-    const isAuthor =
-        currentUser &&
-        currentUser.id === data.authorId;
-    const currentStreet = data.street || '';
-    const streetName = extractStreetName(currentStreet);
     document.getElementById('panel').classList.add('active');
-    document.getElementById('panelTitle').textContent = 'Парковка';
-    let statusText = 'Нет данных';
-    if (status === 'free') {
-        statusText = '🟢 Есть места';
-    } else if (status === 'limited') {
-        statusText = '🟡 Мало мест';
-    } else if (status === 'occupied') {
-        statusText = '🔴 Мест нет';
-    }
-    let html = `
+    document.getElementById('panelTitle').textContent='Парковка';
+
+    let html=`
         <div class="edit-parking">
-            <!-- ========================= -->
-            <!-- ЗАГОЛОВОК -->
-            <!-- ========================= -->
             <div class="edit-parking-header">
                 <div>
                     <div class="edit-parking-title">
-                        <span class="status-indicator ${statusClass}"></span>
-                        ${escapeHtml(data.name || 'Без названия')}
+                        <span id="parkingStatusIndicator" class="status-indicator status-unknown"></span>
+                        ${escapeHtml(data.name||'Без названия')}
                     </div>
-                    <div class="edit-parking-address">
-                        📍 ${escapeHtml(
-                            currentStreet || 'Адрес не указан'
-                        )}
-                    </div>
+                    <div class="edit-parking-address">📍 ${escapeHtml(currentStreet||'Адрес не указан')}</div>
                 </div>
             </div>
-            <!-- ========================= -->
-            <!-- ТЕКУЩЕЕ СОСТОЯНИЕ -->
-            <!-- ========================= -->
-            <div class="edit-parking-status">
-                ${statusText}
-            </div>
-            <!-- ========================= -->
-            <!-- ИНФОРМАЦИЯ О ПАРКОВКЕ -->
-            <!-- ========================= -->
+
+            <div id="parkingStatusText" class="edit-parking-status">⚪ Нет данных</div>
+
             <div class="edit-parking-stats">
                 <div class="edit-stat">
-                    <strong>${totalSpots || '—'}</strong>
+                    <strong>${totalSpots||'—'}</strong>
                     <span>Всего мест</span>
                 </div>
                 <div class="edit-stat">
-                    <strong>${occupiedSpots || '—'}</strong>
+                    <strong id="parkingOccupiedCount">—</strong>
                     <span>Занято примерно</span>
                 </div>
-            </div>
-            <!-- ========================= -->
-            <!-- ИСТОРИЯ -->
-            <!-- ========================= -->
-            <div class="edit-section">
-                <div class="edit-section-title">
-                    📋 История изменений
+                <div class="edit-stat">
+                    <strong id="parkingFreeCount">—</strong>
+                    <span>Свободно примерно</span>
                 </div>
+            </div>
+
+            <div class="edit-section">
+                <div class="edit-section-title">📋 История изменений</div>
                 <div id="historyContainer">
                     <div id="historyList"></div>
-                    <div
-                        id="historyFullList"
-                        style="display:none;"
-                    ></div>
-
-                    <button
-                        id="showAllHistoryBtn"
-                        class="edit-history-btn"
-                        style="display:none;"
-                        onclick="showAllHistory()"
-                    >
-                        См. все
-                    </button>
-                    <button
-                        id="hideAllHistoryBtn"
-                        class="edit-history-btn"
-                        style="display:none;"
-                        onclick="hideAllHistory()"
-                    >
-                        Скрыть
-                    </button>
+                    <div id="historyFullList" style="display:none;"></div>
+                    <button id="showAllHistoryBtn" class="edit-history-btn" style="display:none;" onclick="showAllHistory()">См. все</button>
+                    <button id="hideAllHistoryBtn" class="edit-history-btn" style="display:none;" onclick="hideAllHistory()">Скрыть</button>
                 </div>
                 <span id="historyCount"></span>
             </div>
-            <!-- ========================= -->
-            <!-- ДЕЙСТВИЯ -->
-            <!-- ========================= -->
+
             <div class="edit-actions">
-                <button
-                    class="btn-primary"
-                    onclick="buildRouteToParking('${currentParkingId}')"
-                >
-                    🧭 Построить маршрут
-                </button>
-                ${
-                    isAuthor
-                        ? `
-                            <button
-                                class="btn-secondary"
-                                onclick="toggleParkingEditor()"
-                            >
-                                ✏️ Редактировать данные
-                            </button>
-                        `
-                        : ''
-                }
+                <button class="btn-primary" onclick="buildRouteToParking('${currentParkingId}')">🧭 Построить маршрут</button>
+                ${isAuthor?`<button class="btn-secondary" onclick="toggleParkingEditor()">✏️ Редактировать данные</button>`:''}
             </div>
     `;
-    // =========================
-    // РЕДАКТИРОВАНИЕ ПАРКОВКИ
-    // =========================
-    if (isAuthor) {
-        html += `
-            <div
-                id="editPanel"
-                class="edit-form"
-                style="display:none;"
-            >
-                <div class="edit-form-title">
-                    ✏️ Данные парковки
-                </div>
-                <!-- ТИП УЛИЦЫ -->
+
+    if(isAuthor){
+        html+=`
+            <div id="editPanel" class="edit-form" style="display:none;">
+                <div class="edit-form-title">✏️ Данные парковки</div>
+
                 <label>Тип улицы</label>
-                <select
-                    id="editStreetType"
-                    class="input-field"
-                >
-                    <option value="">
-                        -- выберите --
-                    </option>
-                    <option
-                        value="ул."
-                        ${currentStreet.startsWith('ул.') ? 'selected' : ''}
-                    >
-                        улица
-                    </option>
-
-                    <option
-                        value="пер."
-                        ${currentStreet.startsWith('пер.') ? 'selected' : ''}
-                    >
-                        переулок
-                    </option>
-
-                    <option
-                        value="бульв."
-                        ${currentStreet.startsWith('бульв.') ? 'selected' : ''}
-                    >
-                        бульвар
-                    </option>
-
-                    <option
-                        value="просп."
-                        ${currentStreet.startsWith('просп.') ? 'selected' : ''}
-                    >
-                        проспект
-                    </option>
-
-                    <option
-                        value="пр-д"
-                        ${currentStreet.startsWith('пр-д') ? 'selected' : ''}
-                    >
-                        проезд
-                    </option>
-
-                    <option
-                        value="ш."
-                        ${currentStreet.startsWith('ш.') ? 'selected' : ''}
-                    >
-                        шоссе
-                    </option>
-
-                    <option
-                        value="наб."
-                        ${currentStreet.startsWith('наб.') ? 'selected' : ''}
-                    >
-                        набережная
-                    </option>
-
-                    <option
-                        value="алл."
-                        ${currentStreet.startsWith('алл.') ? 'selected' : ''}
-                    >
-                        аллея
-                    </option>
-
-                    <option
-                        value="тракт"
-                        ${currentStreet.startsWith('тракт') ? 'selected' : ''}
-                    >
-                        тракт
-                    </option>
+                <select id="editStreetType" class="input-field">
+                    <option value="">-- выберите --</option>
+                    <option value="ул." ${currentStreet.startsWith('ул.')?'selected':''}>улица</option>
+                    <option value="пер." ${currentStreet.startsWith('пер.')?'selected':''}>переулок</option>
+                    <option value="бульв." ${currentStreet.startsWith('бульв.')?'selected':''}>бульвар</option>
+                    <option value="просп." ${currentStreet.startsWith('просп.')?'selected':''}>проспект</option>
+                    <option value="пр-д" ${currentStreet.startsWith('пр-д')?'selected':''}>проезд</option>
+                    <option value="ш." ${currentStreet.startsWith('ш.')?'selected':''}>шоссе</option>
+                    <option value="наб." ${currentStreet.startsWith('наб.')?'selected':''}>набережная</option>
+                    <option value="алл." ${currentStreet.startsWith('алл.')?'selected':''}>аллея</option>
+                    <option value="тракт" ${currentStreet.startsWith('тракт')?'selected':''}>тракт</option>
                 </select>
-                <!-- НАЗВАНИЕ УЛИЦЫ -->
+
                 <label>Название улицы</label>
-                <input
-                    type="text"
-                    id="editStreetName"
-                    class="input-field"
-                    value="${escapeHtml(streetName)}"
-                    placeholder="Название улицы"
-                >
-                <!-- НОМЕР ДОМА -->
+                <input type="text" id="editStreetName" class="input-field" value="${escapeHtml(streetName)}" placeholder="Название улицы">
+
                 <label>Номер дома</label>
-                <input
-                    type="text"
-                    id="editHouseNumber"
-                    class="input-field"
-                    value="${escapeHtml(data.houseNumber || '')}"
-                    placeholder="15"
-                >
-                <!-- НАЗВАНИЕ ПАРКОВКИ -->
+                <input type="text" id="editHouseNumber" class="input-field" value="${escapeHtml(data.houseNumber||'')}" placeholder="15">
+
                 <label>Название парковки</label>
-                <input
-                    type="text"
-                    id="editParkingName"
-                    class="input-field"
-                    value="${escapeHtml(data.name || '')}"
-                    placeholder="Например: Парковка у дома"
-                    maxlength="100"
-                >
-                <!-- ОБЩЕЕ КОЛИЧЕСТВО МЕСТ -->
+                <input type="text" id="editParkingName" class="input-field" value="${escapeHtml(data.name||'')}" placeholder="Например: Парковка у дома" maxlength="100">
+
                 <label>Количество парковочных мест</label>
-                <input
-                    type="number"
-                    id="editTotalSpots"
-                    class="input-field"
-                    value="${totalSpots}"
-                    min="1"
-                    max="500"
-                    step="1"
-                >
-                <!-- СОХРАНИТЬ -->
-                <button
-                    class="btn-primary"
-                    onclick="saveParkingDetails()"
-                >
-                    💾 Сохранить изменения
-                </button>
-                
-                <!-- ОТМЕНА -->
-                <button
-                    class="btn-secondary"
-                    onclick="toggleParkingEditor()"
-                >
-                    Отмена
-                </button>
+                <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1" max="500" step="1">
+
+                <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
+                <button class="btn-secondary" onclick="toggleParkingEditor()">Отмена</button>
             </div>
         `;
-    } else if (currentUser) {
-        html += `
-            <div class="edit-no-access">
-                Вы не являетесь автором этой парковки
-            </div>
-        `;
+    }else if(currentUser){
+        html+=`<div class="edit-no-access">Вы не являетесь автором этой парковки</div>`;
     }
-    html += `</div>`;
-    document.getElementById('panelContent').innerHTML = html;
-    // =========================
-    // ЗАГРУЗКА ИСТОРИИ
-    // =========================
-    if (currentUser && currentParkingId) {
-        loadHistoryPreview(currentParkingId);
-    }
-    // =========================
-    // ПОКАЗАТЬ ВСЮ ИСТОРИЮ
-    // =========================
-    window.showAllHistory = function() {
-        const historyList =
-            document.getElementById('historyList');
-        const historyFullList =
-            document.getElementById('historyFullList');
-        const showButton =
-            document.getElementById('showAllHistoryBtn');
-        const hideButton =
-            document.getElementById('hideAllHistoryBtn');
-        if (historyList) {
-            historyList.style.display = 'none';
-        }
-        if (historyFullList) {
-            historyFullList.style.display = 'block';
-        }
-        if (showButton) {
-            showButton.style.display = 'none';
-        }
-        if (hideButton) {
-            hideButton.style.display = 'inline-block';
-        }
+
+    html+=`</div>`;
+    document.getElementById('panelContent').innerHTML=html;
+
+    if(currentUser&&currentParkingId)loadHistoryPreview(currentParkingId);
+
+    loadParkingOccupancy(currentParkingId,totalSpots);
+
+    window.showAllHistory=function(){
+        const historyList=document.getElementById('historyList');
+        const historyFullList=document.getElementById('historyFullList');
+        const showButton=document.getElementById('showAllHistoryBtn');
+        const hideButton=document.getElementById('hideAllHistoryBtn');
+        if(historyList)historyList.style.display='none';
+        if(historyFullList)historyFullList.style.display='block';
+        if(showButton)showButton.style.display='none';
+        if(hideButton)hideButton.style.display='inline-block';
     };
-    // =========================
-    // СКРЫТЬ ИСТОРИЮ
-    // =========================
-    window.hideAllHistory = function() {
-        const historyList =
-            document.getElementById('historyList');
-        const historyFullList =
-            document.getElementById('historyFullList');
-        const showButton =
-            document.getElementById('showAllHistoryBtn');
-        const hideButton =
-            document.getElementById('hideAllHistoryBtn');
-        if (historyFullList) {
-            historyFullList.style.display = 'none';
-        }
-        if (historyList) {
-            historyList.style.display = 'block';
-        }
-        if (showButton) {
-            showButton.style.display = 'inline-block';
-        }
-        if (hideButton) {
-            hideButton.style.display = 'none';
-        }
+
+    window.hideAllHistory=function(){
+        const historyList=document.getElementById('historyList');
+        const historyFullList=document.getElementById('historyFullList');
+        const showButton=document.getElementById('showAllHistoryBtn');
+        const hideButton=document.getElementById('hideAllHistoryBtn');
+        if(historyFullList)historyFullList.style.display='none';
+        if(historyList)historyList.style.display='block';
+        if(showButton)showButton.style.display='inline-block';
+        if(hideButton)hideButton.style.display='none';
     };
-    // =========================
-    // РЕДАКТИРОВАНИЕ
-    // =========================
-    window.toggleParkingEditor = function() {
-        const panel =
-            document.getElementById('editPanel');
-        if (!panel) return;
-        panel.style.display =
-            panel.style.display === 'none'
-                ? 'block'
-                : 'none';
+
+    window.toggleParkingEditor=function(){
+        const panel=document.getElementById('editPanel');
+        if(!panel)return;
+        panel.style.display=panel.style.display==='none'?'block':'none';
     };
 }
 function loadHistoryPreview(parkingId) {
@@ -3600,49 +3339,144 @@ function loadHistoryPreview(parkingId) {
             }
         });
     }
-
-    function saveParkingDetails() {
-    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
-    if (!currentParkingId || !currentParkingData) return;
-
-    const streetType = document.getElementById('editStreetType')?.value || '';
-    const streetName = document.getElementById('editStreetName')?.value.trim() || '';
-    const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
-    const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value) || 0;
-
-    const street = streetType && streetName ? `${streetType} ${streetName}` : (streetName || currentParkingData.street || '');
-    if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
-
-    let newName = street;
-    if (houseNumber) {
-        newName = newName ? `${newName}, ${houseNumber}` : houseNumber;
+   function saveParkingDetails(){
+    if(!currentUser){
+        alert('Необходимо авторизоваться');
+        return;
     }
-    if (!newName) {
-        newName = 'Адрес не указан';
+    if(!currentParkingId||!currentParkingData)return;
+    const streetType=document.getElementById('editStreetType')?.value||'';
+    const streetName=document.getElementById('editStreetName')?.value.trim()||'';
+    const houseNumber=document.getElementById('editHouseNumber')?.value.trim()||'';
+    const parkingName=document.getElementById('editParkingName')?.value.trim()||'';
+    const totalSpots=parseInt(document.getElementById('editTotalSpots')?.value)||0;
+    const street=streetType&&streetName
+        ?`${streetType} ${streetName}`
+        :(streetName||currentParkingData.street||'');
+    if(!street&&!houseNumber){
+        alert('Введите улицу или номер дома');
+        return;
     }
-
-    if (isNaN(totalSpots) || totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
-    if (totalSpots < currentParkingData.occupiedSpots) { alert('Общее число мест не может быть меньше занятых.'); return; }
-
-    const updates = { name: newName, street, houseNumber, totalSpots };
-
-    database.ref(`parkings/${currentParkingId}`).update(updates).then(() => {
-        if (currentUser.id === currentParkingData.authorId) database.ref(`users/${currentUser.id}/stats/parkingsUpdated`).transaction(c => (c || 0) + 1);
-        currentParkingData = { ...currentParkingData, ...updates };
-        parkingDataCache[currentParkingId] = currentParkingData;
-        updateOccupancyDisplay(currentParkingData.occupiedSpots);
+    if(!parkingName){
+        alert('Введите название парковки');
+        return;
+    }
+    if(totalSpots<1){
+        alert('Количество мест должно быть больше 0');
+        return;
+    }
+    if(totalSpots>500){
+        alert('Количество мест не может быть больше 500');
+        return;
+    }
+    const updates={
+        name:parkingName,
+        street,
+        houseNumber,
+        totalSpots
+    };
+    database.ref(`parkings/${currentParkingId}`).update(updates).then(()=>{
+        if(currentUser.id===currentParkingData.authorId){
+            database.ref(`users/${currentUser.id}/stats/parkingsUpdated`)
+                .transaction(c=>(c||0)+1);
+        }
+        currentParkingData={
+            ...currentParkingData,
+            ...updates
+        };
+        parkingDataCache[currentParkingId]=currentParkingData;
         refreshParkingMarker();
-
-        // ✅ Пересчитываем кластеры
-        if (clusterer) clusterer.reload();
-
-        // ... остальной код (закрытие панели, обновление интерфейса)
+        if(clusterer)clusterer.reload();
         closePanel();
         showMap();
-        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-    }).catch(err => { console.error('Ошибка сохранения:', err); alert('Ошибка: ' + err.message); });
+        if(window.Telegram?.WebApp?.HapticFeedback){
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    }).catch(err=>{
+        console.error('Ошибка сохранения:',err);
+        alert('Ошибка: '+err.message);
+    });
 }
-
+async function startParkingSession(parkingId) {
+    if (!currentUser?.id) {
+        alert('Чтобы припарковаться, необходимо войти в аккаунт.');
+        return;
+    }
+    try {
+        const parkingRef =
+            database.ref(`parkings/${parkingId}`);
+        const snapshot =
+            await parkingRef.once('value');
+        const parking =
+            snapshot.val();
+        if (!parking) {
+            alert('Парковка не найдена.');
+            return;
+        }
+        // Получаем текущую геопозицию
+        const position =
+            await getCurrentUserLocation();
+        const distance =
+            calculateDistance(
+                position.latitude,
+                position.longitude,
+                parking.latitude,
+                parking.longitude
+            );
+        const radius =
+            Number(parking.parkingRadius) || 40;
+        if (distance > radius) {
+            alert(
+                `Вы находитесь примерно в ${Math.round(distance)} м ` +
+                `от зоны парковки.`
+            );
+            return;
+        }
+        // Проверяем, нет ли уже активной парковки
+        const sessionsSnapshot =
+            await database
+                .ref('parkingSessions')
+                .orderByChild('userId')
+                .equalTo(String(currentUser.id))
+                .once('value');
+        let hasActiveSession = false;
+        sessionsSnapshot.forEach(child => {
+            const session = child.val();
+            if (
+                session &&
+                session.active === true
+            ) {
+                hasActiveSession = true;
+            }
+        });
+        if (hasActiveSession) {
+            alert('У вас уже есть активная парковка.');
+            return;
+        }
+        const sessionRef =
+            database.ref('parkingSessions').push();
+        await sessionRef.set({
+            parkingId,
+            userId: String(currentUser.id),
+            startedAt: Date.now(),
+            endedAt: null,
+            active: true
+        });
+        alert('Вы припаркованы.');
+        await openCenterSheet(
+            parkingId,
+            parking
+        );
+    } catch (error) {
+        console.error(
+            'Ошибка начала парковки:',
+            error
+        );
+        alert(
+            'Не удалось начать парковочную сессию.'
+        );
+    }
+}
     function updateOccupancyDisplay(newOccupied) {
         if (!currentParkingData) return;
         const total = currentParkingData.totalSpots || 0,
