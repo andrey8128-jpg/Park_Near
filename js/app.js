@@ -2837,59 +2837,48 @@ async function startParkingSession(parkingId){
         alert('Чтобы припарковаться, необходимо войти в аккаунт.');
         return;
     }
-
     if(!parkingId)return;
-
     try{
         const existingSnapshot=await database.ref('parkingSessions')
             .orderByChild('userId')
             .equalTo(String(currentUser.id))
             .once('value');
-
         const existingSessions=existingSnapshot.val()||{};
-
         const alreadyParked=Object.values(existingSessions).some(session=>{
             return session&&session.active===true;
         });
-
         if(alreadyParked){
             alert('Вы уже припаркованы.');
             return;
         }
-
         const parkingSnapshot=await database.ref(`parkings/${parkingId}`).once('value');
         const parking=parkingSnapshot.val();
-
         if(!parking){
             alert('Парковка не найдена.');
             return;
         }
-
         const totalSpots=Number(parking.totalSpots)||0;
         const occupiedSpots=await getParkingOccupancy(parkingId);
-
         if(totalSpots>0&&occupiedSpots>=totalSpots){
             alert('По данным приложения, свободных мест сейчас нет.');
             return;
         }
-
         const sessionRef=database.ref('parkingSessions').push();
-
         await sessionRef.set({
-            parkingId,
+            parkingId:parkingId,
             userId:String(currentUser.id),
             startedAt:Date.now(),
             endedAt:null,
             active:true
         });
-
+        currentParkingData=parking;
+        parkingDataCache[parkingId]=parking;
         await openCenterSheet(parkingId,parking);
-
         if(window.Telegram?.WebApp?.HapticFeedback){
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
     }catch(error){
-        console.error('Ошибка создания парковочной сессии:',error);
+        console.error('Ошибка начала парковки:',error);
         alert('Не удалось отметить парковку.');
     }
 }
