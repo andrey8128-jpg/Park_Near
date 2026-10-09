@@ -2987,17 +2987,17 @@ async function startParkingSession(parkingId) {
             parkingLng
         );
 
-        const radius = Number(parking.parkingRadius) || 100;
-        const accuracy = Number(position.accuracy) || 0;
+      
+          const radius = 100;
+          const accuracy = Number(position.accuracy) || 0;
 
-        if (distance > radius + accuracy) {
-            alert(
-                `Вы находитесь примерно в ${Math.round(distance)} м ` +
-                'от зоны парковки. Подойдите ближе и попробуйте снова.'
-            );
-            return;
-        }
-
+          if (distance > radius + accuracy) {
+             alert(
+               `Вы находитесь примерно в ${Math.round(distance)} м ` +
+               'от парковки. Подойдите ближе, максимум на 100 метров.'
+        );
+        return;
+      }
         // 5. Проверяем, остались ли свободные места
         const totalSpots = Number(parking.totalSpots) || 0;
         const occupiedSpots = await getParkingOccupancy(parkingId);
