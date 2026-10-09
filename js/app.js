@@ -2887,54 +2887,123 @@ function getCurrentUserLocation(){
         );
     });
 }
-async function startParkingSession(parkingId){
-    if(!currentUser?.id){
+async function startParkingSession(parkingId) {
+    if (!currentUser?.id) {
         alert('Чтобы припарковаться, необходимо войти в аккаунт.');
         return;
     }
-    if(!parkingId)return;
-    try{
-        const existingSnapshot=await database.ref('parkingSessions')
+
+    if (!parkingId) {
+        alert('Не удалось определить парковку.');
+        return;
+    }
+
+    try {
+        // 1. Проверяем, нет ли у пользователя активной парковки
+        const existingSnapshot = await database
+            .ref('parkingSessions')
             .orderByChild('userId')
             .equalTo(String(currentUser.id))
             .once('value');
-        const existingSessions=existingSnapshot.val()||{};
-        const alreadyParked=Object.values(existingSessions).some(session=>{
-            return session&&session.active===true;
-        });
-        if(alreadyParked){
-            alert('Вы уже припаркованы.');
+
+        const existingSessions = existingSnapshot.val() || {};
+
+        const alreadyParked = Object.values(existingSessions).some(
+            session => session && session.active === true
+        );
+
+        if (alreadyParked) {
+            alert('У вас уже есть активная парковка.');
             return;
         }
-        const parkingSnapshot=await database.ref(`parkings/${parkingId}`).once('value');
-        const parking=parkingSnapshot.val();
-        if(!parking){
+
+        // 2. Загружаем парковку
+        const parkingSnapshot = await database
+            .ref(`parkings/${parkingId}`)
+            .once('value');
+
+        const parking = parkingSnapshot.val();
+
+        if (!parking) {
             alert('Парковка не найдена.');
             return;
         }
-        const totalSpots=Number(parking.totalSpots)||0;
-        const occupiedSpots=await getParkingOccupancy(parkingId);
-        if(totalSpots>0&&occupiedSpots>=totalSpots){
+
+        // 3. Проверяем координаты парковки
+        const parkingLat = Number(parking.lat ?? parking.latitude);
+        const parkingLng = Number(parking.lng ?? parking.longitude);
+
+        if (
+            !Number.isFinite(parkingLat) ||
+            !Number.isFinite(parkingLng) ||
+            Math.abs(parkingLat) > 90 ||
+            Math.abs(parkingLng) > 180
+        ) {
+            alert('Не удалось определить координаты парковки.');
+            return;
+        }
+
+        // 4. Проверяем местоположение пользователя
+        const position = await getCurrentUserLocation();
+
+        const distance = getDistanceInMeters(
+            position.latitude,
+            position.longitude,
+            parkingLat,
+            parkingLng
+        );
+
+        const radius = Number(parking.parkingRadius) || 40;
+        const accuracy = Number(position.accuracy) || 0;
+
+        if (distance > radius + accuracy) {
+            alert(
+                `Вы находитесь примерно в ${Math.round(distance)} м ` +
+                'от зоны парковки. Подойдите ближе и попробуйте снова.'
+            );
+            return;
+        }
+
+        // 5. Проверяем, остались ли свободные места
+        const totalSpots = Number(parking.totalSpots) || 0;
+        const occupiedSpots = await getParkingOccupancy(parkingId);
+
+        if (totalSpots > 0 && occupiedSpots >= totalSpots) {
             alert('По данным приложения, свободных мест сейчас нет.');
             return;
         }
-        const sessionRef=database.ref('parkingSessions').push();
+
+        // 6. Создаём парковочную сессию
+        const sessionRef = database.ref('parkingSessions').push();
+
         await sessionRef.set({
-            parkingId:parkingId,
-            userId:String(currentUser.id),
-            startedAt:Date.now(),
-            endedAt:null,
-            active:true
+            parkingId: parkingId,
+            userId: String(currentUser.id),
+            startedAt: Date.now(),
+            endedAt: null,
+            active: true
         });
-        currentParkingData=parking;
-        parkingDataCache[parkingId]=parking;
-        await openCenterSheet(parkingId,parking);
-        if(window.Telegram?.WebApp?.HapticFeedback){
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+
+        // 7. Обновляем карточку парковки
+        currentParkingData = parking;
+        parkingDataCache[parkingId] = parking;
+
+        await openCenterSheet(parkingId, parking);
+
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback
+                .notificationOccurred('success');
         }
-    }catch(error){
-        console.error('Ошибка начала парковки:',error);
-        alert('Не удалось отметить парковку.');
+
+    } catch (error) {
+        console.error('Ошибка начала парковки:', error);
+
+        alert(
+            error.message === 'Разрешите доступ к геолокации.'
+                ? error.message
+                : 'Не удалось начать парковочную сессию. ' +
+                  'Проверьте геолокацию и подключение к интернету.'
+        );
     }
 }
 async function endParkingSession(parkingId){
@@ -3149,7 +3218,6 @@ function renderEditPanel(data,isFavorite){
                 ${isAuthor?`<button class="btn-secondary" onclick="toggleParkingEditor()">✏️ Редактировать данные</button>`:''}
             </div>
     `;
-
     if(isAuthor){
         html+=`
             <div id="editPanel" class="edit-form" style="display:none;">
@@ -3440,86 +3508,6 @@ function loadHistoryPreview(parkingId) {
         console.error('Ошибка сохранения:',err);
         alert('Ошибка: '+err.message);
     });
-}
-async function startParkingSession(parkingId) {
-    if (!currentUser?.id) {
-        alert('Чтобы припарковаться, необходимо войти в аккаунт.');
-        return;
-    }
-    try {
-        const parkingRef =
-            database.ref(`parkings/${parkingId}`);
-        const snapshot =
-            await parkingRef.once('value');
-        const parking =
-            snapshot.val();
-        if (!parking) {
-            alert('Парковка не найдена.');
-            return;
-        }
-        // Получаем текущую геопозицию
-        const position =
-            await getCurrentUserLocation();
-        const distance =
-            calculateDistance(
-                position.latitude,
-                position.longitude,
-                parking.latitude,
-                parking.longitude
-            );
-        const radius =
-            Number(parking.parkingRadius) || 40;
-        if (distance > radius) {
-            alert(
-                `Вы находитесь примерно в ${Math.round(distance)} м ` +
-                `от зоны парковки.`
-            );
-            return;
-        }
-        // Проверяем, нет ли уже активной парковки
-        const sessionsSnapshot =
-            await database
-                .ref('parkingSessions')
-                .orderByChild('userId')
-                .equalTo(String(currentUser.id))
-                .once('value');
-        let hasActiveSession = false;
-        sessionsSnapshot.forEach(child => {
-            const session = child.val();
-            if (
-                session &&
-                session.active === true
-            ) {
-                hasActiveSession = true;
-            }
-        });
-        if (hasActiveSession) {
-            alert('У вас уже есть активная парковка.');
-            return;
-        }
-        const sessionRef =
-            database.ref('parkingSessions').push();
-        await sessionRef.set({
-            parkingId,
-            userId: String(currentUser.id),
-            startedAt: Date.now(),
-            endedAt: null,
-            active: true
-        });
-        alert('Вы припаркованы.');
-        await openCenterSheet(
-            parkingId,
-            parking
-        );
-    } catch (error) {
-        console.error(
-            'Ошибка начала парковки:',
-            error
-        );
-        alert(
-            'Не удалось начать парковочную сессию.'
-        );
-    }
 }
     function updateOccupancyDisplay(newOccupied) {
         if (!currentParkingData) return;
