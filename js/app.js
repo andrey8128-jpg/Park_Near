@@ -1118,7 +1118,7 @@ function loadAllParkings(city = '', force = false) {
     if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
         clearAllMarkers();
         Object.entries(parkingDataCache).forEach(([id, parking]) => {
-            const parkingCity = String(parking.city || '').trim().toLowerCase();
+            const parkingCity = normalizeCity(getParkingCity(parking))
             if (!selectedCity || parkingCity === selectedCity) {
                 addMarkerToMap(id, parking);
             }
@@ -1205,7 +1205,7 @@ function showParkingsForCity(city) {
     clearAllMarkers();
     const normalizedCity = city.trim().toLowerCase();
     Object.entries(parkingDataCache).forEach(([id, parking]) => {
-        const parkingCity = String(parking.city || '').trim().toLowerCase();
+        const parkingCity = normalizeCity(getParkingCity(parking))
         if (parkingCity === normalizedCity) {
             addMarkerToMap(id, parking);
         }
@@ -4532,7 +4532,9 @@ function applyCityFromPicker() {
             );
         });
     }
-   showParkingsForCity(city);
+   loadAllParkings(city, true).catch(error => {
+    console.error('Ошибка загрузки парковок выбранного города:', error);
+});
 }
 function getCityCoordinates(city) {
     if (cityCoords && cityCoords.lat && cityCoords.lng) {
