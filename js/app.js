@@ -2854,35 +2854,70 @@ async function getUserActiveParkingSession(){
         return null;
     }
 }
-function getCurrentUserLocation(){
-    return new Promise((resolve,reject)=>{
-        if(!navigator.geolocation){
-            reject(new Error('Геолокация не поддерживается браузером.'));
+
+function getCurrentUserLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(
+                new Error('Геолокация не поддерживается браузером.')
+            );
             return;
         }
+        function handleSuccess(position) {
+            resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            });
+        }
+        function handleError(error, isRetry) {
+            // Если точное определение не удалось,
+            // пробуем получить координаты другим способом.
+            if (!isRetry && (error.code === 2 || error.code === 3)) {
+                navigator.geolocation.getCurrentPosition(
+                    handleSuccess,
+                    retryError => {
+                        let message =
+                            'Не удалось определить местоположение.';
+                        if (retryError.code === 1) {
+                            message =
+                                'Разрешите доступ к геолокации.';
+                        } else if (retryError.code === 2) {
+                            message =
+                                'Местоположение недоступно. ' +
+                                'Проверьте настройки геолокации.';
+                        } else if (retryError.code === 3) {
+                            message =
+                                'Не удалось получить координаты вовремя. ' +
+                                'Попробуйте ещё раз на открытом месте.';
+                        }
+                        reject(new Error(message));
+                    },
+                    {
+                        enableHighAccuracy: false,
+                        timeout: 15000,
+                        maximumAge: 60000
+                    }
+                );
+                return;
+            }
+            let message = 'Не удалось определить местоположение.';
+            if (error.code === 1) {
+                message = 'Разрешите доступ к геолокации.';
+            } else if (error.code === 2) {
+                message = 'Местоположение сейчас недоступно.';
+            } else if (error.code === 3) {
+                message = 'Истекло время ожидания геолокации.';
+            }
+            reject(new Error(message));
+        }
         navigator.geolocation.getCurrentPosition(
-            position=>{
-                resolve({
-                    latitude:position.coords.latitude,
-                    longitude:position.coords.longitude,
-                    accuracy:position.coords.accuracy
-                });
-            },
-            error=>{
-                let message='Не удалось определить местоположение.';
-                if(error.code===1){
-                    message='Разрешите доступ к геолокации.';
-                }else if(error.code===2){
-                    message='Местоположение сейчас недоступно.';
-                }else if(error.code===3){
-                    message='Истекло время ожидания геолокации.';
-                }
-                reject(new Error(message));
-            },
+            handleSuccess,
+            error => handleError(error, false),
             {
-                enableHighAccuracy:true,
-                timeout:10000,
-                maximumAge:30000
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 30000
             }
         );
     });
