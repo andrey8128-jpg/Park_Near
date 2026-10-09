@@ -2813,25 +2813,24 @@ async function openCenterSheet(parkingId,data){
     `;
     sheet.classList.add('active');
 }
-async function getParkingOccupancy(parkingId){
-    if(!parkingId)return 0;
-
-    try{
-        const snapshot=await database.ref('parkingSessions')
-            .orderByChild('parkingId')
-            .equalTo(parkingId)
-            .once('value');
-
-        const sessions=snapshot.val()||{};
-
-        return Object.values(sessions).filter(session=>{
-            return session&&session.active===true;
-        }).length;
-    }catch(error){
-        console.error('Ошибка получения занятости парковки:',error);
-        return 0;
+async function getParkingOccupancy(parkingId) {
+    if (!parkingId) {
+        throw new Error('Не указан идентификатор парковки.');
     }
+
+    const snapshot = await database
+        .ref('parkingSessions')
+        .orderByChild('parkingId')
+        .equalTo(String(parkingId))
+        .once('value');
+
+    const sessions = snapshot.val() || {};
+
+    return Object.values(sessions).filter(session => {
+        return session && session.active === true;
+    }).length;
 }
+
 async function getUserActiveParkingSession(){
     if(!currentUser?.id)return null;
     try{
@@ -2988,7 +2987,7 @@ async function startParkingSession(parkingId) {
             parkingLng
         );
 
-        const radius = Number(parking.parkingRadius) || 40;
+        const radius = Number(parking.parkingRadius) || 100;
         const accuracy = Number(position.accuracy) || 0;
 
         if (distance > radius + accuracy) {
