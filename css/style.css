@@ -3136,10 +3136,10 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     min-height: 44px;
     box-sizing: border-box;
     padding: 11px 12px;
-    margin-top: 8px;
+    margin-bottom: 8px;
     border: none;
     border-radius: 12px;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), #0A282C);
     color: #fff;
     font-size: 14px;
     font-weight: 600;
@@ -3176,7 +3176,7 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     border: none;
     background: linear-gradient(135deg,var(--accent),#0A282C);
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
 }
 .parking-route-btn:active { /* Состояние кнопки во время нажатия */
