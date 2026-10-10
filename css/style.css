@@ -3125,6 +3125,45 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     text-transform: uppercase;
     letter-spacing: .3px;
 }
+
+/* Кнопка «Припарковаться» */
+.parking-park-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+}
+
+/* Нажатие на «Припарковаться» */
+.parking-park-btn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+/* Кнопка «Я уехал» */
+.parking-park-btn.parking-leave-btn {
+    background: var(--red);
+    color: #fff;
+}
+
+/* Нажатие на «Я уехал» */
+.parking-park-btn.parking-leave-btn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
 /* Кнопка "Поехать" */
 .parking-route-btn {
     display: flex;
