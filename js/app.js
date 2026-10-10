@@ -5670,16 +5670,6 @@ window.togglePushNotifications = async function() {
                 </div>
             </div>
         `;
-        // Удалить аккаунт
-        html += `
-        
-    } else {
-        html += `<div class="settings-row"><span style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span></div>`;
-    }
-
-    container.innerHTML = html;
-}
-
 
 // ---- Вспомогательные функции для настроек инлайн ----
 function updateCitySelectInSettingsInline() {
