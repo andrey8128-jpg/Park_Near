@@ -5672,10 +5672,7 @@ window.togglePushNotifications = async function() {
         `;
         // Удалить аккаунт
         html += `
-            <div class="settings-row" style="border-bottom: none;">
-                <button class="btn-danger-text" onclick="deleteAccount()" style="padding: 8px 0;">Удалить аккаунт</button>
-            </div>
-        `;
+        
     } else {
         html += `<div class="settings-row"><span style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span></div>`;
     }
