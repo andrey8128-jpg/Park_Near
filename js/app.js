@@ -7586,3 +7586,4 @@ document.addEventListener('visibilitychange', function() {
         }
     })();
     console.log('✅ ParkNear загружен. Код исправлен.');
+}
