@@ -691,14 +691,6 @@ function saveParkingSettings(settings) {
     }
     localStorage.setItem('parkingSettings', JSON.stringify(settings));
 }
-
-  /**
- * Парсит российский адрес, извлекая регион, город, улицу и номер дома.
- * @param {string} fullAddress - Полный адрес (например, "Россия, Московская область, г. Москва, ул. Тверская, д. 15")
- * @param {Object} [regionsData] - Объект вида { "Регион": ["Город1", "Город2", ...] }.
- *                                  Если не передан, используется глобальная переменная regionsData.
- * @returns {{ region: string, city: string, street: string, houseNumber: string }}
- */
 function parseAddress(fullAddress, regionsData = window.regionsData) {
     // Результат по умолчанию
     const defaultResult = { region: '', city: '', street: '', houseNumber: '' };
@@ -711,7 +703,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         console.warn('parseAddress: regionsData не определён или не является объектом');
         return defaultResult;
     }
-
     // Нормализация: убираем "Россия", лишние пробелы, приводим к нижнему регистру для сравнения
     let addr = fullAddress
         .replace(/^Россия,\s*/i, '')
@@ -801,13 +792,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         .replace(/[,.\s]+$/, '')   // удаляем в конце
         .replace(/\s{2,}/g, ' ')   // схлопываем пробелы
         .trim();
-
-    // Дополнительная нормализация улицы: убираем типичные сокращения (опционально)
-    // Можно удалить "ул.", "пр-т", "пер.", "бульв." и т.д., но аккуратно, чтобы не сломать названия.
-    // Простой вариант: оставляем как есть, т.к. это может быть и "Тверская улица" и "ул. Тверская".
-    // Если хотите убрать сокращения, раскомментируйте:
-    // street = street.replace(/^(ул\.|улица|проспект|пр-т|пер\.|переулок|бульвар|бульв\.|набережная|наб\.)\s+/i, '').trim();
-
     return {
         region: foundRegion || '',
         city: foundCity || '',
@@ -815,7 +799,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         houseNumber: houseNumber
     };
 }
-
     function extractStreetName(fullStreet) {
         if (!fullStreet) return '';
         const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
@@ -826,7 +809,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         }
         return fullStreet;
     }
-
     // ===================== PULL-TO-REFRESH =====================
     let pullStartY = 0;
     let pullCurrentY = 0;
