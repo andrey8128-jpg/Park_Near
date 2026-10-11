@@ -7167,7 +7167,6 @@ function renderHomeContent(content, coords) {
         </div>
     `;
     content.innerHTML = html;
-
     // Получаем список парковок из кеша
     var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
     console.log('📊 Всего парковок в кеше:', allParkings.length);
@@ -7186,7 +7185,6 @@ function renderHomeContent(content, coords) {
         }
         return;
     }
-
     // Если координаты есть – показываем ближайшие
     if (coords) {
         showNearbyParkings(coords, 5);
@@ -7322,7 +7320,6 @@ function checkTelegramAuthFromUrl() {
     return false;
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
-
 function onTelegramAuth(user) {
     try {
         currentUser = {
@@ -7333,7 +7330,6 @@ function onTelegramAuth(user) {
             isGuest: false
         };
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
-
         const userRef = database.ref('users/' + currentUser.id);
         userRef.update({
             username: currentUser.username,
@@ -7341,11 +7337,6 @@ function onTelegramAuth(user) {
             photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
-
-        // ФИКС: было once('value').then(...set(...)) — гонка при двойном
-        // вызове onTelegramAuth могла обнулить уже накопленную статистику.
-        // transaction() гарантирует, что начальные данные создадутся только
-        // один раз, даже при параллельных вызовах.
         userRef.child('stats').transaction(current => {
             if (current) {
                 // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
@@ -7365,7 +7356,6 @@ function onTelegramAuth(user) {
             // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
             userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
         }).catch(console.error);
-
         hideAuthScreen();
         showPanel('home');
         showOnboarding();
@@ -7375,14 +7365,12 @@ function onTelegramAuth(user) {
         continueAsGuest();
     }
 }
-
 function initApp() {
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
     } else {
         initAuth();
     }
-
     const savedCity = localStorage.getItem('parknear_city');
     if (savedCity) {
         try {
@@ -7397,19 +7385,15 @@ function initApp() {
             console.warn('Ошибка восстановления города:', e);
         }
     }
-
     document.getElementById('addBtn').onclick = function() {
         if (!currentUser) showPanel('home');
         else if (isDrawingMode) cancelDrawing();
         else startDrawingMode();
     };
-
     if (!map) {
         initMap();
     }
-
     if ('serviceWorker' in navigator) {
-      
         const swScope = new URL('.', window.location.href).pathname;
         navigator.serviceWorker.register(swScope + 'sw.js', { scope: swScope })
             .then(registration => {
@@ -7419,7 +7403,6 @@ function initApp() {
                 console.error('❌ Ошибка регистрации Service Worker:', error);
             });
     }
-
     loadAllParkings();
     initPullToRefresh();
     if (currentUser) {
@@ -7429,10 +7412,8 @@ function initApp() {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
 }
-
 function openTelegramBot() {
     console.log('openTelegramBot вызвана');
-
     if (window.Telegram && window.Telegram.WebApp) {
         var webApp = window.Telegram.WebApp;
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
@@ -7445,7 +7426,6 @@ function openTelegramBot() {
             } catch (e) {
                 savedUser = null;
             }
-
             if (!savedUser || savedUser.id !== expectedId) {
                 onTelegramAuth({
                     id: user.id,
@@ -7481,7 +7461,6 @@ document.addEventListener('visibilitychange', function() {
         }
     }
 });
-
     function rebuildRoute() {
         if (!routeStartCoords || !routeEndCoords) {
             alert('Сначала постройте маршрут');
@@ -7515,7 +7494,6 @@ document.addEventListener('visibilitychange', function() {
         if (!currentUser) return;
         const car = currentUser.car || {};
         const overlay = document.getElementById('carEditorOverlay');
-
         // Заполняем марки
         const brandSelect = document.getElementById('carBrandSelect');
         brandSelect.innerHTML = '<option value="">Выберите марку</option>';
@@ -7527,7 +7505,6 @@ document.addEventListener('visibilitychange', function() {
             brandSelect.appendChild(opt);
         });
         updateCarModelSelect();
-
         // Устанавливаем значения
         if (car.model) {
             const modelSelect = document.getElementById('carModelSelect');
@@ -7537,7 +7514,6 @@ document.addEventListener('visibilitychange', function() {
         }
         document.getElementById('carColorSelect').value = car.color || '';
         document.getElementById('carPlateInput').value = car.plate || '';
-
         overlay.classList.add('active');
     }
     function updateCarModelSelect() {
@@ -7570,20 +7546,22 @@ document.addEventListener('visibilitychange', function() {
             window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
         }
     }
-    // Заполняем цвета для редактора автомобиля
-    (function initCarColors() {
-        const colorSelect = document.getElementById('carColorSelect');
-        if (colorSelect) {
-            colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
-            Object.keys(carColors).forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                opt.textContent = c;
-                opt.style.background = carColors[c];
-                opt.style.color = ['#FFFFFF', '#000000'].includes(carColors[c]) ? '#fff' : '#000';
-                colorSelect.appendChild(opt);
-            });
-        }
-    })();
-    console.log('✅ ParkNear загружен. Код исправлен.');
+// Заполняем цвета для редактора автомобиля
+(function initCarColors() {
+    const colorSelect = document.getElementById('carColorSelect');
+    if (colorSelect) {
+        colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
+        Object.keys(carColors).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            opt.style.background = carColors[c];
+            opt.style.color = ['#FFFFFF', '#000000'].includes(carColors[c])
+                ? '#fff'
+                : '#000';
+            colorSelect.appendChild(opt);
+        });
+    }
+})();
+console.log('✅ ParkNear загружен. Код исправлен.');
 }
