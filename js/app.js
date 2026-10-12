@@ -483,6 +483,7 @@ console.log('🏙️ Город карты:', currentCity);
         ],
         "Другое": ["Прочие населённые пункты"]
     };
+
     // ===================== УТИЛИТЫ =====================
   function getOccupancyColor(occupied, total) {
     const occupiedCount = Number(occupied) || 0;
@@ -682,6 +683,7 @@ function getUserParkingSettings() {
     }
     return defaults;
 }
+
 function saveParkingSettings(settings) {
     if (currentUser) {
         database.ref(`users/${currentUser.id}/parkingSettings`).set(settings);
@@ -689,6 +691,14 @@ function saveParkingSettings(settings) {
     }
     localStorage.setItem('parkingSettings', JSON.stringify(settings));
 }
+
+  /**
+ * Парсит российский адрес, извлекая регион, город, улицу и номер дома.
+ * @param {string} fullAddress - Полный адрес (например, "Россия, Московская область, г. Москва, ул. Тверская, д. 15")
+ * @param {Object} [regionsData] - Объект вида { "Регион": ["Город1", "Город2", ...] }.
+ *                                  Если не передан, используется глобальная переменная regionsData.
+ * @returns {{ region: string, city: string, street: string, houseNumber: string }}
+ */
 function parseAddress(fullAddress, regionsData = window.regionsData) {
     // Результат по умолчанию
     const defaultResult = { region: '', city: '', street: '', houseNumber: '' };
@@ -701,13 +711,16 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         console.warn('parseAddress: regionsData не определён или не является объектом');
         return defaultResult;
     }
+
     // Нормализация: убираем "Россия", лишние пробелы, приводим к нижнему регистру для сравнения
     let addr = fullAddress
         .replace(/^Россия,\s*/i, '')
         .replace(/\s{2,}/g, ' ')
         .trim();
+
     // Если после удаления "Россия" ничего не осталось
     if (!addr) return defaultResult;
+
     // 1. Извлечение номера дома (ищем в конце строки, после запятой или после "д.")
     let houseNumber = '';
     const houseRegex = /(?:^|,\s*|[дД]\.?\s*|[Дд]ом\s*)(\d+[а-я]?(?:\s*[/\\]\s*\d+)?(?:\s*[кК]\.?\s*\d+)?)\s*(?:$|,|$)/;
@@ -719,10 +732,12 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         // Убираем лишние запятые в конце/начале
         addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
     }
+
     // Экранирование специальных символов для RegExp
     function escapeRegex(str) {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
+
     // 2. Построение индекса "город → регион" для быстрого поиска
     const cityToRegion = new Map();
     for (const [region, cities] of Object.entries(regionsData)) {
@@ -736,11 +751,14 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             });
         }
     }
+
     // 3. Поиск города (с учётом границ слова)
     let foundCity = '';
     let foundRegion = '';
+
     // Сортируем города по длине (сначала самые длинные) для избежания частичных совпадений
     const sortedCities = [...cityToRegion.keys()].sort((a, b) => b.length - a.length);
+
     // Ищем город в адресе
     for (const city of sortedCities) {
         const escapedCity = escapeRegex(city);
@@ -751,6 +769,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             break;
         }
     }
+
     // Если город найден, удаляем его из адреса
     if (foundCity) {
         const escapedCity = escapeRegex(foundCity);
@@ -758,6 +777,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         addr = addr.replace(cityRegex, '').trim();
         addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
     }
+
     // 4. Поиск региона, если город не дал однозначного региона или регион не найден
     if (!foundRegion) {
         // Пытаемся найти регион напрямую (например, "Московская область")
@@ -774,12 +794,20 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             }
         }
     }
+
     // 5. Оставшаяся часть — улица (очищаем от лишних слов)
     let street = addr
         .replace(/^[,.\s]+/, '')   // удаляем запятые и точки в начале
         .replace(/[,.\s]+$/, '')   // удаляем в конце
         .replace(/\s{2,}/g, ' ')   // схлопываем пробелы
         .trim();
+
+    // Дополнительная нормализация улицы: убираем типичные сокращения (опционально)
+    // Можно удалить "ул.", "пр-т", "пер.", "бульв." и т.д., но аккуратно, чтобы не сломать названия.
+    // Простой вариант: оставляем как есть, т.к. это может быть и "Тверская улица" и "ул. Тверская".
+    // Если хотите убрать сокращения, раскомментируйте:
+    // street = street.replace(/^(ул\.|улица|проспект|пр-т|пер\.|переулок|бульвар|бульв\.|набережная|наб\.)\s+/i, '').trim();
+
     return {
         region: foundRegion || '',
         city: foundCity || '',
@@ -787,6 +815,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         houseNumber: houseNumber
     };
 }
+
     function extractStreetName(fullStreet) {
         if (!fullStreet) return '';
         const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
@@ -797,6 +826,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         }
         return fullStreet;
     }
+
     // ===================== PULL-TO-REFRESH =====================
     let pullStartY = 0;
     let pullCurrentY = 0;
@@ -817,6 +847,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
                 pullIsDragging = false;
             }
         });
+
         panelContent.addEventListener('touchmove', function(e) {
             if (!pullIsDragging) return;
             pullCurrentY = e.touches[0].clientY;
@@ -829,6 +860,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
                 }
             }
         });
+
         panelContent.addEventListener('touchend', function() {
             if (!pullIsDragging) return;
             pullIsDragging = false;
@@ -850,6 +882,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             pullCurrentY = 0;
         });
     }
+
     function getCurrentPanelType() {
         const title = document.getElementById('panelTitle').textContent;
         if (title === 'Поиск') return 'search';
@@ -857,6 +890,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         if (title === 'Профиль') return 'profile';
         return null;
     }
+
     function refreshCurrentPanel() {
         const content = document.getElementById('panelContent');
         switch (pullPanelType) {
@@ -1048,7 +1082,8 @@ function tryYandexGeolocation(resolve, reject) {
             console.error('❌ Яндекс.Геолокация не удалась:', err);
             reject(new Error('Геолокация недоступна'));
         });
-    }
+}
+
     function tryBrowserGeolocation(resolve, reject) {
         if (typeof ymaps !== 'undefined') {
             ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
@@ -1062,6 +1097,7 @@ function tryYandexGeolocation(resolve, reject) {
             fallbackToNavigator(resolve, reject);
         }
     }
+
     function fallbackToNavigator(resolve, reject) {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -1220,10 +1256,12 @@ function updateParkingMarker(id, data) {
         addMarkerToMap(id, data);
         return;
     }
+
     const totalSpots = Number(data.totalSpots) || 0;
     const occupiedSpots = Number(data.occupiedSpots) || 0;
     const freeSpots = Math.max(0, totalSpots - occupiedSpots);
     const color = getOccupancyColor(occupiedSpots, totalSpots);
+
     // Обновляем свойства маркера
     placemark.properties.set({
         name: data.name || 'Парковка',
@@ -1234,10 +1272,13 @@ function updateParkingMarker(id, data) {
         parkingId: id,
         iconContent: String(freeSpots)
     });
+
     placemark.options.set('iconColor', color);
+
     // ✅ Обновляем Polygon только если изменились координаты
     const oldPolygon = placemark.properties.get('polygon');
     const newCoords = data.coordinates;
+
     // Функция для сравнения двух массивов координат (примитивная, но работает)
     function coordsChanged(oldCoord, newCoord) {
         if (!oldCoord || !newCoord) return true;
@@ -1249,6 +1290,7 @@ function updateParkingMarker(id, data) {
         }
         return false;
     }
+
     if (newCoords && Array.isArray(newCoords) && newCoords.length >= 3) {
         if (!oldPolygon || coordsChanged(oldPolygon.geometry.getCoordinates()[0], newCoords)) {
             // Удаляем старый полигон
@@ -1278,26 +1320,33 @@ function updateParkingMarker(id, data) {
             placemark.properties.set('polygon', null);
         }
     }
+
     // Обновляем общий счётчик
     if (typeof updateTotalFreeCircle === 'function') {
         updateTotalFreeCircle();
     }
 }
 function refreshParkingMarker(parkingId) {
+
     const id =
         parkingId || currentParkingId;
+
     if (!id) {
         return;
     }
+
     const data =
         parkingDataCache[id];
+
     if (!data) {
         return;
     }
+
     updateParkingMarker(
         id,
         data
     );
+
     // Обновляем общий счётчик
     if (
         typeof updateTotalFreeCircle ===
@@ -1307,63 +1356,84 @@ function refreshParkingMarker(parkingId) {
     }
 }
 function addMarkerToMap(id, data) {
+
     if (!map || !clusterer) {
         return;
     }
+
     // ============================================
-    // Если маркер уже существует — сначала полностью удаляем старый
+    // Если маркер уже существует — сначала
+    // полностью удаляем старый
     // ============================================
+
     if (mapMarkers[id]) {
+
         const oldPlacemark =
             mapMarkers[id];
+
         const oldPolygon =
             oldPlacemark.properties.get(
                 'polygon'
             );
+
         // Удаляем маркер из кластера
         clusterer.remove(
             oldPlacemark
         );
+
         // Удаляем полигон
         if (oldPolygon) {
             map.geoObjects.remove(
                 oldPolygon
             );
         }
+
         delete mapMarkers[id];
     }
+
     // ============================================
     // Нормализуем данные
     // ============================================
+
     const totalSpots =
         Number(data.totalSpots) || 0;
+
     const occupiedSpots =
         Number(data.occupiedSpots) || 0;
+
     const freeSpots = Math.max(
         0,
         totalSpots - occupiedSpots
     );
+
     const color =
         getOccupancyColor(
             occupiedSpots,
             totalSpots
         );
+
     // ============================================
     // Определяем центр парковочной зоны
     // ============================================
+
     let centerLat =
         Number(data.lat);
+
     let centerLng =
         Number(data.lng);
+
     if (
         Array.isArray(data.coordinates) &&
         data.coordinates.length > 0
     ) {
+
         let latSum = 0;
         let lngSum = 0;
         let validPoints = 0;
+
         data.coordinates.forEach(
             function(point) {
+
                 if (
                     Array.isArray(point) &&
                     point.length >= 2 &&
@@ -1374,29 +1444,39 @@ function addMarkerToMap(id, data) {
                         Number(point[1])
                     )
                 ) {
+
                     latSum +=
                         Number(point[0]);
+
                     lngSum +=
                         Number(point[1]);
+
                     validPoints++;
                 }
             }
         );
+
         if (validPoints > 0) {
+
             centerLat =
                 latSum / validPoints;
+
             centerLng =
                 lngSum / validPoints;
         }
     }
+
     // ============================================
     // Создаём полигон
     // ============================================
+
     let polygon = null;
+
     if (
         Array.isArray(data.coordinates) &&
         data.coordinates.length >= 3
     ) {
+
         polygon =
             new ymaps.Polygon(
                 [data.coordinates],
@@ -1404,23 +1484,31 @@ function addMarkerToMap(id, data) {
                 {
                     fillColor:
                         color + '33',
+
                     strokeColor:
                         color,
+
                     strokeWidth: 2,
+
                     visible: false,
+
                     zIndex: 5
                 }
             );
+
         map.geoObjects.add(
             polygon
         );
+
         // Чтобы можно было определить,
         // к какой парковке относится полигон
         polygon.__parkingId = id;
     }
+
     // ============================================
     // Создаём маркер
     // ============================================
+
     const placemark =
         new ymaps.Placemark(
             [
@@ -1431,63 +1519,79 @@ function addMarkerToMap(id, data) {
                 hintContent:
                     data.name ||
                     'Парковка',
+
                 name:
                     data.name ||
                     'Парковка',
+
                 freeSpots:
                     freeSpots,
+
                 totalSpots:
                     totalSpots,
+
                 occupiedSpots:
                     occupiedSpots,
+
                 parkingId:
                     id,
-                
+                    
                 polygon:
                     polygon
             },
             {
                 preset:
                     'islands#blueIcon',
+
                 iconColor:
                     color,
             }
         );
+
     // ============================================
     // Клик по парковке
     // ============================================
+
    placemark.events.add('click', function() {
     // ===== ПРИБЛИЖАЕМ КАРТУ =====
     if (map) {
         map.setCenter([centerLat, centerLng], 18, { duration: 300, checkZoomRange: true });
     }
+
     // Скрываем предыдущий полигон
     if (activePolygon) {
         activePolygon.options.set('visible', false);
         activePolygon = null;
     }
+
     const poly = placemark.properties.get('polygon');
     if (poly) {
         poly.options.set('visible', true);
         activePolygon = poly;
     }
+
     openCenterSheet(id, data);
     if (map.balloon) map.balloon.close();
 });
     // ============================================
     // Добавляем в кластер
     // ============================================
+
     clusterer.add(
         placemark
     );
+
     // ============================================
     // Сохраняем ссылку
     // ============================================
+
     mapMarkers[id] =
         placemark;
+
     // ============================================
     // Обновляем общий счётчик
     // ============================================
+
     if (
         typeof updateTotalFreeCircle ===
         'function'
@@ -5566,6 +5670,19 @@ window.togglePushNotifications = async function() {
                 </div>
             </div>
         `;
+        // Удалить аккаунт
+        html += `
+            <div class="settings-row" style="border-bottom: none;">
+                <button class="btn-danger-text" onclick="deleteAccount()" style="padding: 8px 0;">Удалить аккаунт</button>
+            </div>
+        `;
+    } else {
+        html += `<div class="settings-row"><span style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span></div>`;
+    }
+
+    container.innerHTML = html;
+}
+
 
 // ---- Вспомогательные функции для настроек инлайн ----
 function updateCitySelectInSettingsInline() {
@@ -5620,221 +5737,94 @@ function saveCityFromSettingsInline() {
         });
 }
     // ===================== НАСТРОЙКИ =====================
-function closeSettings() {
-    const overlay = document.getElementById('settingsOverlay');
-    if (!overlay) {
-        console.error('Элемент settingsOverlay не найден!');
-        return;
-    }
-    overlay.style.display = 'none';
-}
-function renderSettings() {
-    const contentEl = document.getElementById('settingsContent');
 
-    if (!contentEl) {
-        console.error('Элемент settingsContent не найден!');
-        return;
+    function closeSettings() {
+        document.getElementById('settingsOverlay').style.display = 'none';
     }
-    // Проверяем авторизацию
-    if (!currentUser) {
-        contentEl.innerHTML = '';
 
-        const message = document.createElement('p');
-        message.style.textAlign = 'center';
-        message.style.color = 'var(--text-secondary)';
-        message.textContent = 'Пожалуйста, войдите в аккаунт';
+    function renderSettings() {
+        const contentEl = document.getElementById('settingsContent');
+        if (!contentEl) {
+            console.error('Элемент settingsContent не найден!');
+            return;
+        }
 
-        contentEl.appendChild(message);
-        return;
-    }
-    // Безопасно получаем данные
-    const user = currentUser || {};
-    const car = user.car && typeof user.car === 'object'
-        ? user.car
-        : {};
-    const regions = regionsData &&
-        typeof regionsData === 'object' &&
-        !Array.isArray(regionsData)
-        ? regionsData
-        : {};
-    const cityPrefs = userCityPrefs &&
-        typeof userCityPrefs === 'object'
-        ? userCityPrefs
-        : {};
-    const isDark = document.body.classList.contains('dark-theme');
-    const isGuest = String(user.id || '').startsWith('guest_');
-    // Экранирование значений перед вставкой в HTML
-    const escapeHTML = (value) => {
-        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        })[char]);
-    };
-    let html = '';
-    // Основные настройки
-    html += `
-        <div class="settings-section">
-            <div class="settings-section-header">Основные</div>
-            <div class="settings-row">
-                <span class="settings-label">Тёмная тема</span>
-                <label class="theme-switch"
-                       style="width:51px;height:31px;">
-                    <input
-                        type="checkbox"
-                        id="settingsThemeToggle"
-                        ${isDark ? 'checked' : ''}
-                        onchange="toggleTheme()"
-                    >
-                    <span class="theme-slider"></span>
-                </label>
-            </div>
+        if (!currentUser) {
+            contentEl.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Пожалуйста, войдите в аккаунт</p>';
+            return;
+        }
+
+        const isDark = document.body.classList.contains('dark-theme');
+        const isGuest = currentUser.id.startsWith('guest_');
+
+        let html = '';
+
+        html += `<div class="settings-section">
+        <div class="settings-section-header">Основные</div>
+        <div class="settings-row">
+            <span class="settings-label">Тёмная тема</span>
+            <label class="theme-switch" style="width: 51px; height: 31px;">
+                <input type="checkbox" id="settingsThemeToggle" ${isDark ? 'checked' : ''} onchange="toggleTheme()">
+                <span class="theme-slider"></span>
+            </label>
         </div>
-    `;
-    if (!isGuest) {
-        // Регион и город
-        const regionOptions = Object.keys(regions)
-            .sort((a, b) => a.localeCompare(b, 'ru'))
-            .map(region => `
-                <option
-                    value="${escapeHTML(region)}"
-                    ${region === cityPrefs.region ? 'selected' : ''}
-                >
-                    ${escapeHTML(region)}
-                </option>
-            `)
-            .join('');
-        const cities = Array.isArray(regions[cityPrefs.region])
-            ? regions[cityPrefs.region]
-            : [];
-        const cityOptions = cities
-            .map(city => `
-                <option
-                    value="${escapeHTML(city)}"
-                    ${city === cityPrefs.city ? 'selected' : ''}
-                >
-                    ${escapeHTML(city)}
-                </option>
-            `)
-            .join('');
-        html += `
-            <div class="settings-section">
-                <div class="settings-section-header">Мой город</div>
+    </div>`;
 
-                <div class="settings-picker-row">
-                    <select
-                        id="settingsRegion"
-                        class="input-field"
-                        onchange="updateCitySelectInSettings()"
-                        style="margin:0;"
-                    >
-                        <option value="">Регион</option>
-                        ${regionOptions}
-                    </select>
-                    <select
-                        id="settingsCity"
-                        class="input-field"
-                        onchange="saveCityFromSettings()"
-                        style="margin:0;"
-                    >
-                        <option value="">Город</option>
-                        ${cityOptions}
-                    </select>
-                </div>
+        if (!isGuest) {
+            html += `<div class="settings-section">
+            <div class="settings-section-header">Мой город</div>
+            <div class="settings-picker-row">
+                <select id="settingsRegion" class="input-field" onchange="updateCitySelectInSettings()" style="margin:0;">
+                    <option value="">Регион</option>
+                    ${Object.keys(regionsData).sort().map(r => `<option value="${r}" ${r===userCityPrefs.region?'selected':''}>${r}</option>`).join('')}
+                </select>
+                <select id="settingsCity" class="input-field" onchange="saveCityFromSettings()" style="margin:0;">
+                    <option value="">Город</option>
+                    ${userCityPrefs.region && regionsData[userCityPrefs.region] ? regionsData[userCityPrefs.region].map(c => `<option value="${c}" ${c===userCityPrefs.city?'selected':''}>${c}</option>`).join('') : ''}
+                </select>
             </div>
-        `;
-        // Автомобиль
-        const carName = [car.brand, car.model]
-            .filter(value => String(value || '').trim())
-            .map(escapeHTML)
-            .join(' ');
-        html += `
-            <div class="settings-section">
-                <div class="settings-section-header">Автомобиль</div>
-                <div class="settings-row">
-                    <span class="settings-label">Моё авто</span>
-                    <span class="settings-value">
-                        ${carName || 'Не указан'}
-                        <button
-                            type="button"
-                            class="settings-edit-btn"
-                            onclick="event.stopPropagation(); editCarDataFromSettings()"
-                            aria-label="Изменить автомобиль"
-                        >
-                            ✏️
-                        </button>
-                    </span>
-                </div>
-            </div>
-        `;
-        // Профиль
-        html += `
-            <div class="settings-section">
-                <div class="settings-section-header">Профиль</div>
-                <div class="settings-row">
-                    <span class="settings-label">Никнейм</span>
-                    <span class="settings-value">
-                        ${escapeHTML(user.nickname || 'Не указан')}
-                        <button
-                            type="button"
-                            class="settings-edit-btn"
-                            onclick="event.stopPropagation(); editNickname()"
-                            aria-label="Изменить никнейм"
-                        >
-                            ✏️
-                        </button>
-                    </span>
-                </div>
-                <div
-                    class="settings-row"
-                    onclick="resetOnboarding()"
-                    role="button"
-                    tabindex="0"
-                >
-                    <span class="settings-label">Обучение</span>
+        </div>`;
 
-                    <span class="settings-value">
-                        Показать ещё раз
-                        <span class="settings-arrow">›</span>
-                    </span>
-                </div>
+            const car = currentUser.car || {};
+            html += `<div class="settings-section">
+            <div class="settings-section-header">Автомобиль</div>
+            <div class="settings-row">
+                <span class="settings-label">Моё авто</span>
+                <span class="settings-value">
+                    ${(car.brand || car.model) ? `${car.brand || ''} ${car.model || ''}` : 'Не указан'}
+                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editCarDataFromSettings()">✏️</button>
+                </span>
             </div>
-        `;
-        // Удаление аккаунта
-        html += `
-            <div class="settings-section">
-                <button
-                    type="button"
-                    class="btn-danger-text"
-                    onclick="deleteAccount()"
-                >
-                    Удалить аккаунт
-                </button>
+        </div>`;
+
+            html += `<div class="settings-section">
+            <div class="settings-section-header">Профиль</div>
+            <div class="settings-row">
+                <span class="settings-label">Никнейм</span>
+                <span class="settings-value">
+                    ${currentUser.nickname || 'Не указан'}
+                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editNickname()">✏️</button>
+                </span>
             </div>
-        `;
-    } else {
-        // Ограничения гостевого режима
-        html += `
-            <div class="settings-section">
-                <div class="settings-row">
-                    <span
-                        class="settings-label"
-                        style="color:var(--text-secondary);"
-                    >
-                        Гостевой режим — настройки ограничены
-                    </span>
-                </div>
+            <div class="settings-row" onclick="resetOnboarding()">
+                <span class="settings-label">Обучение</span>
+                <span class="settings-value">Показать ещё раз <span class="settings-arrow">›</span></span>
             </div>
-        `;
-    }
-    //Отображаем настройки
-    contentEl.innerHTML = html;
-    //Синхронизируем переключатели темы
-    if (typeof syncThemeToggles === 'function') {
-        syncThemeToggles();
-    }
+        </div>`;
+
+            html += `<div class="settings-section">
+            <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
+        </div>`;
+        } else {
+            html += `<div class="settings-section">
+            <div class="settings-row">
+                <span class="settings-label" style="color: var(--text-secondary);">Гостевой режим — настройки ограничены</span>
+            </div>
+        </div>`;
+        }
+
+        contentEl.innerHTML = html;
+syncThemeToggles();
 }
     function updateCitySelectInSettings() {
         const region = document.getElementById('settingsRegion')?.value;
@@ -5853,6 +5843,7 @@ function renderSettings() {
             });
         }
     }
+
    function saveCityFromSettings() {
     if (!currentUser) {
         console.warn('Пользователь не авторизован');
@@ -5910,6 +5901,7 @@ function renderSettings() {
             })
             .catch(err => alert('Ошибка: ' + err.message));
     }
+
     function saveCarData() {
         if (!currentUser) {
             alert('Необходимо авторизоваться');
@@ -5924,6 +5916,7 @@ function renderSettings() {
             alert('Пожалуйста, выберите марку и модель');
             return;
         }
+
         database.ref(`users/${currentUser.id}/car`).set({
             brand: brand,
             model: model,
@@ -5993,6 +5986,7 @@ function renderFavorites(content) {
             </div>`;
         return;
     }
+
     content.innerHTML = `
         <div class="pn-favorites">
             <div class="pn-fav-header">
@@ -7167,6 +7161,7 @@ function renderHomeContent(content, coords) {
         </div>
     `;
     content.innerHTML = html;
+
     // Получаем список парковок из кеша
     var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
     console.log('📊 Всего парковок в кеше:', allParkings.length);
@@ -7185,6 +7180,7 @@ function renderHomeContent(content, coords) {
         }
         return;
     }
+
     // Если координаты есть – показываем ближайшие
     if (coords) {
         showNearbyParkings(coords, 5);
@@ -7320,6 +7316,7 @@ function checkTelegramAuthFromUrl() {
     return false;
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
+
 function onTelegramAuth(user) {
     try {
         currentUser = {
@@ -7330,6 +7327,7 @@ function onTelegramAuth(user) {
             isGuest: false
         };
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
+
         const userRef = database.ref('users/' + currentUser.id);
         userRef.update({
             username: currentUser.username,
@@ -7337,6 +7335,11 @@ function onTelegramAuth(user) {
             photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
+
+        // ФИКС: было once('value').then(...set(...)) — гонка при двойном
+        // вызове onTelegramAuth могла обнулить уже накопленную статистику.
+        // transaction() гарантирует, что начальные данные создадутся только
+        // один раз, даже при параллельных вызовах.
         userRef.child('stats').transaction(current => {
             if (current) {
                 // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
@@ -7356,6 +7359,7 @@ function onTelegramAuth(user) {
             // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
             userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
         }).catch(console.error);
+
         hideAuthScreen();
         showPanel('home');
         showOnboarding();
@@ -7365,12 +7369,14 @@ function onTelegramAuth(user) {
         continueAsGuest();
     }
 }
+
 function initApp() {
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
     } else {
         initAuth();
     }
+
     const savedCity = localStorage.getItem('parknear_city');
     if (savedCity) {
         try {
@@ -7385,15 +7391,19 @@ function initApp() {
             console.warn('Ошибка восстановления города:', e);
         }
     }
+
     document.getElementById('addBtn').onclick = function() {
         if (!currentUser) showPanel('home');
         else if (isDrawingMode) cancelDrawing();
         else startDrawingMode();
     };
+
     if (!map) {
         initMap();
     }
+
     if ('serviceWorker' in navigator) {
+      
         const swScope = new URL('.', window.location.href).pathname;
         navigator.serviceWorker.register(swScope + 'sw.js', { scope: swScope })
             .then(registration => {
@@ -7403,6 +7413,7 @@ function initApp() {
                 console.error('❌ Ошибка регистрации Service Worker:', error);
             });
     }
+
     loadAllParkings();
     initPullToRefresh();
     if (currentUser) {
@@ -7412,8 +7423,10 @@ function initApp() {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
 }
+
 function openTelegramBot() {
     console.log('openTelegramBot вызвана');
+
     if (window.Telegram && window.Telegram.WebApp) {
         var webApp = window.Telegram.WebApp;
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
@@ -7426,6 +7439,7 @@ function openTelegramBot() {
             } catch (e) {
                 savedUser = null;
             }
+
             if (!savedUser || savedUser.id !== expectedId) {
                 onTelegramAuth({
                     id: user.id,
@@ -7461,6 +7475,7 @@ document.addEventListener('visibilitychange', function() {
         }
     }
 });
+
     function rebuildRoute() {
         if (!routeStartCoords || !routeEndCoords) {
             alert('Сначала постройте маршрут');
@@ -7489,84 +7504,79 @@ document.addEventListener('visibilitychange', function() {
             alert('Не удалось перестроить маршрут');
         }
     }
-function editCarDataFromSettings() {
-    // Заполняем поля и открываем редактор
-    if (!currentUser) return;
+    function editCarDataFromSettings() {
+        // Заполняем поля и открываем редактор
+        if (!currentUser) return;
+        const car = currentUser.car || {};
+        const overlay = document.getElementById('carEditorOverlay');
 
-    const car = currentUser.car || {};
-    const overlay = document.getElementById('carEditorOverlay');
-    // Заполняем марки
-    const brandSelect = document.getElementById('carBrandSelect');
-    brandSelect.innerHTML = '<option value="">Выберите марку</option>';
-    Object.keys(carBrands).sort().forEach(b => {
-        const opt = document.createElement('option');
-        opt.value = b;
-        opt.textContent = b;
-        if (b === car.brand) opt.selected = true;
-        brandSelect.appendChild(opt);
-    });
-    updateCarModelSelect();
-    // Устанавливаем значения
-    if (car.model) {
-        const modelSelect = document.getElementById('carModelSelect');
-        for (let opt of modelSelect.options) {
-            if (opt.value === car.model) {
-                opt.selected = true;
-                break;
+        // Заполняем марки
+        const brandSelect = document.getElementById('carBrandSelect');
+        brandSelect.innerHTML = '<option value="">Выберите марку</option>';
+        Object.keys(carBrands).sort().forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = b;
+            if (b === car.brand) opt.selected = true;
+            brandSelect.appendChild(opt);
+        });
+        updateCarModelSelect();
+
+        // Устанавливаем значения
+        if (car.model) {
+            const modelSelect = document.getElementById('carModelSelect');
+            for (let opt of modelSelect.options) {
+                if (opt.value === car.model) { opt.selected = true; break; }
             }
         }
-    }
-    document.getElementById('carColorSelect').value = car.color || '';
-    document.getElementById('carPlateInput').value = car.plate || '';
-    overlay.classList.add('active');
-}
-function updateCarModelSelect() {
-    const brand = document.getElementById('carBrandSelect').value;
-    const modelSelect = document.getElementById('carModelSelect');
-    modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-    if (brand && carBrands[brand]) {
-        carBrands[brand].forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m;
-            opt.textContent = m;
-            modelSelect.appendChild(opt);
-        });
-    }
-}
-function closeCarEditor() {
-    document.getElementById('carEditorOverlay').classList.remove('active');
-}
-function editNickname() {
-    const currentNick = currentUser.nickname || '';
-    const newNick = prompt('Введите новый никнейм:', currentNick);
+        document.getElementById('carColorSelect').value = car.color || '';
+        document.getElementById('carPlateInput').value = car.plate || '';
 
-    if (newNick !== null && newNick.trim() !== '') {
-        saveNickname(newNick.trim());
+        overlay.classList.add('active');
     }
-}
-function resetOnboarding() {
-    localStorage.removeItem('onboardingSeen');
-    showOnboarding();
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    function updateCarModelSelect() {
+        const brand = document.getElementById('carBrandSelect').value;
+        const modelSelect = document.getElementById('carModelSelect');
+        modelSelect.innerHTML = '<option value="">Выберите модель</option>';
+        if (brand && carBrands[brand]) {
+            carBrands[brand].forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                modelSelect.appendChild(opt);
+            });
+        }
     }
-}
-// Заполняем цвета для редактора автомобиля
-(function initCarColors() {
-    const colorSelect = document.getElementById('carColorSelect');
-    if (colorSelect) {
-        colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
-
-        Object.keys(carColors).forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c;
-            opt.style.background = carColors[c];
-            opt.style.color = ['#FFFFFF', '#000000'].includes(carColors[c])
-                ? '#fff'
-                : '#000';
-            colorSelect.appendChild(opt);
-        });
+    function closeCarEditor() {
+        document.getElementById('carEditorOverlay').classList.remove('active');
     }
-})();
-console.log('✅ ParkNear загружен. Код исправлен.');
+    function editNickname() {
+        const currentNick = currentUser.nickname || '';
+        const newNick = prompt('Введите новый никнейм:', currentNick);
+        if (newNick !== null && newNick.trim() !== '') {
+            saveNickname(newNick.trim());
+        }
+    }
+    function resetOnboarding() {
+        localStorage.removeItem('onboardingSeen');
+        showOnboarding();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+    }
+    // Заполняем цвета для редактора автомобиля
+    (function initCarColors() {
+        const colorSelect = document.getElementById('carColorSelect');
+        if (colorSelect) {
+            colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
+            Object.keys(carColors).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                opt.style.background = carColors[c];
+                opt.style.color = ['#FFFFFF', '#000000'].includes(carColors[c]) ? '#fff' : '#000';
+                colorSelect.appendChild(opt);
+            });
+        }
+    })();
+    console.log('✅ ParkNear загружен. Код исправлен.');
