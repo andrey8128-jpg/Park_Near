@@ -7489,68 +7489,74 @@ document.addEventListener('visibilitychange', function() {
             alert('Не удалось перестроить маршрут');
         }
     }
-    function editCarDataFromSettings() {
-        // Заполняем поля и открываем редактор
-        if (!currentUser) return;
-        const car = currentUser.car || {};
-        const overlay = document.getElementById('carEditorOverlay');
-        // Заполняем марки
-        const brandSelect = document.getElementById('carBrandSelect');
-        brandSelect.innerHTML = '<option value="">Выберите марку</option>';
-        Object.keys(carBrands).sort().forEach(b => {
-            const opt = document.createElement('option');
-            opt.value = b;
-            opt.textContent = b;
-            if (b === car.brand) opt.selected = true;
-            brandSelect.appendChild(opt);
-        });
-        updateCarModelSelect();
-        // Устанавливаем значения
-        if (car.model) {
-            const modelSelect = document.getElementById('carModelSelect');
-            for (let opt of modelSelect.options) {
-                if (opt.value === car.model) { opt.selected = true; break; }
+function editCarDataFromSettings() {
+    // Заполняем поля и открываем редактор
+    if (!currentUser) return;
+
+    const car = currentUser.car || {};
+    const overlay = document.getElementById('carEditorOverlay');
+    // Заполняем марки
+    const brandSelect = document.getElementById('carBrandSelect');
+    brandSelect.innerHTML = '<option value="">Выберите марку</option>';
+    Object.keys(carBrands).sort().forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = b;
+        if (b === car.brand) opt.selected = true;
+        brandSelect.appendChild(opt);
+    });
+    updateCarModelSelect();
+    // Устанавливаем значения
+    if (car.model) {
+        const modelSelect = document.getElementById('carModelSelect');
+        for (let opt of modelSelect.options) {
+            if (opt.value === car.model) {
+                opt.selected = true;
+                break;
             }
         }
-        document.getElementById('carColorSelect').value = car.color || '';
-        document.getElementById('carPlateInput').value = car.plate || '';
-        overlay.classList.add('active');
     }
-    function updateCarModelSelect() {
-        const brand = document.getElementById('carBrandSelect').value;
-        const modelSelect = document.getElementById('carModelSelect');
-        modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-        if (brand && carBrands[brand]) {
-            carBrands[brand].forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m;
-                modelSelect.appendChild(opt);
-            });
-        }
+    document.getElementById('carColorSelect').value = car.color || '';
+    document.getElementById('carPlateInput').value = car.plate || '';
+    overlay.classList.add('active');
+}
+function updateCarModelSelect() {
+    const brand = document.getElementById('carBrandSelect').value;
+    const modelSelect = document.getElementById('carModelSelect');
+    modelSelect.innerHTML = '<option value="">Выберите модель</option>';
+    if (brand && carBrands[brand]) {
+        carBrands[brand].forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            modelSelect.appendChild(opt);
+        });
     }
-    function closeCarEditor() {
-        document.getElementById('carEditorOverlay').classList.remove('active');
+}
+function closeCarEditor() {
+    document.getElementById('carEditorOverlay').classList.remove('active');
+}
+function editNickname() {
+    const currentNick = currentUser.nickname || '';
+    const newNick = prompt('Введите новый никнейм:', currentNick);
+
+    if (newNick !== null && newNick.trim() !== '') {
+        saveNickname(newNick.trim());
     }
-    function editNickname() {
-        const currentNick = currentUser.nickname || '';
-        const newNick = prompt('Введите новый никнейм:', currentNick);
-        if (newNick !== null && newNick.trim() !== '') {
-            saveNickname(newNick.trim());
-        }
+}
+function resetOnboarding() {
+    localStorage.removeItem('onboardingSeen');
+    showOnboarding();
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
-    function resetOnboarding() {
-        localStorage.removeItem('onboardingSeen');
-        showOnboarding();
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-        }
-    }
+}
 // Заполняем цвета для редактора автомобиля
 (function initCarColors() {
     const colorSelect = document.getElementById('carColorSelect');
     if (colorSelect) {
         colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
+
         Object.keys(carColors).forEach(c => {
             const opt = document.createElement('option');
             opt.value = c;
@@ -7564,4 +7570,3 @@ document.addEventListener('visibilitychange', function() {
     }
 })();
 console.log('✅ ParkNear загружен. Код исправлен.');
-}
