@@ -88,7 +88,6 @@
     let userLocationForSearch = null;
     let pendingAddressData = null;
     let newParkingCoords = null;
-
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
 const savedMapPrefs = localStorage.getItem('parknear_map_city');
@@ -483,7 +482,6 @@ console.log('🏙️ Город карты:', currentCity);
         ],
         "Другое": ["Прочие населённые пункты"]
     };
-
     // ===================== УТИЛИТЫ =====================
   function getOccupancyColor(occupied, total) {
     const occupiedCount = Number(occupied) || 0;
@@ -691,36 +689,23 @@ function saveParkingSettings(settings) {
     }
     localStorage.setItem('parkingSettings', JSON.stringify(settings));
 }
-
-  /**
- * Парсит российский адрес, извлекая регион, город, улицу и номер дома.
- * @param {string} fullAddress - Полный адрес (например, "Россия, Московская область, г. Москва, ул. Тверская, д. 15")
- * @param {Object} [regionsData] - Объект вида { "Регион": ["Город1", "Город2", ...] }.
- *                                  Если не передан, используется глобальная переменная regionsData.
- * @returns {{ region: string, city: string, street: string, houseNumber: string }}
- */
 function parseAddress(fullAddress, regionsData = window.regionsData) {
     // Результат по умолчанию
     const defaultResult = { region: '', city: '', street: '', houseNumber: '' };
-
     if (!fullAddress || typeof fullAddress !== 'string') {
         return defaultResult;
     }
-
     if (!regionsData || typeof regionsData !== 'object') {
         console.warn('parseAddress: regionsData не определён или не является объектом');
         return defaultResult;
     }
-
     // Нормализация: убираем "Россия", лишние пробелы, приводим к нижнему регистру для сравнения
     let addr = fullAddress
         .replace(/^Россия,\s*/i, '')
         .replace(/\s{2,}/g, ' ')
         .trim();
-
     // Если после удаления "Россия" ничего не осталось
     if (!addr) return defaultResult;
-
     // 1. Извлечение номера дома (ищем в конце строки, после запятой или после "д.")
     let houseNumber = '';
     const houseRegex = /(?:^|,\s*|[дД]\.?\s*|[Дд]ом\s*)(\d+[а-я]?(?:\s*[/\\]\s*\d+)?(?:\s*[кК]\.?\s*\d+)?)\s*(?:$|,|$)/;
@@ -732,12 +717,10 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         // Убираем лишние запятые в конце/начале
         addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
     }
-
     // Экранирование специальных символов для RegExp
     function escapeRegex(str) {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
-
     // 2. Построение индекса "город → регион" для быстрого поиска
     const cityToRegion = new Map();
     for (const [region, cities] of Object.entries(regionsData)) {
@@ -751,14 +734,11 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             });
         }
     }
-
     // 3. Поиск города (с учётом границ слова)
     let foundCity = '';
     let foundRegion = '';
-
     // Сортируем города по длине (сначала самые длинные) для избежания частичных совпадений
     const sortedCities = [...cityToRegion.keys()].sort((a, b) => b.length - a.length);
-
     // Ищем город в адресе
     for (const city of sortedCities) {
         const escapedCity = escapeRegex(city);
@@ -769,7 +749,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             break;
         }
     }
-
     // Если город найден, удаляем его из адреса
     if (foundCity) {
         const escapedCity = escapeRegex(foundCity);
@@ -777,7 +756,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         addr = addr.replace(cityRegex, '').trim();
         addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
     }
-
     // 4. Поиск региона, если город не дал однозначного региона или регион не найден
     if (!foundRegion) {
         // Пытаемся найти регион напрямую (например, "Московская область")
@@ -794,20 +772,12 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             }
         }
     }
-
     // 5. Оставшаяся часть — улица (очищаем от лишних слов)
     let street = addr
         .replace(/^[,.\s]+/, '')   // удаляем запятые и точки в начале
         .replace(/[,.\s]+$/, '')   // удаляем в конце
         .replace(/\s{2,}/g, ' ')   // схлопываем пробелы
         .trim();
-
-    // Дополнительная нормализация улицы: убираем типичные сокращения (опционально)
-    // Можно удалить "ул.", "пр-т", "пер.", "бульв." и т.д., но аккуратно, чтобы не сломать названия.
-    // Простой вариант: оставляем как есть, т.к. это может быть и "Тверская улица" и "ул. Тверская".
-    // Если хотите убрать сокращения, раскомментируйте:
-    // street = street.replace(/^(ул\.|улица|проспект|пр-т|пер\.|переулок|бульвар|бульв\.|набережная|наб\.)\s+/i, '').trim();
-
     return {
         region: foundRegion || '',
         city: foundCity || '',
@@ -815,7 +785,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         houseNumber: houseNumber
     };
 }
-
     function extractStreetName(fullStreet) {
         if (!fullStreet) return '';
         const types = ['ул.', 'пер.', 'бульв.', 'просп.', 'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'];
@@ -826,18 +795,15 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         }
         return fullStreet;
     }
-
     // ===================== PULL-TO-REFRESH =====================
     let pullStartY = 0;
     let pullCurrentY = 0;
     let pullIsDragging = false;
     let pullThreshold = 70;
     let pullPanelType = null;
-
     function initPullToRefresh() {
         const panelContent = document.getElementById('panelContent');
         if (!panelContent) return;
-
         panelContent.addEventListener('touchstart', function(e) {
             if (this.scrollTop === 0) {
                 pullStartY = e.touches[0].clientY;
@@ -847,7 +813,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
                 pullIsDragging = false;
             }
         });
-
         panelContent.addEventListener('touchmove', function(e) {
             if (!pullIsDragging) return;
             pullCurrentY = e.touches[0].clientY;
@@ -860,7 +825,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
                 }
             }
         });
-
         panelContent.addEventListener('touchend', function() {
             if (!pullIsDragging) return;
             pullIsDragging = false;
@@ -882,7 +846,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             pullCurrentY = 0;
         });
     }
-
     function getCurrentPanelType() {
         const title = document.getElementById('panelTitle').textContent;
         if (title === 'Поиск') return 'search';
@@ -890,7 +853,6 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
         if (title === 'Профиль') return 'profile';
         return null;
     }
-
     function refreshCurrentPanel() {
         const content = document.getElementById('panelContent');
         switch (pullPanelType) {
@@ -983,12 +945,10 @@ function initAuth() {
             });
             return;
         }
-
         // Стандартный браузерный метод
         if (!navigator.geolocation) {
             return reject(new Error('Геолокация не поддерживается вашим устройством'));
         }
-
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 resolve({ lat: position.coords.latitude, lng: position.coords.longitude });
@@ -1083,7 +1043,6 @@ function tryYandexGeolocation(resolve, reject) {
             reject(new Error('Геолокация недоступна'));
         });
 }
-
     function tryBrowserGeolocation(resolve, reject) {
         if (typeof ymaps !== 'undefined') {
             ymaps.geolocation.get({ provider: 'browser', timeout: 10000 })
@@ -1097,7 +1056,6 @@ function tryYandexGeolocation(resolve, reject) {
             fallbackToNavigator(resolve, reject);
         }
     }
-
     function fallbackToNavigator(resolve, reject) {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -1272,13 +1230,10 @@ function updateParkingMarker(id, data) {
         parkingId: id,
         iconContent: String(freeSpots)
     });
-
     placemark.options.set('iconColor', color);
-
     // ✅ Обновляем Polygon только если изменились координаты
     const oldPolygon = placemark.properties.get('polygon');
     const newCoords = data.coordinates;
-
     // Функция для сравнения двух массивов координат (примитивная, но работает)
     function coordsChanged(oldCoord, newCoord) {
         if (!oldCoord || !newCoord) return true;
@@ -1290,7 +1245,6 @@ function updateParkingMarker(id, data) {
         }
         return false;
     }
-
     if (newCoords && Array.isArray(newCoords) && newCoords.length >= 3) {
         if (!oldPolygon || coordsChanged(oldPolygon.geometry.getCoordinates()[0], newCoords)) {
             // Удаляем старый полигон
@@ -1320,33 +1274,26 @@ function updateParkingMarker(id, data) {
             placemark.properties.set('polygon', null);
         }
     }
-
     // Обновляем общий счётчик
     if (typeof updateTotalFreeCircle === 'function') {
         updateTotalFreeCircle();
     }
 }
 function refreshParkingMarker(parkingId) {
-
     const id =
         parkingId || currentParkingId;
-
     if (!id) {
         return;
     }
-
     const data =
         parkingDataCache[id];
-
     if (!data) {
         return;
     }
-
     updateParkingMarker(
         id,
         data
     );
-
     // Обновляем общий счётчик
     if (
         typeof updateTotalFreeCircle ===
@@ -1360,80 +1307,57 @@ function addMarkerToMap(id, data) {
     if (!map || !clusterer) {
         return;
     }
-
-    // ============================================
-    // Если маркер уже существует — сначала
-    // полностью удаляем старый
-    // ============================================
-
     if (mapMarkers[id]) {
-
         const oldPlacemark =
             mapMarkers[id];
-
         const oldPolygon =
             oldPlacemark.properties.get(
                 'polygon'
             );
-
         // Удаляем маркер из кластера
         clusterer.remove(
             oldPlacemark
         );
-
         // Удаляем полигон
         if (oldPolygon) {
             map.geoObjects.remove(
                 oldPolygon
             );
         }
-
         delete mapMarkers[id];
     }
-
     // ============================================
     // Нормализуем данные
     // ============================================
-
     const totalSpots =
         Number(data.totalSpots) || 0;
-
     const occupiedSpots =
         Number(data.occupiedSpots) || 0;
-
     const freeSpots = Math.max(
         0,
         totalSpots - occupiedSpots
     );
-
     const color =
         getOccupancyColor(
             occupiedSpots,
             totalSpots
         );
-
     // ============================================
     // Определяем центр парковочной зоны
     // ============================================
-
     let centerLat =
         Number(data.lat);
-
     let centerLng =
         Number(data.lng);
-
     if (
         Array.isArray(data.coordinates) &&
         data.coordinates.length > 0
     ) {
-
         let latSum = 0;
         let lngSum = 0;
         let validPoints = 0;
-
         data.coordinates.forEach(
             function(point) {
-
                 if (
                     Array.isArray(point) &&
                     point.length >= 2 &&
@@ -1444,39 +1368,29 @@ function addMarkerToMap(id, data) {
                         Number(point[1])
                     )
                 ) {
-
                     latSum +=
                         Number(point[0]);
-
                     lngSum +=
                         Number(point[1]);
-
                     validPoints++;
                 }
             }
         );
-
         if (validPoints > 0) {
-
             centerLat =
                 latSum / validPoints;
-
             centerLng =
                 lngSum / validPoints;
         }
     }
-
     // ============================================
     // Создаём полигон
     // ============================================
-
     let polygon = null;
-
     if (
         Array.isArray(data.coordinates) &&
         data.coordinates.length >= 3
     ) {
-
         polygon =
             new ymaps.Polygon(
                 [data.coordinates],
@@ -1484,31 +1398,23 @@ function addMarkerToMap(id, data) {
                 {
                     fillColor:
                         color + '33',
-
                     strokeColor:
                         color,
-
                     strokeWidth: 2,
-
                     visible: false,
-
                     zIndex: 5
                 }
             );
-
         map.geoObjects.add(
             polygon
         );
-
         // Чтобы можно было определить,
         // к какой парковке относится полигон
         polygon.__parkingId = id;
     }
-
     // ============================================
     // Создаём маркер
     // ============================================
-
     const placemark =
         new ymaps.Placemark(
             [
@@ -1519,79 +1425,62 @@ function addMarkerToMap(id, data) {
                 hintContent:
                     data.name ||
                     'Парковка',
-
                 name:
                     data.name ||
                     'Парковка',
-
                 freeSpots:
                     freeSpots,
-
                 totalSpots:
                     totalSpots,
-
                 occupiedSpots:
                     occupiedSpots,
-
                 parkingId:
                     id,
-                    
                 polygon:
                     polygon
             },
             {
                 preset:
                     'islands#blueIcon',
-
                 iconColor:
                     color,
             }
         );
-
     // ============================================
     // Клик по парковке
     // ============================================
-
    placemark.events.add('click', function() {
     // ===== ПРИБЛИЖАЕМ КАРТУ =====
     if (map) {
         map.setCenter([centerLat, centerLng], 18, { duration: 300, checkZoomRange: true });
     }
-
     // Скрываем предыдущий полигон
     if (activePolygon) {
         activePolygon.options.set('visible', false);
         activePolygon = null;
     }
-
     const poly = placemark.properties.get('polygon');
     if (poly) {
         poly.options.set('visible', true);
         activePolygon = poly;
     }
-
     openCenterSheet(id, data);
     if (map.balloon) map.balloon.close();
 });
     // ============================================
     // Добавляем в кластер
     // ============================================
-
     clusterer.add(
         placemark
     );
-
     // ============================================
     // Сохраняем ссылку
     // ============================================
-
     mapMarkers[id] =
         placemark;
-
     // ============================================
     // Обновляем общий счётчик
     // ============================================
-
     if (
         typeof updateTotalFreeCircle ===
         'function'
@@ -1669,7 +1558,6 @@ function initMap() {
         console.error('❌ ymaps не определён – API не загружен');
         return;
     }
-
     try {
         // 1. Создаём карту с начальным зумом 14
         map = new ymaps.Map("map", {
@@ -1680,7 +1568,6 @@ function initMap() {
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
-
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
             var currentZoom = map.getZoom();
@@ -1694,13 +1581,11 @@ function initMap() {
                 }
             });
         });
-
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
         clusterer = new ymaps.Clusterer({
             gridSize: 128,
             minClusterSize: 2,
             maxZoom: 17,
-
             clusterIconLayout:
                 ymaps.templateLayoutFactory.createClass(
                     '<div style="' +
@@ -1717,7 +1602,6 @@ function initMap() {
                         '{{ content }}' +
                     '</div>'
                 ),
-
             clusterIconContentLayout:
                 ymaps.templateLayoutFactory.createClass(
                     '<div style="' +
@@ -1733,7 +1617,6 @@ function initMap() {
                         '{{ properties.parkingCount || "0" }}' +
                     '</div>'
                 ),
-
             clusterBalloonContentLayout:
                 ymaps.templateLayoutFactory.createClass(
                     '<div style="' +
@@ -1742,9 +1625,7 @@ function initMap() {
                         'padding:6px 10px;' +
                         'font-size:13px;' +
                     '">' +
-
                         '{% for geoObject in properties.geoObjects %}' +
-
                             '<div style="' +
                                 'padding:6px 8px;' +
                                 'border-bottom:1px solid #eee;' +
@@ -1756,11 +1637,9 @@ function initMap() {
                                 '\'{{ geoObject.properties.parkingId }}\'' +
                                 '])' +
                             '">' +
-
                                 '<div style="font-weight:600;">' +
                                     '{{ geoObject.properties.name }}' +
                                 '</div>' +
-
                                 '<div style="font-size:12px;color:var(--text-secondary);">' +
                                     '🅿️ Свободно: ' +
                                     '{{ geoObject.properties.freeSpots }}' +
@@ -1775,7 +1654,6 @@ function initMap() {
                     '</div>'
                 )
         });
-
         // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем места =====
         clusterer.events.add(
             'clusterize',
@@ -1800,24 +1678,20 @@ function initMap() {
                 });
             }
         );
-
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
-
         // ===== Обработчик клика на кластер (приближение) =====
         clusterer.events.add('click', function(e) {
             var cluster = e.get('target');
             var coords = cluster.geometry.getCoordinates();
             map.setCenter(coords, 16, { duration: 300, checkZoomRange: true });
         });
-
         // ===== Обработчики кнопок =====
         document.getElementById('addBtn').onclick = function() {
             if (!currentUser) showPanel('home');
             else if (isDrawingMode) cancelDrawing();
             else startDrawingMode();
         };
-
         const layerBtn = document.getElementById('layerSwitcher');
         let pressTimer = null;
         function showLayerMenu() {
@@ -1859,7 +1733,6 @@ function initMap() {
                 updateMapTheme();
             }
         });
-
         // ===== Кнопка геолокации =====
         document.getElementById('geoBtn').onclick = function() {
             if (!map) return;
@@ -1867,7 +1740,6 @@ function initMap() {
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div>';
             btn.disabled = true;
-
             getUserLocation()
                 .then(function(coords) {
                     btn.innerHTML = originalContent;
@@ -1899,12 +1771,10 @@ function initMap() {
                     }
                 });
         };
-
         // ===== Загружаем парковки =====
         loadAllParkings(currentCity).catch(function(err) {
             console.warn('Не удалось загрузить парковки:', err);
         });
-
         // ===== Автогеолокация через 1 секунду =====
         setTimeout(function() {
             getUserLocation()
@@ -1924,7 +1794,6 @@ function initMap() {
                     showToast('Нажмите 📍, чтобы определить ваше местоположение', 4000);
                 });
         }, 1000);
-
        // ===== Скрываем сплеш-экран =====
 setTimeout(function() {
     const splash = document.getElementById('splashScreen');
@@ -1935,27 +1804,19 @@ setTimeout(function() {
         }, 700);
     }
 }, 5000);
-
     } catch (e) {
-
     console.error(
         '❌ Ошибка инициализации ParkNear:',
         e
     );
-
-    // Если карта уже создана —
-    // НЕ уничтожаем её и НЕ показываем
-    // сообщение "не удалось загрузить карту"
     if (map) {
         console.error(
             '⚠️ Карта уже создана. Ошибка произошла после создания карты.'
         );
         return;
     }
-
     const container =
         document.getElementById('map');
-
     if (container) {
         container.innerHTML = `
             <div style="
@@ -1971,7 +1832,6 @@ setTimeout(function() {
 }
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
-
     function setMapType(option) {
         if (!map) return;
         map.setType(option.dataset.type);
@@ -1980,13 +1840,10 @@ setTimeout(function() {
         document.getElementById('layerMenu').classList.remove('active');
         updateMapTheme();
     }
-
     // ===================== РИСОВАНИЕ ЗОНЫ =====================
-
 function startDrawingMode() {
     const oldControls = document.getElementById('drawingControls');
     if (oldControls) oldControls.remove();
-
     if (!map || !currentUser) return;
     if (drawingPolygon) {
         map.geoObjects.remove(drawingPolygon);
@@ -1995,7 +1852,6 @@ function startDrawingMode() {
     isDrawingMode = true;
     document.getElementById('addBtn').classList.add('drawing');
     document.getElementById('addBtn').textContent = '✕';
-
     drawingPolygon = new ymaps.Polygon([[]], {}, {
         editorDrawingCursor: "crosshair",
         fillColor: '#2B757433',
@@ -2005,9 +1861,7 @@ function startDrawingMode() {
     });
     map.geoObjects.add(drawingPolygon);
     drawingPolygon.editor.startDrawing();
-
     showMapHint('Нажимайте на карту для рисования зоны');
-
     const controls = document.createElement('div');
     controls.className = 'drawing-controls';
     controls.id = 'drawingControls';
@@ -2021,34 +1875,29 @@ function startDrawingMode() {
         window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
 }
-
 function finishDrawing() {
     console.log('finishDrawing() вызвана');
     if (!drawingPolygon) return;
     drawingPolygon.editor.stopDrawing();
     const coordinates = drawingPolygon.geometry.getCoordinates()[0];
     newParkingCoords = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
-
     const sizeCheck = checkPolygonSize(newParkingCoords);
     if (!sizeCheck.valid) {
         alert(sizeCheck.error);
         cancelDrawing();
         return;
     }
-
     _parkingFormCoords = newParkingCoords;
     _parkingFormSizeCheck = sizeCheck;
     console.log('Сохранены координаты:', _parkingFormCoords);
-
     const controls = document.getElementById('drawingControls');
     if (controls) {
         controls.innerHTML = `
-            <button class="btn-finish" onclick="openParkingForm()">✅ Готова</button>
-            <button class="btn-cancel" onclick="cancelDrawing()">✕ Отменить</button>
+            <button class="btn-finish" onclick="openParkingForm()">✅Готова</button>
+            <button class="btn-cancel" onclick="cancelDrawing()">✕Отменить</button>
         `;
         console.log('Кнопки заменены на "Готова" и "Отменить"');
     }
-
     // ФИКС: возвращаем иконку "+", т.к. режим рисования завершён
     const addBtn = document.getElementById('addBtn');
     if (addBtn) {
@@ -2064,7 +1913,6 @@ function finishDrawing() {
         showToast('⚠️ Зона слишком мала для парковки', 2000);
     }
 }
-
 function openParkingForm() {
     console.log('✅ openParkingForm вызвана');
     console.log('Координаты:', _parkingFormCoords);
@@ -2074,46 +1922,37 @@ function openParkingForm() {
     }
     openAddPanelWithPolygon(_parkingFormCoords, _parkingFormSizeCheck);
 }
-
 function cancelDrawing() {
     if (editingPolygon) {
         map.geoObjects.remove(editingPolygon);
         editingPolygon = null;
-
         if (originalPolyCoords && currentParkingId) {
             addMarkerToMap(currentParkingId, {
                 ...currentParkingData,
                 coordinates: originalPolyCoords
             });
         }
-
         const controls = document.getElementById('drawingControls');
         if (controls) controls.remove();
-
         const addBtn = document.getElementById('addBtn');
         if (addBtn) {
             addBtn.classList.remove('drawing');
             addBtn.textContent = '+';
         }
-
         isDrawingMode = false;
         currentParkingId = null;
         currentParkingData = null;
         originalPolyCoords = null;
         _parkingFormCoords = null;
         _parkingFormSizeCheck = null;
-
         closePanel();
         return;
     }
-
     if (drawingPolygon) {
         map.geoObjects.remove(drawingPolygon);
         drawingPolygon = null;
     }
-
     isDrawingMode = false;
-
     const addBtn = document.getElementById('addBtn');
     if (addBtn) {
         addBtn.classList.remove('drawing');
@@ -2121,11 +1960,9 @@ function cancelDrawing() {
     }
     const controls = document.getElementById('drawingControls');
     if (controls) controls.remove();
-
     _parkingFormCoords = null;
     _parkingFormSizeCheck = null;
 }
-
 function showMapHint(text) {
     const hint = document.createElement('div');
     hint.className = 'map-hint';
@@ -2133,7 +1970,6 @@ function showMapHint(text) {
     document.body.appendChild(hint);
     setTimeout(() => hint.remove(), 3000);
 }
-
 function openAddPanelWithPolygon(coordinates, sizeCheck) {
     try {
         console.log('openAddPanelWithPolygon вызвана');
@@ -2143,20 +1979,16 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             console.error('Элементы панели не найдены');
             return;
         }
-
         panel.classList.add('active');
         document.getElementById('panelTitle').textContent = 'Новая парковка';
-
         const suggestedSpots = calculateParkingSpots(coordinates);
         const spotsPlaceholder = suggestedSpots > 0 ? `Например: ${suggestedSpots}` : 'Например: 10';
-
         panelContent.innerHTML = `
             <div class="form-group">
                 <label>Область парковки</label>
                 <div id="miniMapContainer" style="width:100%; height:200px; border-radius:12px; overflow:hidden; margin-top:8px; box-shadow: var(--card-shadow);"></div>
                 <p style="font-size:12px; color:var(--text-secondary); margin-top:6px;">Выделенная зона отображается на карте</p>
             </div>
-
             <div class="form-group">
                 <label>Тип улицы</label>
                 <select id="parkStreetType" class="input-field">
@@ -2180,7 +2012,6 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
                 <label>Номер дома</label>
                 <input type="text" id="parkHouseNumber" class="input-field" placeholder="15">
             </div>
-
             <div class="form-group">
                 <label>Количество парковочных мест *</label>
                 <input type="number" id="parkSpots" class="input-field" placeholder="${spotsPlaceholder}" min="1" max="500">
@@ -2191,7 +2022,6 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
             <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
         `;
-
         setTimeout(() => {
             initMiniMap(coordinates);
             if (coordinates && coordinates.length > 0) {
@@ -2211,28 +2041,22 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
         showToast('Ошибка при открытии формы', 2000);
     }
 }
-
 // ФИКС: держим ссылку на мини-карту и уничтожаем предыдущий инстанс
 let _miniMapInstance = null;
-
 function initMiniMap(coords) {
     if (!coords || coords.length < 3) return;
-
     const container = document.getElementById('miniMapContainer');
     if (!container) return;
-
     if (_miniMapInstance) {
         try { _miniMapInstance.destroy(); } catch (e) {}
         _miniMapInstance = null;
     }
-
     const miniMap = new ymaps.Map(container, {
         center: coords[0],
         zoom: 17,
         controls: []
     });
     _miniMapInstance = miniMap;
-
     const polygon = new ymaps.Polygon([coords], {}, {
         fillColor: '#2B757433',
         strokeColor: '#2B7574',
@@ -2241,7 +2065,6 @@ function initMiniMap(coords) {
     miniMap.geoObjects.add(polygon);
     miniMap.setBounds(polygon.geometry.getBounds(), { checkZoomRange: true });
 }
-
 async function getAddressByCoordinates(lat, lng) {
     const latitude = Number(lat);
     const longitude = Number(lng);
@@ -2291,7 +2114,6 @@ async function getAddressByCoordinates(lat, lng) {
         return null;
     }
 }
-
 // ФИКС: проверка авторства перед изменением города
 async function fixParkingCity(parkingId, city, region) {
     if (!parkingId || !city) {
@@ -2318,7 +2140,6 @@ async function fixParkingCity(parkingId, city, region) {
         console.error('❌ Ошибка изменения города:', error);
     }
 }
-
 async function submitParkingWithPolygon() {
     const streetType = document.getElementById('parkStreetType')?.value?.trim() || '';
     const streetName = document.getElementById('parkStreetName')?.value?.trim() || '';
@@ -2354,7 +2175,6 @@ async function submitParkingWithPolygon() {
         console.log('📍 Координаты парковки:', centerLat, centerLng);
         if (btn) btn.textContent = 'Определяем город...';
         const geoData = await getAddressByCoordinates(centerLat, centerLng);
-
         // ФИКС: было const detectedCity → бросало TypeError при переприсваивании
         let detectedCity = String(geoData?.city || currentCity || mapCity?.city || userCityPrefs?.city || '').trim();
         const detectedRegion = String(geoData?.region || mapCity?.region || userCityPrefs?.region || '').trim();
@@ -2364,7 +2184,6 @@ async function submitParkingWithPolygon() {
         console.log('🏙️ Город:', detectedCity);
         console.log('🗺️ Регион:', detectedRegion);
         console.log('📬 Адрес:', detectedAddress);
-
         if (!detectedCity) {
             console.warn('⚠️ Яндекс не определил город, используем выбранный город карты');
             detectedCity = String(currentCity || mapCity?.city || userCityPrefs?.city || '').trim();
@@ -2402,13 +2221,11 @@ async function submitParkingWithPolygon() {
             statusConfirmations: 0
         };
         console.log('💾 Парковка перед сохранением:', parkingData);
-
         const cleanKeyPart = value => String(value || '').trim().replace(/[.#$/[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
         const cityKey = cleanKeyPart(detectedCity);
         const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
         const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
         const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
-
         // ФИКС: генерация ключа через transaction() вместо exists()+set() —
         // убирает гонку при одновременных сохранениях
         let number = 1;
@@ -2416,7 +2233,6 @@ async function submitParkingWithPolygon() {
         let committed = false;
         const MAX_ATTEMPTS = 50;
         if (btn) btn.textContent = 'Сохраняем...';
-
         while (!committed && number <= MAX_ATTEMPTS) {
             parkingKey = `${baseKey}_(${number})`;
             const parkingRef = database.ref(`parkings/${parkingKey}`);
@@ -2427,14 +2243,11 @@ async function submitParkingWithPolygon() {
             committed = txResult.committed;
             if (!committed) number++;
         }
-
         if (!committed) {
             throw new Error('Не удалось подобрать свободный идентификатор парковки, попробуйте ещё раз');
         }
-
         console.log('🔑 Ключ Firebase:', parkingKey);
         console.log('✅ Основные данные парковки записаны в Firebase');
-
         const parkingRef = database.ref(`parkings/${parkingKey}`);
         try {
             await database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
@@ -2451,7 +2264,6 @@ async function submitParkingWithPolygon() {
         } catch (error) {
             console.warn('⚠️ Не удалось сохранить history:', error);
         }
-
         parkingDataCache[parkingKey] = { ...parkingData, id: parkingKey };
         try {
             addMarkerToMap(parkingKey, parkingData);
@@ -2491,7 +2303,6 @@ async function submitParkingWithPolygon() {
         } catch (error) {
             console.warn('⚠️ Ошибка обновления списка:', error);
         }
-
         console.log('✅ ПАРКОВКА ПОЛНОСТЬЮ СОХРАНЕНА');
         console.log('🏙️ Город:', detectedCity);
         console.log('🗺️ Регион:', detectedRegion);
@@ -2508,18 +2319,15 @@ async function submitParkingWithPolygon() {
         }
     }
 }
-
 // ФИКС: проверка авторства перед изменением границ
 async function saveEditedPolygon(newCoords) {
     if (!currentParkingId) return;
-
     if (currentParkingData?.authorId && currentUser && currentParkingData.authorId !== currentUser.id) {
         console.warn('⛔ Попытка изменить границы чужой парковки заблокирована на клиенте');
         alert('Можно редактировать только свои парковки');
         cancelDrawing();
         return;
     }
-
     const sizeCheck = checkPolygonSize(newCoords);
     if (!sizeCheck.valid) {
         alert(sizeCheck.error);
@@ -2563,7 +2371,6 @@ async function saveEditedPolygon(newCoords) {
         cancelDrawing();
     }
 }
-
 // ===================== checkPolygonSize =====================
 function checkPolygonSize(coordinates) {
     if (!Array.isArray(coordinates) || coordinates.length < 3) {
@@ -2578,19 +2385,15 @@ function checkPolygonSize(coordinates) {
     if (validCoords.length < 3) {
         return { valid: false, error: 'Некорректные координаты зоны' };
     }
-
     const lats = validCoords.map(c => Number(c[0]));
     const lngs = validCoords.map(c => Number(c[1]));
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-
     const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng);
     const lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
-
     const maxDiagonal = Math.sqrt(MAX_ZONE_WIDTH ** 2 + MAX_ZONE_LENGTH ** 2);
-
     let maxPairDistance = 0;
     for (let i = 0; i < validCoords.length; i++) {
         for (let j = i + 1; j < validCoords.length; j++) {
@@ -2601,14 +2404,11 @@ function checkPolygonSize(coordinates) {
             if (d > maxPairDistance) maxPairDistance = d;
         }
     }
-
     const maxArea = MAX_ZONE_WIDTH * MAX_ZONE_LENGTH;
     const area = typeof calculatePolygonArea === 'function' ? calculatePolygonArea(validCoords) : null;
-
     const failsBoundingBox = widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH;
     const failsDiagonal = maxPairDistance > maxDiagonal;
     const failsArea = area !== null && area > maxArea;
-
     if (failsBoundingBox || failsDiagonal || failsArea) {
         return {
             valid: false,
@@ -2617,7 +2417,6 @@ function checkPolygonSize(coordinates) {
                    (area !== null ? `, площадь ${Math.round(area)} м²` : '')
         };
     }
-
     return { valid: true, width: widthM, length: lengthM };
 }
     // ===================== ПАНЕЛЬ ПАРКОВКИ =====================
@@ -2629,10 +2428,8 @@ function checkPolygonSize(coordinates) {
         console.error('❌ Bottom-sheet элементы не найдены');
         return;
     }
-
     var addr = data.address || (data.lat && data.lng ? data.lat.toFixed(6) + ', ' + data.lng.toFixed(6) : 'Адрес не указан');
     var free = data.totalSpots - (data.occupiedSpots || 0);
-
     // Функция рендеринга содержимого с расстоянием
     function renderContent(distKm, driveTime) {
         var html = '';
@@ -2650,7 +2447,6 @@ function checkPolygonSize(coordinates) {
         content.innerHTML = html;
         sheet.classList.add('active');
     }
-
     // Пытаемся получить геолокацию для расчёта расстояния
     getUserLocation().then(function(coords) {
         var dist = getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng);
@@ -2667,11 +2463,9 @@ async function openCenterSheet(parkingId,data){
     const sheet=document.getElementById('centerSheet');
     const content=document.getElementById('centerSheetContent');
     if(!sheet||!content)return;
-
     currentParkingId=parkingId;
     currentParkingData=data;
     parkingDataCache[parkingId]=data;
-
     const totalSpots=Number(data.totalSpots)||0;
     let occupiedSpots=0;
     try{
@@ -2679,11 +2473,8 @@ async function openCenterSheet(parkingId,data){
     }catch(error){
         console.error('Ошибка получения занятости:',error);
     }
-
     const freeSpots=Math.max(0,totalSpots-occupiedSpots);
-
     let status='unknown';
-
     if(totalSpots>0){
         const occupancy=occupiedSpots/totalSpots;
         if(occupancy>=0.9){
@@ -2749,9 +2540,7 @@ async function openCenterSheet(parkingId,data){
     }
     content.innerHTML=`
         <div class="parking-card-compact">
-
             <div class="parking-card-handle"></div>
-
             <div class="parking-card-header">
                 <div>
                     <div class="parking-card-title">
@@ -2800,7 +2589,6 @@ async function openCenterSheet(parkingId,data){
                     <span>♡</span>
                     <span>Сохранить</span>
                 </button>
-
             </div>
             <button
                 class="parking-edit-btn"
@@ -2817,20 +2605,16 @@ async function getParkingOccupancy(parkingId) {
     if (!parkingId) {
         throw new Error('Не указан идентификатор парковки.');
     }
-
     const snapshot = await database
         .ref('parkingSessions')
         .orderByChild('parkingId')
         .equalTo(String(parkingId))
         .once('value');
-
     const sessions = snapshot.val() || {};
-
     return Object.values(sessions).filter(session => {
         return session && session.active === true;
     }).length;
 }
-
 async function getUserActiveParkingSession(){
     if(!currentUser?.id)return null;
     try{
@@ -2853,7 +2637,6 @@ async function getUserActiveParkingSession(){
         return null;
     }
 }
-
 function getCurrentUserLocation() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -2926,12 +2709,10 @@ async function startParkingSession(parkingId) {
         alert('Чтобы припарковаться, необходимо войти в аккаунт.');
         return;
     }
-
     if (!parkingId) {
         alert('Не удалось определить парковку.');
         return;
     }
-
     try {
         // 1. Проверяем, нет ли у пользователя активной парковки
         const existingSnapshot = await database
@@ -2939,34 +2720,26 @@ async function startParkingSession(parkingId) {
             .orderByChild('userId')
             .equalTo(String(currentUser.id))
             .once('value');
-
         const existingSessions = existingSnapshot.val() || {};
-
         const alreadyParked = Object.values(existingSessions).some(
             session => session && session.active === true
         );
-
         if (alreadyParked) {
             alert('У вас уже есть активная парковка.');
             return;
         }
-
         // 2. Загружаем парковку
         const parkingSnapshot = await database
             .ref(`parkings/${parkingId}`)
             .once('value');
-
         const parking = parkingSnapshot.val();
-
         if (!parking) {
             alert('Парковка не найдена.');
             return;
         }
-
         // 3. Проверяем координаты парковки
         const parkingLat = Number(parking.lat ?? parking.latitude);
         const parkingLng = Number(parking.lng ?? parking.longitude);
-
         if (
             !Number.isFinite(parkingLat) ||
             !Number.isFinite(parkingLng) ||
@@ -2976,21 +2749,16 @@ async function startParkingSession(parkingId) {
             alert('Не удалось определить координаты парковки.');
             return;
         }
-
         // 4. Проверяем местоположение пользователя
         const position = await getCurrentUserLocation();
-
         const distance = getDistanceInMeters(
             position.latitude,
             position.longitude,
             parkingLat,
             parkingLng
         );
-
-      
           const radius = 100;
           const accuracy = Number(position.accuracy) || 0;
-
           if (distance > radius + accuracy) {
              alert(
                `Вы находитесь примерно в ${Math.round(distance)} м ` +
@@ -3006,10 +2774,8 @@ async function startParkingSession(parkingId) {
             alert('По данным приложения, свободных мест сейчас нет.');
             return;
         }
-
         // 6. Создаём парковочную сессию
         const sessionRef = database.ref('parkingSessions').push();
-
         await sessionRef.set({
             parkingId: parkingId,
             userId: String(currentUser.id),
@@ -3017,21 +2783,16 @@ async function startParkingSession(parkingId) {
             endedAt: null,
             active: true
         });
-
         // 7. Обновляем карточку парковки
         currentParkingData = parking;
         parkingDataCache[parkingId] = parking;
-
         await openCenterSheet(parkingId, parking);
-
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback
                 .notificationOccurred('success');
         }
-
     } catch (error) {
         console.error('Ошибка начала парковки:', error);
-
         alert(
             error.message === 'Разрешите доступ к геолокации.'
                 ? error.message
@@ -3042,17 +2803,13 @@ async function startParkingSession(parkingId) {
 }
 async function endParkingSession(parkingId){
     if(!currentUser?.id)return;
-
     try{
         const snapshot=await database.ref('parkingSessions')
             .orderByChild('userId')
             .equalTo(String(currentUser.id))
             .once('value');
-
         const sessions=snapshot.val()||{};
-
         let sessionKey=null;
-
         Object.entries(sessions).some(([key,session])=>{
             if(
                 session&&
@@ -3064,7 +2821,6 @@ async function endParkingSession(parkingId){
             }
             return false;
         });
-
         if(!sessionKey){
             alert('Активная парковка не найдена.');
             return;
