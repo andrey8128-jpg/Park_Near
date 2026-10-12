@@ -3190,27 +3190,30 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     gap: 7px;
     margin-top: 8px;
 }
-.parking-secondary-btn { /* Внешний вид вторичной кнопки */
-    display: flex; /* Flex-разметка */
-    align-items: center; /* Центрирование по вертикали */
-    justify-content: center; /* Центрирование по горизонтали */
-    gap: 8px; /* Расстояние между иконкой и текстом */
-    padding: 9px; /* Внутренний отступ. Если 8px → кнопка ниже. Если 20px → выше. */
-    border-radius: 13px; /* Скругление. Если 0 → прямые углы. */
-    border: 1px solid var(--card-border); /* Рамка 1px. Если 2px → толще. Если none → рамки не будет. */
-    background: var(--bg-secondary); /* Фон кнопки */
-    color: var(--text-primary); /* Цвет текста */
-    font-size: 13px; /* Размер текста */
-    font-weight: 500; /* Толщина текста */
-    cursor: pointer; /* Кнопка считается кликабельной */
-    transition: background 0.15s, transform 0.1s; /* Плавность изменения фона и размера */
+.parking-secondary-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px;
+    box-sizing: border-box;
+    border-radius: 13px;
+    border: 1px solid var(--card-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
 }
-.parking-secondary-btn:active { /* Состояние при нажатии */
-    background: var(--bg-primary); /* Меняет фон. Если оставить тот же цвет → визуально фон не изменится. */
-    transform: scale(0.96); /* Уменьшает кнопку на 4%. Если 1 → не уменьшится. */
+.parking-secondary-btn:active {
+    background: var(--bg-primary);
+    transform: scale(0.96);
 }
-.parking-secondary-btn .btn-icon { /* Иконка вторичной кнопки */
-    font-size: 20px; /* Размер иконки. Если 16px → меньше. Если 26px → крупнее. */
+.parking-secondary-btn .btn-icon {
+    font-size: 20px;
 }
 /* Кнопка "Редактировать" */
 .parking-edit-btn { /* Нижняя кнопка редактирования */
