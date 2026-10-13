@@ -7003,18 +7003,39 @@ document.addEventListener('visibilitychange', function() {
         }
     }
     // Заполняем цвета для редактора автомобиля
+  
+    // Заполняем цвета для редактора автомобиля
     (function initCarColors() {
         const colorSelect = document.getElementById('carColorSelect');
-        if (colorSelect) {
-            colorSelect.innerHTML = '<option value="">Выберите цвет</option>';
-            Object.keys(carColors).forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                opt.textContent = c;
-                opt.style.background = carColors[c];
-                opt.style.color = ['#FFFFFF', '#000000'].includes(carColors[c]) ? '#fff' : '#000';
-                colorSelect.appendChild(opt);
-            });
-        }
+        if (!colorSelect) return;
+
+        // Цвета автомобилей
+        const carColors = {
+            'Белый': '#FFFFFF',
+            'Чёрный': '#000000',
+            'Серый': '#808080',
+            'Серебристый': '#C0C0C0',
+            'Красный': '#FF0000',
+            'Бордовый': '#800020',
+            'Синий': '#0000FF',
+            'Голубой': '#87CEEB',
+            'Зелёный': '#008000',
+            'Коричневый': '#8B4513',
+            'Бежевый': '#F5F5DC',
+            'Жёлтый': '#FFFF00',
+            'Оранжевый': '#FFA500',
+            'Фиолетовый': '#800080',
+            'Другой': '#D3D3D3'
+        };
+        colorSelect.innerHTML =
+            '<option value="">Выберите цвет</option>';
+        Object.entries(carColors).forEach(([name, color]) => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            opt.style.backgroundColor = color;
+
+            colorSelect.appendChild(opt);
+        });
     })();
     console.log('✅ ParkNear загружен. Код исправлен.');
