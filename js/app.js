@@ -3468,31 +3468,54 @@ async function deleteParking(parkingId) {
         });
     }
    // ===================== МАРШРУТ =====================
-    function buildRouteToParking(parkingId) {
-        closeCenterSheet();
-        const data = parkingDataCache[parkingId];
-        if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') {
-            alert('Ошибка: данные парковки не содержат координат');
-            return;
-        }
+   
+function buildRouteToParking(parkingId) {
+    const data =
+        parkingDataCache[parkingId] ||
+        (currentParkingId === parkingId ? currentParkingData : null);
 
-        getUserLocation()
-            .then(coords => {
-                routeStartCoords = [coords.lat, coords.lng];
-                routeEndCoords = [data.lat, data.lng];
-                routeParkingData = data;
-                buildAndShowRoute();
-            })
-            .catch(err => {
-                console.warn('Не удалось получить геолокацию, используем центр карты:', err);
-                const center = map.getCenter();
-                routeStartCoords = center;
-                routeEndCoords = [data.lat, data.lng];
-                routeParkingData = data;
-                buildAndShowRoute();
-            });
+    if (!data) {
+        alert('Не удалось найти данные парковки.');
+        return;
     }
 
+    // Преобразуем координаты в числа.
+    const lat = Number(data.lat);
+    const lng = Number(data.lng);
+
+    if (
+        data.lat == null ||
+        data.lng == null ||
+        data.lat === '' ||
+        data.lng === '' ||
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180 ||
+        (lat === 0 && lng === 0)
+    ) {
+        console.error('Некорректные координаты парковки:', data);
+        alert('У этой парковки отсутствуют корректные координаты.');
+        return;
+    }
+
+    // Формируем ссылку на автомобильный маршрут в Яндекс Картах.
+    const url = new URL('https://yandex.ru/maps/');
+    url.searchParams.set('rtext', `~${lat},${lng}`);
+    url.searchParams.set('rtt', 'auto');
+
+    // Открываем карты непосредственно по нажатию кнопки.
+    const mapsWindow = window.open(url.toString(), '_blank');
+
+    // Если браузер запретил новую вкладку, открываем в текущей.
+    if (!mapsWindow) {
+        window.location.href = url.toString();
+        return;
+    }
+
+    // Закрываем карточку после открытия маршрута.
+    closeCenterSheet();
+}
     function buildAndShowRoute() {
         if (currentRoute) {
             map.geoObjects.remove(currentRoute);
@@ -3502,9 +3525,7 @@ async function deleteParking(parkingId) {
             alert('Не удалось определить точки маршрута');
             return;
         }
-
         const mode = document.getElementById('routeTypeSelect')?.value || 'auto';
-
         try {
             // Создаем маршрут Яндекс.Карт
             currentRoute = new ymaps.multiRouter.MultiRoute({
@@ -3517,7 +3538,6 @@ async function deleteParking(parkingId) {
                 boundsAutoApply: true,
                 wayPointVisible: true
             });
-
             // Подписываемся на успешное построение маршрута
             currentRoute.model.events.add('requestsuccess', function () {
                 const activeRoute = currentRoute.getActiveRoute();
@@ -3535,7 +3555,6 @@ async function deleteParking(parkingId) {
                     }
                 }
             });
-
             // Обработка ошибки построения
             currentRoute.model.events.add('requestfail', function (event) {
                 console.error('Ошибка построения маршрута:', event.get('error'));
@@ -3544,9 +3563,7 @@ async function deleteParking(parkingId) {
                     infoEl.innerHTML = '<div class="route-error">Не удалось проложить маршрут.</div>';
                 }
             });
-
             map.geoObjects.add(currentRoute);
-
             // Показываем плашку маршрута, если она есть в DOM
             const routePanel = document.getElementById('routePanel');
             if (routePanel) routePanel.classList.add('active');
@@ -3560,13 +3577,10 @@ async function deleteParking(parkingId) {
         route.model.events.add('update', function() {
             var activeRoute = route.getActiveRoute();
             if (!activeRoute) return;
-
             var distance = activeRoute.getLength();
             var time = activeRoute.getTime();
-
             var distKm = (distance / 1000).toFixed(1);
             var timeMin = Math.round(time / 60);
-
             var instructions = activeRoute.getWayPoints();
             var stepsHtml = '';
             instructions.forEach(function(item, index) {
@@ -3575,9 +3589,7 @@ async function deleteParking(parkingId) {
                         `<div style="font-size:12px; color:var(--text-secondary);">${item.getName()}</div>`;
                 }
             });
-
             var free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-
             document.getElementById('routeInfo').innerHTML = `
             <div style="margin-bottom:8px;">
                 <div style="font-weight:600; font-size:18px;">🚗 До парковки</div>
@@ -3593,7 +3605,6 @@ async function deleteParking(parkingId) {
         `;
         });
     }
-
    function showDirectLine() {
     if (!routeStartCoords || !routeEndCoords) return;
 
@@ -3601,9 +3612,7 @@ async function deleteParking(parkingId) {
         map.geoObjects.remove(currentRoute);
         currentRoute = null;
     }
-
     const free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
-
     currentRoute = new ymaps.multiRouter.MultiRoute({
         referencePoints: [routeStartCoords, routeEndCoords],
         params: {
@@ -3618,16 +3627,12 @@ async function deleteParking(parkingId) {
         routeActiveStrokeWidth: 5,
         wayPointVisible: false
     });
-
     map.geoObjects.add(currentRoute);
-
     currentRoute.model.events.add('requestsuccess', function() {
         const activeRoute = currentRoute.getActiveRoute();
         if (!activeRoute) return;
-
         const distance = activeRoute.properties.get('distance');
         const duration = activeRoute.properties.get('duration');
-
         document.getElementById('routeInfo').innerHTML = `
             <div>🚗 До парковки</div>
             <div>📍 ${distance.text}</div>
@@ -3638,7 +3643,6 @@ async function deleteParking(parkingId) {
 
         document.getElementById('routeCard').classList.add('active');
     });
-
     currentRoute.model.events.add('requestfail', function() {
         document.getElementById('routeInfo').innerHTML = `
             <div>❌ Не удалось построить маршрут</div>
@@ -3647,27 +3651,23 @@ async function deleteParking(parkingId) {
         `;
     });
 }
-
 function startNavigation() {
     if (!routeEndCoords) {
         alert('Сначала постройте маршрут');
         return;
     }
-
     getUserLocation()
         .then(coords => {
             const fromLat = coords.lat;
             const fromLng = coords.lng;
             const toLat = routeEndCoords[0];
             const toLng = routeEndCoords[1];
-
             const url = `https://yandex.ru/maps/?rtext=${fromLat},${fromLng}~${toLat},${toLng}&rtt=auto`;
             window.open(url, '_blank');
         })
         .catch(() => {
             const toLat = routeEndCoords[0];
             const toLng = routeEndCoords[1];
-
             const url = `https://yandex.ru/maps/?rtext=~${toLat},${toLng}&rtt=auto`;
             window.open(url, '_blank');
         });
@@ -3680,7 +3680,6 @@ function startNavigation() {
         routeEndCoords = null;
         routeParkingData = null;
     }
-
     // ===================== АДРЕСА =====================
     function addHomeAddress() {
         if (!currentUser) { alert('Необходимо войти'); return; }
