@@ -1,0 +1,117 @@
+/* ===== ПЛАШКА АКТИВНОЙ СТОЯНКИ ===== */
+.active-parking-banner {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    /* Плашка находится непосредственно над Tab Bar */
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid rgba(22, 119, 255, 0.18);
+    border-radius: 18px;
+    background: var(--bg-elevated, #FFFFFF);
+    color: var(--text-primary, #111516);
+    box-shadow: 0 8px 28px rgba(22, 119, 255, 0.14);
+}
+.active-parking-banner[hidden] {
+    display: none !important;
+}
+.active-parking-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+.active-parking-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    background: #E8F1FF;
+    color: #1677FF;
+    font-size: 21px;
+}
+.active-parking-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.active-parking-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+.active-parking-name {
+    overflow: hidden;
+    color: var(--text-secondary, #6B7375);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.active-parking-timer-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--text-secondary, #6B7375);
+    font-size: 11px;
+}
+.active-parking-timer-row strong {
+    color: #1677FF;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+}
+.active-parking-leave-btn {
+    flex-shrink: 0;
+    min-height: 40px;
+    padding: 0 13px;
+    border: none;
+    border-radius: 12px;
+    background: #1677FF;
+    color: #FFFFFF;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+.active-parking-leave-btn:active {
+    background: #0B5FD7;
+    transform: scale(0.97);
+}
+.active-parking-leave-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+/* ===== СИНЯЯ АКТИВНАЯ ПАРКОВКА В КАРТОЧКЕ ===== */
+.parking-park-btn.is-active-parking {
+    background: #1677FF !important;
+    color: #FFFFFF !important;
+    border-color: #1677FF !important;
+}
+/* Учитываем узкие экраны */
+@media (max-width: 360px) {
+    .active-parking-banner {
+        left: 8px;
+        right: 8px;
+        gap: 7px;
+        padding: 9px;
+    }
+    .active-parking-icon {
+        width: 36px;
+        height: 36px;
+    }
+    .active-parking-leave-btn {
+        padding: 0 9px;
+        font-size: 11px;
+    }
+}
