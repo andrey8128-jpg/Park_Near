@@ -2400,17 +2400,18 @@ async function openCenterSheet(parkingId,data){
         userSession&&
         userSession.parkingId===parkingId;
     let parkingButton='';
-    if(isParked){
-        parkingButton=`
-            <button
-                class="parking-park-btn parking-leave-btn"
-                onclick="endParkingSession('${safeId}')"
-            >
-                <span>🚗</span>
-                <span>Я уехал</span>
-            </button>
-        `;
-    }else if(currentUser?.id){
+    if (isParked) {
+    parkingButton = `
+        <button
+            class="parking-park-btn parking-leave-btn is-active-parking"
+            onclick="endParkingSession('${safeId}')"
+        >
+            <span>🚗</span>
+            <span>Я уехал</span>
+        </button>
+    `;
+   }
+    else if(currentUser?.id){
         parkingButton=`
             <button
                 class="parking-park-btn"
@@ -2657,15 +2658,24 @@ async function startParkingSession(parkingId) {
             alert('По данным приложения, свободных мест сейчас нет.');
             return;
         }
-        // 6. Создаём парковочную сессию
-        const sessionRef = database.ref('parkingSessions').push();
-        await sessionRef.set({
-            parkingId: parkingId,
-            userId: String(currentUser.id),
-            startedAt: Date.now(),
-            endedAt: null,
-            active: true
-        });
+        // 6. Создаём парковочную сессию        
+       const sessionRef = database.ref('parkingSessions').push();
+       const startedAt = Date.now();
+       await sessionRef.set({
+         parkingId: String(parkingId),
+         userId: String(currentUser.id),
+         startedAt: startedAt,
+         endedAt: null,
+         active: true
+     });
+// Сохраняем состояние плашки только после успешной записи в Firebase.
+       if (typeof window.setLocalActiveParking === 'function') {
+           window.setLocalActiveParking(
+            parkingId,
+            parking.name || 'Парковка',
+            startedAt
+       );
+   }
         // 7. Обновляем карточку парковки
         currentParkingData = parking;
         parkingDataCache[parkingId] = parking;
@@ -2713,7 +2723,10 @@ async function endParkingSession(parkingId){
             active:false,
             endedAt:Date.now()
         });
-
+       // Убираем плашку только после успешного завершения сессии.
+        if (typeof window.clearLocalActiveParking === 'function') {
+             window.clearLocalActiveParking();
+        }
         const parking=currentParkingData||parkingDataCache[parkingId];
 
         if(parking){
