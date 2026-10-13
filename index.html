@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="css/splash.css">
 <link rel="stylesheet" href="css/edit.park.css">
 <link rel="stylesheet" href="css/park.card.css">
+<link rel="stylesheet" href="css/active-parking.css">
 </head>
 <body>
 <!-- Toast -->
@@ -217,7 +218,35 @@
             <button class="btn-secondary" onclick="rebuildRoute()">🔄 Перестроить</button>
         </div>
     </div>
+<!-- Активная стоянка -->
+<div id="activeParkingBanner" class="active-parking-banner" hidden>
+    <div class="active-parking-info">
+        <div class="active-parking-icon">🚗</div>
 
+        <div class="active-parking-text">
+            <div class="active-parking-title">
+                Вы припарковались
+            </div>
+
+            <div id="activeParkingName" class="active-parking-name">
+                Парковка
+            </div>
+
+            <div class="active-parking-timer-row">
+                <span>Время стоянки</span>
+                <strong id="activeParkingTimer">00:00:00</strong>
+            </div>
+        </div>
+    </div>
+
+    <button
+        id="activeParkingLeaveBtn"
+        class="active-parking-leave-btn"
+        type="button"
+    >
+        Я уехал
+    </button>
+</div>
     <!-- Tab Bar -->
     <div class="tabBar">
         <div class="tab active" onclick="showPanel('home')">
@@ -319,7 +348,8 @@
 <script src="js/push-notifications.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/city-selector.js"></script>
-<script src="js/car-selector.js"></script>    
+<script src="js/car-selector.js"></script>   
+<script src="js/active-parking.js"></script>
 <script>
 function forceHideSplash(){
     const splash=document.getElementById('splashScreen');
