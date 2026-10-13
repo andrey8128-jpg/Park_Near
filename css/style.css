@@ -3209,5 +3209,5 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
 }
 
 /* ===== СТИЛИ РЕДАКТОРА ПАРКОВКИ ===== */
-@import url("./css/edit-parking.css");
+@import url("./css/edit.park.css");
 
