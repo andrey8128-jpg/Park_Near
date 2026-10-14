@@ -209,7 +209,7 @@ body.dark-theme #map .ymaps-2-1-79-ground-pane img {
 /* Кнопка выбора типа карты */
 .layer-switcher {
     position: fixed; /* фиксирует кнопку относительно экрана */
-    top: calc(12px + env(safe-area-inset-top, 0px)); /* отступ сверху с учётом выреза iPhone */
+    top: calc(4px + env(safe-area-inset-top, 0px)); /* отступ сверху с учётом выреза iPhone */
     right: 12px; /* отступ справа */
     z-index: 900; /* располагает кнопку поверх карты */
     width: 46px; /* ширина кнопки */
