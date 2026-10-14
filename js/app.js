@@ -4698,16 +4698,17 @@ function removeCar() {
             });
 
         renderList();
-   }).catch(error => {
+       }).catch(error => {
     console.error('Ошибка загрузки избранного:', error);
-        
-    if (list) {
+
+    if (typeof list !== 'undefined' && list) {
         list.innerHTML = `
             <div class="pn-fav-empty">
                 <div class="pn-fav-empty-icon">⚠️</div>
                 <h3>Не удалось загрузить</h3>
                 <p>Проверьте соединение и попробуйте ещё раз.</p>
                 <button
+                    type="button"
                     onclick="renderFavorites(document.getElementById('panelContent'))">
                     Повторить
                 </button>
@@ -4715,11 +4716,19 @@ function removeCar() {
         `;
     }
 });
+if (typeof searchInput !== 'undefined' && searchInput) {
     searchInput.addEventListener('input', function() {
         searchValue = this.value.trim();
-        clearSearch?.classList.toggle('visible', !!searchValue);
-        renderList();
+
+        if (typeof clearSearch !== 'undefined' && clearSearch) {
+            clearSearch.classList.toggle('visible', !!searchValue);
+        }
+
+        if (typeof renderList === 'function') {
+            renderList();
+        }
     });
+}
 
     clearSearch.addEventListener('click', function() {
         searchInput.value = '';
