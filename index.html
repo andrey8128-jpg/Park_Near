@@ -315,14 +315,15 @@
             <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
             <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
 
-            <!-- Telegram Login Widget (редиректный режим) -->
-        <script async src="https://telegram.org/js/telegram-widget.js?24"
-                data-telegram-login="parknear_bot"
-                data-size="large"
-                data-onauth="onTelegramAuth(user)"
-                data-request-access="write"
-                data-redirect-uri="https://andrey8128-jpg.github.io/Park_Near/">
-        </script>
+    <!-- Вход через Яндекс ID -->
+      <button
+           type="button"
+           id="yandexLoginBtn"
+           class="btn-primary"
+           onclick="startYandexLogin()"
+           style="width:100%; margin:0;">
+           Войти через Яндекс
+      </button>
 
         <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
         <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
