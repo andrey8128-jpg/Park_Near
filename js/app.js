@@ -2193,134 +2193,192 @@ function editFromCenter() {
             }
         });
     }
+   function renderEditPanel(data, isFavorite) {
+const totalSpots = Number(data.totalSpots) || 0;
+const isAuthor = currentUser && currentUser.id === data.authorId;
+const currentStreet = data.street || ‘’;
+const streetName = extractStreetName(currentStreet);
 
-function renderEditPanel(data,isFavorite){
-    const totalSpots=Number(data.totalSpots)||0;
-    const isAuthor=currentUser&&currentUser.id===data.authorId;
-    const currentStreet=data.street||'';
-    const streetName=extractStreetName(currentStreet);
+document.getElementById('panel').classList.add('active');
+document.getElementById('panelTitle').textContent = 'Парковка';
 
-    document.getElementById('panel').classList.add('active');
-    document.getElementById('panelTitle').textContent='Парковка';
-
-    let html=`
-        <div class="edit-parking">
-            <div class="edit-parking-header">
-                <div>
-                    <div class="edit-parking-title">
-                        <span id="parkingStatusIndicator" class="status-indicator status-unknown"></span>
-                        ${escapeHtml(data.name||'Без названия')}
-                    </div>
-                    <div class="edit-parking-address">📍 ${escapeHtml(currentStreet||'Адрес не указан')}</div>
+let html = `
+    <div class="edit-parking">
+        <div class="edit-parking-header">
+            <div>
+                <div class="edit-parking-title">
+                    ${escapeHtml(data.name || 'Без названия')}
+                </div>
+                <div class="edit-parking-address">
+                    📍 ${escapeHtml(currentStreet || 'Адрес не указан')}
                 </div>
             </div>
+        </div>
 
-            <div id="parkingStatusText" class="edit-parking-status">⚪ Нет данных</div>
-
-            <div class="edit-parking-stats">
-                <div class="edit-stat">
-                    <strong>${totalSpots||'—'}</strong>
-                    <span>Всего мест</span>
-                </div>
-                <div class="edit-stat">
-                    <strong id="parkingOccupiedCount">—</strong>
-                    <span>Занято примерно</span>
-                </div>
-                <div class="edit-stat">
-                    <strong id="parkingFreeCount">—</strong>
-                    <span>Свободно примерно</span>
-                </div>
+        <div class="edit-section">
+            <div class="edit-section-title">📋 История изменений</div>
+            <div id="historyContainer">
+                <div id="historyList"></div>
+                <div id="historyFullList" style="display:none;"></div>
+                <button
+                    type="button"
+                    id="showAllHistoryBtn"
+                    class="edit-history-btn"
+                    style="display:none;"
+                    onclick="showAllHistory()">
+                    См. все
+                </button>
+                <button
+                    type="button"
+                    id="hideAllHistoryBtn"
+                    class="edit-history-btn"
+                    style="display:none;"
+                    onclick="hideAllHistory()">
+                    Скрыть
+                </button>
             </div>
+            <span id="historyCount"></span>
+        </div>
 
-            <div class="edit-section">
-                <div class="edit-section-title">📋 История изменений</div>
-                <div id="historyContainer">
-                    <div id="historyList"></div>
-                    <div id="historyFullList" style="display:none;"></div>
-                    <button id="showAllHistoryBtn" class="edit-history-btn" style="display:none;" onclick="showAllHistory()">См. все</button>
-                    <button id="hideAllHistoryBtn" class="edit-history-btn" style="display:none;" onclick="hideAllHistory()">Скрыть</button>
-                </div>
-                <span id="historyCount"></span>
-            </div>
+        <div class="edit-actions">
+            <button
+                type="button"
+                class="btn-primary"
+                onclick="buildRouteToParking('${currentParkingId}')">
+                🧭 Построить маршрут
+            </button>
 
-            <div class="edit-actions">
-                <button class="btn-primary" onclick="buildRouteToParking('${currentParkingId}')">🧭 Построить маршрут</button>
-                ${isAuthor?`<button class="btn-secondary" onclick="toggleParkingEditor()">✏️ Редактировать данные</button>`:''}
-            </div>
+            ${isAuthor ? `
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="window.toggleParkingEditor()">
+                    ✏️ Редактировать данные
+                </button>
+            ` : ''}
+        </div>
+`;
+
+if (isAuthor) {
+    html += `
+        <div id="editPanel" class="edit-form" style="display:none;">
+            <div class="edit-form-title">✏️ Данные парковки</div>
+
+            <label for="editStreetType">Тип улицы</label>
+            <select id="editStreetType" class="input-field">
+                <option value="">-- выберите --</option>
+                <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
+                <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
+                <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
+                <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
+                <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
+                <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
+                <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
+                <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
+                <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
+            </select>
+
+            <label for="editStreetName">Название улицы</label>
+            <input
+                type="text"
+                id="editStreetName"
+                class="input-field"
+                value="${escapeHtml(streetName)}"
+                placeholder="Название улицы">
+
+            <label for="editHouseNumber">Номер дома</label>
+            <input
+                type="text"
+                id="editHouseNumber"
+                class="input-field"
+                value="${escapeHtml(data.houseNumber || '')}"
+                placeholder="15">
+
+            <label for="editParkingName">Название парковки</label>
+            <input
+                type="text"
+                id="editParkingName"
+                class="input-field"
+                value="${escapeHtml(data.name || '')}"
+                placeholder="Например: Парковка у дома"
+                maxlength="100">
+
+            <label for="editTotalSpots">Количество парковочных мест</label>
+            <input
+                type="number"
+                id="editTotalSpots"
+                class="input-field"
+                value="${totalSpots}"
+                min="1"
+                max="500"
+                step="1">
+
+            <button
+                type="button"
+                class="btn-primary"
+                onclick="saveParkingDetails()">
+                💾 Сохранить изменения
+            </button>
+
+            <button
+                type="button"
+                class="btn-secondary"
+                onclick="window.toggleParkingEditor()">
+                Отмена
+            </button>
+        </div>
     `;
-    if(isAuthor){
-        html+=`
-            <div id="editPanel" class="edit-form" style="display:none;">
-                <div class="edit-form-title">✏️ Данные парковки</div>
+} else if (currentUser) {
+    html += `
+        <div class="edit-no-access">
+            Вы не являетесь автором этой парковки
+        </div>
+    `;
+}
 
-                <label>Тип улицы</label>
-                <select id="editStreetType" class="input-field">
-                    <option value="">-- выберите --</option>
-                    <option value="ул." ${currentStreet.startsWith('ул.')?'selected':''}>улица</option>
-                    <option value="пер." ${currentStreet.startsWith('пер.')?'selected':''}>переулок</option>
-                    <option value="бульв." ${currentStreet.startsWith('бульв.')?'selected':''}>бульвар</option>
-                    <option value="просп." ${currentStreet.startsWith('просп.')?'selected':''}>проспект</option>
-                    <option value="пр-д" ${currentStreet.startsWith('пр-д')?'selected':''}>проезд</option>
-                    <option value="ш." ${currentStreet.startsWith('ш.')?'selected':''}>шоссе</option>
-                    <option value="наб." ${currentStreet.startsWith('наб.')?'selected':''}>набережная</option>
-                    <option value="алл." ${currentStreet.startsWith('алл.')?'selected':''}>аллея</option>
-                    <option value="тракт" ${currentStreet.startsWith('тракт')?'selected':''}>тракт</option>
-                </select>
+html += `</div>`;
 
-                <label>Название улицы</label>
-                <input type="text" id="editStreetName" class="input-field" value="${escapeHtml(streetName)}" placeholder="Название улицы">
+document.getElementById('panelContent').innerHTML = html;
 
-                <label>Номер дома</label>
-                <input type="text" id="editHouseNumber" class="input-field" value="${escapeHtml(data.houseNumber||'')}" placeholder="15">
+if (currentUser && currentParkingId) {
+    loadHistoryPreview(currentParkingId);
+}
 
-                <label>Название парковки</label>
-                <input type="text" id="editParkingName" class="input-field" value="${escapeHtml(data.name||'')}" placeholder="Например: Парковка у дома" maxlength="100">
+window.toggleParkingEditor = function () {
+    const editPanel = document.getElementById('editPanel');
 
-                <label>Количество парковочных мест</label>
-                <input type="number" id="editTotalSpots" class="input-field" value="${totalSpots}" min="1" max="500" step="1">
-
-                <button class="btn-primary" onclick="saveParkingDetails()">💾 Сохранить изменения</button>
-                <button class="btn-secondary" onclick="toggleParkingEditor()">Отмена</button>
-            </div>
-        `;
-    }else if(currentUser){
-        html+=`<div class="edit-no-access">Вы не являетесь автором этой парковки</div>`;
+    if (!editPanel) {
+        console.error('Форма редактирования не найдена');
+        return;
     }
 
-    html+=`</div>`;
-    document.getElementById('panelContent').innerHTML=html;
+    const isHidden = getComputedStyle(editPanel).display === 'none';
+    editPanel.style.display = isHidden ? 'block' : 'none';
+};
 
-    if(currentUser&&currentParkingId)loadHistoryPreview(currentParkingId);
+window.showAllHistory = function () {
+    const historyList = document.getElementById('historyList');
+    const historyFullList = document.getElementById('historyFullList');
+    const showButton = document.getElementById('showAllHistoryBtn');
+    const hideButton = document.getElementById('hideAllHistoryBtn');
 
-    loadParkingOccupancy(currentParkingId,totalSpots);
+    if (historyList) historyList.style.display = 'none';
+    if (historyFullList) historyFullList.style.display = 'block';
+    if (showButton) showButton.style.display = 'none';
+    if (hideButton) hideButton.style.display = 'inline-block';
+};
 
-    window.showAllHistory=function(){
-        const historyList=document.getElementById('historyList');
-        const historyFullList=document.getElementById('historyFullList');
-        const showButton=document.getElementById('showAllHistoryBtn');
-        const hideButton=document.getElementById('hideAllHistoryBtn');
-        if(historyList)historyList.style.display='none';
-        if(historyFullList)historyFullList.style.display='block';
-        if(showButton)showButton.style.display='none';
-        if(hideButton)hideButton.style.display='inline-block';
-    };
+window.hideAllHistory = function () {
+    const historyList = document.getElementById('historyList');
+    const historyFullList = document.getElementById('historyFullList');
+    const showButton = document.getElementById('showAllHistoryBtn');
+    const hideButton = document.getElementById('hideAllHistoryBtn');
 
-    window.hideAllHistory=function(){
-        const historyList=document.getElementById('historyList');
-        const historyFullList=document.getElementById('historyFullList');
-        const showButton=document.getElementById('showAllHistoryBtn');
-        const hideButton=document.getElementById('hideAllHistoryBtn');
-        if(historyFullList)historyFullList.style.display='none';
-        if(historyList)historyList.style.display='block';
-        if(showButton)showButton.style.display='inline-block';
-        if(hideButton)hideButton.style.display='none';
-    };
-
-    window.toggleParkingEditor=function(){
-        const panel=document.getElementById('editPanel');
-        if(!panel)return;
-        panel.style.display=panel.style.display==='none'?'block':'none';
-    };
+    if (historyFullList) historyFullList.style.display = 'none';
+    if (historyList) historyList.style.display = 'block';
+    if (showButton) showButton.style.display = 'inline-block';
+    if (hideButton) hideButton.style.display = 'none';
+  };
 }
 function loadHistoryPreview(parkingId) {
     const container = document.getElementById('historyList');
