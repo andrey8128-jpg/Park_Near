@@ -236,7 +236,6 @@ function renderFavorites(content) {
             </div>`;
         return;
     }
-
     content.innerHTML = `
         <div class="pn-favorites">
             <div class="pn-fav-header">
@@ -276,14 +275,12 @@ function renderFavorites(content) {
             </div>
         </div>
     `;
-
     const list = document.getElementById('pnFavList');
     const searchInput = document.getElementById('pnFavSearch');
     const clearSearch = document.getElementById('pnFavClearSearch');
     const subtitle = document.getElementById('pnFavSubtitle');
     const cityEl = document.getElementById('pnFavCity');
     const filterButtons = document.querySelectorAll('.pn-fav-filter');
-
     let favorites = [];
     let currentSort = 'recent';
     let searchValue = '';
