@@ -1173,7 +1173,7 @@ function initMap() {
         });
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
         clusterer = new ymaps.Clusterer({
-            gridSize: 128,
+            gridSize: 64,
             minClusterSize: 2,
             maxZoom: 17,
             clusterIconLayout:
