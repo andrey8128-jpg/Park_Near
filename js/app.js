@@ -219,45 +219,6 @@ function formatDateTime(timestamp) {
     if (Number.isNaN(d.getTime())) return 'Неизвестно';
     return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth() + 1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
-   function checkPolygonSize(coordinates) {
-    if (!Array.isArray(coordinates) || coordinates.length < 3) {
-        return {
-            valid: false,
-            error: 'Минимум 3 точки'
-        };
-    }
-    const validCoords = coordinates.filter(c =>
-        Array.isArray(c) &&
-        c.length >= 2 &&
-        Number.isFinite(Number(c[0])) &&
-        Number.isFinite(Number(c[1]))
-    );
-    if (validCoords.length < 3) {
-        return {
-            valid: false,
-            error: 'Некорректные координаты зоны'
-        };
-    }
-    const lats = validCoords.map(c => Number(c[0]));
-    const lngs = validCoords.map(c => Number(c[1]));
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const widthM = getDistanceInMeters(minLat, minLng, minLat, maxLng);
-    const lengthM = getDistanceInMeters(minLat, minLng, maxLat, minLng);
-    if (widthM > MAX_ZONE_WIDTH || lengthM > MAX_ZONE_LENGTH) {
-        return {
-            valid: false,
-            error: `Зона слишком большая! Максимум ${MAX_ZONE_WIDTH}×${MAX_ZONE_LENGTH} м. Сейчас: ${Math.round(widthM)}×${Math.round(lengthM)} м`
-        };
-    }
-    return {
-        valid: true,
-        width: widthM,
-        length: lengthM
-    };
-}
    // ===================== ТОЧНЫЙ РАСЧЁТ ПАРКОВОЧНЫХ МЕСТ =====================
 function calculatePolygonArea(coordinates) {
     if (!Array.isArray(coordinates) || coordinates.length < 3) return 0;
