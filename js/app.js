@@ -4698,24 +4698,26 @@ function removeCar() {
             });
 
         renderList();
-    }).catch(error => {
-        console.error('Ошибка загрузки избранного:', error);
-
+   }).catch(error => {
+    console.error('Ошибка загрузки избранного:', error);
+        
+    if (list) {
         list.innerHTML = `
             <div class="pn-fav-empty">
                 <div class="pn-fav-empty-icon">⚠️</div>
                 <h3>Не удалось загрузить</h3>
                 <p>Проверьте соединение и попробуйте ещё раз.</p>
-                <button onclick="renderFavorites(document.getElementById('panelContent'))">
+                <button
+                    onclick="renderFavorites(document.getElementById('panelContent'))">
                     Повторить
                 </button>
             </div>
         `;
-    });
-
+    }
+});
     searchInput.addEventListener('input', function() {
         searchValue = this.value.trim();
-        clearSearch.classList.toggle('visible', !!searchValue);
+        clearSearch?.classList.toggle('visible', !!searchValue);
         renderList();
     });
 
@@ -5149,8 +5151,7 @@ function getGuestId() {
     let highlightedElement = null;
     let isOnboardingActive = false;
     let clickHandlerForHighlight = null;
-
-   function showAuthScreen() {
+function showAuthScreen() {
     const overlay = document.getElementById('authOverlay');
     if (overlay) {
         overlay.style.display = 'flex';
@@ -5174,7 +5175,6 @@ function createAuthScreenFallback() {
     // Удаляем старый, если есть
     const old = document.getElementById('authOverlay');
     if (old) old.remove();
-
     const overlay = document.createElement('div');
     overlay.id = 'authOverlay';
     overlay.style.cssText = `
@@ -5188,7 +5188,6 @@ function createAuthScreenFallback() {
         flex-direction: column;
         padding: 20px;
     `;
-
     overlay.innerHTML = `
         <div style="background: var(--bg-secondary, #fff); border-radius: 24px; padding: 30px 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative;">
             <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary, #888); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
@@ -5205,7 +5204,6 @@ function createAuthScreenFallback() {
             <button class="guest-btn" onclick="continueAsGuest()" style="width:100%; padding:16px; border-radius:14px; border:none; font-size:16px; font-weight:600; cursor:pointer; background:var(--bg-secondary, #fff); color:var(--accent, #007AFF); border:1px solid var(--accent, #007AFF);">Продолжить как гость</button>
         </div>
     `;
-
     document.body.appendChild(overlay);
     document.getElementById('authOverlay').style.display = 'flex';
 }
@@ -5214,7 +5212,6 @@ function createAuthScreenFallback() {
         isOnboardingActive = true;
         const overlay = document.getElementById('onboardingOverlay');
         overlay.style.display = 'flex';
-
         function updateProgress(index) {
             const fill = document.getElementById('onboardingProgressFill');
             if (fill) {
@@ -5222,7 +5219,6 @@ function createAuthScreenFallback() {
                 fill.style.width = percent + '%';
             }
         }
-
         function removeHighlight() {
             if (highlightedElement) {
                 highlightedElement.classList.remove('onboarding-highlight');
@@ -5233,33 +5229,27 @@ function createAuthScreenFallback() {
                 clickHandlerForHighlight = null;
             }
         }
-
         function renderSlide(index) {
             const slide = onboardingSlides[index];
             removeHighlight();
             updateProgress(index);
-
             document.getElementById('onboardingSlide').innerHTML = `
             <div class="onboarding-icon">${slide.icon}</div>
             <div class="onboarding-title">${slide.title}</div>
             <div class="onboarding-text">${slide.text}</div>
         `;
-
             const dotsContainer = document.getElementById('onboardingDots');
             dotsContainer.innerHTML = onboardingSlides.map((_, i) =>
                 `<div class="onboarding-dot ${i === index ? 'active' : ''}"></div>`
             ).join('');
-
             const nextBtn = document.getElementById('onboardingNext');
             const prevBtn = document.getElementById('onboardingPrev');
             const skipBtn = document.getElementById('onboardingSkip');
-
             if (slide.requiredAction) {
                 nextBtn.style.display = 'none';
                 prevBtn.style.display = 'none';
                 skipBtn.textContent = 'Пропустить шаг';
                 skipBtn.style.display = 'block';
-
                 const selector = slide.highlightSelector;
                 if (selector) {
                     const el = document.querySelector(selector);
@@ -5314,7 +5304,6 @@ function createAuthScreenFallback() {
                 showToast('🎉 Добро пожаловать! Теперь вы готовы пользоваться ParkNear.', 4000);
             }
         }
-
         document.getElementById('onboardingNext').onclick = function() {
             if (currentSlide === onboardingSlides.length - 1) {
                 finishOnboarding();
@@ -5323,18 +5312,15 @@ function createAuthScreenFallback() {
                 renderSlide(currentSlide);
             }
         };
-
         document.getElementById('onboardingPrev').onclick = function() {
             if (currentSlide > 0) {
                 currentSlide--;
                 renderSlide(currentSlide);
             }
         };
-
         document.getElementById('onboardingSkip').onclick = function() {
             finishOnboarding();
         };
-
         let touchStartX = 0;
         const modal = document.querySelector('#onboardingOverlay > div');
         if (modal) {
@@ -5360,7 +5346,6 @@ function createAuthScreenFallback() {
                 }
             }, { passive: true });
         }
-
         currentSlide = 0;
         renderSlide(0);
     }
@@ -5375,7 +5360,6 @@ function createAuthScreenFallback() {
      function toggleTheme() {
     var isDark = document.body.classList.toggle('dark-theme');
     localStorage.setItem('darkTheme', isDark ? '1' : '0');
-
     var mapEl = document.getElementById('map');
     if (mapEl && map) {
         var currentType = map.getType ? map.getType() : 'yandex#map';
@@ -5385,14 +5369,11 @@ function createAuthScreenFallback() {
             mapEl.style.filter = 'none';
         }
     }
-
     var tabBar = document.querySelector('.tabBar');
     if (tabBar) {
         tabBar.style.background = '';
     }
-
     syncThemeToggles();
-
     if (window.Telegram && window.Telegram.WebApp) {
         try {
             var tg = window.Telegram.WebApp;
@@ -5405,7 +5386,6 @@ function createAuthScreenFallback() {
             }
         } catch (e) {}
     }
-
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.selectionChanged();
     }
@@ -5451,7 +5431,6 @@ function createAuthScreenFallback() {
         photoUrl: currentUser.photoUrl,
         lastActive: Date.now()
     }).catch(console.error);
-
     userRef.child('stats').set({
         registeredAt: Date.now(),
         lastActive: Date.now(),
@@ -5491,11 +5470,9 @@ function createAuthScreenFallback() {
             localStorage.removeItem('parkingCache');
         }
     }
-
     if (!cacheData) {
         content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
     }
-
     const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
     if (needRefresh) {
         // ✅ Передаём текущий город
@@ -5548,7 +5525,6 @@ function renderHomeContent(content, coords) {
         </div>
     `;
     content.innerHTML = html;
-
     // Получаем список парковок из кеша
     var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
     console.log('📊 Всего парковок в кеше:', allParkings.length);
@@ -5567,7 +5543,6 @@ function renderHomeContent(content, coords) {
         }
         return;
     }
-
     // Если координаты есть – показываем ближайшие
     if (coords) {
         showNearbyParkings(coords, 5);
@@ -5587,7 +5562,6 @@ function showNearbyParkings(coords, limit) {
         .map(([id, data]) => ({ id, ...data, distance: getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng) }))
         .filter(p => p.lat && p.lng && p.distance <= radius)
         .sort((a,b) => a.distance - b.distance);
-
     if (parkings.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
         return;
@@ -5703,7 +5677,6 @@ function checkTelegramAuthFromUrl() {
     return false;
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
-
 function onTelegramAuth(user) {
     try {
         currentUser = {
@@ -5714,7 +5687,6 @@ function onTelegramAuth(user) {
             isGuest: false
         };
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
-
         const userRef = database.ref('users/' + currentUser.id);
         userRef.update({
             username: currentUser.username,
@@ -5722,11 +5694,6 @@ function onTelegramAuth(user) {
             photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
-
-        // ФИКС: было once('value').then(...set(...)) — гонка при двойном
-        // вызове onTelegramAuth могла обнулить уже накопленную статистику.
-        // transaction() гарантирует, что начальные данные создадутся только
-        // один раз, даже при параллельных вызовах.
         userRef.child('stats').transaction(current => {
             if (current) {
                 // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
@@ -5746,7 +5713,6 @@ function onTelegramAuth(user) {
             // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
             userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
         }).catch(console.error);
-
         hideAuthScreen();
         showPanel('home');
         showOnboarding();
@@ -5756,14 +5722,12 @@ function onTelegramAuth(user) {
         continueAsGuest();
     }
 }
-
 function initApp() {
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
     } else {
         initAuth();
     }
-
     const savedCity = localStorage.getItem('parknear_city');
     if (savedCity) {
         try {
@@ -5778,19 +5742,15 @@ function initApp() {
             console.warn('Ошибка восстановления города:', e);
         }
     }
-
     document.getElementById('addBtn').onclick = function() {
         if (!currentUser) showPanel('home');
         else if (isDrawingMode) cancelDrawing();
         else startDrawingMode();
     };
-
     if (!map) {
         initMap();
     }
-
     if ('serviceWorker' in navigator) {
-      
         const swScope = new URL('.', window.location.href).pathname;
         navigator.serviceWorker.register(swScope + 'sw.js', { scope: swScope })
             .then(registration => {
@@ -5800,7 +5760,6 @@ function initApp() {
                 console.error('❌ Ошибка регистрации Service Worker:', error);
             });
     }
-
     loadAllParkings();
     initPullToRefresh();
     if (currentUser) {
@@ -5810,10 +5769,8 @@ function initApp() {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
 }
-
 function openTelegramBot() {
     console.log('openTelegramBot вызвана');
-
     if (window.Telegram && window.Telegram.WebApp) {
         var webApp = window.Telegram.WebApp;
         if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
@@ -5826,7 +5783,6 @@ function openTelegramBot() {
             } catch (e) {
                 savedUser = null;
             }
-
             if (!savedUser || savedUser.id !== expectedId) {
                 onTelegramAuth({
                     id: user.id,
@@ -5862,7 +5818,6 @@ document.addEventListener('visibilitychange', function() {
         }
     }
 });
-
     function rebuildRoute() {
         if (!routeStartCoords || !routeEndCoords) {
             alert('Сначала постройте маршрут');
@@ -5908,7 +5863,6 @@ document.addEventListener('visibilitychange', function() {
             brandSelect.appendChild(opt);
         });
         updateCarModelSelect();
-
         // Устанавливаем значения
         if (car.model) {
             const modelSelect = document.getElementById('carModelSelect');
@@ -5952,12 +5906,9 @@ document.addEventListener('visibilitychange', function() {
         }
     }
     // Заполняем цвета для редактора автомобиля
-  
-    // Заполняем цвета для редактора автомобиля
     (function initCarColors() {
         const colorSelect = document.getElementById('carColorSelect');
         if (!colorSelect) return;
-
         // Цвета автомобилей
         const carColors = {
             'Белый': '#FFFFFF',
