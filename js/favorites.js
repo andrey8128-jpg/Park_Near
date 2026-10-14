@@ -1,8 +1,38 @@
 // ===================== ИЗБРАННОЕ =====================
-// Добавление / удаление парковки из избранного
-async function toggleFavorite(parkingId = currentParkingId, parkingData = currentParkingData) {
+function getFavoritesRef() {
+    if (!currentUser?.id) return null;
+    return database.ref(`users/${currentUser.id}/favorites`);
+}
+function getFavoriteRef(parkingId) {
+    const ref = getFavoritesRef();
+    return ref && parkingId ? ref.child(String(parkingId)) : null;
+}
+// Проверка: находится ли парковка в избранном
+async function isFavorite(parkingId) {
+    const ref = getFavoriteRef(parkingId);
+    if (!ref) return false;
+    try {
+        const snap = await ref.once('value');
+        return snap.exists();
+    } catch (err) {
+        console.error('Ошибка проверки избранного:', err);
+        return false;
+    }
+}
+// Обновление кнопки избранного в центральной карточке
+async function updateFavoriteCenterButton() {
+    const btn = document.querySelector('#centerSheetContent .parking-favorite-btn');
+    if (!btn || !currentParkingId) return;
+    const favorite = await isFavorite(currentParkingId);
+    btn.innerHTML = favorite
+        ? '<span>♥</span><span>Сохранено</span>'
+        : '<span>♡</span><span>Сохранить</span>';
+    btn.classList.toggle('is-favorite', favorite);
+}
+// Добавить / удалить парковку из избранного
+async function toggleFavorite(parkingId, parkingData) {
     if (!currentUser?.id || !parkingId) {
-        console.error('Избранное: отсутствует пользователь или ID парковки');
+        console.error('Избранное: отсутствует пользователь или parkingId');
         return;
     }
     const ref = getFavoriteRef(parkingId);
@@ -10,11 +40,9 @@ async function toggleFavorite(parkingId = currentParkingId, parkingData = curren
     try {
         const snap = await ref.once('value');
         if (snap.exists()) {
-            // Парковка уже в избранном — удаляем
             await ref.remove();
-            console.log('Парковка удалена из избранного:', parkingId);
+            console.log('❤️ Парковка удалена из избранного:', parkingId);
         } else {
-            // Добавляем парковку в избранное
             const data = parkingData || parkingDataCache?.[parkingId] || {};
             const favoriteData = {
                 parkingId: String(parkingId),
@@ -28,9 +56,8 @@ async function toggleFavorite(parkingId = currentParkingId, parkingData = curren
                 savedAt: firebase.database.ServerValue.TIMESTAMP
             };
             await ref.set(favoriteData);
-            console.log('Парковка добавлена в избранное:', parkingId);
+            console.log('❤️ Парковка добавлена в избранное:', parkingId);
         }
-        // Обновляем интерфейс после изменения
         await updateFavoriteCenterButton();
         await loadFavoritesInline(true);
         await refreshProfileFavoritesCount();
@@ -38,6 +65,14 @@ async function toggleFavorite(parkingId = currentParkingId, parkingData = curren
         console.error('Ошибка работы с избранным:', err);
         alert('Не удалось изменить избранное');
     }
+}
+// Кнопка «Сохранить» в центральной карточке
+async function toggleFavoriteCenter() {
+    if (!currentParkingId || !currentParkingData) {
+        console.error('Избранное: текущая парковка не определена');
+        return;
+    }
+    await toggleFavorite(currentParkingId, currentParkingData);
 }
 // Загрузка списка избранного
 async function loadFavoritesInline(force = false) {
@@ -132,7 +167,6 @@ async function openFavoriteParking(parkingId) {
         const data = snap.val() || {};
         currentParkingId = parkingId;
         currentParkingData = data;
-
         if (data.lat != null && data.lng != null && map) {
             map.setCenter([Number(data.lat), Number(data.lng)], 17, {
                 duration: 300
@@ -191,3 +225,65 @@ async function refreshProfileFavoritesCount(count = null) {
     });
     return count;
 }
+function renderFavorites(content) {
+    if (!content) return;
+    if (!currentUser) {
+        content.innerHTML = `
+            <div class="pn-fav-empty">
+                <div class="pn-fav-empty-icon">🔒</div>
+                <h3>Войдите в аккаунт</h3>
+                <p>После входа здесь будут сохранённые парковки.</p>
+            </div>`;
+        return;
+    }
+
+    content.innerHTML = `
+        <div class="pn-favorites">
+            <div class="pn-fav-header">
+                <div>
+                    <h2>Избранное</h2>
+                    <p id="pnFavSubtitle">Загрузка сохранённых парковок...</p>
+                </div>
+                <div class="pn-fav-header-icon">♥</div>
+            </div>
+
+            <div class="pn-fav-city" id="pnFavCity">
+                <span class="pn-fav-city-icon">📍</span>
+                <div>
+                    <small>Выбранный город</small>
+                    <strong>${escapeHtml(userCityPrefs?.city || currentCity || 'Все города')}</strong>
+                </div>
+            </div>
+<div id="pnFavoritesTabContent"></div>
+<div id="pnAddressesTabContent" style="display:none;"></div>
+            <div class="pn-fav-search">
+                <span>⌕</span>
+                <input id="pnFavSearch" type="search" placeholder="Поиск парковки или адреса..." autocomplete="off">
+                <button id="pnFavClearSearch" type="button">×</button>
+            </div>
+
+            <div class="pn-fav-filters">
+                <button class="pn-fav-filter active" data-sort="recent">Недавние</button>
+                <button class="pn-fav-filter" data-sort="free">Свободные</button>
+                <button class="pn-fav-filter" data-sort="distance">Ближайшие</button>
+            </div>
+
+            <div id="pnFavList" class="pn-fav-list">
+                <div class="pn-fav-loading">
+                    <div class="pn-fav-spinner"></div>
+                    <span>Загрузка...</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const list = document.getElementById('pnFavList');
+    const searchInput = document.getElementById('pnFavSearch');
+    const clearSearch = document.getElementById('pnFavClearSearch');
+    const subtitle = document.getElementById('pnFavSubtitle');
+    const cityEl = document.getElementById('pnFavCity');
+    const filterButtons = document.querySelectorAll('.pn-fav-filter');
+
+    let favorites = [];
+    let currentSort = 'recent';
+    let searchValue = '';
