@@ -1985,7 +1985,7 @@ async function startParkingSession(parkingId) {
             parkingLat,
             parkingLng
         );
-          const radius = 100;
+          const radius = 170;
           const accuracy = Number(position.accuracy) || 0;
           if (distance > radius + accuracy) {
              alert(
