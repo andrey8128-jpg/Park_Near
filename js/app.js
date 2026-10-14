@@ -4735,7 +4735,6 @@ function removeCar() {
             renderList();
         });
     });
-}
     function loadUserData(type, content) {
     if (!currentUser) {
         if (content) {
@@ -4743,7 +4742,6 @@ function removeCar() {
         }
         return;
     }
-
     database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
         if (!snapshot.exists()) {
             const initialStats = {
@@ -4768,7 +4766,6 @@ function removeCar() {
             });
         }
     });
-
     database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
         if (snap.exists()) {
             userCityPrefs = snap.val();
@@ -4777,7 +4774,6 @@ function removeCar() {
             }
         }
     });
-
     if (type === 'favorites' && content) {
         database.ref(`users/${currentUser.id}/favorites`).once('value').then(favSnap => {
             const favs = favSnap.val() || {};
@@ -4793,7 +4789,6 @@ function removeCar() {
                         <span class="pn-fav-icon">❤️</span>
                     </div>
             `;
-
             if (!favIds.length) {
                 html += `
                     <div class="empty-state">
@@ -4809,13 +4804,10 @@ function removeCar() {
                     </div>
                     <div id="favListContainer">
                 `;
-
                 Object.values(favs).forEach(item => {
                     if (!item || !item.parkingId) return;
-
                     const name = escapeHtml(item.name || 'Парковка');
                     const address = escapeHtml(item.address || 'Адрес не указан');
-
                     html += `
                         <div class="fav-item" data-name="${name}" data-address="${address}" onclick="highlightAndShowParking('${item.parkingId}')">
                             <div class="fav-item-info">
@@ -4829,18 +4821,14 @@ function removeCar() {
                         </div>
                     `;
                 });
-
                 html += `
                     </div>
                 `;
             }
-
             html += `
                 </div>
             `;
-
             content.innerHTML = html;
-
             if (typeof attachSwipeToContainers === 'function') {
                 attachSwipeToContainers(content);
             }
@@ -4860,7 +4848,6 @@ function removeCar() {
         container.querySelectorAll('.swipe-container').forEach(cnt => {
             const item = cnt.querySelector('.swipe-item');
             if (!item) return;
-
             let startX = 0,
                 curX = 0,
                 dragging = false;
@@ -4881,7 +4868,6 @@ function removeCar() {
                 else item.style.transform = 'translateX(0)';
                 curX = 0;
             });
-
             const deleteBtn = cnt.querySelector('.swipe-delete');
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', () => {
@@ -4961,7 +4947,6 @@ function showPanel(type, keepFilter = false) {
     }
     // ⚠️ НЕ УДАЛЯЕМ drawingControls для нового рисования
     // Они остаются на карте, чтобы пользователь мог продолжить
-
     if (clickTimeout) {
         clearTimeout(clickTimeout);
         clickTimeout = null;
@@ -4970,14 +4955,11 @@ function showPanel(type, keepFilter = false) {
     lastClickTime = 0;
     resetHighlightedParkings();
 }
-
    function showMap() {
     closePanel();
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab')[1].classList.add('active');
 }
-
-
     function resetHighlightedParkings() {
         Object.keys(highlightedParkings).forEach(id => {
             if (mapMarkers[id]) {
@@ -4989,7 +4971,6 @@ function showPanel(type, keepFilter = false) {
         });
         highlightedParkings = {};
     }
-
     // ===================== АУТЕНТИФИКАЦИЯ =====================
 function getGuestId() {
     let guestId = localStorage.getItem('parknear_guest_id');
@@ -5003,7 +4984,6 @@ function getGuestId() {
     // 1. Пытаемся восстановить существующего гостя
     let guestId = localStorage.getItem('parknear_guest_id');
     let user;
-
     if (guestId) {
         // Восстанавливаем существующего гостя
         user = {
@@ -5026,7 +5006,6 @@ function getGuestId() {
             isGuest: true
         };
         console.log('🆕 Создан новый гость:', guestId);
-
         // Создаём статистику в Firebase только для нового гостя
         database.ref('users/' + guestId + '/stats').set({
             registeredAt: Date.now(),
