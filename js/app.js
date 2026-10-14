@@ -4896,7 +4896,6 @@ function showPanel(type, keepFilter = false) {
     }
     document.getElementById('panel').classList.add('active');
     const content = document.getElementById('panelContent');
-    
     const titles = {
         profile: 'Профиль',
         favorites: 'Избранное',
@@ -4905,7 +4904,6 @@ function showPanel(type, keepFilter = false) {
         mycar: 'Моя машина'
     };
     document.getElementById('panelTitle').textContent = titles[type] || 'Главная';
-
     // Рендерим нужный контент
     switch (type) {
         case 'profile':
@@ -4927,7 +4925,6 @@ function showPanel(type, keepFilter = false) {
         default: // home
             renderHomePanel(content);
     }
-
     // Обновляем активную вкладку в нижнем меню
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     const tabIndex = { home: 0, search: 1, favorites: 2, profile: 3, mycar: 1 };
@@ -4942,7 +4939,6 @@ function showPanel(type, keepFilter = false) {
             header.classList.toggle('collapsed');
         }
     }
-    
     function closePanel() {
     nearbySearchFilter = null;
     if (isAddressPickerOpen) cancelAddressPicker();
@@ -4953,7 +4949,6 @@ function showPanel(type, keepFilter = false) {
     document.querySelectorAll('.tab')[1].classList.add('active');
     currentParkingId = null;
     currentParkingData = null;
-
     // Если мы редактируем полигон существующей парковки – сбрасываем
     if (editingPolygon) {
         map.geoObjects.remove(editingPolygon);
@@ -4964,7 +4959,6 @@ function showPanel(type, keepFilter = false) {
         const c = document.getElementById('drawingControls');
         if (c) c.remove();
     }
-
     // ⚠️ НЕ УДАЛЯЕМ drawingControls для нового рисования
     // Они остаются на карте, чтобы пользователь мог продолжить
 
