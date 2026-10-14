@@ -223,3 +223,182 @@ function initMiniMap(coords) {
     miniMap.geoObjects.add(polygon);
     miniMap.setBounds(polygon.geometry.getBounds(), { checkZoomRange: true });
 }
+async function submitParkingWithPolygon() {
+    const streetType = document.getElementById('parkStreetType')?.value?.trim() || '';
+    const streetName = document.getElementById('parkStreetName')?.value?.trim() || '';
+    const houseNumber = document.getElementById('parkHouseNumber')?.value?.trim() || '';
+    const totalSpots = parseInt(document.getElementById('parkSpots')?.value, 10);
+    if (!currentUser) {
+        console.error('❌ Пользователь не авторизован');
+        return;
+    }
+    if (!totalSpots || totalSpots < 1) {
+        alert('Укажите количество парковочных мест');
+        return;
+    }
+    let coordsToSave = window.newParkingCoords || newParkingCoords;
+    if (!coordsToSave && drawingPolygon?.geometry) {
+        const raw = drawingPolygon.geometry.getCoordinates()[0];
+        coordsToSave = raw.map(c => [Number(c[0]), Number(c[1])]);
+    }
+    if (!coordsToSave || coordsToSave.length < 3) {
+        console.error('❌ Координаты парковки не найдены');
+        alert('Не найдены координаты парковочной зоны');
+        return;
+    }
+    const btn = document.getElementById('saveParkBtn');
+    const originalText = btn?.textContent || 'Сохранить парковку';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Определяем адрес...';
+    }
+    try {
+        const centerLat = coordsToSave.reduce((sum, c) => sum + Number(c[0]), 0) / coordsToSave.length;
+        const centerLng = coordsToSave.reduce((sum, c) => sum + Number(c[1]), 0) / coordsToSave.length;
+        console.log('📍 Координаты парковки:', centerLat, centerLng);
+        if (btn) btn.textContent = 'Определяем город...';
+        const geoData = await getAddressByCoordinates(centerLat, centerLng);
+        // ФИКС: было const detectedCity → бросало TypeError при переприсваивании
+        let detectedCity = String(geoData?.city || currentCity || mapCity?.city || userCityPrefs?.city || '').trim();
+        const detectedRegion = String(geoData?.region || mapCity?.region || userCityPrefs?.region || '').trim();
+        const detectedAddress = String(geoData?.address || '').trim();
+        const detectedStreet = String(geoData?.street || '').trim();
+        const detectedHouseNumber = String(geoData?.houseNumber || '').trim();
+        console.log('🏙️ Город:', detectedCity);
+        console.log('🗺️ Регион:', detectedRegion);
+        console.log('📬 Адрес:', detectedAddress);
+        if (!detectedCity) {
+            console.warn('⚠️ Яндекс не определил город, используем выбранный город карты');
+            detectedCity = String(currentCity || mapCity?.city || userCityPrefs?.city || '').trim();
+        }
+        if (!detectedCity) {
+            console.warn('⚠️ Город не определён, парковка будет сохранена без города');
+        }
+
+        const fullStreet = streetType && streetName ? `${streetType} ${streetName}` : streetName;
+        const finalStreet = fullStreet || detectedStreet;
+        const finalHouseNumber = houseNumber || detectedHouseNumber;
+        const finalAddress = detectedAddress || [detectedCity, finalStreet, finalHouseNumber].filter(Boolean).join(', ');
+        const name = fullStreet && houseNumber ? `${fullStreet}, ${houseNumber}` : finalAddress || `Парковка ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
+        const now = Date.now();
+        const parkingData = {
+            lat: centerLat,
+            lng: centerLng,
+            coordinates: coordsToSave,
+            totalSpots,
+            occupiedSpots: 0,
+            name,
+            isPaid: false,
+            address: finalAddress,
+            city: detectedCity,
+            region: detectedRegion,
+            street: finalStreet,
+            houseNumber: finalHouseNumber,
+            authorId: currentUser.id,
+            authorName: currentUser.firstName || currentUser.username || '',
+            authorUsername: currentUser.username || '',
+            lastUpdatedAt: now,
+            lastUpdatedBy: currentUser.nickname || currentUser.firstName || currentUser.username || 'Пользователь',
+            timestamp: now,
+            status: 'unknown',
+            statusConfirmations: 0
+        };
+        console.log('💾 Парковка перед сохранением:', parkingData);
+        const cleanKeyPart = value => String(value || '').trim().replace(/[.#$/[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        const cityKey = cleanKeyPart(detectedCity);
+        const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
+        const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
+        const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
+        // ФИКС: генерация ключа через transaction() вместо exists()+set() —
+        // убирает гонку при одновременных сохранениях
+        let number = 1;
+        let parkingKey = `${baseKey}_(${number})`;
+        let committed = false;
+        const MAX_ATTEMPTS = 50;
+        if (btn) btn.textContent = 'Сохраняем...';
+        while (!committed && number <= MAX_ATTEMPTS) {
+            parkingKey = `${baseKey}_(${number})`;
+            const parkingRef = database.ref(`parkings/${parkingKey}`);
+            const txResult = await parkingRef.transaction(currentData => {
+                if (currentData !== null) return undefined;
+                return parkingData;
+            });
+            committed = txResult.committed;
+            if (!committed) number++;
+        }
+        if (!committed) {
+            throw new Error('Не удалось подобрать свободный идентификатор парковки, попробуйте ещё раз');
+        }
+        console.log('🔑 Ключ Firebase:', parkingKey);
+        console.log('✅ Основные данные парковки записаны в Firebase');
+        const parkingRef = database.ref(`parkings/${parkingKey}`);
+        try {
+            await database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
+        } catch (error) {
+            console.warn('⚠️ Не удалось обновить статистику:', error);
+        }
+        try {
+            await parkingRef.child('history').push({
+                action: 'created',
+                timestamp: now,
+                userId: currentUser.id,
+                username: currentUser.username || ''
+            });
+        } catch (error) {
+            console.warn('⚠️ Не удалось сохранить history:', error);
+        }
+        parkingDataCache[parkingKey] = { ...parkingData, id: parkingKey };
+        try {
+            addMarkerToMap(parkingKey, parkingData);
+        } catch (error) {
+            console.warn('⚠️ Маркер не добавлен:', error);
+        }
+        if (drawingPolygon) {
+            try {
+                map.geoObjects.remove(drawingPolygon);
+            } catch (error) {
+                console.warn('⚠️ Не удалось удалить полигон:', error);
+            }
+            drawingPolygon = null;
+        }
+        window.newParkingCoords = null;
+        newParkingCoords = null;
+        if (map) {
+            map.setCenter([centerLat, centerLng], 17, { duration: 500 });
+        }
+        try {
+            if (clusterer) {
+                clusterer.removeAll();
+                Object.entries(parkingDataCache).forEach(([id, parking]) => {
+                    const parkingCity = String(parking.city || '').trim().toLowerCase();
+                    if (parkingCity === detectedCity.trim().toLowerCase()) {
+                        addMarkerToMap(id, parking);
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('⚠️ Ошибка обновления кластера:', error);
+        }
+        try {
+            if (typeof filterParkings === 'function' && document.getElementById('searchResults')) {
+                filterParkings();
+            }
+        } catch (error) {
+            console.warn('⚠️ Ошибка обновления списка:', error);
+        }
+        console.log('✅ ПАРКОВКА ПОЛНОСТЬЮ СОХРАНЕНА');
+        console.log('🏙️ Город:', detectedCity);
+        console.log('🗺️ Регион:', detectedRegion);
+        console.log('🔑 ID:', parkingKey);
+        if (typeof closePanel === 'function') closePanel();
+        if (typeof showMap === 'function') showMap();
+    } catch (error) {
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА СОХРАНЕНИЯ:', error);
+        alert(`Не удалось сохранить парковку.\n${error.message || 'Неизвестная ошибка'}`);
+    } finally {
+        if (btn) {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+}
