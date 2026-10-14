@@ -11,7 +11,7 @@
     gap: 8px;
     padding: 10px;
     border: 1px solid rgba(22, 119, 255, 0.18);
-    border-radius: 18px;
+    border-radius: 16px;
     background: var(--bg-elevated, #FFFFFF);
     color: var(--text-primary, #111516);
     box-shadow: 0 8px 28px rgba(22, 119, 255, 0.14);
@@ -31,8 +31,8 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 13px;
     background: #E8F1FF;
     color: #1677FF;
