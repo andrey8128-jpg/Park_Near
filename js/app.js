@@ -3381,6 +3381,19 @@ function createMarkersAndCluster(parkings) {
     const displayEl = document.getElementById('cityDisplayName');
     if (displayEl) displayEl.textContent = cityName;
 }
+// Восстанавливаем город в плашке при запуске приложения
+function restoreCityDisplay() {
+    const savedCity = localStorage.getItem('selectedCity');
+    if (savedCity) {
+        currentCity = savedCity;
+    }
+    updateCityDisplay();
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', restoreCityDisplay);
+} else {
+    restoreCityDisplay();
+}
     function changeSearchCity() {
         openCityPicker();
     }
