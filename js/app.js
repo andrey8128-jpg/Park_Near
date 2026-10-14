@@ -1193,7 +1193,7 @@ function initMap() {
             center: [55.7558, 37.6173],
             zoom: 14,
             maxZoom: 19,
-            controls: ['zoomControl'],
+            controls: [],
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
