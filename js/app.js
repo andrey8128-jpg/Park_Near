@@ -2193,192 +2193,125 @@ function editFromCenter() {
             }
         });
     }
-   function renderEditPanel(data, isFavorite) {
-const totalSpots = Number(data.totalSpots) || 0;
-const isAuthor = currentUser && currentUser.id === data.authorId;
-const currentStreet = data.street || ‘’;
-const streetName = extractStreetName(currentStreet);
-
-document.getElementById('panel').classList.add('active');
-document.getElementById('panelTitle').textContent = 'Парковка';
-
-let html = `
-    <div class="edit-parking">
-        <div class="edit-parking-header">
-            <div>
+  function renderEditPanel(data, isFavorite) {
+    const totalSpots = Number(data.totalSpots) || 0;
+    const isAuthor = currentUser && currentUser.id === data.authorId;
+    const currentStreet = data.street || '';
+    const streetName = extractStreetName(currentStreet);
+    const editPanel = document.getElementById('editPanel');
+    if (!editPanel) return;
+    editPanel.innerHTML = `
+        <div class="edit-parking">
+            <div class="edit-parking-header">
                 <div class="edit-parking-title">
-                    ${escapeHtml(data.name || 'Без названия')}
-                </div>
-                <div class="edit-parking-address">
-                    📍 ${escapeHtml(currentStreet || 'Адрес не указан')}
+                    <h3>${data.name || 'Парковка'}</h3>
+                    ${streetName ? `<p class="edit-parking-street">${streetName}</p>` : ''}
                 </div>
             </div>
-        </div>
-
-        <div class="edit-section">
-            <div class="edit-section-title">📋 История изменений</div>
-            <div id="historyContainer">
-                <div id="historyList"></div>
-                <div id="historyFullList" style="display:none;"></div>
-                <button
-                    type="button"
-                    id="showAllHistoryBtn"
-                    class="edit-history-btn"
-                    style="display:none;"
-                    onclick="showAllHistory()">
-                    См. все
-                </button>
-                <button
-                    type="button"
-                    id="hideAllHistoryBtn"
-                    class="edit-history-btn"
-                    style="display:none;"
-                    onclick="hideAllHistory()">
-                    Скрыть
-                </button>
-            </div>
-            <span id="historyCount"></span>
-        </div>
-
-        <div class="edit-actions">
-            <button
-                type="button"
-                class="btn-primary"
-                onclick="buildRouteToParking('${currentParkingId}')">
-                🧭 Построить маршрут
-            </button>
-
-            ${isAuthor ? `
+            <div class="edit-parking-actions">
+                ${isAuthor ? `
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="window.toggleParkingEditor()"
+                    >
+                        ✏️ Редактировать данные
+                    </button>
+                ` : ''}
                 <button
                     type="button"
                     class="btn-secondary"
-                    onclick="window.toggleParkingEditor()">
-                    ✏️ Редактировать данные
+                    onclick="toggleFavorite('${currentParkingId}')"
+                >
+                    ${isFavorite ? '★ Убрать из избранного' : '☆ В избранное'}
                 </button>
-            ` : ''}
-        </div>
-`;
-
-if (isAuthor) {
-    html += `
-        <div id="editPanel" class="edit-form" style="display:none;">
-            <div class="edit-form-title">✏️ Данные парковки</div>
-
-            <label for="editStreetType">Тип улицы</label>
-            <select id="editStreetType" class="input-field">
-                <option value="">-- выберите --</option>
-                <option value="ул." ${currentStreet.startsWith('ул.') ? 'selected' : ''}>улица</option>
-                <option value="пер." ${currentStreet.startsWith('пер.') ? 'selected' : ''}>переулок</option>
-                <option value="бульв." ${currentStreet.startsWith('бульв.') ? 'selected' : ''}>бульвар</option>
-                <option value="просп." ${currentStreet.startsWith('просп.') ? 'selected' : ''}>проспект</option>
-                <option value="пр-д" ${currentStreet.startsWith('пр-д') ? 'selected' : ''}>проезд</option>
-                <option value="ш." ${currentStreet.startsWith('ш.') ? 'selected' : ''}>шоссе</option>
-                <option value="наб." ${currentStreet.startsWith('наб.') ? 'selected' : ''}>набережная</option>
-                <option value="алл." ${currentStreet.startsWith('алл.') ? 'selected' : ''}>аллея</option>
-                <option value="тракт" ${currentStreet.startsWith('тракт') ? 'selected' : ''}>тракт</option>
-            </select>
-
-            <label for="editStreetName">Название улицы</label>
-            <input
-                type="text"
-                id="editStreetName"
-                class="input-field"
-                value="${escapeHtml(streetName)}"
-                placeholder="Название улицы">
-
-            <label for="editHouseNumber">Номер дома</label>
-            <input
-                type="text"
-                id="editHouseNumber"
-                class="input-field"
-                value="${escapeHtml(data.houseNumber || '')}"
-                placeholder="15">
-
-            <label for="editParkingName">Название парковки</label>
-            <input
-                type="text"
-                id="editParkingName"
-                class="input-field"
-                value="${escapeHtml(data.name || '')}"
-                placeholder="Например: Парковка у дома"
-                maxlength="100">
-
-            <label for="editTotalSpots">Количество парковочных мест</label>
-            <input
-                type="number"
-                id="editTotalSpots"
-                class="input-field"
-                value="${totalSpots}"
-                min="1"
-                max="500"
-                step="1">
-
+            </div>
+            <div id="parkingEditorForm" class="edit-parking-form" style="display: none;">
+                <h4>Редактирование парковки</h4>
+                <label for="editParkingName">Название парковки</label>
+                <input
+                    type="text"
+                    id="editParkingName"
+                    value="${(data.name || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
+                    placeholder="Название парковки"
+                >
+                <label for="editParkingStreet">Адрес</label>
+                <input
+                    type="text"
+                    id="editParkingStreet"
+                    value="${(data.street || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
+                    placeholder="Адрес парковки"
+                >
+                <label for="editParkingTotalSpots">Всего парковочных мест</label>
+                <input
+                    type="number"
+                    id="editParkingTotalSpots"
+                    min="0"
+                    value="${totalSpots}"
+                    placeholder="Количество мест"
+                >
+                <label for="editParkingDescription">Описание</label>
+                <textarea
+                    id="editParkingDescription"
+                    placeholder="Описание парковки"
+                >${(data.description || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                <div class="edit-parking-form-actions">
+                    <button
+                        type="button"
+                        class="btn-primary"
+                        onclick="saveParkingDetails()"
+                    >
+                        Сохранить
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="window.toggleParkingEditor()"
+                    >
+                        Отмена
+                    </button>
+                </div>
+            </div>
+            <div id="parkingHistoryPreview"></div>
+            <div id="parkingHistoryAll" style="display: none;"></div>
             <button
                 type="button"
-                class="btn-primary"
-                onclick="saveParkingDetails()">
-                💾 Сохранить изменения
-            </button>
-
-            <button
-                type="button"
-                class="btn-secondary"
-                onclick="window.toggleParkingEditor()">
-                Отмена
+                class="parking-secondary-btn"
+                onclick="showAllHistory()"
+            >
+                Показать историю
             </button>
         </div>
     `;
-} else if (currentUser) {
-    html += `
-        <div class="edit-no-access">
-            Вы не являетесь автором этой парковки
-        </div>
-    `;
-}
-
-html += `</div>`;
-
-document.getElementById('panelContent').innerHTML = html;
-
-if (currentUser && currentParkingId) {
-    loadHistoryPreview(currentParkingId);
-}
-
-window.toggleParkingEditor = function () {
-    const editPanel = document.getElementById('editPanel');
-
-    if (!editPanel) {
-        console.error('Форма редактирования не найдена');
-        return;
+    // Открытие и закрытие формы редактирования
+    window.toggleParkingEditor = function () {
+        const form = document.getElementById('parkingEditorForm');
+        if (!form) return;
+        const isHidden = getComputedStyle(form).display === 'none';
+        form.style.display = isHidden ? 'block' : 'none';
+    };
+    // Загрузка истории парковки
+    if (currentUser && currentParkingId) {
+        if (typeof loadHistoryPreview === 'function') {
+            loadHistoryPreview(currentParkingId);
+        }
     }
-
-    const isHidden = getComputedStyle(editPanel).display === 'none';
-    editPanel.style.display = isHidden ? 'block' : 'none';
-};
-
-window.showAllHistory = function () {
-    const historyList = document.getElementById('historyList');
-    const historyFullList = document.getElementById('historyFullList');
-    const showButton = document.getElementById('showAllHistoryBtn');
-    const hideButton = document.getElementById('hideAllHistoryBtn');
-
-    if (historyList) historyList.style.display = 'none';
-    if (historyFullList) historyFullList.style.display = 'block';
-    if (showButton) showButton.style.display = 'none';
-    if (hideButton) hideButton.style.display = 'inline-block';
-};
-
-window.hideAllHistory = function () {
-    const historyList = document.getElementById('historyList');
-    const historyFullList = document.getElementById('historyFullList');
-    const showButton = document.getElementById('showAllHistoryBtn');
-    const hideButton = document.getElementById('hideAllHistoryBtn');
-
-    if (historyFullList) historyFullList.style.display = 'none';
-    if (historyList) historyList.style.display = 'block';
-    if (showButton) showButton.style.display = 'inline-block';
-    if (hideButton) hideButton.style.display = 'none';
-  };
+    // Показать всю историю
+    window.showAllHistory = function () {
+        const historyAll = document.getElementById('parkingHistoryAll');
+        if (!historyAll) return;
+        historyAll.style.display = 'block';
+        if (typeof loadFullParkingHistory === 'function' && currentParkingId) {
+            loadFullParkingHistory(currentParkingId);
+        }
+    };
+    // Скрыть всю историю
+    window.hideAllHistory = function () {
+        const historyAll = document.getElementById('parkingHistoryAll');
+        if (historyAll) {
+            historyAll.style.display = 'none';
+        }
+    };
 }
 function loadHistoryPreview(parkingId) {
     const container = document.getElementById('historyList');
