@@ -2283,13 +2283,17 @@ function editFromCenter() {
             </button>
         </div>
     `;
-    // Открытие и закрытие формы редактирования
     window.toggleParkingEditor = function () {
-        const form = document.getElementById('parkingEditorForm');
-        if (!form) return;
-        const isHidden = getComputedStyle(form).display === 'none';
-        form.style.display = isHidden ? 'block' : 'none';
-    };
+    const form = document.getElementById('parkingEditorForm');
+    if (!form) {
+        console.error('Форма parkingEditorForm не найдена');
+        return;
+    }
+    form.style.display =
+        getComputedStyle(form).display === 'none'
+            ? 'block'
+            : 'none';
+};
     // Загрузка истории парковки
     if (currentUser && currentParkingId) {
         if (typeof loadHistoryPreview === 'function') {
