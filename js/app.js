@@ -88,6 +88,47 @@
     let userLocationForSearch = null;
     let pendingAddressData = null;
     let newParkingCoords = null;
+// ============================================
+// ВХОД ЧЕРЕЗ ЯНДЕКС ID
+// ============================================
+function startYandexLogin() {
+const clientId = ‘a4c1372c585e4962bf9dfef4b5e14bf5’;
+const redirectUri =
+    'https://andrey8128-jpg.github.io/Park_Near/';
+if (
+    !clientId ||
+    clientId === 'a4c1372c585e4962bf9dfef4b5e14bf5'
+) {
+    alert('Не указан Client ID приложения Яндекс OAuth.');
+    return;
+}
+if (!window.crypto || !window.crypto.getRandomValues) {
+    alert('Ваш браузер не поддерживает безопасную авторизацию.');
+    return;
+}
+const randomBytes = new Uint8Array(32);
+window.crypto.getRandomValues(randomBytes);
+const state = Array.from(randomBytes)
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+try {
+    sessionStorage.setItem('yandex_oauth_state', state);
+} catch (error) {
+    console.error('Ошибка сохранения параметров авторизации:', error);
+    alert('Не удалось начать вход. Попробуйте ещё раз.');
+    return;
+}
+const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    state: state
+});
+window.location.assign(
+    'https://oauth.yandex.ru/authorize?' +
+    params.toString()
+);
+}
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
 const savedMapPrefs = localStorage.getItem('parknear_map_city');
