@@ -4595,179 +4595,281 @@ function removeCar() {
         const minutes = Math.round(distance / 500);
         return minutes < 1 ? '<1 мин' : `${minutes} мин`;
     }
+function renderFavorites(content) {
+    if (!content) {
+        content = document.getElementById('panelContent');
+    }
 
+    if (!content) {
+        console.error('Не найден контейнер panelContent');
+        return;
+    }
+
+    // Пользователь не авторизован
+    if (!currentUser || !currentUser.id) {
+        content.innerHTML = `
+            <div class="pn-fav-empty">
+                <div class="pn-fav-empty-icon">🔒</div>
+                <h3>Войдите в аккаунт</h3>
+                <p>После входа здесь будут сохранённые парковки.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Локальное состояние вкладки избранного
+    let favorites = [];
+    let searchValue = '';
+    let currentSort = 'recent';
+
+    const city = getSelectedCity();
+
+    content.innerHTML = `
+        <div class="pn-favorites">
+            <div class="pn-fav-header">
+                <div>
+                    <h2>Избранное</h2>
+                    <p id="pnFavSubtitle">Загрузка парковок...</p>
+                </div>
+                <span class="pn-fav-icon">❤️</span>
+            </div>
+
+            <div class="pn-fav-search">
+                <input
+                    type="search"
+                    id="pnFavSearchInput"
+                    placeholder="Поиск по избранному..."
+                    autocomplete="off"
+                >
+                <button
+                    type="button"
+                    id="pnFavClearSearch"
+                    hidden
+                    aria-label="Очистить поиск"
+                >×</button>
+            </div>
+
+            <div class="pn-fav-sort">
+                <button type="button"
+                    class="active" data-sort="recent">
+                    Недавние
+                </button>
+                <button type="button" data-sort="free">
+                    Свободные места
+                </button>
+                <button type="button" data-sort="distance">
+                    По расстоянию
+                </button>
+            </div>
+
+            <div id="pnFavList">
+                <div class="pn-fav-empty">
+                    <p>Загружаем избранное...</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Получаем элементы именно текущей вкладки
+    const searchInput = content.querySelector('#pnFavSearchInput');
+    const clearSearch = content.querySelector('#pnFavClearSearch');
+    const list = content.querySelector('#pnFavList');
+    const subtitle = content.querySelector('#pnFavSubtitle');
+    const filterButtons = content.querySelectorAll('[data-sort]');
+
+    if (!searchInput || !clearSearch || !list || !subtitle) {
+        console.error('Не удалось создать элементы избранного');
+        return;
+    }
     function renderList() {
-        const city = getSelectedCity();
-        const query = normalize(searchValue);
-
+        const query = searchValue.trim().toLowerCase();
         let filtered = favorites.filter(item => {
             const parking = item.parking || item;
-
+            // Сохраняем фильтрацию по выбранному городу
             if (city) {
-                const parkingCity = normalize(parking.city);
-                if (!parkingCity || parkingCity !== normalize(city)) return false;
+                const parkingCity = normalize(
+                    parking.city || item.city
+                );
+                if (parkingCity !== normalize(city)) {
+                    return false;
+                }
             }
-
             if (!query) return true;
-
             return [
                 parking.name,
                 parking.address,
                 parking.street,
                 parking.city
-            ].some(value => normalize(value).includes(query));
+            ].some(value =>
+                normalize(value).includes(query)
+            );
         });
-
         filtered.sort((a, b) => {
             const pa = a.parking || a;
             const pb = b.parking || b;
-
             if (currentSort === 'free') {
                 return getFree(pb) - getFree(pa);
             }
-
             if (currentSort === 'distance') {
                 return getDistance(pa) - getDistance(pb);
             }
-
-            return Number(b.timestamp || 0) - Number(a.timestamp || 0);
+            return Number(b.timestamp || 0) -
+                   Number(a.timestamp || 0);
         });
-
-        subtitle.textContent = `${filtered.length} ${filtered.length === 1 ? 'парковка' : filtered.length < 5 ? 'парковки' : 'парковок'}`;
-
-        if (cityEl) {
-            cityEl.querySelector('strong').textContent = city || 'Все города';
-        }
-
+        subtitle.textContent =
+            `${filtered.length} ${
+                filtered.length === 1
+                    ? 'парковка'
+                    : filtered.length < 5
+                        ? 'парковки'
+                        : 'парковок'
+            }`;
         if (!filtered.length) {
             list.innerHTML = `
                 <div class="pn-fav-empty">
-                    <div class="pn-fav-empty-icon">${query ? '🔎' : '♡'}</div>
-                    <h3>${query ? 'Ничего не найдено' : 'Избранное пусто'}</h3>
+                    <div class="pn-fav-empty-icon">
+                        ${query ? '🔎' : '♡'}
+                    </div>
+                    <h3>
+                        ${query
+                            ? 'Ничего не найдено'
+                            : 'Избранное пусто'}
+                    </h3>
                     <p>
                         ${query
                             ? 'Попробуйте изменить запрос.'
-                            : city
-                                ? `В городе «${escapeHtml(city)}» пока нет сохранённых парковок.`
-                                : 'Добавляйте парковки в избранное, чтобы быстро находить их снова.'}
+                            : 'Добавляйте парковки в избранное, чтобы быстро находить их снова.'}
                     </p>
-                    ${!query ? `<button onclick="showMap()">Найти парковку</button>` : ''}
-                </div>`;
+                    ${!query
+                        ? '<button type="button" id="pnFavShowMap">Найти парковку</button>'
+                        : ''}
+                </div>
+            `;
+            const showMapButton =
+                list.querySelector('#pnFavShowMap');
+            if (showMapButton) {
+                showMapButton.addEventListener('click', showMap);
+            }
             return;
         }
-
         list.innerHTML = filtered.map(item => {
             const parking = item.parking || item;
             const id = item.parkingId || parking.id;
-            const free = getFree(parking);
-            const total = Number(parking.totalSpots || 0);
             const distance = getDistance(parking);
             const distanceText = formatDistance(distance);
             const walkingText = getWalkingTime(distance);
-            const occupancyClass = getOccupancyClass(parking);
-
             const name = escapeHtml(
-                parking.name ||
-                item.name ||
-                'Без названия'
+                parking.name || item.name || 'Без названия'
             );
-
             const address = escapeHtml(
-                parking.address ||
-                item.address ||
-                ''
+                parking.address || item.address || ''
             );
-
             const parkingCity = escapeHtml(
-                parking.city ||
-                item.city ||
-                ''
+                parking.city || item.city || ''
             );
-
             return `
-                <article class="pn-fav-card" data-parking-id="${escapeHtml(String(id))}">
+                <article class="pn-fav-card"
+                    data-parking-id="${escapeHtml(String(id || ''))}">
                     <button class="pn-fav-card-main" type="button">
                         <div class="pn-fav-card-icon">🅿️</div>
-
                         <div class="pn-fav-card-info">
                             <div class="pn-fav-card-title">${name}</div>
-
                             ${address ? `
                                 <div class="pn-fav-card-address">
                                     ${address}
                                 </div>
                             ` : ''}
-
                             ${parkingCity ? `
                                 <div class="pn-fav-card-city">
                                     📍 ${parkingCity}
                                 </div>
                             ` : ''}
-
                             <div class="pn-fav-card-meta">
-                                <span class="pn-fav-occupancy ${occupancyClass}">
+                                <span class="pn-fav-occupancy ${getOccupancyClass(parking)}">
                                     <i></i>${escapeHtml(getOccupancyText(parking))}
                                 </span>
-
                                 ${distanceText ? `
-                                    <span class="pn-fav-meta-separator">·</span>
                                     <span>${escapeHtml(distanceText)}</span>
                                 ` : ''}
-
                                 ${walkingText ? `
-                                    <span class="pn-fav-meta-separator">·</span>
                                     <span>${escapeHtml(walkingText)}</span>
                                 ` : ''}
                             </div>
                         </div>
-
                         <span class="pn-fav-card-arrow">›</span>
                     </button>
-
-                    <button
-                        class="pn-fav-remove"
+                    <button class="pn-fav-remove"
                         type="button"
-                        title="Удалить из избранного"
-                        data-remove-id="${escapeHtml(String(id))}">
+                        data-remove-id="${escapeHtml(String(id || ''))}"
+                        title="Удалить из избранного">
                         ♥
                     </button>
                 </article>
             `;
         }).join('');
-
         list.querySelectorAll('.pn-fav-card-main').forEach(button => {
             button.addEventListener('click', function() {
                 const card = this.closest('.pn-fav-card');
                 const id = card?.dataset?.parkingId;
-                if (!id) return;
-                highlightAndShowParking(id);
+                if (id) {
+                    highlightAndShowParking(id);
+                }
             });
         });
-
         list.querySelectorAll('.pn-fav-remove').forEach(button => {
             button.addEventListener('click', function(event) {
                 event.stopPropagation();
-
                 const id = this.dataset.removeId;
-                if (!id) return;
-
-                removeFromFavorites(id);
+                if (id) {
+                    removeFromFavorites(id);
+                }
             });
         });
     }
-
+    // Поиск
+    searchInput.addEventListener('input', function() {
+        searchValue = this.value.trim();
+        clearSearch.hidden = !searchValue;
+        renderList();
+    });
+    // Очистка поиска
+    clearSearch.addEventListener('click', function() {
+        searchInput.value = '';
+        searchValue = '';
+        clearSearch.hidden = true;
+        renderList();
+        searchInput.focus();
+    });
+    // Сортировка
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            filterButtons.forEach(btn =>
+                btn.classList.remove('active')
+            );
+            this.classList.add('active');
+            currentSort = this.dataset.sort || 'recent';
+            renderList();
+        });
+    });
+    // Загружаем избранное и данные парковок
     Promise.all([
-        database.ref(`users/${currentUser.id}/favorites`).once('value'),
+        database.ref(
+            `users/${currentUser.id}/favorites`
+        ).once('value'),
         database.ref('parkings').once('value')
-    ]).then(([favSnap, parkingSnap]) => {
+    ])
+    .then(([favSnap, parkingSnap]) => {
+        // Не обновляем уже закрытую или заменённую вкладку
+        if (!content.isConnected ||
+            !content.querySelector('#pnFavList')) {
+            return;
+        }
         const favData = favSnap.val() || {};
         const parkingData = parkingSnap.val() || {};
-
         favorites = Object.values(favData)
             .filter(item => item && item.parkingId)
             .map(item => {
                 const parking = parkingData[item.parkingId];
-
                 return {
                     ...item,
                     parking: parking
@@ -4781,56 +4883,27 @@ function removeCar() {
                         }
                 };
             });
-
         renderList();
-       }).catch(error => {
-    console.error('Ошибка загрузки избранного:', error);
-
-    if (typeof list !== 'undefined' && list) {
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки избранного:', error);
+        if (!content.isConnected) return;
         list.innerHTML = `
             <div class="pn-fav-empty">
                 <div class="pn-fav-empty-icon">⚠️</div>
                 <h3>Не удалось загрузить</h3>
                 <p>Проверьте соединение и попробуйте ещё раз.</p>
-                <button
-                    type="button"
-                    onclick="renderFavorites(document.getElementById('panelContent'))">
+                <button type="button" id="pnFavRetry">
                     Повторить
                 </button>
             </div>
         `;
-    }
-});
-if (typeof searchInput !== 'undefined' && searchInput) {
-    searchInput.addEventListener('input', function() {
-        searchValue = this.value.trim();
-
-        if (typeof clearSearch !== 'undefined' && clearSearch) {
-            clearSearch.classList.toggle('visible', !!searchValue);
-        }
-
-        if (typeof renderList === 'function') {
-            renderList();
-        }
+        list.querySelector('#pnFavRetry')
+            ?.addEventListener('click', () => {
+                renderFavorites(content);
+            });
     });
 }
-
-    clearSearch.addEventListener('click', function() {
-        searchInput.value = '';
-        searchValue = '';
-        this.classList.remove('visible');
-        searchInput.focus();
-        renderList();
-    });
-
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            currentSort = this.dataset.sort || 'recent';
-            renderList();
-        });
-    });
     function loadUserData(type, content) {
     if (!currentUser) {
         if (content) {
