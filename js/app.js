@@ -90,17 +90,15 @@
     let newParkingCoords = null;
 
 // ===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================
-
 function startYandexLogin() {
-    // Вставь настоящий Client ID из настроек Яндекс OAuth
     const clientId = 'a4c1372c585e4962bf9dfef4b5e14bf5';
-
     const redirectUri =
         'https://andrey8128-jpg.github.io/Park_Near/';
-    if (!clientId || clientId === 'a4c1372c585e4962bf9dfef4b5e14bf5') {
-        alert('Укажи Client ID приложения Яндекс');
+    if (!clientId) {
+        alert('Не указан Client ID приложения Яндекс');
         return;
     }
+    // Создаём случайный параметр для проверки возврата
     const state = crypto.randomUUID();
     sessionStorage.setItem('yandex_oauth_state', state);
     const params = new URLSearchParams({
@@ -109,9 +107,10 @@ function startYandexLogin() {
         redirect_uri: redirectUri,
         state: state
     });
-    window.location.href =
+    const authUrl =
         'https://oauth.yandex.ru/authorize?' +
         params.toString();
+    window.location.href = authUrl;
 }
 function handleYandexOAuthReturn() {
     const params = new URLSearchParams(
