@@ -526,6 +526,50 @@ function restoreSavedUser() {
         return false;
     }
 }
+function logoutUser() {
+    if (!currentUser) {
+        alert('Вы уже вышли из аккаунта.');
+        return;
+    }
+    if (!confirm('Вы действительно хотите выйти из аккаунта?')) {
+        return;
+    }
+    // Выход из Firebase Authentication, если он используется
+    if (
+        typeof firebase !== 'undefined' &&
+        firebase.auth &&
+        firebase.auth().currentUser
+    ) {
+        firebase.auth().signOut()
+            .then(() => {
+                finishLogout();
+            })
+            .catch(error => {
+                console.error('Ошибка выхода:', error);
+                alert('Не удалось выйти из аккаунта. Попробуйте ещё раз.');
+            });
+    } else {
+        // Для авторизации, реализованной без Firebase Authentication
+        finishLogout();
+    }
+}
+function finishLogout() {
+    currentUser = null;
+    // Обновляем интерфейс профиля
+    if (typeof renderProfile === 'function') {
+        renderProfile();
+    }
+    // Обновляем открытое содержимое панели, если оно есть
+    const panel = document.getElementById('panelContent');
+    if (panel && typeof renderFavorites === 'function') {
+        renderFavorites(panel);
+    }
+    // Обновляем интерфейс приложения, если предусмотрена такая функция
+    if (typeof updateAuthUI === 'function') {
+        updateAuthUI();
+    }
+    alert('Вы вышли из аккаунта.');
+}
 // ============================================
 // ИНИЦИАЛИЗАЦИЯ АВТОРИЗАЦИИ
 // ============================================
