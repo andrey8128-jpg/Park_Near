@@ -3981,12 +3981,15 @@ ${isGuest ? `
         Выйти из аккаунта
     </button>
 `}
-```
 
-        renderSettingsInline();
+<div class="pn-profile-version">ParkNear · профиль</div>
+</div>
+`;
 
-        window._historyLoaded = false;
-        window._favoritesLoaded = false;
+renderSettingsInline();
+
+window._historyLoaded = false;
+window._favoritesLoaded = false;
     }).catch(error => {
         console.error('Ошибка загрузки профиля:', error);
         content.innerHTML = `
