@@ -90,43 +90,53 @@
     let newParkingCoords = null;
 
 // ===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================
+
 function startYandexLogin() {
-    const clientId = 'a4c1372c585e4962bf9dfef4b5e14bf5';
-    const redirectUri = 'https://andrey8128-jpg.github.io/Park_Near/';
-    // Проверяем Client ID
-    if (!clientId) {
-        alert('Не указан Client ID приложения Яндекс OAuth.');
+    const clientId = 'ТВОЙ_CLIENT_ID';
+    const redirectUri =
+        'https://andrey8128-jpg.github.io/Park_Near/';
+    if (!clientId || clientId === 'a4c1372c585e4962bf9dfef4b5e14bf5') {
+        alert('Укажи Client ID приложения Яндекс');
         return;
     }
-    // Проверяем поддержку безопасной авторизации
-    if (!window.crypto || !window.crypto.getRandomValues) {
-        alert('Ваш браузер не поддерживает безопасную авторизацию.');
-        return;
-    }
-    // Создаём случайный state для защиты авторизации
-    const randomBytes = new Uint8Array(32);
-    window.crypto.getRandomValues(randomBytes);
-    const state = Array.from(randomBytes)
-        .map(byte => byte.toString(16).padStart(2, '0'))
-        .join('');
-    // Сохраняем state
-    try {
-        sessionStorage.setItem('yandex_oauth_state', state);
-    } catch (error) {
-        console.error('Ошибка сохранения state:', error);
-        alert('Не удалось начать вход. Попробуйте ещё раз.');
-        return;
-    }
-    // Формируем URL авторизации
+    // Создаём случайный параметр для проверки возврата
+    const state = crypto.randomUUID();
+    sessionStorage.setItem('yandex_oauth_state', state);
     const params = new URLSearchParams({
         response_type: 'code',
         client_id: clientId,
         redirect_uri: redirectUri,
         state: state
     });
-    // Переходим на страницу Яндекс OAuth
     window.location.href =
-        'https://oauth.yandex.ru/authorize?' + params.toString();
+        'https://oauth.yandex.ru/authorize?' +
+        params.toString();
+}
+function handleYandexOAuthReturn() {
+    const params = new URLSearchParams(
+        window.location.search
+    );
+    const code = params.get('code');
+    const returnedState = params.get('state');
+    const savedState =
+        sessionStorage.getItem('yandex_oauth_state');
+    if (!code) return;
+    if (!savedState || returnedState !== savedState) {
+        console.error('Ошибка проверки OAuth state');
+        alert('Не удалось проверить авторизацию');
+        return;
+    }
+    // Код получен, но вход ещё не завершён.
+    // Его нужно передать серверу для обмена
+    // на токен и проверки пользователя.
+    console.log('Код авторизации получен');
+    sessionStorage.removeItem('yandex_oauth_state');
+    // Удаляем параметры из адреса страницы
+    window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+    );
 }
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
