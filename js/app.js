@@ -3706,18 +3706,44 @@ function focusMap(lat, lng, parkingId) {
     // ===================== ПРОФИЛЬ =====================
 function renderProfile(content) {
     if (!content) return;
-    if (!currentUser) {
-        content.innerHTML = `
-            <div class="pn-profile-login">
-                <div class="pn-profile-login-icon">👤</div>
-                <h2>Добро пожаловать</h2>
-                <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
-                <button class="telegram-btn" onclick="openTelegramBot()">Войти через Telegram</button>
-                <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
-            </div>`;
-        return;
-    }
-
+  
+if (!currentUser) {
+    content.innerHTML = `
+        <div class="pn-profile-login">
+            <div class="pn-profile-login-icon">👤</div>
+            <h2>Добро пожаловать</h2>
+            <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
+            <button
+                type="button"
+                class="yandex-auth-button"
+                onclick="startYandexLogin()"
+            >
+                Войти через Яндекс
+            </button>
+            <button
+                type="button"
+                class="telegram-btn"
+                onclick="openTelegramBot()"
+            >
+                Войти через Telegram
+            </button>
+            <button
+                type="button"
+                class="guest-btn"
+                onclick="continueAsGuest()"
+            >
+                Продолжить как гость
+            </button>
+            <button
+                type="button"
+                class="logout-button"
+                onclick="logoutUser()"
+            >
+                Выйти из аккаунта
+            </button>
+        </div>`;
+    return;
+}
     const isGuest = currentUser.id.startsWith('guest_');
 
     Promise.all([
@@ -3915,16 +3941,47 @@ function renderProfile(content) {
                     <div><strong>${views}</strong><span>Просмотров</span></div>
                 </section>
 
-                ${!isGuest ? `
-                    
-                 <button type="button" onclick="logoutUser()">Выйти из аккаунта</button>
-                ` : `
-                    <div class="pn-profile-guest-info">Вы используете ParkNear как гость</div>
-                `}
+              
+${isGuest ? `
+    <div class="pn-profile-guest-info">
+        Вы используете ParkNear как гость
+    </div>
 
-                <div class="pn-profile-version">ParkNear · профиль</div>
-            </div>
-        `;
+    <div class="pn-profile-auth-actions">
+        <button
+            type="button"
+            class="yandex-auth-button"
+            onclick="startYandexLogin()"
+        >
+            Войти через Яндекс
+        </button>
+
+        <button
+            type="button"
+            class="telegram-btn"
+            onclick="openTelegramBot()"
+        >
+            Войти через Telegram
+        </button>
+
+        <button
+            type="button"
+            class="logout-button"
+            onclick="logoutUser()"
+        >
+            Выйти из аккаунта
+        </button>
+    </div>
+` : `
+    <button
+        type="button"
+        class="logout-button"
+        onclick="logoutUser()"
+    >
+        Выйти из аккаунта
+    </button>
+`}
+```
 
         renderSettingsInline();
 
