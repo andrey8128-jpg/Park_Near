@@ -56,10 +56,8 @@
     </div>
     <div class="splash-version">PARK NEAR</div>
 </div>
-
 <!-- Карта -->
 <div id="map"></div>
-
 <!-- Выбор города на карте -->
 <div id="citySelectorOnMap" onclick="openCityPicker()">
     <span id="cityDisplayName">Выберите город</span>
@@ -72,7 +70,6 @@
     <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
     <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
 </div>
-
 <!-- SVG-градиенты -->
 <svg width="0" height="0" aria-hidden="true">
     <defs>
@@ -87,11 +84,9 @@
         </linearGradient>
     </defs>
 </svg>
-
 <!-- Плавающие кнопки -->
 <button id="geoBtn" type="button" title="Моё местоположение" aria-label="Моё местоположение">📍</button>
 <button id="addBtn" type="button" title="Добавить парковку" aria-label="Добавить парковку">+</button>
-
 <!-- Основная панель -->
 <div class="panel" id="panel">
     <div class="panel-header">
@@ -195,7 +190,6 @@
             <button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
         </div>
     </div>
-
     <!-- Центральное модальное окно -->
     <div class="center-sheet" id="centerSheet">
         <div class="center-sheet-overlay" onclick="closeCenterSheet()"></div>
@@ -204,7 +198,6 @@
             <div id="centerSheetContent"></div>
         </div>
     </div>
-
     <!-- Route Card -->
     <div class="route-card" id="routeCard">
         <button class="route-close" onclick="closeRoute()">✕</button>
@@ -225,23 +218,19 @@
 <div id="activeParkingBanner" class="active-parking-banner" hidden>
     <div class="active-parking-info">
         <div class="active-parking-icon">🚗</div>
-
         <div class="active-parking-text">
             <div class="active-parking-title">
                 Вы припарковались
             </div>
-
             <div id="activeParkingName" class="active-parking-name">
                 Парковка
             </div>
-
             <div class="active-parking-timer-row">
                 <span>Время стоянки</span>
                 <strong id="activeParkingTimer">00:00:00</strong>
             </div>
         </div>
     </div>
-
     <button
         id="activeParkingLeaveBtn"
         class="active-parking-leave-btn"
@@ -277,7 +266,6 @@
             <div class="label">Профиль</div>
         </div>
     </div>
-
     <!-- Settings Overlay -->
     <div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
         <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
@@ -286,7 +274,6 @@
         </div>
         <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
     </div>
-
     <!-- City Picker -->
     <div id="cityPickerOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); z-index:4500; align-items:center; justify-content:center; flex-direction:column;">
         <div style="background:var(--bg-secondary); border-radius:16px; padding:24px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
@@ -315,22 +302,20 @@
             <div style="font-size:48px; margin-bottom:12px;">🚗</div>
             <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
             <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
-
     <!-- Вход через Яндекс ID -->
-      <button
-           type="button"
-           id="yandexLoginBtn"
-           class="btn-primary"
-           onclick="startYandexLogin()"
-           style="width:100%; margin:0;">
-           Войти через Яндекс
-      </button>
+     <button
+          type="button"
+          id="yandexAuthButtonProfile"
+          class="yandex-auth-button"
+          onclick="handleYandexAuthClick()"
+          >
+          Войти через Яндекс
+         </button>
 
         <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
         <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
     </div>
 </div>
-
     <!-- Onboarding Overlay -->
     <div id="onboardingOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); z-index:5000; align-items:center; justify-content:center; pointer-events:none;">
         <div style="background:var(--bg-secondary); border-radius:24px; padding:24px 20px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative; pointer-events:auto;">
