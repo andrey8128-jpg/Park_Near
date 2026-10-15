@@ -92,7 +92,7 @@
 // ===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================
 
 function startYandexLogin() {
-    const clientId = 'ТВОЙ_CLIENT_ID';
+    const clientId = 'a4c1372c585e4962bf9dfef4b5e14bf5';
     const redirectUri =
         'https://andrey8128-jpg.github.io/Park_Near/';
     if (!clientId || clientId === 'a4c1372c585e4962bf9dfef4b5e14bf5') {
