@@ -3907,7 +3907,8 @@ function renderProfile(content) {
                 </section>
 
                 ${!isGuest ? `
-                    <button class="pn-profile-delete" onclick="deleteAccount()">Удалить аккаунт</button>
+                    
+                 <button type="button" onclick="logoutUser()">Выйти из аккаунта</button>
                 ` : `
                     <div class="pn-profile-guest-info">Вы используете ParkNear как гость</div>
                 `}
