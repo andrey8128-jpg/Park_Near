@@ -5168,6 +5168,11 @@ function renderFavorites(content) {
         });
     }
 function showPanel(type, keepFilter = false) {
+       // Скрываем кнопку доната при открытии любой панели
+    const donateBtn = document.getElementById('donateBtn');
+    if (donateBtn) {
+        donateBtn.style.display = 'none';
+    }
     if (type === 'search' && !keepFilter) {
         nearbySearchFilter = null;
     }
@@ -5222,6 +5227,11 @@ function showPanel(type, keepFilter = false) {
     closeCenterSheet();
     closeRoute();
     document.getElementById('panel').classList.remove('active');
+   // Показываем кнопку доната при возврате на карту
+    const donateBtn = document.getElementById('donateBtn');
+    if (donateBtn) {
+    donateBtn.style.display = 'flex';
+}
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab')[1].classList.add('active');
     currentParkingId = null;
