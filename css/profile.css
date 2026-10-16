@@ -1,5 +1,7 @@
 .pn-profile-auth-actions {
     display: flex;
+    border-radius: 12px;
+    background: #FF453A; 
     flex-direction: column;
     gap: 10px;
     margin-top: 16px;
