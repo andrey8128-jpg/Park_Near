@@ -98,7 +98,7 @@
     flex:1;
     min-width:0;
     height:100%;
-    padding:0 4px;
+    padding: 5px 15px;
     border:0;
     outline:0;
     background:transparent;
@@ -124,35 +124,56 @@
 .pn-fav-search button.visible{
     display:block;
 }
-.pn-fav-filters{
-    display:flex;
-    gap:7px;
-    margin-bottom:14px;
-    overflow-x:auto;
-    scrollbar-width:none;
+/* === ФИЛЬТРЫ ИЗБРАННОГО === */
+.pn-fav-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0 5px;
 }
-.pn-fav-filters::-webkit-scrollbar{
-    display:none;
+.pn-fav-filters::-webkit-scrollbar {
+    display: none;
 }
-.pn-fav-filter{
-    flex-shrink:0;
-    padding:8px 13px;
-    border:1px solid var(--border-color);
-    border-radius:11px;
-    background:var(--bg-secondary);
-    color:var(--text-secondary);
-    font-size:12px;
-    font-weight:650;
-    cursor:pointer;
-    transition:.18s;
+/* === ОТДЕЛЬНАЯ КНОПКА === */
+.pn-fav-filter {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease,
+        transform 0.18s ease;
 }
-.pn-fav-filter.active{
-    border-color:var(--accent);
-    background:var(--accent);
-    color:#fff;
+/* === АКТИВНАЯ КНОПКА === */
+.pn-fav-filter.active {
+    background: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
+    color: #FFFFFF;
 }
-.pn-fav-filter:active{
-    transform:scale(.96);
+/* === НАЖАТИЕ === */
+.pn-fav-filter:active {
+    transform: scale(0.97);
+}
+/* === КЛАВИАТУРНЫЙ ФОКУС === */
+.pn-fav-filter:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 .pn-fav-list{
     display:flex;
