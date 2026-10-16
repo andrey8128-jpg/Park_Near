@@ -2172,11 +2172,12 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
 /* ===== СТИЛЬ ЗАГРУЗОЧНОГО ЭКРАНА ==== */
 @import url("./css/splash.css");
 
-/* ===== КНОПКА ДОНАТА НА ВКЛАДКЕ КАРТА ===== */
+
+/* ===== КНОПКА ДОНАТА НА КАРТЕ ===== */
 #donateBtn {
     position: fixed;
     right: 20px;
-    /* Расположение над геолокацией */
+    /* Расположение над кнопкой геолокации */
     bottom: calc(
         var(--tab-bar-height) +
         var(--tab-bar-bottom) +
@@ -2186,15 +2187,35 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     );
     width: 46px;
     height: 46px;
-    display: none;
+    box-sizing: border-box;
+    display: flex;
     align-items: center;
     justify-content: center;
+    background: var(--btn-primary-bg, #12464c);
+    color: #ffffff;
     border: none;
     border-radius: 50%;
-    background: #12464c;
-    color: #fff;
     font-size: 25px;
+    line-height: 1;
     text-decoration: none;
     box-shadow: var(--shadow-floating);
+    cursor: pointer;
     z-index: 900;
+    transition:
+        transform 0.15s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease;
+}
+/* Наведение */
+#donateBtn:hover {
+    background: var(--btn-primary-active, #1b6269);
+}
+/* Нажатие */
+#donateBtn:active {
+    transform: scale(0.92);
+}
+/* Тёмная тема */
+body.dark-theme #donateBtn {
+    background: var(--btn-primary-bg, #12464c);
+    color: #ffffff;
 }
