@@ -3786,13 +3786,13 @@ if (!currentUser) {
             >
                 Продолжить как гость
             </button>
-            <button
-                type="button"
-                class="logout-button"
-                onclick="logoutUser()"
-            >
-                Выйти из аккаунта
-            </button>
+           <button
+    type="button"
+    class="pn-logout-btn"
+    onclick="logoutUser()"
+>
+    Выйти из аккаунта
+</button>
         </div>`;
     return;
 }
@@ -4026,12 +4026,12 @@ ${isGuest ? `
     </div>
 ` : `
     <button
-        type="button"
-        class="logout-button"
-        onclick="logoutUser()"
-    >
-        Выйти из аккаунта
-    </button>
+    type="button"
+    class="pn-logout-btn"
+    onclick="logoutUser()"
+>
+    Выйти из аккаунта
+</button>
 `}
 
 <div class="pn-profile-version">ParkNear · профиль</div>
