@@ -98,7 +98,10 @@ function startYandexLogin() {
         alert('Не указан Client ID приложения Яндекс');
         return;
     }
-    // Создаём случайный параметр для проверки возврата
+    if (!window.crypto?.randomUUID) {
+        alert('Браузер не поддерживает создание OAuth state');
+        return;
+    }
     const state = crypto.randomUUID();
     sessionStorage.setItem('yandex_oauth_state', state);
     const params = new URLSearchParams({
@@ -110,33 +113,82 @@ function startYandexLogin() {
     const authUrl =
         'https://oauth.yandex.ru/authorize?' +
         params.toString();
-    window.location.href = authUrl;
+    window.location.assign(authUrl);
 }
-function handleYandexOAuthReturn() {
+async function handleYandexOAuthReturn() {
     const params = new URLSearchParams(
         window.location.search
     );
     const code = params.get('code');
     const returnedState = params.get('state');
-    const savedState =
-        sessionStorage.getItem('yandex_oauth_state');
-    if (!code) return;
-    if (!savedState || returnedState !== savedState) {
-        console.error('Ошибка проверки OAuth state');
-        alert('Не удалось проверить авторизацию');
+    const oauthError = params.get('error');
+    // Если Яндекс вернул ошибку
+    if (oauthError) {
+        console.error(
+            'Ошибка Яндекс OAuth:',
+            oauthError,
+            params.get('error_description')
+        );
+        alert('Яндекс не завершил авторизацию.');
         return;
     }
-    // Код получен, но вход ещё не завершён.
-    // Его нужно передать серверу для обмена
-    // на токен и проверки пользователя.
-    console.log('Код авторизации получен');
-    sessionStorage.removeItem('yandex_oauth_state');
-    // Удаляем параметры из адреса страницы
-    window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname
-    );
+    // Если это обычная загрузка страницы
+    if (!code) return;
+    const savedState =
+        sessionStorage.getItem('yandex_oauth_state');
+    if (!savedState || returnedState !== savedState) {
+        console.error('Ошибка проверки OAuth state');
+        alert('Не удалось проверить авторизацию.');
+        return;
+    }
+    try {
+        // ВАЖНО:
+        // /api/yandex-login — это пример адреса.
+        // Его нужно реализовать на твоём backend.
+        const response = await fetch('/api/yandex-login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                code: code,
+                redirectUri:
+                    'https://andrey8128-jpg.github.io/Park_Near/'
+            })
+        });
+        if (!response.ok) {
+            throw new Error(
+                'Сервер не подтвердил авторизацию: ' +
+                response.status
+            );
+        }
+        const user = await response.json();
+        if (!user || !user.id) {
+            throw new Error(
+                'Сервер не вернул подтверждённого пользователя'
+            );
+        }
+        // Здесь должна быть интеграция с твоей
+        // существующей системой пользовательских сессий.
+        // Не присваивай currentUser напрямую на основании
+        // неподтверждённых данных из браузера.
+        console.log('Сервер подтвердил пользователя');
+    } catch (error) {
+        console.error(
+            'Ошибка завершения входа через Яндекс:',
+            error
+        );
+        alert(
+            'Не удалось войти. Попробуй ещё раз.'
+        );
+    } finally {
+        sessionStorage.removeItem('yandex_oauth_state');
+        window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+        );
+    }
 }
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
