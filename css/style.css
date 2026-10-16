@@ -2198,7 +2198,3 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
     box-shadow: var(--shadow-floating);
     z-index: 900;
 }
-/* Показываем кнопку только при активной вкладке карты */
-body.map-tab-active #donateBtn {
-    display: flex;
-}
