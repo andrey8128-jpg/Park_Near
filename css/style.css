@@ -334,6 +334,35 @@ body.dark-theme #geoBtn {
 #geoBtn:active {
     transform: scale(0.92); /* слегка уменьшает кнопку */
 }
+/* === Кнопка поддержки Park Near === */
+.pn-donate-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 18px;
+    background: #12464c;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+.pn-donate-button:hover {
+    background: #1b6269;
+}
+.pn-donate-button:active {
+    transform: scale(0.98);
+}
+.pn-donate-icon {
+    font-size: 20px;
+    line-height: 1;
+}
 /* === ПАНЕЛИ === */
 .panel {
     position: fixed;
@@ -359,7 +388,6 @@ body.dark-theme #geoBtn {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
-
 /* === БАЗОВЫЕ КНОПКИ === */
 .btn-primary {
     width: 100%;
