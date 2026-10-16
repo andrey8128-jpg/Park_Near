@@ -428,7 +428,7 @@ body.dark-theme #geoBtn {
 }
 .guest-btn:active { background: var(--bg-primary); }
 
-/* === КНОПКА ЯНДЕКСА=== */
+/* === КНОПКА ВЫЙТИ === */
 .pn-logout-btn {
     display: flex;
     align-items: center;
