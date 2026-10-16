@@ -334,34 +334,39 @@ body.dark-theme #geoBtn {
 #geoBtn:active {
     transform: scale(0.92); /* слегка уменьшает кнопку */
 }
-/* === Кнопка поддержки Park Near === */
-.pn-donate-button {
+/* ===== КНОПКА ПОДДЕРЖКИ CLOUDTIPS ===== */
+#donateBtn {
+    position: fixed;
+    right: 20px;
+    /* Располагаем над кнопкой геолокации */
+    bottom: calc(
+        var(--tab-bar-height) +
+        var(--tab-bar-bottom) +
+        var(--button-offset-from-tab) +
+        var(--button-gap) +
+        58px
+    );
+    width: 46px;
+    height: 46px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 14px 18px;
     background: #12464c;
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    font-size: 23px;
+    line-height: 1;
     text-decoration: none;
+    box-shadow: var(--shadow-floating);
+    z-index: 2002;
     cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease;
 }
-.pn-donate-button:hover {
+#donateBtn:hover {
     background: #1b6269;
 }
-.pn-donate-button:active {
-    transform: scale(0.98);
-}
-.pn-donate-icon {
-    font-size: 20px;
-    line-height: 1;
+#donateBtn:active {
+    transform: scale(0.92);
 }
 /* === ПАНЕЛИ === */
 .panel {
