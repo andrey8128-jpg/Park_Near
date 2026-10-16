@@ -334,40 +334,6 @@ body.dark-theme #geoBtn {
 #geoBtn:active {
     transform: scale(0.92); /* слегка уменьшает кнопку */
 }
-/* ===== КНОПКА ПОДДЕРЖКИ CLOUDTIPS ===== */
-#donateBtn {
-    position: fixed;
-    right: 20px;
-    /* Располагаем над кнопкой геолокации */
-    bottom: calc(
-        var(--tab-bar-height) +
-        var(--tab-bar-bottom) +
-        var(--button-offset-from-tab) +
-        var(--button-gap) +
-        58px
-    );
-    width: 46px;
-    height: 46px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #12464c;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    font-size: 23px;
-    line-height: 1;
-    text-decoration: none;
-    box-shadow: var(--shadow-floating);
-    z-index: 2002;
-    cursor: pointer;
-}
-#donateBtn:hover {
-    background: #1b6269;
-}
-#donateBtn:active {
-    transform: scale(0.92);
-}
 /* === ПАНЕЛИ === */
 .panel {
     position: fixed;
@@ -2206,3 +2172,45 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
 /* ===== СТИЛЬ ЗАГРУЗОЧНОГО ЭКРАНА ==== */
 @import url("./css/splash.css");
 
+/* ===== КНОПКА ДОНАТА НА КАРТЕ ===== */
+#donateBtn {
+    position: fixed !important;
+    right: 20px !important;
+
+    /* Над кнопкой геолокации */
+    bottom: calc(
+        var(--tab-bar-height) +
+        var(--tab-bar-bottom) +
+        var(--button-offset-from-tab) +
+        var(--button-gap) +
+        46px +
+        12px
+    ) !important;
+
+    width: 46px;
+    height: 46px;
+
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+
+    background: #12464c;
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+
+    font-size: 25px;
+    text-decoration: none;
+    box-shadow: var(--shadow-floating);
+
+    z-index: 2002;
+    cursor: pointer;
+}
+
+#donateBtn:hover {
+    background: #1b6269;
+}
+
+#donateBtn:active {
+    transform: scale(0.92);
+}
