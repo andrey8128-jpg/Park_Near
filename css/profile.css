@@ -19,7 +19,8 @@
     font-weight: 600;
     cursor: pointer;
 }
-.yandex-auth-button {
+/*
+.yandex-auth-button { 
     background: #ff5a40;
     color: #ffffff;
     width: 100%;
@@ -31,6 +32,7 @@
     transition: background 0.2s ease, transform 0.2s ease;
     -webkit-tap-highlight-color: transparent;
 }
+*/
 .telegram-btn {
     background: #229ED9;
     color: #FFFFFF;
