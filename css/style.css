@@ -1398,6 +1398,7 @@ body.dark-theme .theme-slider:before {
     align-items: center;
     justify-content: space-between;
     padding-left: 10px;
+    margin-left: 10px;
     min-height: 48px;
     border-bottom: 0.5px solid var(--border-color);
     transition: background 0.1s;
