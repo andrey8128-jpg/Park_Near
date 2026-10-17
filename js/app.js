@@ -89,8 +89,9 @@
     let pendingAddressData = null;
     let newParkingCoords = null;
 
-// ===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================
-function startYandexLogin() {
+//===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================//
+/*
+ function startYandexLogin() { 
     const clientId = 'a4c1372c585e4962bf9dfef4b5e14bf5';
     const redirectUri =
         'https://andrey8128-jpg.github.io/Park_Near/';
@@ -249,7 +250,8 @@ function cleanOAuthUrl() {
         document.title,
         window.location.pathname
     );
-}
+} 
+*/
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
 const savedMapPrefs = localStorage.getItem('parknear_map_city');
