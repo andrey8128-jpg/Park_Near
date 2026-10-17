@@ -2050,7 +2050,7 @@ body.dark-theme .theme-slider:before {
 }
 .settings-row:last-child { border-bottom: none; }
 .settings-label {
-    padding-left: 12px;
+    padding-left: 0px;
     font-size: 16px;
     color: var(--text-primary);
 }
