@@ -1385,7 +1385,7 @@ function initMap() {
         // 1. Создаём карту с начальным зумом 14
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
-            zoom: 14,
+            zoom: 15,
             maxZoom: 19,
             controls: [],
             type: 'yandex#map'
@@ -1394,7 +1394,7 @@ function initMap() {
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
             var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 15);
+            var showPolygons = (currentZoom >= 16);
             Object.keys(mapMarkers).forEach(function(id) {
                 var placemark = mapMarkers[id];
                 if (!placemark) return;
@@ -6103,7 +6103,7 @@ function completeSocialLogin(userData) {
 }
 function initApp() {
     if (checkTelegramAuthFromUrl()) {
-        showPanel('home');
+        showPanel('map');
     } else {
         initAuth();
     }
@@ -6142,7 +6142,7 @@ function initApp() {
     loadAllParkings();
     initPullToRefresh();
     if (currentUser) {
-        showPanel('home');
+        showPanel('map');
     }
     if (map && cityCoords) {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
