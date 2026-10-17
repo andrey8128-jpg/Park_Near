@@ -429,7 +429,7 @@ body.dark-theme #geoBtn {
     border-radius: 12px;
     color: #FFFFFF;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 700;
     font-family: inherit;
     text-align: center;
     text-decoration: none;
@@ -458,7 +458,8 @@ body.dark-theme #geoBtn {
     width: 100%;
     min-height: 44px;
     border-radius: 12px;
-    font-weight: 500;
+    font-weight: 700;
+    font-size: 15px;
     color: #fff;
 }
 .yandex-auth-btn:hover {
@@ -483,7 +484,7 @@ body.dark-theme #geoBtn {
     background: #fff;
     color: #fff;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 700;
 }
 .pn-logout-btn {
     background: #0088cc;
@@ -517,7 +518,7 @@ body.dark-theme #geoBtn {
     background: var(--bg-secondary);
     color: var(--accent);
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 700;
     font-family: inherit;
     cursor: pointer;
     box-sizing: border-box;
