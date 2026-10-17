@@ -159,16 +159,13 @@ async function handleYandexOAuthReturn() {
         if (!response.ok) {
             throw new Error(`Ошибка сервера: ${response.status}`);
         }
-        const result = await response.json();
-        if (!result.firebaseToken) {
-            throw new Error('Сервер не вернул Firebase Custom Token');
+       const result = await response.json();
+         if (!result.firebaseToken) {
+          throw new Error(
+             'Сервер не вернул Firebase Custom Token'
+         );
         }
-        // Настоящий вход в Firebase Authentication.
-        const credential = await signInWithCustomToken(
-            auth,
-            result.firebaseToken
-        );
-        const firebaseUser = credential.user;
+        await finishYandexLogin(result);
         // Сохраняем профиль под постоянным Firebase UID.
         const profileRef = ref(db, `users/${firebaseUser.uid}`);
         const snapshot = await get(profileRef);
@@ -190,6 +187,88 @@ async function handleYandexOAuthReturn() {
         sessionStorage.removeItem('yandex_oauth_state');
         cleanOAuthUrl();
     }
+}
+async function finishYandexLogin(result) {
+    if (!result?.firebaseToken || !result?.user?.id) {
+        throw new Error(
+            'Сервер не вернул токен Firebase или ID Яндекса'
+        );
+    }
+    // Завершаем настоящий вход в Firebase Authentication.
+    const credential = await signInWithCustomToken(
+        auth,
+        result.firebaseToken
+    );
+    const firebaseUser = credential.user;
+    // UID должен быть постоянным для всех привязанных способов входа.
+    const userId = firebaseUser.uid;
+    const userRef = ref(db, `users/${userId}`);
+    const snapshot = await get(userRef);
+    const oldProfile = snapshot.exists()
+        ? snapshot.val()
+        : {};
+    const now = Date.now();
+    const profile = {
+        ...oldProfile,
+        uid: userId,
+        firstName:
+            result.user.real_name ||
+            result.user.display_name ||
+            oldProfile.firstName ||
+            'Пользователь',
+        username:
+            result.user.login ||
+            oldProfile.username ||
+            '',
+        photoUrl: result.user.default_avatar_id
+            ? `https://avatars.yandex.net/get-yapic/${encodeURIComponent(
+                result.user.default_avatar_id
+            )}/islands-200`
+            : oldProfile.photoUrl || '',
+        authProviders: {
+            ...(oldProfile.authProviders || {}),
+            yandex: {
+                id: String(result.user.id)
+            }
+        },
+        lastActive: now
+    };
+    // Обновляем профиль, не удаляя остальные поля.
+    await update(userRef, profile);
+    // Создаём статистику только при первой регистрации.
+    if (!oldProfile.stats) {
+        await set(ref(db, `users/${userId}/stats`), {
+            registeredAt: now,
+            lastActive: now,
+            parkingsCreated: 0,
+            parkingsUpdated: 0,
+            confirmations: 0,
+            views: 0,
+            favorites: 0,
+            activeDates: [
+                new Date().toISOString().split('T')[0]
+            ]
+        });
+    } else {
+        await set(
+            ref(db, `users/${userId}/stats/lastActive`),
+            now
+        );
+    }
+    currentUser = {
+        id: userId,
+        username: profile.username,
+        firstName: profile.firstName,
+        photoUrl: profile.photoUrl,
+        isGuest: false
+    };
+    localStorage.setItem(
+        'tgUser',
+        JSON.stringify(currentUser)
+    );
+    hideAuthScreen();
+    showPanel('home');
+    console.log('Вход через Яндекс завершён:', userId);
 }
 function cleanOAuthUrl() {
     window.history.replaceState(
