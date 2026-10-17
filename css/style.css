@@ -418,9 +418,7 @@ body.dark-theme #geoBtn {
 }
 .btn-secondary:active { background: rgba(43, 117, 116, 0.1); }
 /* === ОБЩИЙ СТИЛЬ КНОПОК АВТОРИЗАЦИИ === */
-.telegram-btn,
-.yandex-btn,
-.pn-logout-btn {
+.telegram-btn{
     display: flex;
     align-items: center;
     justify-content: center;
@@ -444,6 +442,8 @@ body.dark-theme #geoBtn {
 /* === ВХОД ЧЕРЕЗ TELEGRAM === */
 .telegram-btn {
     background: #0088cc;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 .telegram-btn:hover {
     background: #0077b5;
@@ -453,17 +453,38 @@ body.dark-theme #geoBtn {
     transform: scale(0.98);
 }
 /* === ВХОД ЧЕРЕЗ ЯНДЕКС === */
-.yandex-btn {
+.yandex-auth-button{
     background: #FC3F1D;
+    width: 100%;
+    min-height: 44px;
+    border-radius: 12px;
+    font-weight: 500;
+    color: #fff;
 }
-.yandex-btn:hover {
+.yandex-auth-btn:hover {
     background: #E53618;
 }
-.yandex-btn:active {
+.yandex-auth-btn:active {
     background: #CC2F15;
     transform: scale(0.98);
 }
 /* === ВЫХОД ИЗ АККАУНТА === */
+.pn-logout-btn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    min-height: 44px;
+    padding: 12px 16px;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    background: #fff;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+}
 .pn-logout-btn {
     background: #0088cc;
 }
@@ -487,6 +508,8 @@ body.dark-theme #geoBtn {
     align-items: center;
     justify-content: center;
     width: 100%;
+    margin-bottom: 5px;
+    margin-top: 5px;
     min-height: 44px;
     padding: 12px 16px;
     border: 1px solid var(--accent);
