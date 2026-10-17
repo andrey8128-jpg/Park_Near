@@ -453,6 +453,7 @@ body.dark-theme #geoBtn {
     transform: scale(0.98);
 }
 /* === ВХОД ЧЕРЕЗ ЯНДЕКС === */
+/*
 .yandex-auth-button{
     background: #FC3F1D;
     width: 100%;
@@ -469,6 +470,7 @@ body.dark-theme #geoBtn {
     background: #CC2F15;
     transform: scale(0.98);
 }
+*/
 /* === ВЫХОД ИЗ АККАУНТА === */
 .pn-logout-btn{
     display: flex;
