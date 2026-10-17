@@ -12,18 +12,6 @@
     overflow: hidden;
     animation: slideUp .3s cubic-bezier(.22,1,.36,1) both;
 }
-/* Декоративная полоска сверху */
-.parking-card-compact::before { /* Создаёт полоску без добавления отдельного HTML-элемента */
-    content: ''; /* Содержимое псевдоэлемента. Если убрать → полоска обычно не появится. */
-    position: absolute; /* Позволяет точно расположить полоску. Если relative → она перестанет точно привязываться к краям. */
-    top: 5px; /* Расположение сверху. Если 5px → полоска опустится на 5px. Если -2px → уйдёт выше карточки. */
-    left: 0; /* Начало полоски слева. Если 10px → слева останется отступ 10px. */
-    right: 0; /* Конец полоски справа. Если 10px → справа останется отступ 10px. */
-    height: 2px; /* Толщина полоски. Если 2px → тоньше. Если 8px → толще. */
-    background: linear-gradient(90deg, var(--accent), #4DA3A1, var(--accent)); /* Градиент полоски. Если один цвет → полоска станет однотонной. */
-    background-size: 200% 100%; /* Размер градиента. Если 100% → градиент будет занимать ширину полоски. Если 300% → движение градиента будет заметнее. */
-    animation: gradientMove 3s ease infinite; /* Анимация 3 секунды. Если 1s → быстрее. Если 5s → медленнее. Если none → анимации не будет. */
-}
 .parking-card-close{
     position:absolute;
     top:10px;
@@ -44,14 +32,33 @@
 .parking-card-close:active{
     transform:scale(.92);
 }
-/* Ручка карточки */
+/* Ручка для перетаскивания карточки парковки */
 .parking-card-handle {
-    width: 34px;
-    height: 3px;
+    width: 38px;
+    height: 5px;
     background: var(--gray);
-    border-radius: 3px;
+    border-radius: 999px;
     margin: 0 auto 10px;
-    opacity: .5;
+    opacity: 0.6;
+    /* Разрешаем браузеру обрабатывать вертикальные жесты
+       за пределами ручки, а перетаскивание реализуем в JS */
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+/* Карточка готова к перемещению */
+.parking-card-compact {
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    will-change: transform;
+}
+/* Во время перетаскивания отключаем анимацию,
+   чтобы карточка двигалась за пальцем без задержки */
+.parking-card-compact.is-dragging {
+    transition: none !important;
+}
+.parking-card-handle:active {
+    cursor: grabbing;
 }
 /* Заголовок */
 .parking-card-header { /* Контейнер заголовка и адреса */
@@ -95,8 +102,7 @@
     transition: background .3s;
 }
 .parking-status-dot {
-    width: 11px;
-    height: 11px;
+    margin-right: -5px;
     border-radius: 50%;
     display: inline-block;
     flex-shrink: 0;
@@ -448,8 +454,8 @@
     position: absolute;
     top: 10px;
     right: 12px;
-    width: 34px;
-    height: 34px;
+    width: 25px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -457,7 +463,7 @@
     border-radius: 50%;
     background: var(--bg-primary);
     color: var(--text-secondary);
-    font-size: 22px;
+    font-size: 15px;
     cursor: pointer;
     z-index: 10;
 }
