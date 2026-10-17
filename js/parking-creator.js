@@ -304,7 +304,7 @@ async function submitParkingWithPolygon() {
             statusConfirmations: 0
         };
         console.log('💾 Парковка перед сохранением:', parkingData);
-        const cleanKeyPart = value => String(value || '').trim().replace(/[.#$/[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+       const cleanKeyPart = value => String(value || '').trim().replace(/[.#$\/\[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
         const cityKey = cleanKeyPart(detectedCity);
         const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
         const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
