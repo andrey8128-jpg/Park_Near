@@ -115,80 +115,88 @@ function startYandexLogin() {
         params.toString();
     window.location.assign(authUrl);
 }
+
 async function handleYandexOAuthReturn() {
-    const params = new URLSearchParams(
-        window.location.search
-    );
+    const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const returnedState = params.get('state');
     const oauthError = params.get('error');
-    // Если Яндекс вернул ошибку
+
     if (oauthError) {
-        console.error(
-            'Ошибка Яндекс OAuth:',
-            oauthError,
-            params.get('error_description')
-        );
+        console.error('Ошибка Яндекс OAuth:', oauthError);
         alert('Яндекс не завершил авторизацию.');
+        cleanOAuthUrl();
         return;
     }
-    // Если это обычная загрузка страницы
+
     if (!code) return;
-    const savedState =
-        sessionStorage.getItem('yandex_oauth_state');
+
+    const savedState = sessionStorage.getItem('yandex_oauth_state');
+
     if (!savedState || returnedState !== savedState) {
         console.error('Ошибка проверки OAuth state');
         alert('Не удалось проверить авторизацию.');
+        cleanOAuthUrl();
         return;
     }
+
     try {
-        // ВАЖНО:
-        // /api/yandex-login — это пример адреса.
-        // Его нужно реализовать на твоём backend.
-        const response = await fetch('/api/yandex-login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                code: code,
-                redirectUri:
-                    'https://andrey8128-jpg.github.io/Park_Near/'
-            })
-        });
+        // Адрес нужно заменить на реальный URL твоего backend.
+        const response = await fetch(
+            'https://YOUR-BACKEND-DOMAIN/api/yandex-login',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    code,
+                    redirectUri:
+                        'https://andrey8128-jpg.github.io/Park_Near/'
+                })
+            }
+        );
         if (!response.ok) {
-            throw new Error(
-                'Сервер не подтвердил авторизацию: ' +
-                response.status
-            );
+            throw new Error(`Ошибка сервера: ${response.status}`);
         }
-        const user = await response.json();
-        if (!user || !user.id) {
-            throw new Error(
-                'Сервер не вернул подтверждённого пользователя'
-            );
+        const result = await response.json();
+        if (!result.firebaseToken) {
+            throw new Error('Сервер не вернул Firebase Custom Token');
         }
-        // Здесь должна быть интеграция с твоей
-        // существующей системой пользовательских сессий.
-        // Не присваивай currentUser напрямую на основании
-        // неподтверждённых данных из браузера.
-        console.log('Сервер подтвердил пользователя');
+        // Настоящий вход в Firebase Authentication.
+        const credential = await signInWithCustomToken(
+            auth,
+            result.firebaseToken
+        );
+        const firebaseUser = credential.user;
+        // Сохраняем профиль под постоянным Firebase UID.
+        const profileRef = ref(db, `users/${firebaseUser.uid}`);
+        const snapshot = await get(profileRef);
+        const oldProfile = snapshot.exists() ? snapshot.val() : {};
+        await set(profileRef, {
+            ...oldProfile,
+            uid: firebaseUser.uid,
+            yandexId: String(result.user.id),
+            name: result.user.display_name || oldProfile.name || '',
+            updatedAt: Date.now()
+        });
+        console.log('Вход в Firebase выполнен:', firebaseUser.uid);
+        // Здесь вызови функцию обновления интерфейса,
+        // которая уже используется в твоём приложении.
     } catch (error) {
-        console.error(
-            'Ошибка завершения входа через Яндекс:',
-            error
-        );
-        alert(
-            'Не удалось войти. Попробуй ещё раз.'
-        );
+        console.error('Ошибка входа через Яндекс:', error);
+        alert('Не удалось войти. Проверь сервер и Firebase.');
     } finally {
         sessionStorage.removeItem('yandex_oauth_state');
-        window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-        );
+        cleanOAuthUrl();
     }
+}
+function cleanOAuthUrl() {
+    window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+    );
 }
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
