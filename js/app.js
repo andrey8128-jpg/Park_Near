@@ -122,10 +122,12 @@ async function handleYandexOAuthReturn() {
     const returnedState = params.get('state');
     const oauthError = params.get('error');
 
+    // ✅ СРАЗУ очищаем URL, чтобы при обновлении страницы код не сгорел
+    cleanOAuthUrl();
+
     if (oauthError) {
         console.error('Ошибка Яндекс OAuth:', oauthError);
-        alert('Яндекс не завершил авторизацию.');
-        cleanOAuthUrl();
+        showToast('Вы отменили вход через Яндекс', 3000);
         return;
     }
 
@@ -135,13 +137,13 @@ async function handleYandexOAuthReturn() {
 
     if (!savedState || returnedState !== savedState) {
         console.error('Ошибка проверки OAuth state');
-        alert('Не удалось проверить авторизацию.');
-        cleanOAuthUrl();
+        showToast('Ошибка безопасности при входе. Попробуйте снова.', 3000);
         return;
     }
 
     try {
-        // Адрес нужно заменить на реальный URL твоего backend.
+        showToast('Входим в аккаунт...', 2000);
+        // ВАЖНО: Замените YOUR-BACKEND-DOMAIN на реальный адрес вашего сервера
         const response = await fetch(
             'https://YOUR-BACKEND-DOMAIN/api/yandex-login',
             {
@@ -151,62 +153,38 @@ async function handleYandexOAuthReturn() {
                 },
                 body: JSON.stringify({
                     code,
-                    redirectUri:
-                        'https://andrey8128-jpg.github.io/Park_Near/'
+                    redirectUri: 'https://andrey8128-jpg.github.io/Park_Near/'
                 })
             }
         );
         if (!response.ok) {
             throw new Error(`Ошибка сервера: ${response.status}`);
         }
-       const result = await response.json();
-         if (!result.firebaseToken) {
-          throw new Error(
-             'Сервер не вернул Firebase Custom Token'
-         );
+        const result = await response.json();
+        if (!result.firebaseToken) {
+            throw new Error('Сервер не вернул Firebase Custom Token');
         }
         await finishYandexLogin(result);
-        // Сохраняем профиль под постоянным Firebase UID.
-        const profileRef = ref(db, `users/${firebaseUser.uid}`);
-        const snapshot = await get(profileRef);
-        const oldProfile = snapshot.exists() ? snapshot.val() : {};
-        await set(profileRef, {
-            ...oldProfile,
-            uid: firebaseUser.uid,
-            yandexId: String(result.user.id),
-            name: result.user.display_name || oldProfile.name || '',
-            updatedAt: Date.now()
-        });
-        console.log('Вход в Firebase выполнен:', firebaseUser.uid);
-        // Здесь вызови функцию обновления интерфейса,
-        // которая уже используется в твоём приложении.
     } catch (error) {
         console.error('Ошибка входа через Яндекс:', error);
-        alert('Не удалось войти. Проверь сервер и Firebase.');
+        showToast('Не удалось войти. Проверьте сервер и Firebase.', 4000);
     } finally {
         sessionStorage.removeItem('yandex_oauth_state');
-        cleanOAuthUrl();
     }
 }
 async function finishYandexLogin(result) {
     if (!result?.firebaseToken || !result?.user?.id) {
-        throw new Error(
-            'Сервер не вернул токен Firebase или ID Яндекса'
-        );
+        throw new Error('Сервер не вернул токен Firebase или ID Яндекса');
     }
-    // Завершаем настоящий вход в Firebase Authentication.
-    const credential = await signInWithCustomToken(
-        auth,
-        result.firebaseToken
-    );
+    // ✅ ИСПРАВЛЕНО: Используем синтаксис V8 (compat), как во всем остальном коде
+    const credential = await firebase.auth().signInWithCustomToken(result.firebaseToken);
     const firebaseUser = credential.user;
-    // UID должен быть постоянным для всех привязанных способов входа.
     const userId = firebaseUser.uid;
-    const userRef = ref(db, `users/${userId}`);
-    const snapshot = await get(userRef);
-    const oldProfile = snapshot.exists()
-        ? snapshot.val()
-        : {};
+    
+    const userRef = database.ref(`users/${userId}`);
+    const snapshot = await userRef.once('value');
+    const oldProfile = snapshot.exists() ? snapshot.val() : {};
+    
     const now = Date.now();
     const profile = {
         ...oldProfile,
@@ -233,11 +211,11 @@ async function finishYandexLogin(result) {
         },
         lastActive: now
     };
-    // Обновляем профиль, не удаляя остальные поля.
-    await update(userRef, profile);
+    // Обновляем профиль
+    await userRef.update(profile);
     // Создаём статистику только при первой регистрации.
     if (!oldProfile.stats) {
-        await set(ref(db, `users/${userId}/stats`), {
+        await database.ref(`users/${userId}/stats`).set({
             registeredAt: now,
             lastActive: now,
             parkingsCreated: 0,
@@ -250,10 +228,7 @@ async function finishYandexLogin(result) {
             ]
         });
     } else {
-        await set(
-            ref(db, `users/${userId}/stats/lastActive`),
-            now
-        );
+        await database.ref(`users/${userId}/stats/lastActive`).set(now);
     }
     currentUser = {
         id: userId,
@@ -262,12 +237,10 @@ async function finishYandexLogin(result) {
         photoUrl: profile.photoUrl,
         isGuest: false
     };
-    localStorage.setItem(
-        'tgUser',
-        JSON.stringify(currentUser)
-    );
+    localStorage.setItem('tgUser', JSON.stringify(currentUser));
     hideAuthScreen();
     showPanel('home');
+    showToast('✅ Вы успешно вошли через Яндекс!', 3000);
     console.log('Вход через Яндекс завершён:', userId);
 }
 function cleanOAuthUrl() {
@@ -6102,6 +6075,11 @@ function completeSocialLogin(userData) {
     }
 }
 function initApp() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('code')) {
+        handleYandexOAuthReturn();
+        return; // Останавливаем дальнейшую инициализацию, пока идет вход
+    }
     if (checkTelegramAuthFromUrl()) {
         showPanel('map');
     } else {
