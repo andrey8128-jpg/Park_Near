@@ -303,24 +303,8 @@
             <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
         </div>
     </div>
-
-    <!-- Auth Overlay -->
-    <div id="authOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); z-index:6000; align-items:center; justify-content:center; flex-direction:column;">
-        <div style="background:var(--bg-secondary); border-radius:24px; padding:30px 20px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative;">
-            <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
-            <div style="font-size:48px; margin-bottom:12px;">🚗</div>
-            <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
-            <p style="color:var(--text-secondary); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
-    <!-- Вход через Яндекс ID -->
-     <button
-          type="button"
-          id="yandexAuthButtonProfile"
-          class="yandex-auth-button"
-          onclick="startYandexLogin()"
-          >
-          Войти через Яндекс
-         </button>
-
+    <!-- Вход через Яндекс ID и гостя -->
+      <!-- <button type="button"id="yandexAuthButtonProfile" class="yandex-auth-button" onclick="startYandexLogin()">Войти через Яндекс</button> -->
         <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
         <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
     </div>
