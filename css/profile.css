@@ -36,6 +36,6 @@
     color: #FFFFFF;
 }
 .logout-button {
-    background: var(--surface-secondary, #EEEEEE);
+    background: #8d8d8d;
     color: var(--text-primary, #222222);
 }
