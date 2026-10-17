@@ -3754,7 +3754,6 @@ function focusMap(lat, lng, parkingId) {
         }
         closePanel();
     }
-
     // ===================== ПРОФИЛЬ =====================
 function renderProfile(content) {
     if (!content) return;
@@ -3786,13 +3785,6 @@ if (!currentUser) {
             >
                 Продолжить как гость
             </button>
-           <button
-    type="button"
-    class="pn-logout-btn"
-    onclick="logoutUser()"
->
-    Выйти из аккаунта
-</button>
         </div>`;
     return;
 }
