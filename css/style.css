@@ -26,7 +26,7 @@
     --input-bg: #F8FAFA; /* фон полей ввода */
     --card-shadow: 0 8px 30px rgba(0,0,0,0.08); /* тень карточек */
     --shadow-floating: 0 8px 30px rgba(0,0,0,0.08); /* тень плавающих кнопок (geoBtn/addBtn) — переменная использовалась в коде, но не была объявлена; значение взято по аналогии с --card-shadow, уточните дизайн-референс при необходимости */
-    --overlay-bg: rgba(0,0,0,0.40); /* затемнение экрана под модальным окном */
+    --overlay-bg: rgba(0,0,0,0.15); /* затемнение экрана под модальным окном */
     --toast-bg: rgba(17,21,22,0.94); /* фон уведомлений Toast */
     --history-occupied: #FF453A; /* цвет события "занял место" */
     --history-freed: #30D158; /* цвет события "освободил место" */
@@ -77,7 +77,7 @@ body.dark-theme {
     --input-bg: #151A1B; /* фон поля ввода */
     --card-shadow: 0 8px 30px rgba(0,0,0,0.30); /* тень карточек */
     --shadow-floating: 0 8px 30px rgba(0,0,0,0.30); /* тень плавающих кнопок в тёмной теме */
-    --overlay-bg: rgba(0,0,0,0.60); /* затемнение */
+    --overlay-bg: rgba(0,0,0,0.15); /* затемнение */
     --toast-bg: rgba(28,34,35,0.96); /* уведомления */
     --tab-bg: rgba(21,26,27,0.82); /* фон нижнего меню */
     --tab-icon: #A1A1A6; /* неактивные иконки */
@@ -2188,59 +2188,6 @@ body.dark-theme .pn-profile-hero,
 body.dark-theme .pn-profile-menu,
 body.dark-theme .pn-profile-expand,
 body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
-
-/* ===== ЦЕНТРАЛЬНОЕ ОКНО КАРТОЧКИ ПАРКОВКИ ===== */
-.center-sheet {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 3000;
-    align-items: flex-end;
-    justify-content: center;
-    pointer-events: none;
-}
-.center-sheet.active {
-    display: flex;
-}
-.center-sheet-overlay {
-    position: absolute;
-    inset: 0;
-    background: var(--overlay-bg);
-    pointer-events: auto;
-}
-.center-sheet-box {
-    position: relative;
-    width: 100%;
-    max-width: 520px;
-    max-height: 80vh;
-    overflow-y: auto;
-    background: var(--sheet-bg);
-    border-radius: 24px 24px 0 0;
-    box-shadow: 0 -8px 30px rgba(0,0,0,.25);
-    z-index: 1;
-    pointer-events: auto;
-    padding-bottom: env(safe-area-inset-bottom);
-}
-.center-sheet-close {
-    position: absolute;
-    top: 10px;
-    right: 12px;
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    border-radius: 50%;
-    background: var(--bg-primary);
-    color: var(--text-secondary);
-    font-size: 22px;
-    cursor: pointer;
-    z-index: 10;
-}
-.center-sheet-close:active {
-    transform: scale(.92);
-}
 /* ==== КАРТОЧКА ПАРКОВКИ ====*/
 @import url("./park.card.css");
 /* ===== СТИЛИ РЕДАКТОРА ПАРКОВКИ ===== */
