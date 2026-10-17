@@ -6178,6 +6178,85 @@ document.addEventListener('visibilitychange', function() {
             window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
         }
     }
+
+function initParkingCardSwipe() {
+    const handleSelector = '.parking-card-handle';
+    const cardSelector = '.parking-card-compact';
+    let activeCard = null;
+    let startY = 0;
+    let currentY = 0;
+    let dragging = false;
+    const closeThreshold = 100;
+    document.addEventListener('pointerdown', (event) => {
+        const handle = event.target.closest(handleSelector);
+        if (!handle) return;
+        const card = handle.closest(cardSelector);
+        if (!card) return;
+        // Реагируем только на основную кнопку мыши
+        if (event.pointerType === 'mouse' && event.button !== 0) {
+            return;
+        }
+        activeCard = card;
+        startY = event.clientY;
+        currentY = startY;
+        dragging = true;
+        card.classList.add('is-dragging');
+        try {
+            handle.setPointerCapture(event.pointerId);
+        } catch (_) {
+            // Захват указателя поддерживается не во всех случаях
+        }
+        event.preventDefault();
+    });
+    document.addEventListener('pointermove', (event) => {
+        if (!dragging || !activeCard) return;
+        currentY = event.clientY;
+        const deltaY = Math.max(0, currentY - startY);
+        activeCard.style.transform =
+            `translateY(${deltaY}px)`;
+        // При движении вверх карточка не перемещается
+        event.preventDefault();
+    }, { passive: false });
+    function finishDrag() {
+        if (!dragging || !activeCard) return;
+        const card = activeCard;
+        const deltaY = Math.max(0, currentY - startY);
+        dragging = false;
+        activeCard = null;
+        card.classList.remove('is-dragging');
+        if (deltaY >= closeThreshold) {
+            // Плавно уводим карточку вниз
+            card.style.transform = 'translateY(120%)';
+            card.style.opacity = '0';
+            card.addEventListener('transitionend', function onEnd(event) {
+                if (event.target !== card ||
+                    event.propertyName !== 'transform') {
+                    return;
+                }
+                card.removeEventListener('transitionend', onEnd);
+                // Скрываем только если карточка всё ещё закрывается
+                if (card.style.transform === 'translateY(120%)') {
+                    card.style.display = 'none';
+                }
+            });
+        } else {
+            // Если свайп короткий — возвращаем карточку
+            card.style.transform = '';
+            card.style.opacity = '';
+        }
+    }
+    document.addEventListener('pointerup', finishDrag);
+    document.addEventListener('pointercancel', finishDrag);
+}
+if (document.readyState === 'loading') {
+    document.addEventListener(
+        'DOMContentLoaded',
+        initParkingCardSwipe,
+        { once: true }
+    );
+} else {
+    initParkingCardSwipe();
+}
     // Заполняем цвета для редактора автомобиля
     (function initCarColors() {
         const colorSelect = document.getElementById('carColorSelect');
