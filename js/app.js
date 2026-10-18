@@ -6014,38 +6014,26 @@ function checkTelegramAuthFromUrl() {
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 function onTelegramAuth(user) {
     try {
-        completeSocialLogin({
+        currentUser = {
             id: 'tg_' + user.id,
             username: user.username || 'tg_user',
             firstName: user.first_name || 'Пользователь',
-            photoUrl: user.photo_url || ''
-        });
-    } catch (error) {
-        console.error('Ошибка Telegram:', error);
-        continueAsGuest();
-    }
-}
-function completeSocialLogin(userData) {
-    try {
-        currentUser = {
-            ...userData,
+            photoUrl: user.photo_url || '',
             isGuest: false
         };
-        localStorage.setItem(
-            'tgUser',
-            JSON.stringify(currentUser)
-        );
-        const userRef = database.ref(
-            'users/' + currentUser.id
-        );
+        localStorage.setItem('tgUser', JSON.stringify(currentUser));
+        const userRef = database.ref('users/' + currentUser.id);
         userRef.update({
-            username: currentUser.username || '',
-            firstName: currentUser.firstName || 'Пользователь',
-            photoUrl: currentUser.photoUrl || '',
+            username: currentUser.username,
+            firstName: currentUser.firstName,
+            photoUrl: currentUser.photoUrl,
             lastActive: Date.now()
         }).catch(console.error);
         userRef.child('stats').transaction(current => {
-            if (current) return current;
+            if (current) {
+                // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
+                return current;
+            }
             return {
                 registeredAt: Date.now(),
                 lastActive: Date.now(),
@@ -6054,36 +6042,24 @@ function completeSocialLogin(userData) {
                 confirmations: 0,
                 views: 0,
                 favorites: 0,
-                activeDates: [
-                    new Date().toISOString().split('T')[0]
-                ]
+                activeDates: [new Date().toISOString().split('T')[0]]
             };
         }).then(() => {
-            return userRef.child('stats/lastActive')
-                .set(Date.now());
+            // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
+            userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
         }).catch(console.error);
         hideAuthScreen();
         showPanel('home');
         showOnboarding();
-        console.log(
-            'Пользователь авторизован:',
-            currentUser.id
-        );
-    } catch (error) {
-        console.error(
-            'Ошибка завершения авторизации:',
-            error
-        );
+        console.log('✅ Пользователь авторизован:', user.first_name);
+    } catch (e) {
+        console.error('❌ Ошибка в onTelegramAuth:', e);
+        continueAsGuest();
     }
 }
 function initApp() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('code')) {
-        handleYandexOAuthReturn();
-        return; // Останавливаем дальнейшую инициализацию, пока идет вход
-    }
     if (checkTelegramAuthFromUrl()) {
-        showPanel('map');
+        showPanel('home');
     } else {
         initAuth();
     }
@@ -6122,7 +6098,7 @@ function initApp() {
     loadAllParkings();
     initPullToRefresh();
     if (currentUser) {
-        showPanel('map');
+        showPanel('home');
     }
     if (map && cityCoords) {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
