@@ -5961,49 +5961,78 @@ function checkTelegramAuthFromUrl() {
     return false;
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
-function onTelegramAuth(user) {
+async function onTelegramAuth(user) {
     try {
-        currentUser = {
-            id: 'tg_' + user.id,
+        // 1. Проверяем, что Telegram передал ID пользователя
+        if (!user || !user.id) {
+            throw new Error('Не получен ID пользователя Telegram');
+        }
+        // 2. Формируем постоянный ID Park Near
+        const telegramId = String(user.id);
+        const profile = {
+            id: 'tg_' + telegramId,
             username: user.username || 'tg_user',
-            firstName: user.first_name || 'Пользователь',
-            photoUrl: user.photo_url || '',
+            firstName: user.first_name || user.firstName || 'Пользователь',
+            photoUrl: user.photo_url || user.photoUrl || '',
             isGuest: false
         };
-        localStorage.setItem('tgUser', JSON.stringify(currentUser));
-        const userRef = database.ref('users/' + currentUser.id);
-        userRef.update({
-            username: currentUser.username,
-            firstName: currentUser.firstName,
-            photoUrl: currentUser.photoUrl,
-            lastActive: Date.now()
-        }).catch(console.error);
-        userRef.child('stats').transaction(current => {
-            if (current) {
-                // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
-                return current;
+        // 3. Сохраняем пользователя в текущей сессии приложения
+        currentUser = profile;
+        window.currentUser = profile;
+        // 4. Сохраняем локально, чтобы восстановить профиль при запуске
+        localStorage.setItem('tgUser', JSON.stringify(profile));
+        // 5. Ссылка на профиль пользователя в Firebase
+        const userRef = database.ref('users/' + profile.id);
+        const now = Date.now();
+        // 6. Создаём или обновляем профиль
+        await userRef.update({
+            id: profile.id,
+            telegramId: telegramId,
+            username: profile.username,
+            firstName: profile.firstName,
+            photoUrl: profile.photoUrl,
+            isGuest: false,
+            lastActive: now
+        });
+        // 7. Создаём статистику только для нового пользователя
+        await userRef.child('stats').transaction(stats => {
+            if (stats !== null) {
+                return stats;
             }
             return {
-                registeredAt: Date.now(),
-                lastActive: Date.now(),
+                registeredAt: now,
+                lastActive: now,
                 parkingsCreated: 0,
                 parkingsUpdated: 0,
                 confirmations: 0,
                 views: 0,
                 favorites: 0,
-                activeDates: [new Date().toISOString().split('T')[0]]
+                activeDates: [
+                    new Date().toISOString().split('T')[0]
+                ]
             };
-        }).then(() => {
-            // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
-            userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
-        }).catch(console.error);
-        hideAuthScreen();
-        showPanel('home');
-        showOnboarding();
-        console.log('✅ Пользователь авторизован:', user.first_name);
-    } catch (e) {
-        console.error('❌ Ошибка в onTelegramAuth:', e);
-        continueAsGuest();
+        });
+        // 8. Обновляем дату активности, не стирая статистику
+        await userRef.child('stats/lastActive').set(now);
+        // 9. Показываем приложение после успешной записи в Firebase
+        if (typeof hideAuthScreen === 'function') {
+            hideAuthScreen();
+        }
+        if (typeof showPanel === 'function') {
+            showPanel('home');
+        }
+        if (typeof showOnboarding === 'function') {
+            showOnboarding();
+        }
+        console.log('Вход и сохранение профиля выполнены:', profile.id);
+        return profile;
+    } catch (error) {
+        console.error('Ошибка авторизации или записи в Firebase:', error);
+        alert(
+            'Не удалось сохранить профиль в Firebase. ' +
+            'Проверьте подключение и правила доступа к базе данных.'
+        );
+        throw error;
     }
 }
 function initApp() {
