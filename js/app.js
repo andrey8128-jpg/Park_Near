@@ -6053,41 +6053,95 @@ function initApp() {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
 }
-function openTelegramBot() {
-    console.log('openTelegramBot вызвана');
-    if (window.Telegram && window.Telegram.WebApp) {
-        var webApp = window.Telegram.WebApp;
-        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-            var user = webApp.initDataUnsafe.user;
-            var expectedId = 'tg_' + user.id;
-            var savedUserRaw = localStorage.getItem('tgUser');
-            var savedUser = null;
+
+const TELEGRAM_LOGIN_CLIENT_ID = 'ТВОЙ_CLIENT_ID';
+const TELEGRAM_AUTH_ENDPOINT =
+    'https://ТВОЙ_РЕАЛЬНЫЙ_АДРЕС/telegramAuth';
+
+async function openTelegramBot() {
+    try {
+        if (
+            !TELEGRAM_LOGIN_CLIENT_ID ||
+            TELEGRAM_LOGIN_CLIENT_ID === 'ТВОЙ_CLIENT_ID'
+        ) {
+            throw new Error(
+                'Сначала укажи Telegram Client ID'
+            );
+        }
+        // Подключаем официальный веб-виджет Telegram.
+        if (!window.Telegram?.Login?.auth) {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src =
+                    'https://oauth.telegram.org/js/telegram-login.js?3';
+                script.onload = resolve;
+                script.onerror = () =>
+                    reject(new Error(
+                        'Не удалось загрузить вход Telegram'
+                    ));
+                document.head.appendChild(script);
+            });
+        }
+        window.Telegram.Login.auth({
+            client_id: Number(TELEGRAM_LOGIN_CLIENT_ID),
+            scope: ['profile'],
+            lang: 'ru'
+        }, async (result) => {
             try {
-                savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
-            } catch (e) {
-                savedUser = null;
-            }
-            if (!savedUser || savedUser.id !== expectedId) {
-                onTelegramAuth({
-                    id: user.id,
-                    first_name: user.first_name,
-                    last_name: user.last_name || '',
-                    username: user.username || '',
-                    photo_url: user.photo_url || '',
-                    auth_date: Math.floor(Date.now() / 1000),
-                    hash: webApp.initDataUnsafe.hash || ''
-                });
-            } else {
-                console.log('👤 Пользователь уже залогинен');
+                if (!result?.id_token) {
+                    // Пользователь отменил вход.
+                    return;
+                }
+                const response = await fetch(
+                    TELEGRAM_AUTH_ENDPOINT,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id_token: result.id_token
+                        })
+                    }
+                );
+                const data = await response.json();
+                if (!response.ok || !data.customToken) {
+                    throw new Error(
+                        data.error || 'Сервер не подтвердил вход'
+                    );
+                }
+                // Входим в Firebase только после проверки
+                // токена Telegram сервером.
+                await firebase.auth().signInWithCustomToken(
+                    data.customToken
+                );
+                // Данные профиля берём из ответа сервера.
+                const u = data.user;
+                currentUser = {
+                    id: 'tg_' + u.id,
+                    username: u.username || 'tg_user',
+                    firstName: u.firstName || 'Пользователь',
+                    photoUrl: u.photoUrl || '',
+                    isGuest: false
+                };
+                window.currentUser = currentUser;
+                localStorage.setItem(
+                    'tgUser',
+                    JSON.stringify(currentUser)
+                );
                 hideAuthScreen();
                 showPanel('home');
+                showOnboarding();
+                console.log('Вход через Telegram выполнен');
+            } catch (error) {
+                console.error('Ошибка Telegram-входа:', error);
+                alert('Не удалось войти через Telegram. Попробуй ещё раз.');
             }
-            return;
-        }
-        webApp.openTelegramLink('https://t.me/parknear_bot');
-        return;
+        });
+    } catch (error) {
+        console.error(error);
+        alert(error.message || 'Не удалось запустить вход через Telegram');
     }
-    window.open('https://t.me/parknear_bot', '_blank');
 }
 function closeAuthScreen() {
     const overlay = document.getElementById('authOverlay');
