@@ -10,38 +10,6 @@
     };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-// ===================== TELEGRAM LOGIN (OFFICIAL OIDC) =====================
-// Укажи Client ID из @BotFather → Login Widget.
-// Секрет Telegram здесь НЕ хранится — он должен быть только на сервере.
-const TELEGRAM_LOGIN_CLIENT_ID = 'ВСТАВЬТЕ_CLIENT_ID_ИЗ_BOTFATHER';
-// Укажи URL развернутой серверной функции, которая проверяет id_token
-// и возвращает Firebase custom token.
-const TELEGRAM_AUTH_ENDPOINT = 'https://REGION-PROJECT_ID.cloudfunctions.net/telegramAuth';
-
-let telegramLoginSdkReady = false;
-let telegramLoginSdkLoading = false;
-(function preloadTelegramLoginSdk() {
-    if (window.Telegram?.Login) {
-        telegramLoginSdkReady = true;
-        return;
-    }
-    if (telegramLoginSdkLoading) return;
-    telegramLoginSdkLoading = true;
-    const script = document.createElement('script');
-    script.src = 'https://oauth.telegram.org/js/telegram-login.js?3';
-    script.async = true;
-    script.onload = function () {
-        telegramLoginSdkReady = !!window.Telegram?.Login;
-        if (!telegramLoginSdkReady) {
-            console.error('Telegram Login SDK загрузился, но API недоступен');
-        }
-    };
-    script.onerror = function () {
-        telegramLoginSdkReady = false;
-        console.error('Не удалось загрузить официальный Telegram Login SDK');
-    };
-    document.head.appendChild(script);
-})();
     // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====// ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
    (function restoreTheme() {
     const darkTheme = localStorage.getItem('darkTheme');
@@ -1940,28 +1908,31 @@ async function openCenterSheet(parkingId,data){
                     <span>свободно примерно</span>
                 </div>
             </div>
-           
-<div class="parking-secondary-actions parking-card-bottom-actions">
+            ${parkingButton}
+            <button
+                class="parking-route-btn"
+                onclick="buildRouteToParking('${safeId}')"
+            >
+                <span>🧭</span>
+                <span>Поехать</span>
+            </button>
+            <div class="parking-secondary-actions">
+                <button
+                    class="parking-secondary-btn parking-favorite-btn"
+                    onclick="toggleFavoriteCenter()"
+                >
+                    <span>♡</span>
+                    <span>Сохранить</span>
+                </button>
+            </div>
+            <button
+                class="parking-edit-btn"
+                onclick="editFromCenter()"
+            >
+                ✎ Редактировать
+            </button>
 
-    <button
-        type="button"
-        class="parking-edit-btn"
-        onclick="editFromCenter()"
-    >
-        <span>✎</span>
-        <span>Редактировать</span>
-    </button>
-
-   <button
-    class="parking-save-btn"
-    onclick="toggleFavoriteCenter()"
-    style="width:100%; margin-top:8px;"
->
-    <span>♡</span>
-    <span>Сохранить</span>
-</button>
-</div>
-
+        </div>
     `;
     sheet.classList.add('active');
 }
@@ -5263,16 +5234,8 @@ function showPanel(type, keepFilter = false) {
 }
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab')[1].classList.add('active');
- // Закрываем карточку парковки при переходе в другой раздел
-if (
-    tab.classList.contains('home-tab') ||
-    tab.classList.contains('profile-tab') ||
-    tab.classList.contains('favorites-tab')
-) {
-    closeCenterSheet();
     currentParkingId = null;
     currentParkingData = null;
-}
     // Если мы редактируем полигон существующей парковки – сбрасываем
     if (editingPolygon) {
         map.geoObjects.remove(editingPolygon);
@@ -5524,6 +5487,24 @@ function createAuthScreenFallback() {
         flex-direction: column;
         padding: 20px;
     `;
+    overlay.innerHTML = `
+        <div style="background: var(--bg-secondary, #fff); border-radius: 24px; padding: 30px 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative;">
+            <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary, #888); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
+            <div style="font-size:48px; margin-bottom:12px;">🚗</div>
+            <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
+            <p style="color:var(--text-secondary, #666); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
+            <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
+                data-telegram-login="parknear_bot"
+                data-size="large"
+                data-onauth="onTelegramAuth(user)"
+                data-request-access="write">
+            <\/script>
+            <div style="margin:12px 0; color:var(--text-secondary, #666); font-size:14px;">— или —</div>
+            <button class="guest-btn" onclick="continueAsGuest()" style="width:100%; padding:16px; border-radius:14px; border:none; font-size:16px; font-weight:600; cursor:pointer; background:var(--bg-secondary, #fff); color:var(--accent, #007AFF); border:1px solid var(--accent, #007AFF);">Продолжить как гость</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('authOverlay').style.display = 'flex';
 }
     function showOnboarding() {
         if (localStorage.getItem('onboardingSeen') === 'true') return;
@@ -5975,77 +5956,71 @@ function renderParkingList(container, parkings) {
     container.innerHTML = parkings.map(p => renderParkingItem(p, userLocationForSearch)).join('');
 }
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
-// Не принимаем tg_auth_data из URL: эти данные можно подделать.
-// Вход разрешается только через официальный Telegram Login + серверную проверку.
+   // Проверяем URL на наличие данных авторизации от Telegram (редирект)
 function checkTelegramAuthFromUrl() {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('tg_auth_data')) {
-        url.searchParams.delete('tg_auth_data');
-        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
-        console.warn('Удалены неподтверждённые данные авторизации из URL');
+    const urlParams = new URLSearchParams(window.location.search);
+    const authData = urlParams.get('tg_auth_data');
+    if (authData) {
+        try {
+            const userData = JSON.parse(decodeURIComponent(authData));
+            if (userData.id) {
+                onTelegramAuth(userData);
+                // Очищаем URL от параметров
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return true;
+            }
+        } catch (e) {
+            console.warn('Ошибка разбора данных авторизации:', e);
+        }
     }
     return false;
 }
-
-// Вызывается только после проверки id_token сервером и входа в Firebase Authentication.
-async function onTelegramAuth(user) {
+// ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
+function onTelegramAuth(user) {
     try {
-        const firebaseAuth = firebase.auth && firebase.auth();
-        if (!firebaseAuth || !firebaseAuth.currentUser) {
-            throw new Error('Firebase Authentication не подтвердил пользователя');
-        }
-        if (!user || !user.id) {
-            throw new Error('Сервер не вернул подтверждённый Telegram ID');
-        }
-        const uid = 'tg_' + String(user.id);
-        if (firebaseAuth.currentUser.uid !== uid) {
-            throw new Error('UID Firebase не совпадает с Telegram ID');
-        }
-
         currentUser = {
-            id: uid,
-            username: user.preferred_username || user.username || 'tg_user',
-            firstName: user.given_name || user.first_name || user.name || 'Пользователь',
-            photoUrl: user.picture || user.photo_url || '',
-            phoneNumber: user.phone_number || '',
+            id: 'tg_' + user.id,
+            username: user.username || 'tg_user',
+            firstName: user.first_name || 'Пользователь',
+            photoUrl: user.photo_url || '',
             isGuest: false
         };
-        window.currentUser = currentUser;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
-
-        const userRef = database.ref('users/' + uid);
-        await userRef.update({
+        const userRef = database.ref('users/' + currentUser.id);
+        userRef.update({
             username: currentUser.username,
             firstName: currentUser.firstName,
             photoUrl: currentUser.photoUrl,
-            phoneNumber: currentUser.phoneNumber,
-            telegramId: String(user.id),
             lastActive: Date.now()
-        });
-
-        await userRef.child('stats').transaction(current => current || {
-            registeredAt: Date.now(),
-            lastActive: Date.now(),
-            parkingsCreated: 0,
-            parkingsUpdated: 0,
-            confirmations: 0,
-            views: 0,
-            favorites: 0,
-            activeDates: [new Date().toISOString().split('T')[0]]
-        });
-        await userRef.child('stats/lastActive').set(Date.now());
-
+        }).catch(console.error);
+        userRef.child('stats').transaction(current => {
+            if (current) {
+                // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
+                return current;
+            }
+            return {
+                registeredAt: Date.now(),
+                lastActive: Date.now(),
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [new Date().toISOString().split('T')[0]]
+            };
+        }).then(() => {
+            // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
+            userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
+        }).catch(console.error);
         hideAuthScreen();
         showPanel('home');
-        if (typeof showOnboarding === 'function') showOnboarding();
-        if (typeof renderProfile === 'function') renderProfile();
-        console.log('Пользователь подтверждён Telegram и Firebase:', uid);
+        showOnboarding();
+        console.log('✅ Пользователь авторизован:', user.first_name);
     } catch (e) {
-        console.error('Ошибка завершения входа через Telegram:', e);
-        alert('Не удалось завершить вход. Проверь серверную авторизацию и настройки Firebase.');
+        console.error('❌ Ошибка в onTelegramAuth:', e);
+        continueAsGuest();
     }
 }
-
 function initApp() {
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
@@ -6094,62 +6069,40 @@ function initApp() {
     }
 }
 function openTelegramBot() {
-    // Оставляем имя функции, чтобы существующие onclick не пришлось менять.
-    // Фактически запускается официальный Telegram Login, а не просто чат бота.
-    if (!TELEGRAM_LOGIN_CLIENT_ID || TELEGRAM_LOGIN_CLIENT_ID.includes('ВСТАВЬТЕ')) {
-        alert('Сначала укажи Telegram Client ID из @BotFather → Login Widget в app.js.');
-        return;
-    }
-    if (!TELEGRAM_AUTH_ENDPOINT || TELEGRAM_AUTH_ENDPOINT.includes('REGION-PROJECT_ID')) {
-        alert('Сначала разверни серверную функцию telegramAuth и укажи её URL в app.js.');
-        return;
-    }
-    if (!window.Telegram?.Login || !telegramLoginSdkReady) {
-        alert('Telegram Login ещё загружается. Подожди несколько секунд и нажми ещё раз.');
-        return;
-    }
-
-    try {
-        window.Telegram.Login.auth({
-            client_id: Number(TELEGRAM_LOGIN_CLIENT_ID),
-            scope: ['profile', 'phone'],
-            lang: 'ru'
-        }, async function (result) {
-            if (!result || result.error) {
-                console.warn('Telegram Login отменён или вернул ошибку:', result?.error);
-                if (result?.error) alert('Telegram не завершил вход. Попробуй ещё раз.');
-                return;
-            }
-            if (!result.id_token) {
-                console.error('Telegram Login не вернул id_token');
-                alert('Telegram не вернул подтверждение входа. Попробуй ещё раз.');
-                return;
-            }
-
+    console.log('openTelegramBot вызвана');
+    if (window.Telegram && window.Telegram.WebApp) {
+        var webApp = window.Telegram.WebApp;
+        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+            var user = webApp.initDataUnsafe.user;
+            var expectedId = 'tg_' + user.id;
+            var savedUserRaw = localStorage.getItem('tgUser');
+            var savedUser = null;
             try {
-                const response = await fetch(TELEGRAM_AUTH_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ idToken: result.id_token })
-                });
-                const payload = await response.json().catch(() => ({}));
-                if (!response.ok || !payload.customToken || !payload.user) {
-                    throw new Error(payload.error || 'Сервер не подтвердил Telegram-вход');
-                }
-                if (!firebase.auth) {
-                    throw new Error('Firebase Authentication SDK не подключён');
-                }
-                await firebase.auth().signInWithCustomToken(payload.customToken);
-                await onTelegramAuth(payload.user);
-            } catch (error) {
-                console.error('Не удалось проверить Telegram-вход:', error);
-                alert('Вход не завершён. Проверь серверную функцию и настройки Firebase.');
+                savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
+            } catch (e) {
+                savedUser = null;
             }
-        });
-    } catch (error) {
-        console.error('Не удалось открыть Telegram Login:', error);
-        alert('Не удалось открыть окно Telegram. Попробуй ещё раз.');
+            if (!savedUser || savedUser.id !== expectedId) {
+                onTelegramAuth({
+                    id: user.id,
+                    first_name: user.first_name,
+                    last_name: user.last_name || '',
+                    username: user.username || '',
+                    photo_url: user.photo_url || '',
+                    auth_date: Math.floor(Date.now() / 1000),
+                    hash: webApp.initDataUnsafe.hash || ''
+                });
+            } else {
+                console.log('👤 Пользователь уже залогинен');
+                hideAuthScreen();
+                showPanel('home');
+            }
+            return;
+        }
+        webApp.openTelegramLink('https://t.me/parknear_bot');
+        return;
     }
+    window.open('https://t.me/parknear_bot', '_blank');
 }
 function closeAuthScreen() {
     const overlay = document.getElementById('authOverlay');
