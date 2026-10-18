@@ -3828,13 +3828,6 @@ if (!currentUser) {
             <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
             <button
                 type="button"
-                class="yandex-auth-button"
-                onclick="startYandexLogin()"
-            >
-                Войти через Яндекс
-            </button>
-            <button
-                type="button"
                 class="telegram-btn"
                 onclick="openTelegramBot()"
             >
@@ -4052,16 +4045,6 @@ ${isGuest ? `
     <div class="pn-profile-guest-info">
         Вы используете ParkNear как гость
     </div>
-
-    <div class="pn-profile-auth-actions">
-        <button
-            type="button"
-            class="yandex-auth-button"
-            onclick="startYandexLogin()"
-        >
-            Войти через Яндекс
-        </button>
-
         <button
             type="button"
             class="telegram-btn"
