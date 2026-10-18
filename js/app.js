@@ -10,6 +10,38 @@
     };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+// ===================== TELEGRAM LOGIN (OFFICIAL OIDC) =====================
+// Укажи Client ID из @BotFather → Login Widget.
+// Секрет Telegram здесь НЕ хранится — он должен быть только на сервере.
+const TELEGRAM_LOGIN_CLIENT_ID = 'ВСТАВЬТЕ_CLIENT_ID_ИЗ_BOTFATHER';
+// Укажи URL развернутой серверной функции, которая проверяет id_token
+// и возвращает Firebase custom token.
+const TELEGRAM_AUTH_ENDPOINT = 'https://REGION-PROJECT_ID.cloudfunctions.net/telegramAuth';
+
+let telegramLoginSdkReady = false;
+let telegramLoginSdkLoading = false;
+(function preloadTelegramLoginSdk() {
+    if (window.Telegram?.Login) {
+        telegramLoginSdkReady = true;
+        return;
+    }
+    if (telegramLoginSdkLoading) return;
+    telegramLoginSdkLoading = true;
+    const script = document.createElement('script');
+    script.src = 'https://oauth.telegram.org/js/telegram-login.js?3';
+    script.async = true;
+    script.onload = function () {
+        telegramLoginSdkReady = !!window.Telegram?.Login;
+        if (!telegramLoginSdkReady) {
+            console.error('Telegram Login SDK загрузился, но API недоступен');
+        }
+    };
+    script.onerror = function () {
+        telegramLoginSdkReady = false;
+        console.error('Не удалось загрузить официальный Telegram Login SDK');
+    };
+    document.head.appendChild(script);
+})();
     // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====// ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
    (function restoreTheme() {
     const darkTheme = localStorage.getItem('darkTheme');
@@ -89,9 +121,8 @@
     let pendingAddressData = null;
     let newParkingCoords = null;
 
-//===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================//
-/*
- function startYandexLogin() { 
+// ===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================
+function startYandexLogin() {
     const clientId = 'a4c1372c585e4962bf9dfef4b5e14bf5';
     const redirectUri =
         'https://andrey8128-jpg.github.io/Park_Near/';
@@ -116,142 +147,81 @@
         params.toString();
     window.location.assign(authUrl);
 }
-
 async function handleYandexOAuthReturn() {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(
+        window.location.search
+    );
     const code = params.get('code');
     const returnedState = params.get('state');
     const oauthError = params.get('error');
-
-    // ✅ СРАЗУ очищаем URL, чтобы при обновлении страницы код не сгорел
-    cleanOAuthUrl();
-
+    // Если Яндекс вернул ошибку
     if (oauthError) {
-        console.error('Ошибка Яндекс OAuth:', oauthError);
-        showToast('Вы отменили вход через Яндекс', 3000);
+        console.error(
+            'Ошибка Яндекс OAuth:',
+            oauthError,
+            params.get('error_description')
+        );
+        alert('Яндекс не завершил авторизацию.');
         return;
     }
-
+    // Если это обычная загрузка страницы
     if (!code) return;
-
-    const savedState = sessionStorage.getItem('yandex_oauth_state');
-
+    const savedState =
+        sessionStorage.getItem('yandex_oauth_state');
     if (!savedState || returnedState !== savedState) {
         console.error('Ошибка проверки OAuth state');
-        showToast('Ошибка безопасности при входе. Попробуйте снова.', 3000);
+        alert('Не удалось проверить авторизацию.');
         return;
     }
-
     try {
-        showToast('Входим в аккаунт...', 2000);
-        // ВАЖНО: Замените YOUR-BACKEND-DOMAIN на реальный адрес вашего сервера
-        const response = await fetch(
-            'https://YOUR-BACKEND-DOMAIN/api/yandex-login',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    code,
-                    redirectUri: 'https://andrey8128-jpg.github.io/Park_Near/'
-                })
-            }
-        );
+        // ВАЖНО:
+        // /api/yandex-login — это пример адреса.
+        // Его нужно реализовать на твоём backend.
+        const response = await fetch('/api/yandex-login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                code: code,
+                redirectUri:
+                    'https://andrey8128-jpg.github.io/Park_Near/'
+            })
+        });
         if (!response.ok) {
-            throw new Error(`Ошибка сервера: ${response.status}`);
+            throw new Error(
+                'Сервер не подтвердил авторизацию: ' +
+                response.status
+            );
         }
-        const result = await response.json();
-        if (!result.firebaseToken) {
-            throw new Error('Сервер не вернул Firebase Custom Token');
+        const user = await response.json();
+        if (!user || !user.id) {
+            throw new Error(
+                'Сервер не вернул подтверждённого пользователя'
+            );
         }
-        await finishYandexLogin(result);
+        // Здесь должна быть интеграция с твоей
+        // существующей системой пользовательских сессий.
+        // Не присваивай currentUser напрямую на основании
+        // неподтверждённых данных из браузера.
+        console.log('Сервер подтвердил пользователя');
     } catch (error) {
-        console.error('Ошибка входа через Яндекс:', error);
-        showToast('Не удалось войти. Проверьте сервер и Firebase.', 4000);
+        console.error(
+            'Ошибка завершения входа через Яндекс:',
+            error
+        );
+        alert(
+            'Не удалось войти. Попробуй ещё раз.'
+        );
     } finally {
         sessionStorage.removeItem('yandex_oauth_state');
+        window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+        );
     }
 }
-async function finishYandexLogin(result) {
-    if (!result?.firebaseToken || !result?.user?.id) {
-        throw new Error('Сервер не вернул токен Firebase или ID Яндекса');
-    }
-    // ✅ ИСПРАВЛЕНО: Используем синтаксис V8 (compat), как во всем остальном коде
-    const credential = await firebase.auth().signInWithCustomToken(result.firebaseToken);
-    const firebaseUser = credential.user;
-    const userId = firebaseUser.uid;
-    
-    const userRef = database.ref(`users/${userId}`);
-    const snapshot = await userRef.once('value');
-    const oldProfile = snapshot.exists() ? snapshot.val() : {};
-    
-    const now = Date.now();
-    const profile = {
-        ...oldProfile,
-        uid: userId,
-        firstName:
-            result.user.real_name ||
-            result.user.display_name ||
-            oldProfile.firstName ||
-            'Пользователь',
-        username:
-            result.user.login ||
-            oldProfile.username ||
-            '',
-        photoUrl: result.user.default_avatar_id
-            ? `https://avatars.yandex.net/get-yapic/${encodeURIComponent(
-                result.user.default_avatar_id
-            )}/islands-200`
-            : oldProfile.photoUrl || '',
-        authProviders: {
-            ...(oldProfile.authProviders || {}),
-            yandex: {
-                id: String(result.user.id)
-            }
-        },
-        lastActive: now
-    };
-    // Обновляем профиль
-    await userRef.update(profile);
-    // Создаём статистику только при первой регистрации.
-    if (!oldProfile.stats) {
-        await database.ref(`users/${userId}/stats`).set({
-            registeredAt: now,
-            lastActive: now,
-            parkingsCreated: 0,
-            parkingsUpdated: 0,
-            confirmations: 0,
-            views: 0,
-            favorites: 0,
-            activeDates: [
-                new Date().toISOString().split('T')[0]
-            ]
-        });
-    } else {
-        await database.ref(`users/${userId}/stats/lastActive`).set(now);
-    }
-    currentUser = {
-        id: userId,
-        username: profile.username,
-        firstName: profile.firstName,
-        photoUrl: profile.photoUrl,
-        isGuest: false
-    };
-    localStorage.setItem('tgUser', JSON.stringify(currentUser));
-    hideAuthScreen();
-    showPanel('home');
-    showToast('✅ Вы успешно вошли через Яндекс!', 3000);
-    console.log('Вход через Яндекс завершён:', userId);
-}
-function cleanOAuthUrl() {
-    window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname
-    );
-} 
-*/
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
 const savedMapPrefs = localStorage.getItem('parknear_map_city');
@@ -1360,7 +1330,7 @@ function initMap() {
         // 1. Создаём карту с начальным зумом 14
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
-            zoom: 15,
+            zoom: 14,
             maxZoom: 19,
             controls: [],
             type: 'yandex#map'
@@ -1369,7 +1339,7 @@ function initMap() {
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
         map.events.add('zoomchange', function() {
             var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 16);
+            var showPolygons = (currentZoom >= 15);
             Object.keys(mapMarkers).forEach(function(id) {
                 var placemark = mapMarkers[id];
                 if (!placemark) return;
@@ -1970,31 +1940,28 @@ async function openCenterSheet(parkingId,data){
                     <span>свободно примерно</span>
                 </div>
             </div>
-            ${parkingButton}
-            <button
-                class="parking-route-btn"
-                onclick="buildRouteToParking('${safeId}')"
-            >
-                <span>🧭</span>
-                <span>Поехать</span>
-            </button>
-            <div class="parking-secondary-actions">
-                <button
-                    class="parking-secondary-btn parking-favorite-btn"
-                    onclick="toggleFavoriteCenter()"
-                >
-                    <span>♡</span>
-                    <span>Сохранить</span>
-                </button>
-            </div>
-            <button
-                class="parking-edit-btn"
-                onclick="editFromCenter()"
-            >
-                ✎ Редактировать
-            </button>
+           
+<div class="parking-secondary-actions parking-card-bottom-actions">
 
-        </div>
+    <button
+        type="button"
+        class="parking-edit-btn"
+        onclick="editFromCenter()"
+    >
+        <span>✎</span>
+        <span>Редактировать</span>
+    </button>
+
+   <button
+    class="parking-save-btn"
+    onclick="toggleFavoriteCenter()"
+    style="width:100%; margin-top:8px;"
+>
+    <span>♡</span>
+    <span>Сохранить</span>
+</button>
+</div>
+
     `;
     sheet.classList.add('active');
 }
@@ -3816,6 +3783,7 @@ function focusMap(lat, lng, parkingId) {
         }
         closePanel();
     }
+
     // ===================== ПРОФИЛЬ =====================
 function renderProfile(content) {
     if (!content) return;
@@ -3826,6 +3794,13 @@ if (!currentUser) {
             <div class="pn-profile-login-icon">👤</div>
             <h2>Добро пожаловать</h2>
             <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
+            <button
+                type="button"
+                class="yandex-auth-button"
+                onclick="startYandexLogin()"
+            >
+                Войти через Яндекс
+            </button>
             <button
                 type="button"
                 class="telegram-btn"
@@ -3840,6 +3815,13 @@ if (!currentUser) {
             >
                 Продолжить как гость
             </button>
+           <button
+    type="button"
+    class="pn-logout-btn"
+    onclick="logoutUser()"
+>
+    Выйти из аккаунта
+</button>
         </div>`;
     return;
 }
@@ -4045,6 +4027,16 @@ ${isGuest ? `
     <div class="pn-profile-guest-info">
         Вы используете ParkNear как гость
     </div>
+
+    <div class="pn-profile-auth-actions">
+        <button
+            type="button"
+            class="yandex-auth-button"
+            onclick="startYandexLogin()"
+        >
+            Войти через Яндекс
+        </button>
+
         <button
             type="button"
             class="telegram-btn"
@@ -5271,8 +5263,16 @@ function showPanel(type, keepFilter = false) {
 }
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab')[1].classList.add('active');
+ // Закрываем карточку парковки при переходе в другой раздел
+if (
+    tab.classList.contains('home-tab') ||
+    tab.classList.contains('profile-tab') ||
+    tab.classList.contains('favorites-tab')
+) {
+    closeCenterSheet();
     currentParkingId = null;
     currentParkingData = null;
+}
     // Если мы редактируем полигон существующей парковки – сбрасываем
     if (editingPolygon) {
         map.geoObjects.remove(editingPolygon);
@@ -5975,71 +5975,77 @@ function renderParkingList(container, parkings) {
     container.innerHTML = parkings.map(p => renderParkingItem(p, userLocationForSearch)).join('');
 }
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
-   // Проверяем URL на наличие данных авторизации от Telegram (редирект)
+// Не принимаем tg_auth_data из URL: эти данные можно подделать.
+// Вход разрешается только через официальный Telegram Login + серверную проверку.
 function checkTelegramAuthFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authData = urlParams.get('tg_auth_data');
-    if (authData) {
-        try {
-            const userData = JSON.parse(decodeURIComponent(authData));
-            if (userData.id) {
-                onTelegramAuth(userData);
-                // Очищаем URL от параметров
-                window.history.replaceState({}, document.title, window.location.pathname);
-                return true;
-            }
-        } catch (e) {
-            console.warn('Ошибка разбора данных авторизации:', e);
-        }
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('tg_auth_data')) {
+        url.searchParams.delete('tg_auth_data');
+        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+        console.warn('Удалены неподтверждённые данные авторизации из URL');
     }
     return false;
 }
-// ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
-function onTelegramAuth(user) {
+
+// Вызывается только после проверки id_token сервером и входа в Firebase Authentication.
+async function onTelegramAuth(user) {
     try {
+        const firebaseAuth = firebase.auth && firebase.auth();
+        if (!firebaseAuth || !firebaseAuth.currentUser) {
+            throw new Error('Firebase Authentication не подтвердил пользователя');
+        }
+        if (!user || !user.id) {
+            throw new Error('Сервер не вернул подтверждённый Telegram ID');
+        }
+        const uid = 'tg_' + String(user.id);
+        if (firebaseAuth.currentUser.uid !== uid) {
+            throw new Error('UID Firebase не совпадает с Telegram ID');
+        }
+
         currentUser = {
-            id: 'tg_' + user.id,
-            username: user.username || 'tg_user',
-            firstName: user.first_name || 'Пользователь',
-            photoUrl: user.photo_url || '',
+            id: uid,
+            username: user.preferred_username || user.username || 'tg_user',
+            firstName: user.given_name || user.first_name || user.name || 'Пользователь',
+            photoUrl: user.picture || user.photo_url || '',
+            phoneNumber: user.phone_number || '',
             isGuest: false
         };
+        window.currentUser = currentUser;
         localStorage.setItem('tgUser', JSON.stringify(currentUser));
-        const userRef = database.ref('users/' + currentUser.id);
-        userRef.update({
+
+        const userRef = database.ref('users/' + uid);
+        await userRef.update({
             username: currentUser.username,
             firstName: currentUser.firstName,
             photoUrl: currentUser.photoUrl,
+            phoneNumber: currentUser.phoneNumber,
+            telegramId: String(user.id),
             lastActive: Date.now()
-        }).catch(console.error);
-        userRef.child('stats').transaction(current => {
-            if (current) {
-                // статистика уже есть — эту ветку used only чтобы обновить lastActive ниже
-                return current;
-            }
-            return {
-                registeredAt: Date.now(),
-                lastActive: Date.now(),
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
-                activeDates: [new Date().toISOString().split('T')[0]]
-            };
-        }).then(() => {
-            // lastActive обновляем отдельной лёгкой записью, не пересоздавая всю статистику
-            userRef.child('stats/lastActive').set(Date.now()).catch(console.error);
-        }).catch(console.error);
+        });
+
+        await userRef.child('stats').transaction(current => current || {
+            registeredAt: Date.now(),
+            lastActive: Date.now(),
+            parkingsCreated: 0,
+            parkingsUpdated: 0,
+            confirmations: 0,
+            views: 0,
+            favorites: 0,
+            activeDates: [new Date().toISOString().split('T')[0]]
+        });
+        await userRef.child('stats/lastActive').set(Date.now());
+
         hideAuthScreen();
         showPanel('home');
-        showOnboarding();
-        console.log('✅ Пользователь авторизован:', user.first_name);
+        if (typeof showOnboarding === 'function') showOnboarding();
+        if (typeof renderProfile === 'function') renderProfile();
+        console.log('Пользователь подтверждён Telegram и Firebase:', uid);
     } catch (e) {
-        console.error('❌ Ошибка в onTelegramAuth:', e);
-        continueAsGuest();
+        console.error('Ошибка завершения входа через Telegram:', e);
+        alert('Не удалось завершить вход. Проверь серверную авторизацию и настройки Firebase.');
     }
 }
+
 function initApp() {
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
@@ -6088,40 +6094,62 @@ function initApp() {
     }
 }
 function openTelegramBot() {
-    console.log('openTelegramBot вызвана');
-    if (window.Telegram && window.Telegram.WebApp) {
-        var webApp = window.Telegram.WebApp;
-        if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
-            var user = webApp.initDataUnsafe.user;
-            var expectedId = 'tg_' + user.id;
-            var savedUserRaw = localStorage.getItem('tgUser');
-            var savedUser = null;
-            try {
-                savedUser = savedUserRaw ? JSON.parse(savedUserRaw) : null;
-            } catch (e) {
-                savedUser = null;
-            }
-            if (!savedUser || savedUser.id !== expectedId) {
-                onTelegramAuth({
-                    id: user.id,
-                    first_name: user.first_name,
-                    last_name: user.last_name || '',
-                    username: user.username || '',
-                    photo_url: user.photo_url || '',
-                    auth_date: Math.floor(Date.now() / 1000),
-                    hash: webApp.initDataUnsafe.hash || ''
-                });
-            } else {
-                console.log('👤 Пользователь уже залогинен');
-                hideAuthScreen();
-                showPanel('home');
-            }
-            return;
-        }
-        webApp.openTelegramLink('https://t.me/parknear_bot');
+    // Оставляем имя функции, чтобы существующие onclick не пришлось менять.
+    // Фактически запускается официальный Telegram Login, а не просто чат бота.
+    if (!TELEGRAM_LOGIN_CLIENT_ID || TELEGRAM_LOGIN_CLIENT_ID.includes('ВСТАВЬТЕ')) {
+        alert('Сначала укажи Telegram Client ID из @BotFather → Login Widget в app.js.');
         return;
     }
-    window.open('https://t.me/parknear_bot', '_blank');
+    if (!TELEGRAM_AUTH_ENDPOINT || TELEGRAM_AUTH_ENDPOINT.includes('REGION-PROJECT_ID')) {
+        alert('Сначала разверни серверную функцию telegramAuth и укажи её URL в app.js.');
+        return;
+    }
+    if (!window.Telegram?.Login || !telegramLoginSdkReady) {
+        alert('Telegram Login ещё загружается. Подожди несколько секунд и нажми ещё раз.');
+        return;
+    }
+
+    try {
+        window.Telegram.Login.auth({
+            client_id: Number(TELEGRAM_LOGIN_CLIENT_ID),
+            scope: ['profile', 'phone'],
+            lang: 'ru'
+        }, async function (result) {
+            if (!result || result.error) {
+                console.warn('Telegram Login отменён или вернул ошибку:', result?.error);
+                if (result?.error) alert('Telegram не завершил вход. Попробуй ещё раз.');
+                return;
+            }
+            if (!result.id_token) {
+                console.error('Telegram Login не вернул id_token');
+                alert('Telegram не вернул подтверждение входа. Попробуй ещё раз.');
+                return;
+            }
+
+            try {
+                const response = await fetch(TELEGRAM_AUTH_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: result.id_token })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.customToken || !payload.user) {
+                    throw new Error(payload.error || 'Сервер не подтвердил Telegram-вход');
+                }
+                if (!firebase.auth) {
+                    throw new Error('Firebase Authentication SDK не подключён');
+                }
+                await firebase.auth().signInWithCustomToken(payload.customToken);
+                await onTelegramAuth(payload.user);
+            } catch (error) {
+                console.error('Не удалось проверить Telegram-вход:', error);
+                alert('Вход не завершён. Проверь серверную функцию и настройки Firebase.');
+            }
+        });
+    } catch (error) {
+        console.error('Не удалось открыть Telegram Login:', error);
+        alert('Не удалось открыть окно Telegram. Попробуй ещё раз.');
+    }
 }
 function closeAuthScreen() {
     const overlay = document.getElementById('authOverlay');
@@ -6223,85 +6251,6 @@ document.addEventListener('visibilitychange', function() {
             window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
         }
     }
-
-function initParkingCardSwipe() {
-    const handleSelector = '.parking-card-handle';
-    const cardSelector = '.parking-card-compact';
-    let activeCard = null;
-    let startY = 0;
-    let currentY = 0;
-    let dragging = false;
-    const closeThreshold = 100;
-    document.addEventListener('pointerdown', (event) => {
-        const handle = event.target.closest(handleSelector);
-        if (!handle) return;
-        const card = handle.closest(cardSelector);
-        if (!card) return;
-        // Реагируем только на основную кнопку мыши
-        if (event.pointerType === 'mouse' && event.button !== 0) {
-            return;
-        }
-        activeCard = card;
-        startY = event.clientY;
-        currentY = startY;
-        dragging = true;
-        card.classList.add('is-dragging');
-        try {
-            handle.setPointerCapture(event.pointerId);
-        } catch (_) {
-            // Захват указателя поддерживается не во всех случаях
-        }
-        event.preventDefault();
-    });
-    document.addEventListener('pointermove', (event) => {
-        if (!dragging || !activeCard) return;
-        currentY = event.clientY;
-        const deltaY = Math.max(0, currentY - startY);
-        activeCard.style.transform =
-            `translateY(${deltaY}px)`;
-        // При движении вверх карточка не перемещается
-        event.preventDefault();
-    }, { passive: false });
-    function finishDrag() {
-        if (!dragging || !activeCard) return;
-        const card = activeCard;
-        const deltaY = Math.max(0, currentY - startY);
-        dragging = false;
-        activeCard = null;
-        card.classList.remove('is-dragging');
-        if (deltaY >= closeThreshold) {
-            // Плавно уводим карточку вниз
-            card.style.transform = 'translateY(120%)';
-            card.style.opacity = '0';
-            card.addEventListener('transitionend', function onEnd(event) {
-                if (event.target !== card ||
-                    event.propertyName !== 'transform') {
-                    return;
-                }
-                card.removeEventListener('transitionend', onEnd);
-                // Скрываем только если карточка всё ещё закрывается
-                if (card.style.transform === 'translateY(120%)') {
-                    card.style.display = 'none';
-                }
-            });
-        } else {
-            // Если свайп короткий — возвращаем карточку
-            card.style.transform = '';
-            card.style.opacity = '';
-        }
-    }
-    document.addEventListener('pointerup', finishDrag);
-    document.addEventListener('pointercancel', finishDrag);
-}
-if (document.readyState === 'loading') {
-    document.addEventListener(
-        'DOMContentLoaded',
-        initParkingCardSwipe,
-        { once: true }
-    );
-} else {
-    initParkingCardSwipe();
-}
     // Заполняем цвета для редактора автомобиля
     (function initCarColors() {
         const colorSelect = document.getElementById('carColorSelect');
