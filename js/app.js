@@ -88,7 +88,6 @@
     let userLocationForSearch = null;
     let pendingAddressData = null;
     let newParkingCoords = null;
-
 // ===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================
 function startYandexLogin() {
     const clientId = 'a4c1372c585e4962bf9dfef4b5e14bf5';
@@ -373,7 +372,6 @@ function getUserParkingSettings() {
     }
     return defaults;
 }
-
 function saveParkingSettings(settings) {
     if (currentUser) {
         database.ref(`users/${currentUser.id}/parkingSettings`).set(settings);
@@ -946,12 +944,10 @@ function updateParkingMarker(id, data) {
         addMarkerToMap(id, data);
         return;
     }
-
     const totalSpots = Number(data.totalSpots) || 0;
     const occupiedSpots = Number(data.occupiedSpots) || 0;
     const freeSpots = Math.max(0, totalSpots - occupiedSpots);
     const color = getOccupancyColor(occupiedSpots, totalSpots);
-
     // Обновляем свойства маркера
     placemark.properties.set({
         name: data.name || 'Парковка',
@@ -1559,8 +1555,8 @@ setTimeout(function() {
                 ⚠️ Не удалось инициализировать карту.
             </div>
         `;
-    }
-}
+     }
+  }
 }
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
@@ -1572,7 +1568,6 @@ setTimeout(function() {
         document.getElementById('layerMenu').classList.remove('active');
         updateMapTheme();
     }
-    
 async function getAddressByCoordinates(lat, lng) {
     const latitude = Number(lat);
     const longitude = Number(lng);
@@ -1648,7 +1643,6 @@ async function fixParkingCity(parkingId, city, region) {
         console.error('❌ Ошибка изменения города:', error);
     }
 }
-
 // ФИКС: проверка авторства перед изменением границ
 async function saveEditedPolygon(newCoords) {
     if (!currentParkingId) return;
