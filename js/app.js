@@ -820,7 +820,6 @@ function tryYandexGeolocation(resolve, reject) {
     if (typeof updateTotalFreeCircle === 'function') {
         updateTotalFreeCircle();
     }
-}
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
     function setMapType(option) {
