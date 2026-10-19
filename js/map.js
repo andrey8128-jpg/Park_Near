@@ -501,14 +501,17 @@ function addMarkerToMap(id, data) {
     }
 }
 function updateParkingMarker(id, data) {
-    if (!map || !clusterer) return;
+    if (!map || !clusterer || !data) return;
     const placemark = mapMarkers[id];
     if (!placemark) {
         addMarkerToMap(id, data);
         return;
     }
     const totalSpots = Number(data.totalSpots) || 0;
-    const occupiedSpots = Number(data.occupiedSpots) || 0;
+    const occupiedSpots = Math.max(
+        0,
+        Math.min(Number(data.occupiedSpots) || 0, totalSpots)
+    );
     const freeSpots = Math.max(0, totalSpots - occupiedSpots);
     const color = getOccupancyColor(occupiedSpots, totalSpots);
     // Обновляем свойства маркера
@@ -522,32 +525,83 @@ function updateParkingMarker(id, data) {
         iconContent: String(freeSpots)
     });
     placemark.options.set('iconColor', color);
-    // ✅ Обновляем Polygon только если изменились координаты
+    // Обновляем координаты маркера
+    const lat = Number(data.lat);
+    const lng = Number(data.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        placemark.geometry.setCoordinates([lat, lng]);
+    }
+    // Обновляем полигон парковочной зоны
     const oldPolygon = placemark.properties.get('polygon');
-    const newCoords = data.coordinates;
-    // Функция для сравнения двух массивов координат (примитивная, но работает)
-function refreshParkingMarker(parkingId) {
-    const id =
-        parkingId || currentParkingId;
-    if (!id) {
-        return;
+    const newCoords = Array.isArray(data.coordinates)
+        ? data.coordinates
+        : [];
+    const hasValidPolygon = newCoords.length >= 3;
+    let oldCoords = null;
+    if (oldPolygon && oldPolygon.geometry) {
+        const polygonCoordinates =
+            oldPolygon.geometry.getCoordinates();
+        oldCoords = Array.isArray(polygonCoordinates)
+            ? polygonCoordinates[0]
+            : null;
     }
-    const data =
-        parkingDataCache[id];
-    if (!data) {
-        return;
+    const coordinatesChanged =
+        JSON.stringify(oldCoords) !== JSON.stringify(newCoords);
+    // Удаляем старый полигон, если координаты изменились
+    // или новые координаты отсутствуют
+    if (oldPolygon && (!hasValidPolygon || coordinatesChanged)) {
+        map.geoObjects.remove(oldPolygon);
+        placemark.properties.set('polygon', null);
     }
-    updateParkingMarker(
-        id,
-        data
-    );
-    // Обновляем общий счётчик
+    // Создаём новый полигон или обновляем его стиль
+    if (hasValidPolygon) {
+        let polygon = placemark.properties.get('polygon');
+        if (!polygon) {
+            polygon = new ymaps.Polygon(
+                [newCoords],
+                {},
+                {
+                    fillColor: color + '33',
+                    strokeColor: color,
+                    strokeWidth: 2,
+                    visible: false,
+                    zIndex: 5
+                }
+            );
+            polygon.__parkingId = id;
+            map.geoObjects.add(polygon);
+            placemark.properties.set('polygon', polygon);
+        } else {
+            polygon.options.set({
+                fillColor: color + '33',
+                strokeColor: color
+            });
+        }
+    }
+    // Обновляем кэш парковок
     if (
-        typeof updateTotalFreeCircle ===
-        'function'
+        typeof parkingDataCache !== 'undefined' &&
+        parkingDataCache[id]
     ) {
+        parkingDataCache[id] = {
+            ...parkingDataCache[id],
+            ...data,
+            id: id,
+            totalSpots: totalSpots,
+            occupiedSpots: occupiedSpots
+        };
+    }
+    // Обновляем общий счётчик свободных мест
+    if (typeof updateTotalFreeCircle === 'function') {
         updateTotalFreeCircle();
     }
+}
+function refreshParkingMarker(parkingId) {
+    const id = parkingId || currentParkingId;
+    if (!id) return;
+    const data = parkingDataCache[id];
+    if (!data) return;
+    updateParkingMarker(id, data);
 }
 function clearAllMarkers() {
     // Удаляем все маркеры из кластера
