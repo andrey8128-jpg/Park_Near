@@ -5951,30 +5951,60 @@ function checkTelegramAuthFromUrl() {
     return false;
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
-async function onTelegramAuth(user) {
+async function onTelegramAuth(authData) {
     try {
-        // 1. Проверяем, что Telegram передал ID пользователя
-        if (!user || !user.id) {
-            throw new Error('Не получен ID пользователя Telegram');
+        if (!authData || !authData.initData) {
+            throw new Error(
+                'Нет подтверждённых данных Telegram. ' +
+                'Для входа требуется серверная проверка.'
+            );
         }
-        // 2. Формируем постоянный ID Park Near
-        const telegramId = String(user.id);
+        // ВАЖНО:
+        // Здесь должен быть вызов твоего backend, который проверяет
+        // подпись Telegram initData и возвращает проверенный профиль.
+        //
+        // Пока backend не подключён, намеренно не записываем
+        // непроверенного пользователя в Firebase.
+        if (typeof window.verifyTelegramInitData !== 'function') {
+            throw new Error(
+                'Не подключена серверная проверка Telegram. ' +
+                'Нельзя безопасно подтвердить вход только на frontend.'
+            );
+        }
+        const verifiedUser = await window.verifyTelegramInitData(
+            authData.initData
+        );
+        if (!verifiedUser || !verifiedUser.id) {
+            throw new Error(
+                'Сервер не подтвердил личность пользователя Telegram.'
+            );
+        }
+        // Постоянный ID Park Near сохраняется в прежнем формате.
+        const telegramId = String(verifiedUser.id);
         const profile = {
             id: 'tg_' + telegramId,
-            username: user.username || 'tg_user',
-            firstName: user.first_name || user.firstName || 'Пользователь',
-            photoUrl: user.photo_url || user.photoUrl || '',
+            username: verifiedUser.username || 'tg_user',
+            firstName:
+                verifiedUser.first_name ||
+                verifiedUser.firstName ||
+                'Пользователь',
+            photoUrl:
+                verifiedUser.photo_url ||
+                verifiedUser.photoUrl ||
+                '',
             isGuest: false
         };
-        // 3. Сохраняем пользователя в текущей сессии приложения
-        currentUser = profile;
-        window.currentUser = profile;
-        // 4. Сохраняем локально, чтобы восстановить профиль при запуске
-        localStorage.setItem('tgUser', JSON.stringify(profile));
-        // 5. Ссылка на профиль пользователя в Firebase
+        if (
+            typeof database === 'undefined' ||
+            !database ||
+            typeof database.ref !== 'function'
+        ) {
+            throw new Error('Firebase Realtime Database не подключена.');
+        }
         const userRef = database.ref('users/' + profile.id);
         const now = Date.now();
-        // 6. Создаём или обновляем профиль
+        const today = new Date().toISOString().split('T')[0];
+        // Сохраняем профиль, не перезаписывая остальные поля пользователя.
         await userRef.update({
             id: profile.id,
             telegramId: telegramId,
@@ -5984,7 +6014,7 @@ async function onTelegramAuth(user) {
             isGuest: false,
             lastActive: now
         });
-        // 7. Создаём статистику только для нового пользователя
+        // Создаём статистику только при её отсутствии.
         await userRef.child('stats').transaction(stats => {
             if (stats !== null) {
                 return stats;
@@ -5997,14 +6027,16 @@ async function onTelegramAuth(user) {
                 confirmations: 0,
                 views: 0,
                 favorites: 0,
-                activeDates: [
-                    new Date().toISOString().split('T')[0]
-                ]
+                activeDates: [today]
             };
         });
-        // 8. Обновляем дату активности, не стирая статистику
+        // Обновляем только дату активности.
         await userRef.child('stats/lastActive').set(now);
-        // 9. Показываем приложение после успешной записи в Firebase
+        // Сохраняем сессию после успешной серверной проверки
+        // и успешной записи в Firebase.
+        currentUser = profile;
+        window.currentUser = profile;
+        localStorage.setItem('tgUser', JSON.stringify(profile));
         if (typeof hideAuthScreen === 'function') {
             hideAuthScreen();
         }
@@ -6014,13 +6046,19 @@ async function onTelegramAuth(user) {
         if (typeof showOnboarding === 'function') {
             showOnboarding();
         }
-        console.log('Вход и сохранение профиля выполнены:', profile.id);
+        console.log(
+            'Вход и сохранение профиля выполнены:',
+            profile.id
+        );
         return profile;
     } catch (error) {
-        console.error('Ошибка авторизации или записи в Firebase:', error);
+        console.error(
+            'Ошибка авторизации или записи в Firebase:',
+            error
+        );
         alert(
-            'Не удалось сохранить профиль в Firebase. ' +
-            'Проверьте подключение и правила доступа к базе данных.'
+            'Не удалось выполнить вход через Telegram. ' +
+            'Проверьте авторизацию, серверную проверку и подключение Firebase.'
         );
         throw error;
     }
@@ -6074,30 +6112,29 @@ function initApp() {
 }
 function openTelegramBot() {
     console.log('openTelegramBot вызвана');
-    // Проверяем, открыто ли приложение внутри Telegram
+    // Проверяем, открыто ли приложение внутри Telegram Mini App
     const webApp = window.Telegram?.WebApp;
     if (webApp) {
         webApp.ready();
-        const user = webApp.initDataUnsafe?.user;
-        if (user) {
-            // Не считаем initDataUnsafe подтверждением авторизации.
-            // Проверка подписи должна выполняться на сервере.
+        const initData = webApp.initData;
+        // initData должен быть непустым — данные пользователя
+        // из initDataUnsafe сами по себе не подтверждают вход.
+        if (initData) {
             onTelegramAuth({
-                id: user.id,
-                first_name: user.first_name || '',
-                last_name: user.last_name || '',
-                username: user.username || '',
-                photo_url: user.photo_url || '',
-                initData: webApp.initData
+                initData: initData
+            }).catch(error => {
+                console.error('Ошибка входа через Telegram:', error);
             });
-
             return;
         }
-        // Telegram доступен, но данных пользователя нет
-        webApp.openTelegramLink('https://t.me/parknear_bot');
+        alert(
+            'Не удалось получить данные авторизации Telegram. ' +
+            'Откройте приложение через Telegram ещё раз.'
+        );
         return;
     }
-    // Приложение открыто в обычном браузере
+    // Обычный браузер: открываем бота.
+    // Это НЕ завершает авторизацию автоматически.
     window.open(
         'https://t.me/parknear_bot',
         '_blank',
