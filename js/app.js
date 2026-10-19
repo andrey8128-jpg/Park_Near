@@ -6079,10 +6079,6 @@ function initApp() {
     }
 }
 
-const TELEGRAM_LOGIN_CLIENT_ID = 'ТВОЙ_CLIENT_ID';
-const TELEGRAM_AUTH_ENDPOINT =
-    'https://ТВОЙ_РЕАЛЬНЫЙ_АДРЕС/telegramAuth';
-
 async function openTelegramBot() {
     try {
         if (
