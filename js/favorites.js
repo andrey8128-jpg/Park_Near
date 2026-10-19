@@ -245,7 +245,6 @@ function renderFavorites(content) {
                 </div>
                 <div class="pn-fav-header-icon">♥</div>
             </div>
-
             <div class="pn-fav-city" id="pnFavCity">
                 <span class="pn-fav-city-icon">📍</span>
                 <div>
@@ -260,13 +259,11 @@ function renderFavorites(content) {
                 <input id="pnFavSearch" type="search" placeholder="Поиск парковки или адреса..." autocomplete="off">
                 <button id="pnFavClearSearch" type="button">×</button>
             </div>
-
             <div class="pn-fav-filters">
                 <button class="pn-fav-filter active" data-sort="recent">Недавние</button>
                 <button class="pn-fav-filter" data-sort="free">Свободные</button>
                 <button class="pn-fav-filter" data-sort="distance">Ближайшие</button>
             </div>
-
             <div id="pnFavList" class="pn-fav-list">
                 <div class="pn-fav-loading">
                     <div class="pn-fav-spinner"></div>
@@ -284,3 +281,94 @@ function renderFavorites(content) {
     let favorites = [];
     let currentSort = 'recent';
     let searchValue = '';
+    function renderFavorites(content) {
+    if (!content) {
+        content = document.getElementById('panelContent');
+    }
+    if (!content) {
+        console.error('Не найден контейнер panelContent');
+        return;
+    }
+    // Пользователь не авторизован
+    if (!currentUser || !currentUser.id) {
+        content.innerHTML = `
+            <div class="pn-fav-empty">
+                <div class="pn-fav-empty-icon">🔒</div>
+                <h3>Войдите в аккаунт</h3>
+                <p>После входа здесь будут сохранённые парковки.</p>
+            </div>
+        `;
+        return;
+    }
+    // Локальное состояние вкладки избранного
+    let favorites = [];
+    let searchValue = '';
+    let currentSort = 'recent';
+    const city = getSelectedCity();
+    content.innerHTML = `
+        <div class="pn-favorites">
+            <div class="pn-fav-header">
+                <div>
+                    <h2>Избранное</h2>
+                    <p id="pnFavSubtitle">Загрузка парковок...</p>
+                </div>
+                <span class="pn-fav-icon">❤️</span>
+            </div>
+            <div class="pn-fav-search">
+                <input
+                    type="search"
+                    id="pnFavSearchInput"
+                    placeholder="Поиск по избранному..."
+                    autocomplete="off"
+                >
+                <button
+                    type="button"
+                    id="pnFavClearSearch"
+                    hidden
+                    aria-label="Очистить поиск"
+                >×</button>
+            </div>
+            <div class="pn-fav-sort">
+                <button type="button"
+                    class="active" data-sort="recent">
+                    Недавние
+                </button>
+                <button type="button" data-sort="free">
+                    Свободные места
+                </button>
+                <button type="button" data-sort="distance">
+                    По расстоянию
+                </button>
+            </div>
+            <div id="pnFavList">
+                <div class="pn-fav-empty">
+                    <p>Загружаем избранное...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    // Получаем элементы именно текущей вкладки
+    const searchInput = content.querySelector('#pnFavSearchInput');
+    const clearSearch = content.querySelector('#pnFavClearSearch');
+    const list = content.querySelector('#pnFavList');
+    const subtitle = content.querySelector('#pnFavSubtitle');
+    const filterButtons = content.querySelectorAll('[data-sort]');
+    if (!searchInput || !clearSearch || !list || !subtitle) {
+        console.error('Не удалось создать элементы избранного');
+        return;
+    }
+         function filterFavorites() {
+        const input = document.getElementById('favSearchInput');
+        if (!input) return;
+        const query = input.value.trim().toLowerCase();
+        const items = document.querySelectorAll('#favListContainer .fav-item');
+        items.forEach(item => {
+            const name = (item.dataset.name || '').toLowerCase();
+            const address = (item.dataset.address || '').toLowerCase();
+            if (name.includes(query) || address.includes(query)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
