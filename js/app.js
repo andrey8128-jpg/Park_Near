@@ -3416,7 +3416,6 @@ function saveCityFromSettingsInline() {
                 renderFavorites(content);
             });
     });
-}
     function loadUserData(type, content) {
     if (!currentUser) {
         if (content) {
