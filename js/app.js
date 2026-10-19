@@ -616,20 +616,16 @@ function logoutUser() {
 }
 function finishLogout() {
     currentUser = null;
-    // Обновляем интерфейс профиля
-    if (typeof renderProfile === 'function') {
-        renderProfile();
-    }
-    // Обновляем открытое содержимое панели, если оно есть
+    window.currentUser = null;
+    localStorage.removeItem('tgUser');
     const panel = document.getElementById('panelContent');
-    if (panel && typeof renderFavorites === 'function') {
-        renderFavorites(panel);
+    if (panel) {
+        panel.innerHTML = '';
     }
-    // Обновляем интерфейс приложения, если предусмотрена такая функция
     if (typeof updateAuthUI === 'function') {
         updateAuthUI();
     }
-    alert('Вы вышли из аккаунта.');
+    showAuthScreen();
 }
 // ============================================
 // ИНИЦИАЛИЗАЦИЯ АВТОРИЗАЦИИ
