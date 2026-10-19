@@ -3398,7 +3398,7 @@ function saveCityFromSettingsInline() {
             });
         renderList();
     })
-    .catch(error => {
+     .catch(error => {
         console.error('Ошибка загрузки избранного:', error);
         if (!content.isConnected) return;
         list.innerHTML = `
@@ -3411,6 +3411,7 @@ function saveCityFromSettingsInline() {
                 </button>
             </div>
         `;
+
         list.querySelector('#pnFavRetry')
             ?.addEventListener('click', () => {
                 renderFavorites(content);
