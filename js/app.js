@@ -1775,63 +1775,63 @@ function loadHistoryPreview(parkingId) {
             }
         });
     }
-   function saveParkingDetails(){
-    if(!currentUser){
+ function saveParkingDetails() {
+    if (!currentUser) {
         alert('Необходимо авторизоваться');
         return;
     }
-    if(!currentParkingId||!currentParkingData)return;
-    const streetType=document.getElementById('editStreetType')?.value||'';
-    const streetName=document.getElementById('editStreetName')?.value.trim()||'';
-    const houseNumber=document.getElementById('editHouseNumber')?.value.trim()||'';
-    const parkingName=document.getElementById('editParkingName')?.value.trim()||'';
-    const totalSpots=parseInt(document.getElementById('editTotalSpots')?.value)||0;
-    const street=streetType&&streetName
-        ?`${streetType} ${streetName}`
-        :(streetName||currentParkingData.street||'');
-    if(!street&&!houseNumber){
+    if (!currentParkingId || !currentParkingData) return;
+    const streetType = document.getElementById('editStreetType')?.value || '';
+    const streetName = document.getElementById('editStreetName')?.value.trim() || '';
+    const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
+    const parkingName = document.getElementById('editParkingName')?.value.trim() || '';
+    const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value, 10) || 0;
+    const street = streetType && streetName
+        ? `${streetType} ${streetName}`
+        : (streetName || currentParkingData.street || '');
+
+    if (!street && !houseNumber) {
         alert('Введите улицу или номер дома');
         return;
     }
-    if(!parkingName){
+    if (!parkingName) {
         alert('Введите название парковки');
         return;
     }
-    if(totalSpots<1){
+    if (totalSpots < 1) {
         alert('Количество мест должно быть больше 0');
         return;
     }
-    if(totalSpots>500){
+    if (totalSpots > 500) {
         alert('Количество мест не может быть больше 500');
         return;
     }
-    const updates={
-        name:parkingName,
-        street,
-        houseNumber,
-        totalSpots
+    const updates = {
+        name: parkingName,
+        street: street,
+        houseNumber: houseNumber,
+        totalSpots: totalSpots
     };
     getParkingRef(currentParkingId).update(updates)
-        if(currentUser.id===currentParkingData.authorId){
-            database.ref(`users/${currentUser.id}/stats/parkingsUpdated`)
-                .transaction(c=>(c||0)+1);
-        }
-        currentParkingData={
-            ...currentParkingData,
-            ...updates
-        };
-        parkingDataCache[currentParkingId]=currentParkingData;
-        refreshParkingMarker();
-        if(clusterer)clusterer.reload();
-        closePanel();
-        showMap();
-        if(window.Telegram?.WebApp?.HapticFeedback){
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        }
-    }).catch(err=>{
-        console.error('Ошибка сохранения:',err);
-        alert('Ошибка: '+err.message);
-    });
+        .then(function () {
+            if (currentUser.id === currentParkingData.authorId) {
+                database.ref(`users/${currentUser.id}/stats/parkingsUpdated`)
+                    .transaction(function (c) { return (c || 0) + 1; });
+            }
+            currentParkingData = Object.assign({}, currentParkingData, updates);
+            parkingDataCache[currentParkingId] = currentParkingData;
+            refreshParkingMarker();
+            if (clusterer) clusterer.reload();
+            closePanel();
+            showMap();
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        })
+        .catch(function (err) {
+            console.error('Ошибка сохранения:', err);
+            alert('Ошибка: ' + (err.message || 'неизвестная ошибка'));
+        });
 }
     function updateOccupancyDisplay(newOccupied) {
         if (!currentParkingData) return;
