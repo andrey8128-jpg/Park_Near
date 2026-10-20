@@ -4203,12 +4203,31 @@ function createAuthScreenFallback() {
     showOnboarding();
 }
    function renderHomePanel(content) {
+    // 1. Проверка контейнера (если content не передан или удален)
+    if (!content) {
+        content = document.getElementById('panelContent');
+        if (!content) {
+            console.error('❌ renderHomePanel: контейнер panelContent не найден');
+            return;
+        }
+    }
+    // 2. Проверка наличия обязательных функций (чтобы не было ReferenceError)
+    if (typeof loadAllParkings !== 'function') {
+        content.innerHTML = '<div class="empty-state"><p>⚠️ Ошибка: функция загрузки парковок не найдена</p></div>';
+        console.error('❌ loadAllParkings не определена. Проверьте подключение map.js');
+        return;
+    }
+    if (typeof renderHomeContent !== 'function') {
+        content.innerHTML = '<div class="empty-state"><p>⚠️ Ошибка: функция отрисовки главной не найдена</p></div>';
+        console.error('❌ renderHomeContent не определена.');
+        return;
+    }
+    // 3. Работа с кешем
     const cached = localStorage.getItem('parkingCache');
     let cacheData = null;
     if (cached) {
         try {
             const cache = JSON.parse(cached);
-            // ✅ Проверяем, что кеш соответствует текущему городу
             if (cache && cache.data) {
                 cacheData = cache.data;
                 parkingDataCache = cacheData;
@@ -4218,23 +4237,27 @@ function createAuthScreenFallback() {
                     list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;">🔄 Обновление данных...</div>');
                 }
             } else {
-                // Если город не совпадает – удаляем устаревший кеш
                 localStorage.removeItem('parkingCache');
                 console.log('🗑️ Удалён устаревший кеш парковок');
             }
         } catch (e) {
+            console.warn('Ошибка парсинга кеша:', e);
             localStorage.removeItem('parkingCache');
         }
     }
     if (!cacheData) {
         content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
     }
+    // 4. Обновление данных
     const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
     if (needRefresh) {
-        // ✅ Передаём текущий город
+        // Проверяем, есть ли функция геолокации, иначе просто пропускаем её
+        const getCoordsPromise = typeof getUserLocation === 'function' 
+            ? getUserLocation().catch(() => null) 
+            : Promise.resolve(null);
         Promise.all([
             loadAllParkings(currentCity, true),
-            getUserLocation().catch(() => null)
+            getCoordsPromise
         ]).then(([, coords]) => {
             userLocationForSearch = coords;
             renderHomeContent(content, coords);
@@ -4242,21 +4265,28 @@ function createAuthScreenFallback() {
             if (indicator) indicator.remove();
             console.log('🏠 На главной загружено парковок:', Object.keys(parkingDataCache).length);
         }).catch((err) => {
-            console.error('Ошибка загрузки парковок:', err);
+            console.error('❌ Ошибка загрузки парковок:', err);
             const indicator = document.querySelector('.loading-indicator');
             if (indicator) indicator.textContent = '⚠️ Не удалось обновить данные';
-            setTimeout(() => { if (indicator) indicator.remove(); }, 3000);
-            renderHomeContent(content, null);
+        
+            // Если загрузка упала, все равно показываем кеш (если он есть) или пустое состояние
+            if (cacheData) {
+                renderHomeContent(content, null);
+            } else {
+                content.innerHTML = '<div class="empty-state"><p>Не удалось загрузить данные. Проверьте интернет.</p></div>';
+            }
         });
     } else {
-        getUserLocation()
-            .then(coords => {
-                userLocationForSearch = coords;
-                renderHomeContent(content, coords);
-            })
-            .catch(() => {
-                renderHomeContent(content, null);
-            });
+        const getCoordsPromise = typeof getUserLocation === 'function' 
+            ? getUserLocation().catch(() => null) 
+            : Promise.resolve(null);
+
+        getCoordsPromise.then(coords => {
+            userLocationForSearch = coords;
+            renderHomeContent(content, coords);
+        }).catch(() => {
+            renderHomeContent(content, null);
+        });
     }
 }
 function renderHomeContent(content, coords) {
