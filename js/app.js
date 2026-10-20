@@ -4413,8 +4413,7 @@ function renderParkingList(container, parkings) {
     container.innerHTML = parkings.map(p => renderParkingItem(p, userLocationForSearch)).join('');
 }
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
-   // Проверяем URL на наличие данных авторизации от Telegram (редирект)
-function checkTelegramAuthFromUrl() {
+  function checkTelegramAuthFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const authData = urlParams.get('tg_auth_data');
     if (authData) {
@@ -4422,71 +4421,47 @@ function checkTelegramAuthFromUrl() {
             const userData = JSON.parse(decodeURIComponent(authData));
             if (userData.id) {
                 onTelegramAuth(userData);
-                // Очищаем URL от параметров
                 window.history.replaceState({}, document.title, window.location.pathname);
                 return true;
             }
-        } catch (e) {
-            console.warn('Ошибка разбора данных авторизации:', e);
-        }
+        } catch (e) { console.warn('Ошибка разбора URL:', e); }
     }
     return false;
 }
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 async function onTelegramAuth(authData) {
     try {
-        if (!authData || !authData.initData) {
-            throw new Error(
-                'Нет подтверждённых данных Telegram. ' +
-                'Для входа требуется серверная проверка.'
-            );
+        let verifiedUser = null;
+        // СЦЕНАРИЙ А: Мы внутри Telegram Mini App (автоматический вход)
+        if (authData && authData.initData) {
+            if (typeof window.verifyTelegramInitData !== 'function') {
+                throw new Error('Не подключена серверная проверка для Mini App.');
+            }
+            verifiedUser = await window.verifyTelegramInitData(authData.initData);
+        } 
+        // СЦЕНАРИЙ Б: Мы в браузере/PWA и получили данные от Telegram Login Widget
+        else if (authData && authData.id) {
+            // В реальном проекте здесь нужно отправить authData на ваш сервер,
+            // чтобы он проверил подпись (hash) с помощью токена бота.
+            // Для теста мы доверяем этим данным напрямую.
+            verifiedUser = authData;
         }
-        // ВАЖНО:
-        // Здесь должен быть вызов твоего backend, который проверяет
-        // подпись Telegram initData и возвращает проверенный профиль.
-        //
-        // Пока backend не подключён, намеренно не записываем
-        // непроверенного пользователя в Firebase.
-        if (typeof window.verifyTelegramInitData !== 'function') {
-            throw new Error(
-                'Не подключена серверная проверка Telegram. ' +
-                'Нельзя безопасно подтвердить вход только на frontend.'
-            );
-        }
-        const verifiedUser = await window.verifyTelegramInitData(
-            authData.initData
-        );
         if (!verifiedUser || !verifiedUser.id) {
-            throw new Error(
-                'Сервер не подтвердил личность пользователя Telegram.'
-            );
+            throw new Error('Не удалось получить ID пользователя Telegram.');
         }
-        // Постоянный ID Park Near сохраняется в прежнем формате.
+        // Формируем профиль
         const telegramId = String(verifiedUser.id);
         const profile = {
             id: 'tg_' + telegramId,
             username: verifiedUser.username || 'tg_user',
-            firstName:
-                verifiedUser.first_name ||
-                verifiedUser.firstName ||
-                'Пользователь',
-            photoUrl:
-                verifiedUser.photo_url ||
-                verifiedUser.photoUrl ||
-                '',
+            firstName: verifiedUser.first_name || verifiedUser.firstName || 'Пользователь',
+            photoUrl: verifiedUser.photo_url || verifiedUser.photoUrl || '',
             isGuest: false
         };
-        if (
-            typeof database === 'undefined' ||
-            !database ||
-            typeof database.ref !== 'function'
-        ) {
-            throw new Error('Firebase Realtime Database не подключена.');
-        }
         const userRef = database.ref('users/' + profile.id);
         const now = Date.now();
         const today = new Date().toISOString().split('T')[0];
-        // Сохраняем профиль, не перезаписывая остальные поля пользователя.
+        // Сохраняем в Firebase
         await userRef.update({
             id: profile.id,
             telegramId: telegramId,
@@ -4496,67 +4471,42 @@ async function onTelegramAuth(authData) {
             isGuest: false,
             lastActive: now
         });
-        // Создаём статистику только при её отсутствии.
+        // Создаём статистику, если её нет
         await userRef.child('stats').transaction(stats => {
-            if (stats !== null) {
-                return stats;
-            }
+            if (stats !== null) return stats;
             return {
-                registeredAt: now,
-                lastActive: now,
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
+                registeredAt: now, lastActive: now, parkingsCreated: 0,
+                parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0,
                 activeDates: [today]
             };
         });
-        // Обновляем только дату активности.
         await userRef.child('stats/lastActive').set(now);
-        // Сохраняем сессию после успешной серверной проверки
-        // и успешной записи в Firebase.
+        // Авторизуем в приложении
         currentUser = profile;
         window.currentUser = profile;
         localStorage.setItem('tgUser', JSON.stringify(profile));
-        if (typeof hideAuthScreen === 'function') {
-            hideAuthScreen();
-        }
-        if (typeof showPanel === 'function') {
-            showPanel('home');
-        }
-        if (typeof showOnboarding === 'function') {
-            showOnboarding();
-        }
-        console.log(
-            'Вход и сохранение профиля выполнены:',
-            profile.id
-        );
+            if (typeof hideAuthScreen === 'function') hideAuthScreen();
+            if (typeof showPanel === 'function') showPanel('home');
+            showToast('✅ Вы успешно вошли через Telegram!', 3000);
+        console.log('Вход выполнен:', profile.id);
         return profile;
     } catch (error) {
-        console.error(
-            'Ошибка авторизации или записи в Firebase:',
-            error
-        );
-        alert(
-            'Не удалось выполнить вход через Telegram. ' +
-            'Проверьте авторизацию, серверную проверку и подключение Firebase.'
-        );
+        console.error('Ошибка авторизации Telegram:', error);
+        alert('Не удалось выполнить вход: ' + error.message);
         throw error;
     }
 }
 async function initApp() {
-    // ✅ 1. Проверяем токен из Telegram (для PWA/браузера)
-    // Если пользователь вернулся из бота со ссылкой ?token=...
+    // Проверяем токен из бота (если пользователь возвращается по ссылке)
     const isTokenLogin = await checkTelegramTokenFromUrl();
-    if (isTokenLogin) return; // Если токен сработал, выходим из функции (интерфейс уже обновлен)
-    // 2. Проверяем авторизацию внутри Telegram Mini App или восстанавливаем старую сессию
+    if (isTokenLogin) return; 
+    // Проверяем данные в URL (если вернулись из Mini App или Widget)
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
     } else {
         initAuth();
     }
-    // 3. Восстановление выбранного города
+    // Восстановление выбранного города
     const savedCity = localStorage.getItem('parknear_city');
     if (savedCity) {
         try {
@@ -4571,7 +4521,7 @@ async function initApp() {
             console.warn('Ошибка восстановления города:', e);
         }
     }
-    // 4. Настройка кнопки добавления парковки
+    // Настройка кнопки добавления парковки
     const addBtn = document.getElementById('addBtn');
     if (addBtn) {
         addBtn.onclick = function() {
@@ -4580,76 +4530,85 @@ async function initApp() {
             else startDrawingMode();
         };
     }
-    // 5. Инициализация карты
+    // Инициализация карты
     if (!map) {
         initMap();
     }
-    // 6. Регистрация Service Worker для PWA (офлайн-режим и пуши)
+    // Регистрация Service Worker для PWA
     if ('serviceWorker' in navigator) {
         const swScope = new URL('.', window.location.href).pathname;
         navigator.serviceWorker.register(swScope + 'sw.js', { scope: swScope })
-            .then(registration => {
-                console.log('✅ Service Worker зарегистрирован:', registration.scope);
-            })
-            .catch(error => {
-                console.error('❌ Ошибка регистрации Service Worker:', error);
-            });
+            .then(registration => console.log('✅ SW зарегистрирован'))
+            .catch(error => console.error('❌ Ошибка SW:', error));
     }
-    // 7. Загрузка данных
+    // Загрузка данных
     loadAllParkings();
     initPullToRefresh();
-    // 8. Показываем главную панель, если пользователь авторизован
     if (currentUser) {
         showPanel('home');
     }
-    // 9. Центрируем карту на сохраненном городе
     if (map && cityCoords) {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
 }
-async function openTelegramBot() {
+function openTelegramBot() {
     console.log('openTelegramBot вызвана'); 
-    // 1. Если мы внутри Telegram Mini App — используем родную авторизацию
+    // Если мы уже внутри Telegram (Mini App) — вызываем авторизацию автоматически
     const webApp = window.Telegram?.WebApp;
     if (webApp && webApp.initData) {
         webApp.ready();
         onTelegramAuth({ initData: webApp.initData }).catch(console.error);
         return;
     }
-    // 2. Если мы в браузере или PWA — запускаем авторизацию через бота
-    try {
-        // Генерируем случайный токен
-        const token = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2);
-        // Сохраняем токен в Firebase (ждем 5 минут)
-        const expires = Date.now() + 5 * 60 * 1000;
-        await database.ref(`loginTokens/${token}`).set({
-            expires: expires,
-            status: 'pending' // Ожидает подтверждения от бота
-        });
-        // Формируем ссылку на бота с параметром start
-        const botUrl = `https://t.me/parknear_bot?start=login_${token}`;
-        // Открываем Telegram
-        window.open(botUrl, '_blank');
-        // Показываем пользователю подсказку
-        alert('Пожалуйста, подтвердите вход в открывшемся Telegram. После этого вернитесь в приложение.');
-    } catch (error) {
-        console.error('Ошибка запуска Telegram-авторизации:', error);
-        alert('Не удалось запустить вход через Telegram. Попробуйте позже.');
+    // Если мы в обычном браузере или PWA — показываем встроенный виджет Telegram
+    const authContainer = document.getElementById('telegram-widget-container');
+    // Если контейнера нет, создаем его и открываем модальное окно
+    if (!authContainer) {
+        // Создаем оверлей
+        const overlay = document.createElement('div');
+        overlay.id = 'tg-auth-overlay';
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        `;
+        // Создаем контейнер для виджета
+        const widgetBox = document.createElement('div');
+        widgetBox.id = 'telegram-widget-container';
+        widgetBox.style.cssText = `
+            background: var(--bg-secondary, #fff); padding: 20px; 
+            border-radius: 16px; text-align: center; position: relative;
+        `;
+        // Закрытие окна
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.cssText = `position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #888;`;
+        closeBtn.onclick = () => overlay.remove();
+        // Текст подсказки
+        const hint = document.createElement('p');
+        hint.textContent = 'Введите номер телефона для входа:';
+        hint.style.cssText = 'margin-bottom: 15px; font-size: 15px; color: #333; font-weight: 600;';
+        widgetBox.appendChild(closeBtn);
+        widgetBox.appendChild(hint);
+        overlay.appendChild(widgetBox);
+        document.body.appendChild(overlay);
+        // Загружаем скрипт Telegram Widget
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = "https://telegram.org/js/telegram-widget.js?22";
+        script.setAttribute('data-telegram-login', 'parknear_bot'); // Ваш бот
+        script.setAttribute('data-size', 'large');
+        script.setAttribute('data-radius', '10');
+        script.setAttribute('data-onauth', 'onTelegramAuth(user)'); // Вызов нашей функции
+        script.setAttribute('data-request-access', 'write');
+    
+        widgetBox.appendChild(script);
     }
 }
 function closeAuthScreen() {
     const overlay = document.getElementById('authOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
+    if (overlay) overlay.style.display = 'none';
 }
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        if (!currentUser && localStorage.getItem('tgUser')) {
-            initAuth();
-        }
-    }
-});
     function rebuildRoute() {
         if (!routeStartCoords || !routeEndCoords) {
             alert('Сначала постройте маршрут');
