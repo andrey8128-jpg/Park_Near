@@ -223,6 +223,48 @@ function initMiniMap(coords) {
     miniMap.geoObjects.add(polygon);
     miniMap.setBounds(polygon.geometry.getBounds(), { checkZoomRange: true });
 }
+async function deleteParking(parkingId) {
+    if (!currentUser) {
+        showToast('Необходимо авторизоваться');
+        return;
+    }
+    if (!parkingId) return showToast('ID парковки не найден');
+    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
+    try {
+        const parking = parkingDataCache[parkingId];
+        if (!parking) return showToast('Парковка не найдена в кэше');
+        if (parking.authorId !== currentUser.id) {
+            return showToast('Удалять парковку может только её автор');
+        }
+        // ✅ Используем groupId для правильного пути
+        const groupId = parking.groupId;
+        if (!groupId) throw new Error('Не найден ID группы парковки');
+        const ref = database.ref(`parkings/${groupId}/${parkingId}`);
+        await ref.remove();
+        // Удаляем Placemark и Polygon корректно
+        const placemark = mapMarkers[parkingId];
+        if (placemark) {
+            const polygon = placemark.properties.get('polygon');
+            if (polygon) map.geoObjects.remove(polygon);
+            if (clusterer) clusterer.remove(placemark);
+            delete mapMarkers[parkingId];
+        }
+        if (activePolygon && activePolygon.__parkingId === parkingId) {
+            map.geoObjects.remove(activePolygon);
+            activePolygon = null;
+        }
+        delete parkingDataCache[parkingId];
+        if (clusterer) clusterer.reload();
+        closePanel();
+        showMap();
+        if (document.getElementById('searchResults')) filterParkings();
+        showToast('Парковка удалена');
+
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        showToast('Не удалось удалить парковку');
+    }
+}
 async function submitParkingWithPolygon() {
     const streetType = document.getElementById('parkStreetType')?.value?.trim() || '';
     const streetName = document.getElementById('parkStreetName')?.value?.trim() || '';
