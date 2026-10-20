@@ -8,6 +8,9 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
   if (payload.startsWith('login_')) {
     const token = payload.split('_')[1];
     const expires = Date.now() + 5 * 60 * 1000;
+    
+    // Формируем ID пользователя (точно такой же, как ожидает фронтенд)
+    const userProfileId = 'tg_' + userId;
 
     const userData = {
       userId: userId,
@@ -18,13 +21,40 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     };
 
     try {
+      // 1. Сохраняем временный токен (чтобы фронтенд понял, кто вошел)
       await admin.database().ref(`loginTokens/${token}`).set({
         userId: userId,
         expires: expires,
         userData: userData
       });
 
-      // ✅ Правильная строка
+      // 2. СРАЗУ создаем/обновляем пользователя в разделе users
+      const userRef = admin.database().ref(`users/${userProfileId}`);
+      await userRef.update({
+        id: userProfileId,
+        telegramId: String(userId),
+        username: userData.username || 'tg_user',
+        firstName: userData.firstName || 'Пользователь',
+        photoUrl: userData.photoUrl || '',
+        isGuest: false,
+        lastActive: Date.now()
+      });
+
+      // 3. Создаем статистику, если ее еще нет
+      await userRef.child('stats').transaction(stats => {
+        if (stats !== null) return stats;
+        return {
+          registeredAt: Date.now(),
+          lastActive: Date.now(),
+          parkingsCreated: 0,
+          parkingsUpdated: 0,
+          confirmations: 0,
+          views: 0,
+          favorites: 0,
+          activeDates: [new Date().toISOString().split('T')[0]]
+        };
+      });
+
       const redirectUrl = `${SITE_URL}/?token=${token}`;
 
       await bot.sendMessage(chatId,
@@ -38,7 +68,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
         }
       );
     } catch (err) {
-      console.error('Ошибка сохранения токена:', err);
+      console.error('Ошибка сохранения данных:', err);
       bot.sendMessage(chatId, '❌ Произошла ошибка, попробуйте позже.');
     }
   } else {
