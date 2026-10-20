@@ -1455,18 +1455,22 @@ function editFromCenter() {
     openOccupancyPanel(parkingId);
 }
     // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
-    function openOccupancyPanel(parkingId) {
-        getParkingRef(parkingId).once('value')
+   function openOccupancyPanel(parkingId) {
+    if (!parkingId) return;
+    getParkingRef(parkingId).once('value')
+        .then(snapshot => {
             const data = snapshot.val();
             if (!data) return;
+            // Счётчик просмотров — только для чужих парковок
             if (currentUser && currentUser.id !== data.authorId) {
-                database.ref(`parkings/${parkingId}/views`).transaction(v => (v || 0) + 1);
-                database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
+                getParkingRef(parkingId).child('views').transaction(v => (v || 0) + 1);
+                if (data.authorId) {
+                    database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
+                }
             }
             currentParkingId = parkingId;
             currentParkingData = data;
             parkingDataCache[parkingId] = data;
-
             if (currentUser) {
                 Promise.all([
                     database.ref(`users/${currentUser.id}/car`).once('value'),
@@ -1475,12 +1479,19 @@ function editFromCenter() {
                     currentUser.car = carSnap.val() || {};
                     const isFavorite = favSnap.exists();
                     renderEditPanel(data, isFavorite);
+                }).catch(err => {
+                    console.error('Ошибка загрузки данных профиля/избранного:', err);
+                    renderEditPanel(data, false);
                 });
             } else {
                 renderEditPanel(data, false);
             }
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки парковки:', err);
+            showToast?.('Не удалось загрузить парковку', 2000);
         });
-    }
+}
   function renderEditPanel(data, isFavorite) {
     const totalSpots = Number(data.totalSpots) || 0;
     const isAuthor = currentUser && currentUser.id === data.authorId;
