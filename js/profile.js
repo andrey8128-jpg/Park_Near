@@ -87,9 +87,9 @@ if (!currentUser) {
         const city = escapeHtml(prefs.city || currentCity || 'Город не выбран');
         const region = escapeHtml(prefs.region || '');
         const carName = car.brand ? `${escapeHtml(car.brand)} ${escapeHtml(car.model || '')}`.trim() : 'Автомобиль не добавлен';
-        const avatar = currentUser.photoUrl
-            ? `<img src="${escapeHtml(currentUser.photoUrl)}" alt="">`
-            : '👤';
+       const avatar = currentUser.photoUrl
+       ? `<img src="${escapeHtml(currentUser.photoUrl)}" alt="Аватар" onerror="this.style.display='none'; this.parentElement.innerHTML='👤';">`
+       : '👤';
         content.innerHTML = `
             <div class="pn-profile">
                 <section class="pn-profile-hero">
