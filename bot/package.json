@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "Bot for ParkNear authentication",
   "main": "bot.js",
-  "scripts": { 
-  "start": "node bot.js"
-},
+  "scripts": {
+    "start": "node bot.js"
+  },
   "dependencies": {
-  "node-telegram-bot-api": "^0.64.0",
-  "firebase-admin": "^12.0.0"},
-    }
+    "node-telegram-bot-api": "^0.64.0",
+    "firebase-admin": "^12.0.0"
+  }
 }
