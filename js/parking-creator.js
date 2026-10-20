@@ -255,32 +255,31 @@ async function submitParkingWithPolygon() {
     try {
         const centerLat = coordsToSave.reduce((sum, c) => sum + Number(c[0]), 0) / coordsToSave.length;
         const centerLng = coordsToSave.reduce((sum, c) => sum + Number(c[1]), 0) / coordsToSave.length;
-        console.log('📍 Координаты парковки:', centerLat, centerLng);
         if (btn) btn.textContent = 'Определяем город...';
         const geoData = await getAddressByCoordinates(centerLat, centerLng);
-        // ФИКС: было const detectedCity → бросало TypeError при переприсваивании
         let detectedCity = String(geoData?.city || currentCity || mapCity?.city || userCityPrefs?.city || '').trim();
         const detectedRegion = String(geoData?.region || mapCity?.region || userCityPrefs?.region || '').trim();
         const detectedAddress = String(geoData?.address || '').trim();
         const detectedStreet = String(geoData?.street || '').trim();
         const detectedHouseNumber = String(geoData?.houseNumber || '').trim();
-        console.log('🏙️ Город:', detectedCity);
-        console.log('🗺️ Регион:', detectedRegion);
-        console.log('📬 Адрес:', detectedAddress);
         if (!detectedCity) {
-            console.warn('⚠️ Яндекс не определил город, используем выбранный город карты');
             detectedCity = String(currentCity || mapCity?.city || userCityPrefs?.city || '').trim();
         }
-        if (!detectedCity) {
-            console.warn('⚠️ Город не определён, парковка будет сохранена без города');
-        }
-
         const fullStreet = streetType && streetName ? `${streetType} ${streetName}` : streetName;
         const finalStreet = fullStreet || detectedStreet;
         const finalHouseNumber = houseNumber || detectedHouseNumber;
         const finalAddress = detectedAddress || [detectedCity, finalStreet, finalHouseNumber].filter(Boolean).join(', ');
         const name = fullStreet && houseNumber ? `${fullStreet}, ${houseNumber}` : finalAddress || `Парковка ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
         const now = Date.now();
+        // Функция для очистки ключей (убирает запрещенные символы)
+        const cleanKeyPart = value => String(value || '').trim().replace(/[.#$\/\[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        // ✅ ГЕНЕРИРУЕМ КЛЮЧ ГРУППЫ (по названию парковки)
+        const groupNameKey = cleanKeyPart(name) || 'Без_названия';
+        // Ключ для конкретной уникальной парковки (город + улица + дом)
+        const cityKey = cleanKeyPart(detectedCity);
+        const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
+        const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
+        const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
         const parkingData = {
             lat: centerLat,
             lng: centerLng,
@@ -288,6 +287,7 @@ async function submitParkingWithPolygon() {
             totalSpots,
             occupiedSpots: 0,
             name,
+            groupId: groupNameKey, // ✅ Сохраняем ID группы внутри данных!
             isPaid: false,
             address: finalAddress,
             city: detectedCity,
@@ -303,22 +303,16 @@ async function submitParkingWithPolygon() {
             status: 'unknown',
             statusConfirmations: 0
         };
-        console.log('💾 Парковка перед сохранением:', parkingData);
-       const cleanKeyPart = value => String(value || '').trim().replace(/[.#$\/\[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-        const cityKey = cleanKeyPart(detectedCity);
-        const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
-        const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
-        const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
-        // ФИКС: генерация ключа через transaction() вместо exists()+set() —
-        // убирает гонку при одновременных сохранениях
         let number = 1;
         let parkingKey = `${baseKey}_(${number})`;
         let committed = false;
         const MAX_ATTEMPTS = 50;
+        
         if (btn) btn.textContent = 'Сохраняем...';
+        // ✅ ИЗМЕНЕНО: Сохраняем в parkings/Название_группы/Уникальный_ключ
         while (!committed && number <= MAX_ATTEMPTS) {
             parkingKey = `${baseKey}_(${number})`;
-            const parkingRef = database.ref(`parkings/${parkingKey}`);
+            const parkingRef = database.ref(`parkings/${groupNameKey}/${parkingKey}`);
             const txResult = await parkingRef.transaction(currentData => {
                 if (currentData !== null) return undefined;
                 return parkingData;
@@ -329,9 +323,11 @@ async function submitParkingWithPolygon() {
         if (!committed) {
             throw new Error('Не удалось подобрать свободный идентификатор парковки, попробуйте ещё раз');
         }
-        console.log('🔑 Ключ Firebase:', parkingKey);
-        console.log('✅ Основные данные парковки записаны в Firebase');
-        const parkingRef = database.ref(`parkings/${parkingKey}`);
+        console.log('🔑 Группа:', groupNameKey, '| Ключ парковки:', parkingKey);
+        
+        // ✅ ИЗМЕНЕНО: Путь для записи истории
+        const parkingRef = database.ref(`parkings/${groupNameKey}/${parkingKey}`);
+        
         try {
             await database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
         } catch (error) {
@@ -387,9 +383,6 @@ async function submitParkingWithPolygon() {
             console.warn('⚠️ Ошибка обновления списка:', error);
         }
         console.log('✅ ПАРКОВКА ПОЛНОСТЬЮ СОХРАНЕНА');
-        console.log('🏙️ Город:', detectedCity);
-        console.log('🗺️ Регион:', detectedRegion);
-        console.log('🔑 ID:', parkingKey);
         if (typeof closePanel === 'function') closePanel();
         if (typeof showMap === 'function') showMap();
     } catch (error) {
