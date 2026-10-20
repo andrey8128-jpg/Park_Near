@@ -1984,28 +1984,22 @@ function loadHistoryPreview(parkingId) {
         showToast('Необходимо авторизоваться');
         return;
     }
-
     const id = parkingId || currentParkingId;
     if (!id) {
         showToast('ID парковки не найден');
         return;
     }
-
     const parkingRef = database.ref(`parkings/${id}`);
-
     try {
         const snapshot = await parkingRef.once('value');
         const data = snapshot.val();
-
         if (!data) {
             showToast('Парковка не найдена');
             return;
         }
-
         const total = Number(data.totalSpots || 0);
         let previousOccupied = 0;
         let newOccupied = 0;
-
         const result = await parkingRef.child('occupiedSpots').transaction(
             currentValue => {
                 previousOccupied = Number(currentValue || 0);
@@ -2014,18 +2008,15 @@ function loadHistoryPreview(parkingId) {
                 return newOccupied;
             }
         );
-
         if (!result.committed) {
             showToast('Количество мест уже изменилось');
             return;
         }
-
         const now = Date.now();
         await parkingRef.update({
             lastUpdatedAt: now,
             lastUpdatedBy: currentUser.nickname || currentUser.firstName || 'Пользователь'
         });
-
         await parkingRef.child('history').push({
             action: delta < 0 ? 'freed' : 'occupied',
             timestamp: now,
@@ -2034,88 +2025,19 @@ function loadHistoryPreview(parkingId) {
             previousOccupied,
             newOccupied
         });
-
         if (parkingDataCache[id]) parkingDataCache[id].occupiedSpots = newOccupied;
         if (id === currentParkingId && currentParkingData) currentParkingData.occupiedSpots = newOccupied;
-
         updateOccupancyDisplay(newOccupied);
         refreshParkingMarker();
-
         // ✅ Пересчитываем кластеры, чтобы обновить сумму на иконках
         if (clusterer) clusterer.reload();
-
         if (document.getElementById('historyList')) loadHistoryPreview(id);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
-
     } catch (error) {
         console.error('Ошибка обновления занятости:', error);
         showToast('Не удалось изменить количество мест');
-    }
-}
-async function deleteParking(parkingId) {
-    if (!currentUser) {
-        showToast('Необходимо авторизоваться');
-        return;
-    }
-    if (!parkingId) {
-        showToast('ID парковки не найден');
-        return;
-    }
-    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
-
-    try {
-        const ref = database.ref(`parkings/${parkingId}`);
-        const snapshot = await ref.once('value');
-        const data = snapshot.val();
-
-        if (!data) {
-            showToast('Парковка уже удалена');
-            return;
-        }
-
-        if (data.authorId !== currentUser.id) {
-            showToast('Удалять парковку может только её автор');
-            return;
-        }
-
-        await ref.remove();
-
-        // ✅ Удаляем Placemark и Polygon корректно
-        const placemark = mapMarkers[parkingId];
-        if (placemark) {
-            // Удаляем полигон
-            const polygon = placemark.properties.get('polygon');
-            if (polygon) {
-                map.geoObjects.remove(polygon);
-            }
-            // Удаляем маркер из кластера
-            if (clusterer) {
-                clusterer.remove(placemark);
-            }
-            delete mapMarkers[parkingId];
-        }
-
-        // Если удаляется активный полигон
-        if (activePolygon && activePolygon.__parkingId === parkingId) {
-            map.geoObjects.remove(activePolygon);
-            activePolygon = null;
-        }
-
-        delete parkingDataCache[parkingId];
-
-        // ✅ Пересчитываем кластеры
-        if (clusterer) clusterer.reload();
-
-        closePanel();
-        showMap();
-        if (document.getElementById('searchResults')) filterParkings();
-        showToast('Парковка удалена');
-
-    } catch (error) {
-        console.error('Ошибка удаления:', error);
-        showToast('Не удалось удалить парковку');
     }
 }
     function confirmParking(parkingId) {
