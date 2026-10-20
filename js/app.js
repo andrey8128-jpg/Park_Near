@@ -6,11 +6,11 @@
         projectId: "parknear-bef41",
         storageBucket: "parknear-bef41.firebasestorage.app",
         messagingSenderId: "1066552333578",
-        appId: "1:1066552333578:web:e60e333cf877852eba16f3"handleYandexOAuthReturn
+        appId: "1:1066552333578:web:e60e333cf877852eba16f3"
     };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====// ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
+    // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
    (function restoreTheme() {
     const darkTheme = localStorage.getItem('darkTheme');
     const isDark = darkTheme === '1';
