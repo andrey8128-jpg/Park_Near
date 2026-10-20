@@ -4548,13 +4548,15 @@ function openTelegramBot() {
         );
         return;
     }
-    // Обычный браузер: открываем бота.
-    // Это НЕ завершает авторизацию автоматически.
+    // Обычный браузер и PWA:
+    // открываем официальный Telegram Web.
+    // Это само по себе не авторизует пользователя в Park Near.
     window.open(
-        'https://t.me/parknear_bot',
+        'https://web.telegram.org/',
         '_blank',
         'noopener,noreferrer'
     );
+
 }
 function closeAuthScreen() {
     const overlay = document.getElementById('authOverlay');
