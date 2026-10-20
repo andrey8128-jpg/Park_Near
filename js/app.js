@@ -844,49 +844,6 @@ function tryYandexGeolocation(resolve, reject) {
             reject(new Error('Геолокация не поддерживается'));
         }
     }
-    function coordsChanged(oldCoord, newCoord) {
-        if (!oldCoord || !newCoord) return true;
-        if (oldCoord.length !== newCoord.length) return true;
-        for (let i = 0; i < oldCoord.length; i++) {
-            if (oldCoord[i][0] !== newCoord[i][0] || oldCoord[i][1] !== newCoord[i][1]) {
-                return true;
-            }
-        }
-        return false;
-    }
-    if (newCoords && Array.isArray(newCoords) && newCoords.length >= 3) {
-        if (!oldPolygon || coordsChanged(oldPolygon.geometry.getCoordinates()[0], newCoords)) {
-            // Удаляем старый полигон
-            if (oldPolygon) map.geoObjects.remove(oldPolygon);
-            // Создаём новый
-            const newPolygon = new ymaps.Polygon([newCoords], {}, {
-                fillColor: color + '33',
-                strokeColor: color,
-                strokeWidth: 2,
-                visible: false,
-                zIndex: 5
-            });
-            map.geoObjects.add(newPolygon);
-            placemark.properties.set('polygon', newPolygon);
-            newPolygon.__parkingId = id;
-        } else {
-            // Координаты не изменились – просто обновляем цвет
-            oldPolygon.options.set({
-                fillColor: color + '33',
-                strokeColor: color
-            });
-        }
-    } else {
-        // Зоны больше нет
-        if (oldPolygon) {
-            map.geoObjects.remove(oldPolygon);
-            placemark.properties.set('polygon', null);
-        }
-    }
-    // Обновляем общий счётчик
-    if (typeof updateTotalFreeCircle === 'function') {
-        updateTotalFreeCircle();
-    }
     // ===================== СЛОИ КАРТЫ =====================
     function toggleLayerMenu() { document.getElementById('layerMenu').classList.toggle('active'); }
     function setMapType(option) {
