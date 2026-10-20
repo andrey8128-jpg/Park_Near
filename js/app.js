@@ -88,106 +88,11 @@
     let userLocationForSearch = null;
     let pendingAddressData = null;
     let newParkingCoords = null;
-// ===================== ВХОД ЧЕРЕЗ ЯНДЕКС =====================
-function startYandexLogin() {
-    const clientId = 'a4c1372c585e4962bf9dfef4b5e14bf5';
-    const redirectUri =
-        'https://andrey8128-jpg.github.io/Park_Near/';
-    if (!clientId) {
-        alert('Не указан Client ID приложения Яндекс');
-        return;
-    }
-    if (!window.crypto?.randomUUID) {
-        alert('Браузер не поддерживает создание OAuth state');
-        return;
-    }
-    const state = crypto.randomUUID();
-    sessionStorage.setItem('yandex_oauth_state', state);
-    const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        state: state
-    });
-    const authUrl =
-        'https://oauth.yandex.ru/authorize?' +
-        params.toString();
-    window.location.assign(authUrl);
-}
-async function handleYandexOAuthReturn() {
-    const params = new URLSearchParams(
-        window.location.search
-    );
-    const code = params.get('code');
-    const returnedState = params.get('state');
-    const oauthError = params.get('error');
-    // Если Яндекс вернул ошибку
-    if (oauthError) {
-        console.error(
-            'Ошибка Яндекс OAuth:',
-            oauthError,
-            params.get('error_description')
-        );
-        alert('Яндекс не завершил авторизацию.');
-        return;
-    }
-    // Если это обычная загрузка страницы
-    if (!code) return;
-    const savedState =
-        sessionStorage.getItem('yandex_oauth_state');
-    if (!savedState || returnedState !== savedState) {
-        console.error('Ошибка проверки OAuth state');
-        alert('Не удалось проверить авторизацию.');
-        return;
-    }
-    try {
-        // ВАЖНО:
-        // /api/yandex-login — это пример адреса.
-        // Его нужно реализовать на твоём backend.
-        const response = await fetch('/api/yandex-login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                code: code,
-                redirectUri:
-                    'https://andrey8128-jpg.github.io/Park_Near/'
-            })
-        });
-        if (!response.ok) {
-            throw new Error(
-                'Сервер не подтвердил авторизацию: ' +
-                response.status
-            );
-        }
-        const user = await response.json();
-        if (!user || !user.id) {
-            throw new Error(
-                'Сервер не вернул подтверждённого пользователя'
-            );
-        }
-        // Здесь должна быть интеграция с твоей
-        // существующей системой пользовательских сессий.
-        // Не присваивай currentUser напрямую на основании
-        // неподтверждённых данных из браузера.
-        console.log('Сервер подтвердил пользователя');
-    } catch (error) {
-        console.error(
-            'Ошибка завершения входа через Яндекс:',
-            error
-        );
-        alert(
-            'Не удалось войти. Попробуй ещё раз.'
-        );
-    } finally {
-        sessionStorage.removeItem('yandex_oauth_state');
-        window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-        );
-    }
+
+function getParkingRef(parkingId) {
+    const p = parkingDataCache[parkingId];
+    if (p?.groupId) return database.ref(`parkings/${p.groupId}/${parkingId}`);
+    return database.ref(`parkings/${parkingId}`);
 }
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
@@ -1551,7 +1456,7 @@ function editFromCenter() {
 }
     // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
     function openOccupancyPanel(parkingId) {
-        database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+        getParkingRef(parkingId).once('value')
             const data = snapshot.val();
             if (!data) return;
             if (currentUser && currentUser.id !== data.authorId) {
@@ -1895,7 +1800,7 @@ function loadHistoryPreview(parkingId) {
         houseNumber,
         totalSpots
     };
-    database.ref(`parkings/${currentParkingId}`).update(updates).then(()=>{
+    getParkingRef(currentParkingId).update(updates)
         if(currentUser.id===currentParkingData.authorId){
             database.ref(`users/${currentUser.id}/stats/parkingsUpdated`)
                 .transaction(c=>(c||0)+1);
@@ -1946,7 +1851,7 @@ function loadHistoryPreview(parkingId) {
         showToast('ID парковки не найден');
         return;
     }
-    const parkingRef = database.ref(`parkings/${id}`);
+    const parkingRef = getParkingRef(id);
     try {
         const snapshot = await parkingRef.once('value');
         const data = snapshot.val();
