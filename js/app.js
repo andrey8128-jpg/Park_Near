@@ -1507,85 +1507,236 @@ function openOccupancyPanel(parkingId) {
             console.error('Ошибка загрузки парковки:', err);
             content.innerHTML = '<div class="empty-state"><p>Не удалось загрузить парковку</p></div>';
         });
-}
-  function renderEditPanel(data, isFavorite, content) {
-    if (!content) content = document.getElementById('panelContent');
-    if (!content) return;
-    const totalSpots = Number(data.totalSpots) || 0;
+} 
+function renderEditPanel(data, isFavorite, content) {
+    if (!content) {
+        content = document.getElementById('panelContent');
+    }
+    if (!content) {
+        console.error('Не найден контейнер panelContent');
+        return;
+    }
+    const totalSpots = Math.max(
+        0,
+        Math.floor(Number(data.totalSpots) || 0)
+    );
     const isAuthor =
         !!currentUser &&
         currentUser.id != null &&
         data.authorId != null &&
         String(currentUser.id) === String(data.authorId);
-    const safeVal = v => String(v ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const safeVal = value =>
+        String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     const street = data.street || '';
     const house = data.houseNumber || '';
+    const parkingId = String(currentParkingId ?? '');
     content.innerHTML = `
         <div class="edit-parking">
+
+            <!-- Заголовок парковки -->
             <div class="edit-parking-header">
                 <div class="edit-parking-title">
                     <h3>${safeVal(data.name || 'Парковка')}</h3>
-                    ${street ? `<p class="edit-parking-street">${safeVal(street)}${house ? ', ' + safeVal(house) : ''}</p>` : ''}
+
+                    ${
+                        street
+                            ? `<p class="edit-parking-street">
+                                ${safeVal(street)}${
+                                    house ? ', ' + safeVal(house) : ''
+                                }
+                            </p>`
+                            : ''
+                    }
                 </div>
             </div>
 
+            <!-- Действия -->
             <div class="edit-parking-actions">
-                ${isAuthor ? `
-                    <button type="button" class="btn-secondary" onclick="window.toggleParkingEditor()">
-                        ✏️ Редактировать данные
-                    </button>
-                ` : ''}
-                <button type="button" class="btn-secondary" onclick="toggleFavorite('${escapeHtml(String(currentParkingId))}')">
-                    ${isFavorite ? '★ Убрать из избранного' : '☆ В избранное'}
+
+                ${
+                    isAuthor
+                        ? `
+                            <button
+                                type="button"
+                                class="btn-secondary"
+                                onclick="window.toggleParkingEditor()"
+                            >
+                                ✏️ Редактировать данные
+                            </button>
+                        `
+                        : ''
+                }
+
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="toggleFavorite('${safeVal(parkingId)}')"
+                >
+                    ${
+                        isFavorite
+                            ? '★ Убрать из избранного'
+                            : '☆ В избранное'
+                    }
                 </button>
+
             </div>
 
-            <div id="parkingEditorForm" class="edit-parking-form" style="display: none;">
+            <!-- Форма редактирования -->
+            <div
+                id="parkingEditorForm"
+                class="edit-parking-form"
+                style="display: none;"
+            >
                 <h4>Редактирование парковки</h4>
 
-                <label for="editParkingName">Название парковки</label>
-                <input type="text" id="editParkingName" value="${safeVal(data.name || '')}" placeholder="Название">
+                <label for="editParkingName">
+                    Название парковки
+                </label>
 
-                <label for="editParkingStreet">Улица</label>
-                <input type="text" id="editParkingStreet" value="${safeVal(street)}" placeholder="ул. Ленина">
+                <input
+                    type="text"
+                    id="editParkingName"
+                    value="${safeVal(data.name || '')}"
+                    placeholder="Название парковки"
+                >
 
-                <label for="editHouseNumber">Номер дома</label>
-                <input type="text" id="editHouseNumber" value="${safeVal(house)}" placeholder="15">
+                <label for="editParkingStreet">
+                    Улица
+                </label>
 
-                <label for="editParkingTotalSpots">Количество мест</label>
-                <input type="number" id="editParkingTotalSpots" min="0" value="${totalSpots}" placeholder="10">
+                <input
+                    type="text"
+                    id="editParkingStreet"
+                    value="${safeVal(street)}"
+                    placeholder="ул. Ленина"
+                >
 
-                <label for="editParkingDescription">Описание</label>
-                <textarea id="editParkingDescription" placeholder="Описание">${safeVal(data.description || '')}</textarea>
+                <label for="editHouseNumber">
+                    Номер дома
+                </label>
 
+                <input
+                    type="text"
+                    id="editHouseNumber"
+                    value="${safeVal(house)}"
+                    placeholder="15"
+                >
+
+                <!-- Общая вместимость -->
+                <div class="edit-parking-capacity">
+
+                    <h4 class="edit-parking-capacity-title">
+                        Вместимость парковки
+                    </h4>
+
+                    <p class="edit-parking-capacity-description">
+                        Укажи общее количество парковочных мест.
+                    </p>
+
+                    <label for="editParkingTotalSpots">
+                        Всего парковочных мест
+                    </label>
+
+                    <input
+                        type="number"
+                        id="editParkingTotalSpots"
+                        name="totalSpots"
+                        min="0"
+                        step="1"
+                        inputmode="numeric"
+                        value="${totalSpots}"
+                        placeholder="Например, 120"
+                    >
+
+                    <small class="edit-parking-capacity-hint">
+                        Общее количество мест, включая занятые.
+                    </small>
+
+                </div>
+
+                <label for="editParkingDescription">
+                    Описание
+                </label>
+
+                <textarea
+                    id="editParkingDescription"
+                    placeholder="Описание парковки"
+                >${safeVal(data.description || '')}</textarea>
+
+                <!-- Кнопки формы -->
                 <div class="edit-parking-form-actions">
-                    <button type="button" class="btn-primary" onclick="saveParkingDetails()">Сохранить</button>
-                    <button type="button" class="btn-secondary" onclick="window.toggleParkingEditor()">Отмена</button>
+
+                    <button
+                        type="button"
+                        class="btn-primary"
+                        onclick="saveParkingDetails()"
+                    >
+                        Сохранить изменения
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="window.toggleParkingEditor()"
+                    >
+                        Отмена
+                    </button>
+
                 </div>
             </div>
 
+            <!-- История изменений -->
             <div id="parkingHistoryPreview"></div>
-            <div id="parkingHistoryAll" style="display: none;"></div>
 
-            <button type="button" class="parking-secondary-btn" onclick="window.showAllHistory()">
+            <div
+                id="parkingHistoryAll"
+                style="display: none;"
+            ></div>
+
+            <button
+                type="button"
+                class="parking-secondary-btn"
+                onclick="window.showAllHistory()"
+            >
                 Показать историю
             </button>
+
         </div>
     `;
+    // Открытие и закрытие формы редактирования
     window.toggleParkingEditor = function () {
         const form = document.getElementById('parkingEditorForm');
-        if (!form) return;
-        form.style.display = getComputedStyle(form).display === 'none' ? 'block' : 'none';
+        if (!form) {
+            return;
+        }
+        const isHidden = getComputedStyle(form).display === 'none';
+        form.style.display = isHidden ? 'block' : 'none';
     };
+    // Показ истории изменений
     window.showAllHistory = function () {
         const historyAll = document.getElementById('parkingHistoryAll');
-        if (!historyAll) return;
+        if (!historyAll) {
+            return;
+        }
         historyAll.style.display = 'block';
-        if (typeof loadHistoryPreview === 'function' && currentParkingId) {
+        if (
+            typeof loadHistoryPreview === 'function' &&
+            currentParkingId
+        ) {
             loadHistoryPreview(currentParkingId);
         }
     };
-    if (currentUser && currentParkingId && typeof loadHistoryPreview === 'function') {
+    // Загрузка истории
+    if (
+        currentUser &&
+        currentParkingId &&
+        typeof loadHistoryPreview === 'function'
+    ) {
         loadHistoryPreview(currentParkingId);
     }
 }
