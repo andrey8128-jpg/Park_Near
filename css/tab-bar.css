@@ -1,6 +1,6 @@
 .tabBar {
     position: fixed;
-    bottom: 0;
+    bottom: var(--tab-bar-bottom);
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
