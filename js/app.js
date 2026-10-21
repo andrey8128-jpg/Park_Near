@@ -3139,13 +3139,10 @@ function saveCityFromSettingsInline() {
             });
         });
     }
-   // Поиск
-    if (searchInput) {
+    // Поиск
     searchInput.addEventListener('input', function() {
         searchValue = this.value.trim();
-        if (clearSearch) {
-            clearSearch.hidden = !searchValue;
-        }
+        clearSearch.hidden = !searchValue;
         renderList();
     });
     // Очистка поиска
