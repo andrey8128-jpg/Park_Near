@@ -8,7 +8,6 @@
     padding: 4px 0 12px;
     color: var(--text-primary);
 }
-
 /* ===== ЗАГОЛОВОК (карточка с названием и адресом) ===== */
 .edit-parking-header {
     display: flex;
@@ -400,5 +399,81 @@
     .edit-counter-btn {
         width: 40px;
         height: 40px;
+    }
+}
+
+/* ==========================================
+   ОБЩАЯ ВМЕСТИМОСТЬ ПАРКОВКИ
+   ========================================== */
+
+.edit-parking-capacity {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+}
+
+.edit-parking-capacity-title {
+    margin: 0 0 6px;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.edit-parking-capacity-description {
+    margin: 0 0 14px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.edit-parking-capacity label {
+    display: block;
+    margin: 0 0 7px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.edit-parking-form .edit-parking-capacity input {
+    width: 100%;
+    min-height: 50px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-parking-form .edit-parking-capacity input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+
+.edit-parking-capacity-hint {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 420px) {
+    .edit-parking-capacity {
+        padding: 13px;
+        margin-top: 12px;
+    }
+
+    .edit-parking-form .edit-parking-capacity input {
+        min-height: 46px;
+        font-size: 16px;
     }
 }
