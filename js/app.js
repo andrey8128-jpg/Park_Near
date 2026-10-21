@@ -1455,13 +1455,27 @@ function editFromCenter() {
     openOccupancyPanel(parkingId);
 }
     // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
-   function openOccupancyPanel(parkingId) {
+function openOccupancyPanel(parkingId) {
     if (!parkingId) return;
+    const panel = document.getElementById('panel');
+    const content = document.getElementById('panelContent');
+    if (!panel || !content) {
+        console.error('❌ openOccupancyPanel: нет #panel или #panelContent');
+        return;
+    }
+    // ✅ Открываем панель (это и было пропущено!)
+    document.getElementById('panelTitle').textContent = 'Парковка';
+    panel.classList.add('active');
+    const donateBtn = document.getElementById('donateBtn');
+    if (donateBtn) donateBtn.style.display = 'none';
+    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
     getParkingRef(parkingId).once('value')
         .then(snapshot => {
             const data = snapshot.val();
-            if (!data) return;
-            // Счётчик просмотров — только для чужих парковок
+            if (!data) {
+                content.innerHTML = '<div class="empty-state"><p>Парковка не найдена</p></div>';
+                return;
+            }
             if (currentUser && currentUser.id !== data.authorId) {
                 getParkingRef(parkingId).child('views').transaction(v => (v || 0) + 1);
                 if (data.authorId) {
@@ -1471,154 +1485,110 @@ function editFromCenter() {
             currentParkingId = parkingId;
             currentParkingData = data;
             parkingDataCache[parkingId] = data;
-            if (currentUser) {
-                Promise.all([
-                    database.ref(`users/${currentUser.id}/car`).once('value'),
-                    database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value')
-                ]).then(([carSnap, favSnap]) => {
-                    currentUser.car = carSnap.val() || {};
-                    const isFavorite = favSnap.exists();
-                    renderEditPanel(data, isFavorite);
-                }).catch(err => {
-                    console.error('Ошибка загрузки данных профиля/избранного:', err);
-                    renderEditPanel(data, false);
+
+            const carPromise = currentUser
+                ? database.ref(`users/${currentUser.id}/car`).once('value')
+                : Promise.resolve(null);
+            const favPromise = currentUser
+                ? database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value')
+                : Promise.resolve(null);
+
+            Promise.all([carPromise, favPromise])
+                .then(([carSnap, favSnap]) => {
+                    if (carSnap && currentUser) currentUser.car = carSnap.val() || {};
+                    const isFavorite = favSnap ? favSnap.exists() : false;
+                    renderEditPanel(data, isFavorite, content);   // ✅ передаём контейнер
+                })
+                .catch(err => {
+                    console.error(err);
+                    renderEditPanel(data, false, content);
                 });
-            } else {
-                renderEditPanel(data, false);
-            }
         })
         .catch(err => {
             console.error('Ошибка загрузки парковки:', err);
-            showToast?.('Не удалось загрузить парковку', 2000);
+            content.innerHTML = '<div class="empty-state"><p>Не удалось загрузить парковку</p></div>';
         });
 }
-  function renderEditPanel(data, isFavorite) {
+  function renderEditPanel(data, isFavorite, content) {
+    if (!content) content = document.getElementById('panelContent');
+    if (!content) return;
     const totalSpots = Number(data.totalSpots) || 0;
     const isAuthor =
-    !!currentUser &&
-    currentUser.id != null &&
-    data.authorId != null &&
-    String(currentUser.id) === String(data.authorId);
-    const currentStreet = data.street || '';
-    const streetName = extractStreetName(currentStreet);
-    const editPanel = document.getElementById('editPanel');
-    if (!editPanel) return;
-    editPanel.innerHTML = `
+        !!currentUser &&
+        currentUser.id != null &&
+        data.authorId != null &&
+        String(currentUser.id) === String(data.authorId);
+    const safeVal = v => String(v ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const street = data.street || '';
+    const house = data.houseNumber || '';
+    content.innerHTML = `
         <div class="edit-parking">
             <div class="edit-parking-header">
                 <div class="edit-parking-title">
-                    <h3>${data.name || 'Парковка'}</h3>
-                    ${streetName ? `<p class="edit-parking-street">${streetName}</p>` : ''}
+                    <h3>${safeVal(data.name || 'Парковка')}</h3>
+                    ${street ? `<p class="edit-parking-street">${safeVal(street)}${house ? ', ' + safeVal(house) : ''}</p>` : ''}
                 </div>
             </div>
+
             <div class="edit-parking-actions">
                 ${isAuthor ? `
-                    <button
-                        type="button"
-                        class="btn-secondary"
-                        onclick="window.toggleParkingEditor()"
-                    >
+                    <button type="button" class="btn-secondary" onclick="window.toggleParkingEditor()">
                         ✏️ Редактировать данные
                     </button>
                 ` : ''}
-                <button
-                    type="button"
-                    class="btn-secondary"
-                    onclick="toggleFavorite('${currentParkingId}')"
-                >
+                <button type="button" class="btn-secondary" onclick="toggleFavorite('${escapeHtml(String(currentParkingId))}')">
                     ${isFavorite ? '★ Убрать из избранного' : '☆ В избранное'}
                 </button>
             </div>
+
             <div id="parkingEditorForm" class="edit-parking-form" style="display: none;">
                 <h4>Редактирование парковки</h4>
+
                 <label for="editParkingName">Название парковки</label>
-                <input
-                    type="text"
-                    id="editParkingName"
-                    value="${(data.name || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
-                    placeholder="Название парковки"
-                >
-                <label for="editParkingStreet">Адрес</label>
-                <input
-                    type="text"
-                    id="editParkingStreet"
-                    value="${(data.street || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
-                    placeholder="Адрес парковки"
-                >
-                <label for="editParkingTotalSpots">Всего парковочных мест</label>
-                <input
-                    type="number"
-                    id="editParkingTotalSpots"
-                    min="0"
-                    value="${totalSpots}"
-                    placeholder="Количество мест"
-                >
+                <input type="text" id="editParkingName" value="${safeVal(data.name || '')}" placeholder="Название">
+
+                <label for="editParkingStreet">Улица</label>
+                <input type="text" id="editParkingStreet" value="${safeVal(street)}" placeholder="ул. Ленина">
+
+                <label for="editHouseNumber">Номер дома</label>
+                <input type="text" id="editHouseNumber" value="${safeVal(house)}" placeholder="15">
+
+                <label for="editParkingTotalSpots">Количество мест</label>
+                <input type="number" id="editParkingTotalSpots" min="0" value="${totalSpots}" placeholder="10">
+
                 <label for="editParkingDescription">Описание</label>
-                <textarea
-                    id="editParkingDescription"
-                    placeholder="Описание парковки"
-                >${(data.description || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                <textarea id="editParkingDescription" placeholder="Описание">${safeVal(data.description || '')}</textarea>
+
                 <div class="edit-parking-form-actions">
-                    <button
-                        type="button"
-                        class="btn-primary"
-                        onclick="saveParkingDetails()"
-                    >
-                        Сохранить
-                    </button>
-                    <button
-                        type="button"
-                        class="btn-secondary"
-                        onclick="window.toggleParkingEditor()"
-                    >
-                        Отмена
-                    </button>
+                    <button type="button" class="btn-primary" onclick="saveParkingDetails()">Сохранить</button>
+                    <button type="button" class="btn-secondary" onclick="window.toggleParkingEditor()">Отмена</button>
                 </div>
             </div>
+
             <div id="parkingHistoryPreview"></div>
             <div id="parkingHistoryAll" style="display: none;"></div>
-            <button
-                type="button"
-                class="parking-secondary-btn"
-                onclick="showAllHistory()"
-            >
+
+            <button type="button" class="parking-secondary-btn" onclick="window.showAllHistory()">
                 Показать историю
             </button>
         </div>
     `;
     window.toggleParkingEditor = function () {
-    const form = document.getElementById('parkingEditorForm');
-    if (!form) {
-        console.error(
-            'Форма parkingEditorForm не найдена. Сначала откройте карточку парковки.'
-        );
-        return;
-    }
-    const isHidden = getComputedStyle(form).display === 'none';
-    form.style.display = isHidden ? 'block' : 'none';
-};
-    // Загрузка истории парковки
-    if (currentUser && currentParkingId) {
-        if (typeof loadHistoryPreview === 'function') {
-            loadHistoryPreview(currentParkingId);
-        }
-    }
-    // Показать всю историю
+        const form = document.getElementById('parkingEditorForm');
+        if (!form) return;
+        form.style.display = getComputedStyle(form).display === 'none' ? 'block' : 'none';
+    };
     window.showAllHistory = function () {
         const historyAll = document.getElementById('parkingHistoryAll');
         if (!historyAll) return;
         historyAll.style.display = 'block';
-        if (typeof loadFullParkingHistory === 'function' && currentParkingId) {
-            loadFullParkingHistory(currentParkingId);
+        if (typeof loadHistoryPreview === 'function' && currentParkingId) {
+            loadHistoryPreview(currentParkingId);
         }
     };
-    // Скрыть всю историю
-    window.hideAllHistory = function () {
-        const historyAll = document.getElementById('parkingHistoryAll');
-        if (historyAll) {
-            historyAll.style.display = 'none';
-        }
-    };
+    if (currentUser && currentParkingId && typeof loadHistoryPreview === 'function') {
+        loadHistoryPreview(currentParkingId);
+    }
 }
 function loadHistoryPreview(parkingId) {
     const container = document.getElementById('historyList');
@@ -1626,86 +1596,51 @@ function loadHistoryPreview(parkingId) {
     const countEl = document.getElementById('historyCount');
     const showAllBtn = document.getElementById('showAllHistoryBtn');
     const hideAllBtn = document.getElementById('hideAllHistoryBtn');
+    const previewBox = document.getElementById('parkingHistoryPreview');
 
-    if (!container || !currentParkingId) return;
+    if (!previewBox || !currentParkingId) return;
 
-    database.ref(`parkings/${parkingId}/history`)
+    // ✅ Сначала создаём контейнеры истории внутри #parkingHistoryPreview
+    if (!container) {
+        previewBox.innerHTML = `
+            <div id="historyList"></div>
+            <div id="historyFullList" style="display:none;"></div>
+        `;
+    }
+
+    getParkingRef(parkingId).child('history')
         .orderByChild('timestamp')
         .limitToLast(100)
         .once('value')
         .then(snapshot => {
             const history = snapshot.val();
+            const list = document.getElementById('historyList');
+            if (!list) return;
+
             if (!history) {
-                container.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">История пуста</div>';
-                if (countEl) countEl.textContent = '';
+                list.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">История пуста</div>';
                 return;
             }
 
             const entries = Object.entries(history)
-                .map(([key, val]) => ({ key, ...val }))
+                .map(([k, v]) => ({ key: k, ...v }))
                 .sort((a, b) => b.timestamp - a.timestamp);
 
-            if (countEl) countEl.textContent = `(${entries.length})`;
-
-            // Функция рендеринга одной записи (без чисел и госномера)
-            const renderEntry = (entry) => {
-                const date = new Date(entry.timestamp);
-                const timeStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                const action = entry.action === 'occupied' ? 'Занял' : 'Освободил';
-                const actionColor = entry.action === 'occupied' ? 'var(--history-occupied)' : 'var(--history-freed)';
-                const username = entry.username || 'Неизвестный';
-                const car = entry.car || {};
-                let carStr = '';
-                if (car.brand || car.model) {
-                    carStr = `${car.brand} ${car.model}`;
-                } else {
-                    carStr = 'без авто';
-                }
-                return `
-                    <div style="padding:8px 12px; background:var(--bg-primary); border-radius:8px; margin-bottom:4px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
-                        <div><span style="font-weight:500; color:${actionColor};">${action}</span></div>
-                        <div style="color:var(--text-secondary); font-size:12px;">${escapeHtml(username)} • ${escapeHtml(carStr)}</div>
-                        <div style="color:var(--text-secondary); font-size:11px;">${timeStr}</div>
-                    </div>
-                `;
+            const renderEntry = (e) => {
+                const date = new Date(e.timestamp);
+                const timeStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                const action = e.action === 'occupied' ? 'Занял' : (e.action === 'freed' ? 'Освободил' : 'Создал');
+                const color = e.action === 'occupied' ? 'var(--history-occupied)' : 'var(--history-freed)';
+                return `<div style="padding:6px 10px; background:var(--bg-primary); border-radius:8px; margin-bottom:4px; font-size:12px; display:flex; justify-content:space-between; gap:6px;">
+                    <span style="color:${color}; font-weight:600;">${action}</span>
+                    <span style="color:var(--text-secondary);">${escapeHtml(e.username || '')}</span>
+                    <span style="color:var(--text-secondary); font-size:11px;">${timeStr}</span>
+                </div>`;
             };
 
-            // Показываем первые 3 в основном контейнере
-            const showCount = 3;
-            const previewEntries = entries.slice(0, showCount);
-            const remainingEntries = entries.slice(showCount);
-
-            container.innerHTML = previewEntries.map(renderEntry).join('');
-
-            if (remainingEntries.length > 0) {
-                showAllBtn.style.display = 'inline-block';
-                fullContainer.innerHTML = remainingEntries.map(renderEntry).join('');
-                fullContainer.style.display = 'none';
-                hideAllBtn.style.display = 'none';
-            } else {
-                showAllBtn.style.display = 'none';
-                fullContainer.style.display = 'none';
-                hideAllBtn.style.display = 'none';
-            }
-
-            // Обработчики кнопок
-            showAllBtn.onclick = function() {
-                container.style.display = 'none';
-                fullContainer.style.display = 'block';
-                showAllBtn.style.display = 'none';
-                hideAllBtn.style.display = 'inline-block';
-            };
-            hideAllBtn.onclick = function() {
-                fullContainer.style.display = 'none';
-                container.style.display = 'block';
-                showAllBtn.style.display = 'inline-block';
-                hideAllBtn.style.display = 'none';
-            };
+            list.innerHTML = entries.slice(0, 5).map(renderEntry).join('');
         })
-        .catch(err => {
-            console.error('Ошибка загрузки истории:', err);
-            container.innerHTML = '<div style="color:var(--red);">Ошибка загрузки</div>';
-        });
+        .catch(err => console.error('История:', err));
 }
     function loadHistory(parkingId, limit = 10, days = 3) {
         const container = document.getElementById('historyList');
@@ -1780,61 +1715,61 @@ function loadHistoryPreview(parkingId) {
         });
     }
  function saveParkingDetails() {
-    if (!currentUser) {
-        alert('Необходимо авторизоваться');
-        return;
-    }
+    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
     if (!currentParkingId || !currentParkingData) return;
-    const streetType = document.getElementById('editStreetType')?.value || '';
-    const streetName = document.getElementById('editStreetName')?.value.trim() || '';
-    const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
-    const parkingName = document.getElementById('editParkingName')?.value.trim() || '';
-    const totalSpots = parseInt(document.getElementById('editTotalSpots')?.value, 10) || 0;
-    const street = streetType && streetName
-        ? `${streetType} ${streetName}`
-        : (streetName || currentParkingData.street || '');
 
-    if (!street && !houseNumber) {
-        alert('Введите улицу или номер дома');
+    // ✅ Читаем ID, которые реально есть в форме
+    const parkingName = document.getElementById('editParkingName')?.value.trim() || '';
+    const street = document.getElementById('editParkingStreet')?.value.trim() || '';
+    const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
+    const totalSpots = parseInt(document.getElementById('editParkingTotalSpots')?.value, 10) || 0;
+    const description = document.getElementById('editParkingDescription')?.value.trim() || '';
+
+    if (!parkingName) { alert('Введите название парковки'); return; }
+    if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
+    if (totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
+    if (totalSpots > 500) { alert('Количество мест не может быть больше 500'); return; }
+
+    if (currentParkingData.authorId && currentParkingData.authorId !== currentUser.id) {
+        alert('Можно редактировать только свои парковки');
         return;
     }
-    if (!parkingName) {
-        alert('Введите название парковки');
-        return;
-    }
-    if (totalSpots < 1) {
-        alert('Количество мест должно быть больше 0');
-        return;
-    }
-    if (totalSpots > 500) {
-        alert('Количество мест не может быть больше 500');
-        return;
-    }
+
+    const newAddress = [street, houseNumber].filter(Boolean).join(', ');
     const updates = {
         name: parkingName,
         street: street,
         houseNumber: houseNumber,
-        totalSpots: totalSpots
+        totalSpots: totalSpots,
+        description: description,
+        address: newAddress
     };
+
     getParkingRef(currentParkingId).update(updates)
-        .then(function () {
-            if (currentUser.id === currentParkingData.authorId) {
+        .then(() => {
+            if (currentParkingData.authorId === currentUser.id) {
                 database.ref(`users/${currentUser.id}/stats/parkingsUpdated`)
-                    .transaction(function (c) { return (c || 0) + 1; });
+                    .transaction(c => (c || 0) + 1)
+                    .catch(err => console.warn(err));
             }
+
             currentParkingData = Object.assign({}, currentParkingData, updates);
             parkingDataCache[currentParkingId] = currentParkingData;
-            refreshParkingMarker();
+
+            try { refreshParkingMarker(); } catch (e) { console.warn(e); }
             if (clusterer) clusterer.reload();
+
             closePanel();
             showMap();
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+            showToast('✅ Парковка обновлена', 2000);
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
             }
         })
-        .catch(function (err) {
+        .catch(err => {
             console.error('Ошибка сохранения:', err);
-            alert('Ошибка: ' + (err.message || 'неизвестная ошибка'));
+            alert('Ошибка: ' + (err.message || 'неизвестная'));
         });
 }
     function updateOccupancyDisplay(newOccupied) {
