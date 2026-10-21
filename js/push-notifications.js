@@ -31,7 +31,12 @@ async function requestNotificationPermission() {
 // Получение токена FCM
 async function getFCMToken() {
   try {
+    const swScope = new URL('.', window.location.href).pathname;
     const registration = await navigator.serviceWorker.ready;
+if (!registration.active ||
+    !registration.scope.endsWith(swScope)) {
+    throw new Error('Service Worker не готов для текущего приложения');
+}
     // Используем firebase.messaging для получения токена
     // Загружаем Firebase Messaging (если ещё не загружена)
     const messaging = firebase.messaging();
@@ -82,13 +87,14 @@ async function initPushNotifications() {
 
   // Регистрируем Service Worker
 try {
-    const registration = await navigator.serviceWorker.register(
-        '/Park_Near/sw.js',
-        {
-            scope: '/Park_Near/'
-        }
-    );
-    await registration.update();
+    const swScope = new URL('.', window.location.href).pathname;
+
+const registration = await navigator.serviceWorker.register(
+    `${swScope}sw.js`,
+    { scope: swScope }
+);
+
+await registration.update();
 
     console.log('Service Worker зарегистрирован:', registration.scope);
 } catch (err) {
