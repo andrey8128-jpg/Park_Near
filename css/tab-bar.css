@@ -1,6 +1,6 @@
 .tabBar {
     position: fixed;
-    bottom: var(--tab-bar-bottom); /* убрал safe-area-inset, чтобы не создавал лишний отступ */
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
