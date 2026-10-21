@@ -1,7 +1,7 @@
 /* ===== ПЛАШКА АКТИВНОЙ СТОЯНКИ ===== */
 .active-parking-banner {
     position: relative;
-    width: calc(100% - 40px);
+    width: calc(100% - 35px);
     box-sizing: border-box;
     z-index: 20;
     display: flex;
