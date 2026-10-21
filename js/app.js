@@ -1097,22 +1097,21 @@ async function openCenterSheet(parkingId,data){
                 <span>🧭</span>
                 <span>Поехать</span>
             </button>
-            <div class="parking-secondary-actions">
-                <button
-                    class="parking-secondary-btn parking-favorite-btn"
-                    onclick="toggleFavoriteCenter()"
-                >
-                    <span>♡</span>
-                    <span>Сохранить</span>
-                </button>
-            </div>
-            <button
-                class="parking-edit-btn"
-                onclick="editFromCenter()"
-            >
-                ✎ Редактировать
-            </button>
-
+            
+           <div class="parking-bottom-actions">
+    <button
+        class="parking-secondary-btn parking-favorite-btn"
+        onclick="toggleFavoriteCenter()"
+    >
+        <span>♡</span>
+        <span>Сохранить</span>
+    </button>
+    <button
+        class="parking-edit-btn"
+        onclick="editFromCenter()"
+    >
+        ✎ Редактировать
+          </button>
         </div>
     `;
     sheet.classList.add('active');
