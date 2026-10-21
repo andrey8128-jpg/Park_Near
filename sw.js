@@ -1,5 +1,5 @@
 // sw.js
-const BASE_PATH = '/Park_Near/';
+const BASE_PATH = new URL('.', self.location.href).pathname;
 const DEFAULT_ICON = `${BASE_PATH}assets/images/logo.png`;
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -27,8 +27,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body || 'Обновление парковки',
-    icon: data.icon || '/assets/images/logo.png',
-    badge: data.badge || '/assets/images/logo.png',
+    icon: data.icon || DEFAULT_ICON,
+    badge: data.badge || DEFAULT_ICON,
     data: data.data || {}, // может содержать parkingId для перехода
     actions: data.actions || [
       { action: 'open', title: 'Открыть' }
