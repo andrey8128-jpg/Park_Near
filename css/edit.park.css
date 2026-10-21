@@ -1,172 +1,402 @@
-/* ===== РЕДАКТИРОВАНИЕ ПАРКОВКИ ===== */
+/* ==========================================================
+   РЕДАКТОР ПАРКОВКИ — в единой стилистике ParkNear
+   ========================================================== */
 .edit-parking {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     padding: 4px 0 12px;
+    color: var(--text-primary);
 }
+
+/* ===== ЗАГОЛОВОК (карточка с названием и адресом) ===== */
 .edit-parking-header {
-    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
 }
+
 .edit-parking-title {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
     font-size: 19px;
     font-weight: 700;
     color: var(--text-primary);
 }
-.edit-parking-address {
-    margin-top: 4px;
-    font-size: 13px;
-    color: var(--text-secondary);
+
+.edit-parking-title h3 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.edit-parking-street {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.edit-parking-street::before {
+    content: '📍';
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+/* ===== КНОПКИ ДЕЙСТВИЙ ===== */
+.edit-parking-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.edit-parking-actions .btn-secondary {
+    margin: 0;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    box-shadow: var(--card-shadow);
+    transition: transform 0.15s, background 0.15s;
+}
+
+.edit-parking-actions .btn-secondary:active {
+    background: var(--bg-primary);
+    transform: scale(0.98);
+}
+
+/* ===== ФОРМА РЕДАКТИРОВАНИЯ ===== */
+.edit-parking-form {
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    animation: editFormIn 0.2s ease;
+}
+
+@keyframes editFormIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.edit-parking-form h4 {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.edit-parking-form label {
+    display: block;
+    margin: 12px 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.edit-parking-form label:first-of-type {
+    margin-top: 0;
+}
+
+.edit-parking-form input,
+.edit-parking-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.edit-parking-form textarea {
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.4;
+}
+
+.edit-parking-form input:focus,
+.edit-parking-form textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+}
+
+/* ===== КНОПКИ ФОРМЫ ===== */
+.edit-parking-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.edit-parking-form-actions .btn-primary,
+.edit-parking-form-actions .btn-secondary {
+    width: 100%;
+    margin: 0;
+    padding: 14px;
+    font-size: 15px;
+}
+
+/* ===== ИСТОРИЯ ИЗМЕНЕНИЙ ===== */
+#parkingHistoryPreview {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+}
+
+#parkingHistoryPreview:empty {
+    display: none;
+}
+
+#historyList,
+#historyFullList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+#parkingHistoryAll {
+    margin-top: 4px;
+}
+
+/* ===== КНОПКА «ПОКАЗАТЬ ИСТОРИЮ» ===== */
+.edit-parking .parking-secondary-btn {
+    width: 100%;
+    margin: 0;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    box-shadow: var(--card-shadow);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.edit-parking .parking-secondary-btn:active {
+    background: var(--bg-primary);
+    transform: scale(0.98);
+}
+
+/* ===== СТАРЫЕ КЛАССЫ (оставлены для совместимости) ===== */
 .edit-parking-stats {
     display: grid;
-    grid-template-columns: repeat(3,1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     margin-bottom: 12px;
 }
+
 .edit-stat {
-    padding: 9px 5px;
-    border-radius: 12px;
-    background: var(--bg-primary);
+    padding: 10px 6px;
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
     text-align: center;
+    box-shadow: var(--card-shadow);
 }
+
 .edit-stat strong {
     display: block;
     font-size: 18px;
     line-height: 1.1;
     color: var(--text-primary);
 }
+
 .edit-stat span {
     display: block;
     margin-top: 3px;
     font-size: 10px;
     color: var(--text-secondary);
 }
+
 .edit-section {
-    padding: 11px 12px;
+    padding: 12px 14px;
     margin-bottom: 9px;
-    border-radius: 14px;
-    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
 }
+
 .edit-section-title {
-    margin-bottom: 9px;
+    margin-bottom: 10px;
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
+
 .edit-counter {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 16px;
 }
+
 .edit-counter-btn {
     width: 42px;
     height: 42px;
-    border: 0;
-    border-radius: 13px;
-    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
     color: var(--text-primary);
-    font-size: 25px;
+    font-size: 24px;
+    font-weight: 600;
     cursor: pointer;
+    transition: transform 0.15s;
 }
+
 .edit-counter-btn:active {
-    transform: scale(.94);
+    transform: scale(0.94);
 }
+
 .edit-counter-value {
     min-width: 48px;
     text-align: center;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--text-primary);
 }
+
 .edit-history-btn {
     border: 0;
-    padding: 5px 0;
+    padding: 6px 0;
     background: none;
     color: var(--accent);
     font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
 }
-#historyList,
-#historyFullList {
-    max-height: 150px;
-    overflow-y: auto;
-}
-.edit-actions {
-    display: grid;
-    gap: 8px;
-    margin-top: 10px;
-}
-.edit-actions .btn-primary,
-.edit-actions .btn-secondary,
-.edit-actions .btn-danger {
-    width: 100%;
-    margin: 0;
-}
+
 .edit-form {
     margin-top: 10px;
-    padding: 14px;
+    padding: 16px;
     border: 1px solid var(--card-border);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     background: var(--bg-secondary);
+    box-shadow: var(--card-shadow);
 }
+
 .edit-form-title {
     margin-bottom: 12px;
     font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
 }
+
 .edit-form label {
     display: block;
     margin: 9px 0 5px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-secondary);
 }
+
 .edit-form .input-field {
     width: 100%;
     margin: 0;
 }
+
 .edit-form .btn-primary {
     width: 100%;
     margin-top: 12px;
 }
+
 .edit-form .btn-secondary {
     width: 100%;
     margin-top: 7px;
 }
+
 .edit-no-access {
     margin-top: 12px;
-    padding: 10px;
-    border-radius: 12px;
-    background: var(--bg-primary);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
     text-align: center;
     font-size: 12px;
     color: var(--text-secondary);
 }
-@media (max-width:420px) {
-    .edit-parking-title {
-        font-size: 18px;
+
+/* ===== АДАПТАЦИЯ ДЛЯ УЗКИХ ЭКРАНОВ ===== */
+@media (max-width: 420px) {
+    .edit-parking-header {
+        padding: 14px;
     }
+
+    .edit-parking-title h3 {
+        font-size: 17px;
+    }
+
+    .edit-parking-form {
+        padding: 14px;
+    }
+
+    .edit-parking-form input,
+    .edit-parking-form textarea {
+        padding: 11px 12px;
+        font-size: 14px;
+    }
+
     .edit-parking-stats {
         gap: 5px;
     }
+
     .edit-stat {
         padding: 8px 4px;
     }
+
     .edit-stat strong {
         font-size: 16px;
     }
+
     .edit-stat span {
         font-size: 9px;
     }
+
     .edit-section {
         padding: 10px;
     }
+
     .edit-counter-btn {
         width: 40px;
         height: 40px;
