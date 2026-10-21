@@ -1494,7 +1494,11 @@ function editFromCenter() {
 }
   function renderEditPanel(data, isFavorite) {
     const totalSpots = Number(data.totalSpots) || 0;
-    const isAuthor = currentUser && currentUser.id === data.authorId;
+    const isAuthor =
+    !!currentUser &&
+    currentUser.id != null &&
+    data.authorId != null &&
+    String(currentUser.id) === String(data.authorId);
     const currentStreet = data.street || '';
     const streetName = extractStreetName(currentStreet);
     const editPanel = document.getElementById('editPanel');
@@ -1585,13 +1589,13 @@ function editFromCenter() {
     window.toggleParkingEditor = function () {
     const form = document.getElementById('parkingEditorForm');
     if (!form) {
-        console.error('Форма parkingEditorForm не найдена');
+        console.error(
+            'Форма parkingEditorForm не найдена. Сначала откройте карточку парковки.'
+        );
         return;
     }
-    form.style.display =
-        getComputedStyle(form).display === 'none'
-            ? 'block'
-            : 'none';
+    const isHidden = getComputedStyle(form).display === 'none';
+    form.style.display = isHidden ? 'block' : 'none';
 };
     // Загрузка истории парковки
     if (currentUser && currentParkingId) {
