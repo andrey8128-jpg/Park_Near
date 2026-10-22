@@ -2315,3 +2315,118 @@ body.dark-theme #donateBtn {
     background: var(--btn-primary-bg, #12464c);
     color: #ffffff;
 }
+
+/* ===== ВСПЛЫВАЮЩЕЕ ОКНО ДОНАТА ===== */
+.donate-popup {
+    position: fixed;
+    /* Окно раскрывается в сторону центра карты */
+    right: 76px;
+    bottom: calc(
+        var(--tab-bar-height) +
+        var(--tab-bar-bottom) +
+        var(--button-offset-from-tab) +
+        var(--button-gap) +
+        58px
+    );
+    width: min(300px, calc(100vw - 100px));
+    box-sizing: border-box;
+    padding: 22px 18px 18px;
+    color: #202b2c;
+    background: #ffffff;
+    border: 1px solid rgba(43, 117, 116, 0.16);
+    border-radius: 18px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+    z-index: 1100;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    transform-origin: right center;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+.donate-popup[hidden] {
+    display: none !important;
+}
+.donate-popup-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    margin-bottom: 12px;
+    color: #ffffff;
+    background: #2b7574;
+    border-radius: 14px;
+    font-size: 24px;
+}
+.donate-popup h3 {
+    margin: 0 24px 10px 0;
+    font-size: 18px;
+    line-height: 1.3;
+    font-weight: 700;
+}
+.donate-popup p {
+    margin: 0 0 17px;
+    color: #596667;
+    font-size: 14px;
+    line-height: 1.55;
+}
+.donate-popup-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #667273;
+    font-size: 25px;
+    line-height: 1;
+    cursor: pointer;
+}
+.donate-popup-close:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+.donate-popup-help {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #2b7574;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease;
+}
+.donate-popup-help:hover {
+    background: #205e5d;
+}
+.donate-popup-help:active {
+    transform: scale(0.98);
+}
+/* Тёмная тема */
+body.dark-theme .donate-popup {
+    color: #edf4f4;
+    background: #202b2c;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+}
+body.dark-theme .donate-popup p {
+    color: #bdcaca;
+}
+body.dark-theme .donate-popup-close {
+    color: #d0dddd;
+}
+body.dark-theme .donate-popup-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
