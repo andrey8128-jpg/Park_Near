@@ -24,18 +24,25 @@ function initMap() {
         });
         console.log('✅ Карта инициализирована');
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
-        map.events.add('zoomchange', function() {
-            var currentZoom = map.getZoom();
-            var showPolygons = (currentZoom >= 15);
-            Object.keys(mapMarkers).forEach(function(id) {
-                var placemark = mapMarkers[id];
-                if (!placemark) return;
-                var poly = placemark.properties.get('polygon');
-                if (poly) {
-                    poly.options.set('visible', showPolygons);
-                }
-            });
-        });
+map.events.add('zoomchange', function() {
+    if (!map) return;
+    const currentZoom = map.getZoom();
+    const showPolygons = currentZoom >= 15;
+    Object.keys(mapMarkers).forEach(function(id) {
+        const placemark = mapMarkers[id];
+        if (!placemark) return;
+        const polygon = placemark.properties.get('polygon');
+        if (!polygon) return;
+        // Активная парковка должна оставаться видимой,
+        // даже если масштаб карты изменился.
+        const isActive =
+            activePolygon === polygon;
+        polygon.options.set(
+            'visible',
+            isActive || showPolygons
+        );
+    });
+});
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
         clusterer = new ymaps.Clusterer({
             gridSize: 64,
@@ -47,7 +54,7 @@ function initMap() {
                         'width:44px;' +
                         'height:44px;' +
                         'border-radius:50% 50% 50% 0;' +
-                        'background:#2B7574;' +
+                        'background:{{ properties.clusterColor }};' +
                         'display:flex;' +
                         'align-items:center;' +
                         'justify-content:center;' +
@@ -130,6 +137,21 @@ function initMap() {
                     cluster.properties.set('totalSpots', totalSpots);
                     cluster.properties.set('freeSpots', freeSpots);
                     cluster.properties.set('parkingCount', parkingCount);
+                    
+const occupancy = totalSpots > 0
+    ? (totalSpots - freeSpots) / totalSpots
+    : null;
+let clusterColor = '#808080';
+if (occupancy !== null) {
+    if (occupancy >= 0.9) {
+        clusterColor = '#dc2626';
+    } else if (occupancy >= 0.6) {
+        clusterColor = '#f59e0b';
+    } else {
+        clusterColor = '#22a447';
+    }
+}
+cluster.properties.set('clusterColor', clusterColor);
                 });
             }
         );
@@ -461,11 +483,34 @@ function addMarkerToMap(id, data) {
     // ============================================
     // Клик по парковке
     // ============================================
-   placemark.events.add('click', function() {
-    // ===== ПРИБЛИЖАЕМ КАРТУ =====
-    if (map) {
-        map.setCenter([centerLat, centerLng], 18, { duration: 300, checkZoomRange: true });
+const polygon = placemark.properties.get('polygon');
+if (polygon && polygon.geometry) {
+    // Выделяем выбранную область.
+    if (activePolygon && activePolygon !== polygon) {
+        activePolygon.options.set('visible', false);
     }
+    activePolygon = polygon;
+    polygon.options.set({
+        visible: true,
+        zIndex: 1000
+    });
+    // Подбираем масштаб так, чтобы область поместилась.
+    const bounds = polygon.geometry.getBounds();
+    if (bounds) {
+        map.setBounds(bounds, {
+            checkZoomRange: true,
+            zoomMargin: [40, 40, 280, 40],
+            duration: 350
+        });
+    }
+} else {
+    map.setCenter(
+        [centerLat, centerLng],
+        18,
+        { duration: 350, checkZoomRange: true }
+    );
+}
+openCenterSheet(id, data);
     // Скрываем предыдущий полигон
     if (activePolygon) {
         activePolygon.options.set('visible', false);
