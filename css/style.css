@@ -2041,6 +2041,34 @@ body.dark-theme .theme-slider:before {
     justify-content: space-between;
     gap: 10px;
 }
+.parking-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    max-width: 140px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.parking-status-badge.free {
+    background: rgba(34, 164, 71, 0.14);
+    color: #16833a;
+}
+.parking-status-badge.limited {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b96c00;
+}
+.parking-status-badge.occupied {
+    background: rgba(220, 38, 38, 0.14);
+    color: #c62828;
+}
+.parking-status-badge.unknown {
+    background: rgba(128, 128, 128, 0.14);
+    color: var(--text-secondary);
+}
 .profile-section {
     margin-bottom: 10px;
     border-radius: 14px;
