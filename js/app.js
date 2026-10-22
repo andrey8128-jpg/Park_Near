@@ -4690,3 +4690,66 @@ function closeAuthScreen() {
         });
     })();
     console.log('✅ ParkNear загружен. Код исправлен.');
+// ===== ВСПЛЫВАЮЩЕЕ ОКНО ДОНАТА =====
+(function initDonatePopup() {
+    function setupDonatePopup() {
+        const donateBtn = document.getElementById('donateBtn');
+        const popup = document.getElementById('donatePopup');
+        const closeBtn = document.getElementById('donatePopupClose');
+
+        if (!donateBtn || !popup || !closeBtn) {
+            console.warn('Окно доната: не найдены необходимые элементы');
+            return;
+        }
+
+        function openDonatePopup() {
+            popup.hidden = false;
+            donateBtn.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeDonatePopup() {
+            popup.hidden = true;
+            donateBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        donateBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (popup.hidden) {
+                openDonatePopup();
+            } else {
+                closeDonatePopup();
+            }
+        });
+        closeBtn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            closeDonatePopup();
+        });
+        // Закрытие при нажатии за пределами окна
+        document.addEventListener('click', function(event) {
+            if (
+                !popup.hidden &&
+                !popup.contains(event.target) &&
+                !donateBtn.contains(event.target)
+            ) {
+                closeDonatePopup();
+            }
+        });
+        // Закрытие клавишей Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && !popup.hidden) {
+                closeDonatePopup();
+                donateBtn.focus();
+            }
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            setupDonatePopup
+        );
+    } else {
+        setupDonatePopup();
+    }
+})();
