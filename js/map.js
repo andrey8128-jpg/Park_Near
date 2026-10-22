@@ -480,50 +480,51 @@ function addMarkerToMap(id, data) {
                     color,
             }
         );
-    // ============================================
+        // ============================================
     // Клик по парковке
     // ============================================
-const polygon = placemark.properties.get('polygon');
-if (polygon && polygon.geometry) {
-    // Выделяем выбранную область.
-    if (activePolygon && activePolygon !== polygon) {
-        activePolygon.options.set('visible', false);
-    }
-    activePolygon = polygon;
-    polygon.options.set({
-        visible: true,
-        zIndex: 1000
+    placemark.events.add('click', function() {
+        const selectedPolygon =
+            placemark.properties.get('polygon');
+        // Скрываем предыдущую выделенную зону,
+        // если выбрана другая парковка.
+        if (
+            activePolygon &&
+            activePolygon !== selectedPolygon
+        ) {
+            activePolygon.options.set('visible', false);
+        }
+        if (selectedPolygon && selectedPolygon.geometry) {
+            activePolygon = selectedPolygon;
+            selectedPolygon.options.set({
+                visible: true,
+                zIndex: 1000
+            });
+            // Приближаем карту к границам парковки.
+            const bounds = selectedPolygon.geometry.getBounds();
+            if (bounds) {
+                map.setBounds(bounds, {
+                    checkZoomRange: true,
+                    zoomMargin: [40, 40, 280, 40],
+                    duration: 350
+                });
+            }
+        } else {
+            activePolygon = null;
+            map.setCenter(
+                [centerLat, centerLng],
+                18,
+                {
+                    duration: 350,
+                    checkZoomRange: true
+                }
+            );
+        }
+        openCenterSheet(id, data);
+        if (map.balloon) {
+            map.balloon.close();
+        }
     });
-    // Подбираем масштаб так, чтобы область поместилась.
-    const bounds = polygon.geometry.getBounds();
-    if (bounds) {
-        map.setBounds(bounds, {
-            checkZoomRange: true,
-            zoomMargin: [40, 40, 280, 40],
-            duration: 350
-        });
-    }
-} else {
-    map.setCenter(
-        [centerLat, centerLng],
-        18,
-        { duration: 350, checkZoomRange: true }
-    );
-}
-openCenterSheet(id, data);
-    // Скрываем предыдущий полигон
-    if (activePolygon) {
-        activePolygon.options.set('visible', false);
-        activePolygon = null;
-    }
-    const poly = placemark.properties.get('polygon');
-    if (poly) {
-        poly.options.set('visible', true);
-        activePolygon = poly;
-    }
-    openCenterSheet(id, data);
-    if (map.balloon) map.balloon.close();
-});
     // ============================================
     // Добавляем в кластер
     // ============================================
