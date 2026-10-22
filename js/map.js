@@ -48,37 +48,33 @@ map.events.add('zoomchange', function() {
             gridSize: 64,
             minClusterSize: 2,
             maxZoom: 17,
-            clusterIconLayout:
-                ymaps.templateLayoutFactory.createClass(
-                    '<div style="' +
-                        'width:44px;' +
-                        'height:44px;' +
-                        'border-radius:50% 50% 50% 0;' +
-                        'background:{{ properties.clusterColor }};' +
-                        'display:flex;' +
-                        'align-items:center;' +
-                        'justify-content:center;' +
-                        'transform:rotate(-45deg);' +
-                        'box-shadow:0 2px 8px rgba(0,0,0,0.3);' +
-                    '">' +
-                        '{{ content }}' +
-                    '</div>'
-                ),
-            clusterIconContentLayout:
-                ymaps.templateLayoutFactory.createClass(
-                    '<div style="' +
-                        'color:#fff;' +
-                        'font-weight:700;' +
-                        'font-size:15px;' +
-                        'line-height:44px;' +
-                        'width:44px;' +
-                        'height:44px;' +
-                        'text-align:center;' +
-                        'transform:rotate(45deg);' +
-                    '">' +
-                        '{{ properties.parkingCount || "0" }}' +
-                    '</div>'
-                ),
+          clusterIconLayout:
+             ymaps.templateLayoutFactory.createClass(
+           '<div style="' +
+            'width:44px;' +
+            'height:44px;' +
+            'box-sizing:border-box;' +
+            'border-radius:50%;' +
+            'background:$[properties.clusterColor];' +
+            'border:2px solid rgba(255,255,255,0.9);' +
+            'display:flex;' +
+            'align-items:center;' +
+            'justify-content:center;' +
+            'box-shadow:0 3px 10px rgba(0,0,0,0.3);' +
+        '">' +
+            '<div style="' +
+                'color:#fff;' +
+                'font-weight:700;' +
+                'font-size:15px;' +
+                'line-height:40px;' +
+                'text-align:center;' +
+                'width:100%;' +
+                'height:100%;' +
+            '">' +
+                '$[properties.parkingCount]' +
+            '</div>' +
+        '</div>'
+    ),
             clusterBalloonContentLayout:
                 ymaps.templateLayoutFactory.createClass(
                     '<div style="' +
@@ -116,45 +112,50 @@ map.events.add('zoomchange', function() {
                     '</div>'
                 )
         });
-        // ===== ОБРАБОТЧИК КЛАСТЕРИЗАЦИИ – суммируем места =====
-        clusterer.events.add(
-            'clusterize',
-            function(e) {
-                const clusters = e.get('clusters');
-                if (!clusters) return;
-                clusters.forEach(function(cluster) {
-                    const geoObjects = cluster.getGeoObjects();
-                    let totalSpots = 0;
-                    let freeSpots = 0;
-                    let parkingCount = 0;
-                    geoObjects.forEach(function(placemark) {
-                        const total = Number(placemark.properties.get('totalSpots')) || 0;
-                        const free = Number(placemark.properties.get('freeSpots')) || 0;
-                        totalSpots += total;
-                        freeSpots += free;
-                        parkingCount++;
-                    });
-                    cluster.properties.set('totalSpots', totalSpots);
-                    cluster.properties.set('freeSpots', freeSpots);
-                    cluster.properties.set('parkingCount', parkingCount);
-                    
-const occupancy = totalSpots > 0
-    ? (totalSpots - freeSpots) / totalSpots
-    : null;
-let clusterColor = '#808080';
-if (occupancy !== null) {
-    if (occupancy >= 0.9) {
-        clusterColor = '#dc2626';
-    } else if (occupancy >= 0.6) {
-        clusterColor = '#f59e0b';
-    } else {
-        clusterColor = '#22a447';
-    }
-}
-cluster.properties.set('clusterColor', clusterColor);
-                });
+       // ===== СУММАРНАЯ ЗАГРУЖЕННОСТЬ И ЦВЕТ КЛАСТЕРА =====
+clusterer.events.add('clusterize', function(e) {
+    const clusters = e.get('clusters');
+    if (!clusters) return;
+    clusters.forEach(function(cluster) {
+        const geoObjects = cluster.getGeoObjects();
+        let totalSpots = 0;
+        let freeSpots = 0;
+        let parkingCount = 0;
+        geoObjects.forEach(function(placemark) {
+            const total =
+                Math.max(
+                    0,
+                    Number(placemark.properties.get('totalSpots')) || 0
+                );
+            const free =
+                Math.max(
+                    0,
+                    Number(placemark.properties.get('freeSpots')) || 0
+                );
+            totalSpots += total;
+            // Свободных мест не может быть больше общего количества.
+            freeSpots += Math.min(free, total);
+            parkingCount++;
+        });
+        // Общие показатели всех парковок в кластере.
+        cluster.properties.set('totalSpots', totalSpots);
+        cluster.properties.set('freeSpots', freeSpots);
+        cluster.properties.set('parkingCount', parkingCount);
+        // Выбираем цвет по доле свободных мест.
+        let clusterColor = '#808080'; // Серый: нет данных о вместимости.
+        if (totalSpots > 0) {
+            const freePercent = (freeSpots / totalSpots) * 100;
+            if (freePercent >= 50) {
+                clusterColor = '#22A447'; // Зелёный
+            } else if (freePercent >= 20) {
+                clusterColor = '#F59E0B'; // Оранжевый
+            } else {
+                clusterColor = '#E53935'; // Красный
             }
-        );
+        }
+        cluster.properties.set('clusterColor', clusterColor);
+    });
+});
         // ===== ДОБАВЛЯЕМ КЛАСТЕРИЗАТОР НА КАРТУ =====
         map.geoObjects.add(clusterer);
         // ===== Обработчик клика на кластер (приближение) =====
