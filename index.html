@@ -88,14 +88,36 @@
 <!-- Плавающие кнопки -->
 <button id="geoBtn" type="button" title="Моё местоположение" aria-label="Моё местоположение">📍</button>
 <button id="addBtn" type="button" title="Добавить парковку" aria-label="Добавить парковку">+</button>
-<a
+<button
     id="donateBtn"
-    href="https://pay.cloudtips.ru/p/277023a7"
-    target="_blank"
-    rel="noopener noreferrer"
+    type="button"
     title="Поддержать Park Near"
     aria-label="Поддержать Park Near"
->♥</a>
+    aria-expanded="false"
+    aria-controls="donatePopup"
+>♥</button>
+<div id="donatePopup" class="donate-popup" hidden>
+    <button
+        type="button"
+        class="donate-popup-close"
+        id="donatePopupClose"
+        aria-label="Закрыть окно"
+    >×</button>
+    <div class="donate-popup-icon">♥</div>
+    <h3>Поддержите Park Near</h3>
+    <p>
+        Ваши пожертвования помогают развивать проект,
+        улучшать приложение и оплачивать его работу.
+        Даже небольшой вклад помогает сделать поиск
+        парковок удобнее для всех.
+    </p>
+    <a
+        class="donate-popup-help"
+        href="https://pay.cloudtips.ru/p/277023a7"
+        target="_blank"
+        rel="noopener noreferrer"
+    >Помочь проекту</a>
+</div>
 <!-- Основная панель -->
 <div class="panel" id="panel">
     <div class="panel-header">
