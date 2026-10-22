@@ -2041,6 +2041,50 @@ body.dark-theme .theme-slider:before {
     justify-content: space-between;
     gap: 10px;
 }
+.parking-address-group {
+    margin-bottom: 10px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    background: var(--bg-secondary);
+}
+.parking-address-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 13px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+.parking-address-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.parking-address-title {
+    font-size: 14px;
+    font-weight: 600;
+}
+.parking-address-meta {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.parking-address-arrow {
+    flex-shrink: 0;
+    font-size: 20px;
+}
+.parking-address-group .parking-item {
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--card-border);
+    border-radius: 0;
+}
 .parking-status-badge {
     display: inline-flex;
     align-items: center;
