@@ -186,14 +186,27 @@ function getDistanceInMeters(lat1, lng1, lat2, lng2) {
     return R * c;
 }
 function renderParkingItem(parking, userCoords) {
-    const total = Number(parking.totalSpots) || 0;
-    const occupied = Number(parking.occupiedSpots) || 0;
-    const free = Math.max(0, total - occupied);
-    const ratio = total > 0 ? free / total : 1;
-    let badgeClass = '';
-    if (ratio <= 0.2 && total > 0) badgeClass = 'critical';
-    else if (ratio <= 0.5 && total > 0) badgeClass = 'low';
-    const badgeText = total > 0 ? free : '?';
+const total = Number(parking.totalSpots) || 0;
+const occupied = Number(parking.occupiedSpots) || 0;
+let status = 'unknown';
+if (total > 0) {
+    const ratio = occupied / total;
+    if (ratio >= 0.9) {
+        status = 'occupied';
+    } else if (ratio >= 0.6) {
+        status = 'limited';
+    } else {
+        status = 'free';
+    }
+}
+const statusLabels = {
+    free: 'Есть места',
+    limited: 'Мало мест',
+    occupied: 'Мест нет',
+    unknown: 'Нет данных'
+};
+const badgeClass = status;
+const badgeText = statusLabels[status];
     let distanceHtml = '';
     const lat = Number(parking.lat);
     const lng = Number(parking.lng);
@@ -212,7 +225,7 @@ function renderParkingItem(parking, userCoords) {
             <div class="info">
                 <div class="parking-item-header">
                     <div class="name">${safeName}</div>
-                    <span class="free-badge ${badgeClass}">${safeBadge}</span>
+                    <span class="parking-status-badge ${badgeClass}">${safeBadge}</span>
                 </div>
                 ${distanceHtml}
             </div>
