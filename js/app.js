@@ -2146,36 +2146,57 @@ function loadHistoryPreview(parkingId) {
         }).catch(err => { console.error(err);
             alert('Ошибка'); });
     }
-
-    function centerMapOnAddress(lat, lng) {
-        if (!lat || !lng) return;
-
-        closePanel();
-
-        map.setCenter([lat, lng], 17, { duration: 500 });
-
-        if (window._addressPreviewMarker) {
-            map.geoObjects.remove(window._addressPreviewMarker);
-        }
-
-        window._addressPreviewMarker = new ymaps.Placemark([lat, lng], {
-            hintContent: 'Ваш адрес',
-            balloonContent: 'Вы здесь сохранили адрес'
-        }, {
+async function centerMapOnAddress(lat, lng) {
+    if (!Number.isFinite(Number(lat)) ||
+        !Number.isFinite(Number(lng))) {
+        return;
+    }
+    lat = Number(lat);
+    lng = Number(lng);
+    closePanel();
+    if (!map || typeof ymaps === 'undefined') return;
+    map.setCenter([lat, lng], 17, { duration: 500 });
+    if (window._addressPreviewMarker) {
+        map.geoObjects.remove(window._addressPreviewMarker);
+        window._addressPreviewMarker = null;
+    }
+    const marker = new ymaps.Placemark(
+        [lat, lng],
+        {
+            hintContent: 'Дом',
+            balloonContent: 'Определяем адрес...'
+        },
+        {
             preset: 'islands#redHomeIcon',
             draggable: false
-        });
-
-        map.geoObjects.add(window._addressPreviewMarker);
-
-        setTimeout(() => {
-            if (window._addressPreviewMarker) {
-                map.geoObjects.remove(window._addressPreviewMarker);
-                window._addressPreviewMarker = null;
-            }
-        }, 8000);
-    }
-
+        }
+    );
+    window._addressPreviewMarker = marker;
+    map.geoObjects.add(marker);
+    marker.events.add('click', function() {
+        marker.balloon.open();
+    });
+    const addressData = await getAddressByCoordinates(lat, lng);
+    // Проверяем, что за время запроса не выбрали другой адрес.
+    if (window._addressPreviewMarker !== marker) return;
+    const street = String(addressData?.street || '').trim();
+    const house = String(addressData?.houseNumber || '').trim();
+    const address = [street, house].filter(Boolean).join(', ');
+    const safeAddress = escapeHtml(
+        address || addressData?.address || 'Адрес не определён'
+    );
+    marker.properties.set({
+        hintContent: safeAddress,
+        balloonContent: safeAddress
+    });
+    marker.balloon.open();
+    setTimeout(function() {
+        if (window._addressPreviewMarker === marker) {
+            map.geoObjects.remove(marker);
+            window._addressPreviewMarker = null;
+        }
+    }, 8000);
+}
   function openAddressPicker() {
     if (!currentUser) {
         alert('Необходимо войти');
@@ -2999,19 +3020,47 @@ if (document.readyState === 'loading') {
     resultsContainer.innerHTML = html;
     attachSwipeToContainers(resultsContainer);
 }
+
 function focusMap(lat, lng, parkingId) {
     closeCenterSheet();
     setTimeout(function() {
         if (!map) return;
-        map.setCenter([lat, lng], 18, { duration: 500 });
-        // Небольшая анимация маркера (опционально)
-        var marker = mapMarkers[parkingId];
+        const data = parkingDataCache[parkingId];
+        const marker = mapMarkers[parkingId];
         if (marker) {
-            // можно добавить подсветку
+            const polygon = marker.properties.get('polygon');
+            if (activePolygon && activePolygon !== polygon) {
+                activePolygon.options.set('visible', false);
+            }
+            if (polygon) {
+                activePolygon = polygon;
+                polygon.options.set({
+                    visible: true,
+                    zIndex: 1000
+                });
+                const bounds = polygon.geometry.getBounds();
+                if (bounds) {
+                    map.setBounds(bounds, {
+                        checkZoomRange: true,
+                        zoomMargin: [40, 40, 280, 40],
+                        duration: 350
+                    });
+                }
+            } else {
+                map.setCenter(
+                    [Number(lat), Number(lng)],
+                    18,
+                    { duration: 350, checkZoomRange: true }
+                );
+            }
+        } else {
+            map.setCenter(
+                [Number(lat), Number(lng)],
+                18,
+                { duration: 350, checkZoomRange: true }
+            );
         }
-        var data = parkingDataCache[parkingId];
         if (data) {
-            // Вместо openParkingSheet вызываем центральное окно
             openCenterSheet(parkingId, data);
         }
     }, 350);
