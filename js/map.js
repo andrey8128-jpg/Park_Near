@@ -48,31 +48,24 @@ map.events.add('zoomchange', function() {
             gridSize: 64,
             minClusterSize: 2,
             maxZoom: 17,
-          clusterIconLayout:
-             ymaps.templateLayoutFactory.createClass(
-           '<div style="' +
+         clusterIconLayout:
+    ymaps.templateLayoutFactory.createClass(
+        '<div style="' +
             'width:44px;' +
             'height:44px;' +
             'box-sizing:border-box;' +
             'border-radius:50%;' +
-            'background:$[properties.clusterColor];' +
+            'background-color:$[properties.clusterColor];' +
             'border:2px solid rgba(255,255,255,0.9);' +
             'display:flex;' +
             'align-items:center;' +
             'justify-content:center;' +
             'box-shadow:0 3px 10px rgba(0,0,0,0.3);' +
-        '">' +
-            '<div style="' +
-                'color:#fff;' +
-                'font-weight:700;' +
-                'font-size:15px;' +
-                'line-height:40px;' +
-                'text-align:center;' +
-                'width:100%;' +
-                'height:100%;' +
+            'color:#fff;' +
+            'font-weight:700;' +
+            'font-size:15px;' +
             '">' +
-                '$[properties.parkingCount]' +
-            '</div>' +
+            '$[properties.parkingCount]' +
         '</div>'
     ),
             clusterBalloonContentLayout:
