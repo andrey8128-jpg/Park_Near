@@ -4142,36 +4142,71 @@ function renderParkingList(container, parkings) {
 async function onTelegramAuth(authData) {
     try {
         let verifiedUser = null;
-        // СЦЕНАРИЙ А: Мы внутри Telegram Mini App (автоматический вход)
+        // СЦЕНАРИЙ А: вход внутри Telegram Mini App
         if (authData && authData.initData) {
             if (typeof window.verifyTelegramInitData !== 'function') {
-                throw new Error('Не подключена серверная проверка для Mini App.');
+                throw new Error(
+                    'Не подключена серверная проверка для Mini App.'
+                );
             }
-            verifiedUser = await window.verifyTelegramInitData(authData.initData);
-        } 
-        // СЦЕНАРИЙ Б: Мы в браузере/PWA и получили данные от Telegram Login Widget
+            verifiedUser = await window.verifyTelegramInitData(
+                authData.initData
+            );
+        }
+        // СЦЕНАРИЙ Б: вход через Telegram Login Widget
         else if (authData && authData.id) {
-            // В реальном проекте здесь нужно отправить authData на ваш сервер,
-            // чтобы он проверил подпись (hash) с помощью токена бота.
-            // Для теста мы доверяем этим данным напрямую.
+            // ВНИМАНИЕ:
+            // Для публичного приложения здесь необходима
+            // серверная проверка подписи Telegram.
             verifiedUser = authData;
         }
+        // Проверяем наличие пользователя
         if (!verifiedUser || !verifiedUser.id) {
-            throw new Error('Не удалось получить ID пользователя Telegram.');
+            throw new Error(
+                'Не удалось получить ID пользователя Telegram.'
+            );
         }
         // Формируем профиль
         const telegramId = String(verifiedUser.id);
+        const rawPhotoUrl =
+            verifiedUser.photo_url ||
+            verifiedUser.photoUrl ||
+            '';
+        // Проверяем ссылку на аватар
+        let photoUrl = '';
+        if (rawPhotoUrl) {
+            try {
+                const parsedUrl = new URL(rawPhotoUrl);
+                if (parsedUrl.protocol === 'https:') {
+                    photoUrl = parsedUrl.href;
+                } else {
+                    console.warn(
+                        'Ссылка на аватар должна использовать HTTPS.'
+                    );
+                }
+            } catch (error) {
+                console.warn(
+                    'Некорректная ссылка на аватар Telegram.'
+                );
+            }
+        }
         const profile = {
             id: 'tg_' + telegramId,
             username: verifiedUser.username || 'tg_user',
-            firstName: verifiedUser.first_name || verifiedUser.firstName || 'Пользователь',
-            photoUrl: verifiedUser.photo_url || verifiedUser.photoUrl || '',
+            firstName:
+                verifiedUser.first_name ||
+                verifiedUser.firstName ||
+                'Пользователь',
+            photoUrl: photoUrl,
             isGuest: false
         };
-        const userRef = database.ref('users/' + profile.id);
+        // Ссылка на профиль пользователя в Firebase
+        const userRef = database.ref(
+            'users/' + profile.id
+        );
         const now = Date.now();
         const today = new Date().toISOString().split('T')[0];
-        // Сохраняем в Firebase
+        // Сохраняем данные пользователя
         await userRef.update({
             id: profile.id,
             telegramId: telegramId,
@@ -4181,28 +4216,61 @@ async function onTelegramAuth(authData) {
             isGuest: false,
             lastActive: now
         });
-        // Создаём статистику, если её нет
+        // Создаём статистику, если её ещё нет
         await userRef.child('stats').transaction(stats => {
-            if (stats !== null) return stats;
+            if (stats !== null) {
+                return stats;
+            }
             return {
-                registeredAt: now, lastActive: now, parkingsCreated: 0,
-                parkingsUpdated: 0, confirmations: 0, views: 0, favorites: 0,
+                registeredAt: now,
+                lastActive: now,
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
                 activeDates: [today]
             };
         });
+        // Обновляем время последней активности
         await userRef.child('stats/lastActive').set(now);
-        // Авторизуем в приложении
+        // Авторизуем пользователя в приложении
         currentUser = profile;
         window.currentUser = profile;
-        localStorage.setItem('tgUser', JSON.stringify(profile));
-            if (typeof hideAuthScreen === 'function') hideAuthScreen();
-            if (typeof showPanel === 'function') showPanel('home');
-            showToast('✅ Вы успешно вошли через Telegram!', 3000);
-        console.log('Вход выполнен:', profile.id);
+        // Сохраняем профиль локально
+        localStorage.setItem(
+            'tgUser',
+            JSON.stringify(profile)
+        );
+        // Закрываем экран авторизации
+        if (typeof hideAuthScreen === 'function') {
+            hideAuthScreen();
+        }
+        // Открываем главный экран
+        if (typeof showPanel === 'function') {
+            showPanel('home');
+        }
+        // Показываем уведомление
+        if (typeof showToast === 'function') {
+            showToast(
+                '✅ Вы успешно вошли через Telegram!',
+                3000
+            );
+        }
+        console.log(
+            'Вход выполнен:',
+            profile.id
+        );
         return profile;
     } catch (error) {
-        console.error('Ошибка авторизации Telegram:', error);
-        alert('Не удалось выполнить вход: ' + error.message);
+        console.error(
+            'Ошибка авторизации Telegram:',
+            error
+        );
+        alert(
+            'Не удалось выполнить вход: ' +
+            (error.message || 'Неизвестная ошибка')
+        );
         throw error;
     }
 }
