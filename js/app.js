@@ -2019,7 +2019,6 @@ function loadHistoryPreview(parkingId) {
         description: description,
         address: newAddress
     };
-
     getParkingRef(currentParkingId).update(updates)
         .then(() => {
             if (currentParkingData.authorId === currentUser.id) {
@@ -2029,13 +2028,19 @@ function loadHistoryPreview(parkingId) {
             }
             currentParkingData = Object.assign({}, currentParkingData, updates);
             parkingDataCache[currentParkingId] = currentParkingData;
-
             // Обновляем маркер парковки после сохранения.
             try {
-              refreshParkingMarker(currentParkingId);
-        } catch (e) {
-            console.warn('Не удалось обновить маркер парковки:', e);
-  }
+                refreshParkingMarker(currentParkingId);
+            } catch (e) {
+                console.warn(
+                    'Не удалось обновить маркер парковки:',
+                    e
+                );
+            }
+            // Обновляем кластеры после изменения вместимости.
+            if (typeof refreshParkingClusters === 'function') {
+                refreshParkingClusters();
+            }
             closePanel();
             showMap();
             showToast('✅ Парковка обновлена', 2000);
