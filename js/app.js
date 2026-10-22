@@ -44,7 +44,7 @@
     // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
     let map = null;
     let currentCity = null; // или 'Москва' по умолчанию
-    let currentUser = null;
+    let  = null;
     let lastKnownLocation = null;
     let mapMarkers = {};
     let myLocationPlacemark = null;
@@ -63,7 +63,7 @@
     let editingParkingId = null;
     let editingPolygon = null;
     let mapCity = null;
-    let currentUserId = null;
+    let Id = null;
     let parkingDataCache = {};
     let highlightedParkings = {};
     let lastClickTime = 0;
