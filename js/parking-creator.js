@@ -48,14 +48,11 @@ function finishDrawing() {
     _parkingFormCoords = newParkingCoords;
     _parkingFormSizeCheck = sizeCheck;
     console.log('Сохранены координаты:', _parkingFormCoords);
+    
     const controls = document.getElementById('drawingControls');
     if (controls) {
-        controls.innerHTML = `
-            <button class="btn-finish" onclick="openParkingForm()">✅Готова</button>
-            <button class="btn-cancel" onclick="cancelDrawing()">✕Отменить</button>
-        `;
-        console.log('Кнопки заменены на "Готова" и "Отменить"');
-    }
+        controls.remove();
+}
     // ФИКС: возвращаем иконку "+", т.к. режим рисования завершён
     const addBtn = document.getElementById('addBtn');
     if (addBtn) {
@@ -63,13 +60,16 @@ function finishDrawing() {
         addBtn.textContent = '+';
     }
     isDrawingMode = false;
-
-    const spots = calculateParkingSpots(newParkingCoords);
-    if (spots > 0) {
-        showToast(`🚗 Примерно ${spots} машино-мест в этой зоне`, 3000);
-    } else {
-        showToast('⚠️ Зона слишком мала для парковки', 2000);
-    }
+const spots = calculateParkingSpots(newParkingCoords);
+if (spots > 0) {
+    showToast(
+        `🚗 Примерно ${spots} машино-мест в этой зоне`,
+        3000
+    );
+} else {
+    showToast('⚠️ Зона слишком мала для парковки', 2000);
+}
+    openParkingForm();
 }
 function openParkingForm() {
     console.log('✅ openParkingForm вызвана');
