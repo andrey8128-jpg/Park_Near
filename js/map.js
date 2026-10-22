@@ -643,6 +643,16 @@ function refreshParkingMarker(parkingId) {
     if (!data) return;
     updateParkingMarker(id, data);
 }
+function refreshParkingClusters() {
+    if (!clusterer) return;
+    // Сохраняем актуальные маркеры.
+    const markers = Object.values(mapMarkers).filter(Boolean);
+    // Пересоздаём группировку без потери маркеров.
+    clusterer.removeAll();
+    markers.forEach(function(marker) {
+        clusterer.add(marker);
+    });
+}
 function clearAllMarkers() {
     // Удаляем все маркеры из кластера
     if (clusterer) {
