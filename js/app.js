@@ -232,6 +232,118 @@ const badgeText = statusLabels[status];
         </div>
     `;
 }
+
+function getParkingAddressParts(parking) {
+    const parsed = typeof parseAddress === 'function'
+        ? (parseAddress(parking.address || '') || {})
+        : {};
+
+    const street = String(
+        parking.street || parsed.street || ''
+    ).trim();
+
+    const houseNumber = String(
+        parking.houseNumber || parsed.houseNumber || ''
+    ).trim();
+
+    return {
+        street: street || 'Улица не указана',
+        houseNumber: houseNumber || 'Дом не указан'
+    };
+}
+
+function getParkingGroupStatus(parkings) {
+    let total = 0;
+    let occupied = 0;
+
+    parkings.forEach(function(parking) {
+        total += Number(parking.totalSpots) || 0;
+        occupied += Number(parking.occupiedSpots) || 0;
+    });
+
+    if (total <= 0) return 'Нет данных';
+    const ratio = occupied / total;
+
+    if (ratio >= 0.9) return 'Мест нет';
+    if (ratio >= 0.6) return 'Мало мест';
+
+    return 'Есть места';
+}
+
+function toggleParkingGroup(groupId) {
+    const group = document.getElementById(groupId);
+    const button = document.getElementById(groupId + '-button');
+
+    if (!group || !button) return;
+
+    const isHidden = group.hidden;
+    group.hidden = !isHidden;
+    button.setAttribute('aria-expanded', String(isHidden));
+}
+
+function renderGroupedParkingList(container, parkings, userCoords) {
+    if (!parkings || parkings.length === 0) {
+        container.innerHTML =
+            '<div class="empty-state"><p>Нет парковок</p></div>';
+        return;
+    }
+
+    const groups = new Map();
+
+    parkings.forEach(function(parking) {
+        const address = getParkingAddressParts(parking);
+        const key = [
+            address.street.toLocaleLowerCase('ru'),
+            address.houseNumber.toLocaleLowerCase('ru')
+        ].join('|');
+
+        if (!groups.has(key)) {
+            groups.set(key, {
+                street: address.street,
+                houseNumber: address.houseNumber,
+                parkings: []
+            });
+        }
+        groups.get(key).parkings.push(parking);
+    });
+    let html = '';
+    let index = 0;
+    groups.forEach(function(group) {
+        const groupId = 'parking-group-' + index++;
+        const title = group.street + ', ' + group.houseNumber;
+        const status = getParkingGroupStatus(group.parkings);
+        const count = group.parkings.length;
+
+        html += `
+            <section class="parking-address-group">
+                <button
+                    type="button"
+                    class="parking-address-heading"
+                    id="${groupId}-button"
+                    aria-expanded="false"
+                    aria-controls="${groupId}"
+                    onclick="toggleParkingGroup('${groupId}')"
+                >
+                    <span class="parking-address-info">
+                        <span class="parking-address-title">
+                            ${escapeHtml(title)}
+                        </span>
+                        <span class="parking-address-meta">
+                            ${count} парковок · ${escapeHtml(status)}
+                        </span>
+                    </span>
+                    <span class="parking-address-arrow">⌄</span>
+                </button>
+                <div id="${groupId}" hidden>
+                    ${group.parkings.map(function(parking) {
+                        return renderParkingItem(parking, userCoords);
+                    }).join('')}
+                </div>
+            </section>
+        `;
+    });
+    container.innerHTML = html;
+}
 function formatDateTime(timestamp) {
     if (!timestamp) return 'Неизвестно';
     const d = new Date(Number(timestamp));
@@ -4046,7 +4158,11 @@ function showNearbyParkings(coords, limit) {
         return;
     }
     const show = parkings.slice(0, limit);
-    container.innerHTML = show.map(p => renderParkingItem(p, coords)).join('');
+renderGroupedParkingList(
+    container,
+    show,
+    coords
+);
 }
 function showAllNearby() {
     var coords = userLocationForSearch;
@@ -4092,7 +4208,11 @@ function filterHomeParkings() {
         container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
         return;
     }
-    container.innerHTML = filtered.map(p => renderParkingItem(p, userLocationForSearch)).join('');
+   renderGroupedParkingList(
+    container,
+    filtered,
+    userLocationForSearch
+);
 }
 function goHome() {
     if (!currentUser) {
@@ -4129,11 +4249,11 @@ function goHome() {
 }
 // Вспомогательная функция для отображения списка парковок
 function renderParkingList(container, parkings) {
-    if (!parkings || parkings.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Нет парковок</p></div>';
-        return;
-    }
-    container.innerHTML = parkings.map(p => renderParkingItem(p, userLocationForSearch)).join('');
+    renderGroupedParkingList(
+        container,
+        parkings,
+        userLocationForSearch
+    );
 }
     // ===================== ИНИЦИАЛИЗАЦИЯ =====================
   function checkTelegramAuthFromUrl() {
