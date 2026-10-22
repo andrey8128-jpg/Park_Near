@@ -2027,17 +2027,18 @@ function loadHistoryPreview(parkingId) {
                     .transaction(c => (c || 0) + 1)
                     .catch(err => console.warn(err));
             }
-
             currentParkingData = Object.assign({}, currentParkingData, updates);
             parkingDataCache[currentParkingId] = currentParkingData;
 
-            try { refreshParkingMarker(); } catch (e) { console.warn(e); }
-            if (clusterer) clusterer.reload();
-
+            // Обновляем маркер парковки после сохранения.
+            try {
+              refreshParkingMarker(currentParkingId);
+        } catch (e) {
+            console.warn('Не удалось обновить маркер парковки:', e);
+  }
             closePanel();
             showMap();
             showToast('✅ Парковка обновлена', 2000);
-
             if (window.Telegram?.WebApp?.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
             }
@@ -2115,9 +2116,11 @@ function loadHistoryPreview(parkingId) {
         if (parkingDataCache[id]) parkingDataCache[id].occupiedSpots = newOccupied;
         if (id === currentParkingId && currentParkingData) currentParkingData.occupiedSpots = newOccupied;
         updateOccupancyDisplay(newOccupied);
-        refreshParkingMarker();
-        // ✅ Пересчитываем кластеры, чтобы обновить сумму на иконках
-        if (clusterer) clusterer.reload();
+        refreshParkingMarker(id);
+         // Пересчитываем кластеры после обновления данных парковки.
+           if (typeof refreshParkingClusters === 'function') {
+         refreshParkingClusters();
+ }
         if (document.getElementById('historyList')) loadHistoryPreview(id);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
