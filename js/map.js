@@ -14,10 +14,10 @@ function initMap() {
         return;
     }
     try {
-        // 1. Создаём карту с начальным зумом 14
+        // 1. Создаём карту с начальным зумом 15
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
-            zoom: 14,
+            zoom: 15,
             maxZoom: 19,
             controls: [],
             type: 'yandex#map'
@@ -48,9 +48,13 @@ map.events.add('zoomchange', function() {
             gridSize: 64,
             minClusterSize: 2,
             maxZoom: 17,
-         clusterIconLayout:
-    ymaps.templateLayoutFactory.createClass(
-        '<div style="' +
+            // Поведение при нажатии на кластер
+               clusterDisableClickZoom: false,
+               clusterOpenBalloonOnClick: false,
+            // Внешний вид цветного кластера
+    clusterIconLayout:
+       ymaps.templateLayoutFactory.createClass(
+         '<div style="' +
             'width:44px;' +
             'height:44px;' +
             'box-sizing:border-box;' +
