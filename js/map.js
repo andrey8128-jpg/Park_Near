@@ -597,17 +597,22 @@ function updateParkingMarker(id, data) {
     if (hasValidPolygon) {
         let polygon = placemark.properties.get('polygon');
         if (!polygon) {
-            polygon = new ymaps.Polygon(
-                [newCoords],
-                {},
-                {
-                    fillColor: color + '33',
-                    strokeColor: color,
-                    strokeWidth: 2,
-                    visible: false,
-                    zIndex: 5
-                }
-            );
+polygon = new ymaps.Polygon(
+    [data.coordinates],
+    {},
+    {
+        // Более насыщенная заливка
+        fillColor: color + '99',
+        // Чёткий контур парковки
+        strokeColor: color,
+        strokeWidth: 2,
+        strokeOpacity: 1,
+        fillOpacity: 0.6,
+        // Видимость управляется масштабом карты
+        visible: false,
+        zIndex: 5
+    }
+);
             polygon.__parkingId = id;
             map.geoObjects.add(polygon);
             placemark.properties.set('polygon', polygon);
