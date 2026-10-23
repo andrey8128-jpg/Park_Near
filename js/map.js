@@ -60,7 +60,7 @@ map.events.add('zoomchange', function() {
             'display:flex;' +
             'align-items:center;' +
             'justify-content:center;' +
-            'box-shadow:0 3px 10px rgba(0,0,0,0.3);' +
+            'box-shadow:none;' +
             'color:#fff;' +
             'font-weight:700;' +
             'font-size:15px;' +
