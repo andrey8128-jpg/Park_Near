@@ -3472,13 +3472,15 @@ function saveCityFromSettingsInline() {
             });
         });
     }
-    // Поиск
+    // Поиск в избранном
+const searchInput = content.querySelector('#pnFavSearch');
+const clearSearch = content.querySelector('#pnFavClearSearch');
+  if (searchInput && clearSearch) {
     searchInput.addEventListener('input', function() {
         searchValue = this.value.trim();
         clearSearch.hidden = !searchValue;
         renderList();
     });
-    // Очистка поиска
     clearSearch.addEventListener('click', function() {
         searchInput.value = '';
         searchValue = '';
@@ -3486,6 +3488,7 @@ function saveCityFromSettingsInline() {
         renderList();
         searchInput.focus();
     });
+}
     // Сортировка
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
