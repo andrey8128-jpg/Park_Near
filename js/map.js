@@ -1,3 +1,4 @@
+const ENABLE_PARKING_CLUSTERS = false;
 function initMap() {
     console.log('▶️ initMap вызвана');
     const mapContainer = document.getElementById('map');
@@ -43,8 +44,9 @@ map.events.add('zoomchange', function() {
         );
     });
 });
-        // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
-        clusterer = new ymaps.Clusterer({
+       // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
+if (ENABLE_PARKING_CLUSTERS) {
+    clusterer = new ymaps.Clusterer({
             gridSize: 64,
             minClusterSize: 2,
             maxZoom: 17,
