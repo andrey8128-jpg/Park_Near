@@ -453,3 +453,4 @@ if (!committed || !parkingRef) {
         }
     }
 }
+window.startDrawingMode = startDrawingMode;
