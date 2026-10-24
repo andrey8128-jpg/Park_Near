@@ -91,8 +91,7 @@
 
 function getParkingRef(parkingId) {
     const p = parkingDataCache[parkingId];
-    if (p?.groupId) {
-        return database.ref(`parkings/${p.groupId}/${parkingId}`);
+    if (p?.groupId) return database.ref(`parkings/${p.groupId}/${parkingId}`);
     }
     return database.ref(`parkings/${parkingId}`);
 }
@@ -979,7 +978,7 @@ async function saveEditedPolygon(newCoords) {
     try {
         const centerLat = newCoords.reduce((sum, c) => sum + Number(c[0]), 0) / newCoords.length;
         const centerLng = newCoords.reduce((sum, c) => sum + Number(c[1]), 0) / newCoords.length;
-        await getParkingRef(currentParkingId).update({
+        await database.ref(`parkings/${currentParkingId}`).update({
             coordinates: newCoords,
             lat: centerLat,
             lng: centerLng,
