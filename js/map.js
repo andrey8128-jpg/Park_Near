@@ -628,52 +628,64 @@ function clearAllMarkers() {
         updateTotalFreeCircle();
     }
 }
-  function loadAllParkings(city = '', force = false) {
-    const selectedCity = String(city || currentCity || '').trim().toLowerCase();
-    if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
+ function loadAllParkings(city = '', force = false) {
+    const selectedCity = normalizeCity(
+        String(city || currentCity || '').trim()
+    );
+    // Используем кеш, если он достаточно свежий.
+    if (
+        !force &&
+        Date.now() - lastDataRefresh < 30000 &&
+        Object.keys(parkingDataCache).length > 0
+    ) {
         clearAllMarkers();
-        Object.entries(parkingDataCache).forEach(([id, p]) => {
-            const pc = normalizeCity(getParkingCity(p));
-            if (!selectedCity || pc === selectedCity) addMarkerToMap(id, p);
+        Object.entries(parkingDataCache).forEach(([id, parking]) => {
+            const parkingCity = normalizeCity(
+                getParkingCity(parking) || ''
+            );
+            if (!selectedCity || parkingCity === selectedCity) {
+                addMarkerToMap(id, parking);
+            }
         });
         updateTotalFreeCircle();
         return Promise.resolve();
     }
-    clearAllMarkers();
-    return database.ref('parkings').once('value').then(snapshot => {
-        const data = snapshot.val() || {};
-        const newCache = {};
-        Object.keys(data).forEach(topKey => {
-            const top = data[topKey];
-            if (!top) return;
-            const normalize = (p, id, groupId) => {
-                p.id = id;
-                p.groupId = p.groupId || groupId;
-                p.lat = Number(p.lat);
-                p.lng = Number(p.lng);
-                p.totalSpots = Number(p.totalSpots) || 0;
-                p.occupiedSpots = Math.max(0, Math.min(Number(p.occupiedSpots) || 0, p.totalSpots));
-                return p;
-            };
-            if (top.lat != null && top.lng != null) {
-                newCache[topKey] = normalize(top, topKey, null);
-            } else if (typeof top === 'object') {
-                Object.keys(top).forEach(subKey => {
-                    const p = top[subKey];
-                    if (p && p.lat != null && p.lng != null) newCache[subKey] = normalize(p, subKey, topKey);
-                });
+        clearAllMarkers();
+    return database.ref('parkings').once('value')
+        .then(snapshot => {
+            const newCache = parseParkingTree(snapshot.val());
+            parkingDataCache = newCache;
+            lastDataRefresh = Date.now();
+            try {
+                localStorage.setItem(
+                    'parkingCache',
+                    JSON.stringify({
+                        city: 'all',
+                        data: newCache,
+                        timestamp: Date.now()
+                    })
+                );
+            } catch (error) {
+                console.warn('Не удалось сохранить кеш парковок:', error);
             }
-        });
-        parkingDataCache = newCache;
-        lastDataRefresh = Date.now();
-        try { localStorage.setItem('parkingCache', JSON.stringify({ city: 'all', data: newCache, timestamp: Date.now() })); } catch {}
-        const cityToShow = String(currentCity || city || '').trim().toLowerCase();
-        Object.entries(newCache).forEach(([id, p]) => {
-            const pc = String(p.city || '').trim().toLowerCase();
-            if (!cityToShow || pc === cityToShow) addMarkerToMap(id, p);
-        });
+            Object.entries(newCache).forEach(([id, parking]) => {
+                const parkingCity = normalizeCity(
+                    getParkingCity(parking) || ''
+             );
+                if (!selectedCity || parkingCity === selectedCity) {
+                    addMarkerToMap(id, parking);
+                }
+            });
         updateTotalFreeCircle();
-    });
+            console.log(
+                'Загружено парковок:',
+                Object.keys(newCache).length
+            );
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки парковок:', error);
+            throw error;
+        });
 }
   function showParkingsForCity(city) {
     if (!map || !city) return;
@@ -690,36 +702,37 @@ function clearAllMarkers() {
 }
   // ===== Вспомогательная функция для загрузки всех парковок (без фильтра) =====
 function loadAllParkingsNoFilter() {
-    return new Promise(function(resolve, reject) {
-        database.ref('parkings').once('value').then(function(snapshot) {
-            const data = snapshot.val();
-            const newCache = {};
-            if (data) {
-                Object.keys(data).forEach(function(key) {
-                    const parking = data[key];
-                    if (!parking || parking.lat == null || parking.lng == null) return;
-                    parking.totalSpots = Number(parking.totalSpots) || 0;
-                    parking.occupiedSpots = Number(parking.occupiedSpots) || 0;
-                    parking.occupiedSpots = Math.max(0, Math.min(parking.occupiedSpots, parking.totalSpots));
-                    newCache[key] = parking;
-                });
-            }
+    return database.ref('parkings').once('value')
+        .then(snapshot => {
+            const newCache = parseParkingTree(snapshot.val());
             parkingDataCache = newCache;
             lastDataRefresh = Date.now();
             try {
-                localStorage.setItem('parkingCache', JSON.stringify({ city: 'all', data: newCache, timestamp: Date.now() }));
-            } catch (e) {}
-            Object.keys(newCache).forEach(function(id) {
-                addMarkerToMap(id, newCache[id]);
+                localStorage.setItem(
+                    'parkingCache',
+                    JSON.stringify({
+                        city: 'all',
+                        data: newCache,
+                        timestamp: Date.now()
+                    })
+                );
+            } catch (error) {
+                console.warn('Не удалось сохранить кеш парковок:', error);
+            }
+            clearAllMarkers();
+            Object.entries(newCache).forEach(([id, parking]) => {
+                addMarkerToMap(id, parking);
             });
             if (typeof updateTotalFreeCircle === 'function') {
                 updateTotalFreeCircle();
             }
-            console.log('⚠️ Загружены ВСЕ парковки (без фильтра) –', Object.keys(newCache).length);
-            resolve();
-        }).catch(function(error) {
-            console.error('❌ Ошибка загрузки всех парковок:', error);
-            reject(error);
+            console.log(
+                'Загружены все парковки без фильтра:',
+                Object.keys(newCache).length
+            );
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки всех парковок:', error);
+            throw error;
         });
-    });
 }
