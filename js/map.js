@@ -56,75 +56,52 @@ map.events.add('zoomchange', function() {
                 clusterIconLayout:
                     ymaps.templateLayoutFactory.createClass(
                         '<div style="' +
-                            'width:48px;' +
-                            'height:48px;' +
+                            'width:44px;' +
+                            'height:44px;' +
                             'box-sizing:border-box;' +
                             'border-radius:50%;' +
                             'background-color:$[properties.clusterColor];' +
-                            'border:2px solid rgba(255,255,255,0.95);' +
+                            'border:2px solid rgba(255,255,255,0.9);' +
                             'display:flex;' +
                             'align-items:center;' +
                             'justify-content:center;' +
-                            'box-shadow:0 3px 10px rgba(0,0,0,0.22);' +
+                            'box-shadow:none;' +
                             'color:#fff;' +
                             'font-weight:700;' +
-                            'font-size:16px;' +
+                            'font-size:15px;' +
                         '">' +
                             '$[properties.parkingCount]' +
                         '</div>'
                     ),
-clusterBalloonContentLayout:
-    ymaps.templateLayoutFactory.createClass(
-        '<div style="' +
-            'box-sizing:border-box;' +
-            'max-height:240px;' +
-            'overflow-y:auto;' +
-            'overflow-x:hidden;' +
-            'padding:6px;' +
-            'font-size:14px;' +
-            'color:var(--text-primary, #222);' +
-            'background:var(--card-bg, #fff);' +
-            'border-radius:12px;' +
-            'scrollbar-width:thin;' +
-        '">' +
-            '{% for geoObject in properties.geoObjects %}' +
-                '<div style="' +
-                    'box-sizing:border-box;' +
-                    'padding:10px 12px;' +
-                    'margin-bottom:4px;' +
-                    'border:1px solid var(--border-color, #e5e7eb);' +
-                    'border-radius:9px;' +
-                    'background:var(--card-bg, #fff);' +
-                '">' +
-                    '<div style="' +
-                        'font-size:14px;' +
-                        'font-weight:600;' +
-                        'line-height:1.4;' +
-                        'overflow-wrap:anywhere;' +
-                        'margin-bottom:5px;' +
-                    '">' +
-                        '{{ geoObject.properties.name }}' +
-                    '</div>' +
-                    '<div style="' +
-                        'font-size:12px;' +
-                        'line-height:1.5;' +
-                        'color:var(--text-secondary, #6b7280);' +
-                    '">' +
-                        'Свободно: ' +
-                        '<span style="' +
-                            'font-weight:700;' +
-                            'color:var(--text-primary, #222);' +
+
+                clusterBalloonContentLayout:
+                    ymaps.templateLayoutFactory.createClass(
+                        '<div style="' +
+                            'max-height:150px;' +
+                            'overflow-y:auto;' +
+                            'padding:6px 10px;' +
+                            'font-size:13px;' +
                         '">' +
-                            '{{ geoObject.properties.freeSpots }}' +
-                        '</span>' +
-                        ' из ' +
-                        '{{ geoObject.properties.totalSpots }}' +
-                        ' мест' +
-                    '</div>' +
-                '</div>' +
-            '{% endfor %}' +
-        '</div>'
-    )
+                            '{% for geoObject in properties.geoObjects %}' +
+                                '<div style="' +
+                                    'padding:6px 8px;' +
+                                    'border-bottom:1px solid #eee;' +
+                                    'cursor:pointer;' +
+                                '">' +
+                                    '<div style="font-weight:600;">' +
+                                        '{{ geoObject.properties.name }}' +
+                                    '</div>' +
+                                    '<div style="font-size:12px;color:var(--text-secondary);">' +
+                                        'Свободно: ' +
+                                        '{{ geoObject.properties.freeSpots }}' +
+                                        ' / ' +
+                                        '{{ geoObject.properties.totalSpots }}' +
+                                    '</div>' +
+                                '</div>' +
+                            '{% endfor %}' +
+                        '</div>'
+                    )
+            });
             // ===== СУММАРНАЯ ЗАГРУЖЕННОСТЬ И ЦВЕТ КЛАСТЕРА =====
             clusterer.events.add('clusterize', function(e) {
                 const clusters = e.get('clusters');
