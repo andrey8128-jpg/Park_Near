@@ -18,17 +18,17 @@ function initMap() {
         // 1. Создаём карту с начальным зумом 15
         map = new ymaps.Map("map", {
             center: [55.7558, 37.6173],
-            zoom: 15,
+            zoom: 16,
             maxZoom: 19,
             controls: [],
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
-        // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 15 =====
+        // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 16 =====
 map.events.add('zoomchange', function() {
     if (!map) return;
     const currentZoom = map.getZoom();
-    const showPolygons = currentZoom >= 15;
+    const showPolygons = currentZoom >= 16;
     Object.keys(mapMarkers).forEach(function(id) {
         const placemark = mapMarkers[id];
         if (!placemark) return;
@@ -49,31 +49,34 @@ map.events.add('zoomchange', function() {
             clusterer = new ymaps.Clusterer({
                 gridSize: 64,
                 minClusterSize: 2,
-                maxZoom: 17,
+                maxZoom: 18,
                 clusterDisableClickZoom: false,
                 clusterOpenBalloonOnClick: false,
-
-                clusterIconLayout:
-                    ymaps.templateLayoutFactory.createClass(
-                        '<div style="' +
-                            'width:44px;' +
-                            'height:44px;' +
-                            'box-sizing:border-box;' +
-                            'border-radius:50%;' +
-                            'background-color:$[properties.clusterColor];' +
-                            'border:2px solid rgba(255,255,255,0.9);' +
-                            'display:flex;' +
-                            'align-items:center;' +
-                            'justify-content:center;' +
-                            'box-shadow:none;' +
-                            'color:#fff;' +
-                            'font-weight:700;' +
-                            'font-size:15px;' +
-                        '">' +
-                            '$[properties.parkingCount]' +
-                        '</div>'
-                    ),
-
+                
+              clusterIconLayout:
+                ymaps.templateLayoutFactory.createClass(
+                '<div style="' +
+                    'position:relative;' +
+                    'width:48px;' +
+                    'height:48px;' +
+                    'box-sizing:border-box;' +
+                    'border-radius:50%;' +
+                    'background-color:#22A447;' +
+                    'background-color:$[properties.clusterColor];' +
+                    'border:3px solid #ffffff;' +
+                    'display:flex;' +
+                    'align-items:center;' +
+                    'justify-content:center;' +
+                    'box-shadow:0 3px 10px rgba(0,0,0,0.35);' +
+                    'opacity:1;' +
+                    'color:#ffffff;' +
+                    'font-weight:700;' +
+                    'font-size:16px;' +
+                    'text-shadow:0 1px 2px rgba(0,0,0,0.25);' +
+                '">' +
+                    '$[properties.parkingCount]' +
+                '</div>'
+            ),
                 clusterBalloonContentLayout:
                     ymaps.templateLayoutFactory.createClass(
                         '<div style="' +
