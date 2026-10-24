@@ -316,8 +316,7 @@ async function submitParkingWithPolygon() {
         // Функция для очистки ключей (убирает запрещенные символы)
         const cleanKeyPart = value => String(value || '').trim().replace(/[.#$\/\[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
         // ✅ ГЕНЕРИРУЕМ КЛЮЧ ГРУППЫ (по названию парковки)
-       // Группируем парковки по городу
-        const cityKey = cleanKeyPart(detectedCity) || 'Неизвестный_город';
+       const groupNameKey = cleanKeyPart(name) || 'Без_названия';
         // Ключ для конкретной уникальной парковки (город + улица + дом)
         const cityKey = cleanKeyPart(detectedCity);
         const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
@@ -330,7 +329,7 @@ async function submitParkingWithPolygon() {
             totalSpots,
             occupiedSpots: 0,
             name,
-            groupId: cityKey, // ✅ Сохраняем ID группы внутри данных!
+            groupId: groupNameKey, // ✅ Сохраняем ID группы внутри данных!
             isPaid: false,
             address: finalAddress,
             city: detectedCity,
@@ -355,7 +354,7 @@ async function submitParkingWithPolygon() {
         // ✅ ИЗМЕНЕНО: Сохраняем в parkings/Название_группы/Уникальный_ключ
         while (!committed && number <= MAX_ATTEMPTS) {
             parkingKey = `${baseKey}_(${number})`;
-            const parkingRef = database.ref(`parkings/${cityKey}/${parkingKey}`)
+            const parkingRef = database.ref(`parkings/${groupNameKey}/${parkingKey}`);
             const txResult = await parkingRef.transaction(currentData => {
                 if (currentData !== null) return undefined;
                 return parkingData;
@@ -369,7 +368,7 @@ async function submitParkingWithPolygon() {
         console.log('🔑 Группа:', groupNameKey, '| Ключ парковки:', parkingKey);
         
         // ✅ ИЗМЕНЕНО: Путь для записи истории
-        const parkingRef = database.ref(`parkings/${cityKey}/${parkingKey}`)
+        const parkingRef = database.ref(`parkings/${groupNameKey}/${parkingKey}`);
         
         try {
             await database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
