@@ -4114,12 +4114,28 @@ function createAuthScreenFallback() {
         content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка парковок...</p></div>';
     }
     // 4. Обновление данных
-    const needRefresh = (Date.now() - lastDataRefresh > REFRESH_INTERVAL_MS) || !cacheData;
+const lastRefresh = Number(
+    typeof lastDataRefresh !== 'undefined' ? lastDataRefresh : 0
+);
+const refreshInterval =
+    typeof REFRESH_INTERVAL_MS !== 'undefined'
+        ? Number(REFRESH_INTERVAL_MS)
+        : 5 * 60 * 1000;
+const needRefresh =
+    (Date.now() - lastRefresh > refreshInterval) || !cacheData;
     if (needRefresh) {
         // Проверяем, есть ли функция геолокации, иначе просто пропускаем её
-        const getCoordsPromise = typeof getUserLocation === 'function' 
-            ? getUserLocation().catch(() => null) 
-            : Promise.resolve(null);
+        const getCoordsPromise = (async () => {
+    try {
+        if (typeof getUserLocation !== 'function') {
+            return null;
+        }
+        return await getUserLocation();
+    } catch (error) {
+        console.warn('Геолокация недоступна:', error);
+        return null;
+    }
+})();
         Promise.all([
             loadAllParkings(currentCity, true),
             getCoordsPromise
