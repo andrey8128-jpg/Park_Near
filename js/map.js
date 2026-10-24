@@ -154,12 +154,31 @@ map.events.add('zoomchange', function() {
                 });
             });
         }
-        // ===== Обработчики кнопок =====
-        document.getElementById('addBtn').onclick = function() {
-            if (!currentUser) showPanel('home');
-            else if (isDrawingMode) cancelDrawing();
-            else startDrawingMode();
-        };
+       
+ // ===== Обработчик кнопки добавления парковки =====
+const addBtn = document.getElementById('addBtn');
+if (addBtn) {
+    addBtn.onclick = function() {
+        if (!currentUser) {
+            showPanel('home');
+            return;
+        }
+        if (isDrawingMode) {
+            cancelDrawing();
+            return;
+        }
+        if (typeof window.startDrawingMode === 'function') {
+            window.startDrawingMode();
+        } else {
+            console.error(
+                'startDrawingMode не найдена. Проверь parking-creator.js'
+            );
+            if (typeof showToast === 'function') {
+                showToast('Не удалось включить режим рисования');
+            }
+        }
+    };
+}
         const layerBtn = document.getElementById('layerSwitcher');
         let pressTimer = null;
         function showLayerMenu() {
