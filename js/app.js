@@ -91,7 +91,9 @@
 
 function getParkingRef(parkingId) {
     const p = parkingDataCache[parkingId];
-    if (p?.groupId) return database.ref(`parkings/${p.groupId}/${parkingId}`);
+    if (p?.groupId) {
+        return database.ref(`parkings/${p.groupId}/${parkingId}`);
+    }
     return database.ref(`parkings/${parkingId}`);
 }
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
@@ -977,7 +979,7 @@ async function saveEditedPolygon(newCoords) {
     try {
         const centerLat = newCoords.reduce((sum, c) => sum + Number(c[0]), 0) / newCoords.length;
         const centerLng = newCoords.reduce((sum, c) => sum + Number(c[1]), 0) / newCoords.length;
-        await database.ref(`parkings/${currentParkingId}`).update({
+        await getParkingRef(currentParkingId).update({
             coordinates: newCoords,
             lat: centerLat,
             lng: centerLng,
@@ -3028,7 +3030,6 @@ if (document.readyState === 'loading') {
     resultsContainer.innerHTML = html;
     attachSwipeToContainers(resultsContainer);
 }
-
 function focusMap(lat, lng, parkingId) {
     closeCenterSheet();
     setTimeout(function() {
