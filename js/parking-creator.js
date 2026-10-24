@@ -265,6 +265,16 @@ async function deleteParking(parkingId) {
         showToast('Не удалось удалить парковку');
     }
 }
+function cleanParkingPathPart(value, fallback) {
+    const cleaned = String(value || '')
+        .trim()
+        .replace(/[.#$\/\[\]]/g, '')
+        .replace(/\s+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+
+    return cleaned || fallback;
+}
 async function submitParkingWithPolygon() {
     const streetType = document.getElementById('parkStreetType')?.value?.trim() || '';
     const streetName = document.getElementById('parkStreetName')?.value?.trim() || '';
@@ -315,8 +325,10 @@ async function submitParkingWithPolygon() {
         const now = Date.now();
         // Функция для очистки ключей (убирает запрещенные символы)
         const cleanKeyPart = value => String(value || '').trim().replace(/[.#$\/\[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-        // ✅ ГЕНЕРИРУЕМ КЛЮЧ ГРУППЫ (по названию парковки)
-       const groupNameKey = cleanKeyPart(name) || 'Без_названия';
+        // Формируем ключи пути: город / улица / дом
+        const cityKey = cleanKeyPart(detectedCity) || 'Неизвестный_город';
+        const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
+        const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
         // Ключ для конкретной уникальной парковки (город + улица + дом)
         const cityKey = cleanKeyPart(detectedCity);
         const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
@@ -329,7 +341,7 @@ async function submitParkingWithPolygon() {
             totalSpots,
             occupiedSpots: 0,
             name,
-            groupId: groupNameKey, // ✅ Сохраняем ID группы внутри данных!
+            groupId: cityKey, // ✅ Сохраняем ID группы внутри данных!
             isPaid: false,
             address: finalAddress,
             city: detectedCity,
@@ -345,31 +357,35 @@ async function submitParkingWithPolygon() {
             status: 'unknown',
             statusConfirmations: 0
         };
-        let number = 1;
-        let parkingKey = `${baseKey}_(${number})`;
-        let committed = false;
-        const MAX_ATTEMPTS = 50;
-        
-        if (btn) btn.textContent = 'Сохраняем...';
-        // ✅ ИЗМЕНЕНО: Сохраняем в parkings/Название_группы/Уникальный_ключ
-        while (!committed && number <= MAX_ATTEMPTS) {
-            parkingKey = `${baseKey}_(${number})`;
-            const parkingRef = database.ref(`parkings/${groupNameKey}/${parkingKey}`);
-            const txResult = await parkingRef.transaction(currentData => {
-                if (currentData !== null) return undefined;
-                return parkingData;
-            });
-            committed = txResult.committed;
-            if (!committed) number++;
-        }
-        if (!committed) {
-            throw new Error('Не удалось подобрать свободный идентификатор парковки, попробуйте ещё раз');
-        }
+       
+let number = 1;
+let parkingKey = '';
+let committed = false;
+let parkingPath = '';
+let parkingRef = null;
+const MAX_ATTEMPTS = 50;
+    if (btn) btn.textContent = 'Сохраняем...';
+while (!committed && number <= MAX_ATTEMPTS) {
+    parkingKey = `${houseKey}(${number})`;
+
+    parkingPath =
+        `parkings/${cityKey}/${streetKey}/${houseKey}/${parkingKey}`;
+        parkingRef = database.ref(parkingPath);
+    const txResult = await parkingRef.transaction(currentData => {
+        if (currentData !== null) return undefined;
+        return parkingData;
+    });
+    committed = txResult.committed;
+        if (!committed) number++;
+}
+if (!committed || !parkingRef) {
+    throw new Error(
+        'Не удалось подобрать свободный идентификатор парковки. Попробуйте ещё раз.'
+    );
+}
+        console.log('Путь парковки:', parkingPath);
+        console.log('Ключ парковки:', parkingKey);
         console.log('🔑 Группа:', groupNameKey, '| Ключ парковки:', parkingKey);
-        
-        // ✅ ИЗМЕНЕНО: Путь для записи истории
-        const parkingRef = database.ref(`parkings/${groupNameKey}/${parkingKey}`);
-        
         try {
             await database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
         } catch (error) {
@@ -385,7 +401,7 @@ async function submitParkingWithPolygon() {
         } catch (error) {
             console.warn('⚠️ Не удалось сохранить history:', error);
         }
-        parkingDataCache[parkingKey] = { ...parkingData, id: parkingKey };
+        parkingDataCache[parkingKey] = { ...parkingData, id: parkingKey, _dbPath: parkingPath};
         try {
             addMarkerToMap(parkingKey, parkingData);
         } catch (error) {
