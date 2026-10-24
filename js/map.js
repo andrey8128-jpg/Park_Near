@@ -1,4 +1,4 @@
-const ENABLE_PARKING_CLUSTERS = false;
+const ENABLE_PARKING_CLUSTERS = true;
 function initMap() {
     console.log('▶️ initMap вызвана');
     const mapContainer = document.getElementById('map');
@@ -471,7 +471,7 @@ function addMarkerToMap(id, data) {
 }
 function updateParkingMarker(id, data) {
     if (!map || !data) return;
-    const placemark = mapMarkers[id];
+      const placemark = mapMarkers[id];
     if (!placemark) {
         addMarkerToMap(id, data);
         return;
@@ -482,8 +482,11 @@ function updateParkingMarker(id, data) {
         Math.min(Number(data.occupiedSpots) || 0, totalSpots)
     );
     const freeSpots = Math.max(0, totalSpots - occupiedSpots);
-    const color = getOccupancyColor(occupiedSpots, totalSpots);
-    // Обновляем свойства маркера
+    const color = getOccupancyColor(
+        occupiedSpots,
+        totalSpots
+    );
+    // Обновляем свойства маркера.
     placemark.properties.set({
         name: data.name || 'Парковка',
         hintContent: data.name || 'Парковка',
@@ -494,19 +497,19 @@ function updateParkingMarker(id, data) {
         iconContent: String(freeSpots)
     });
     placemark.options.set('iconColor', color);
-    // Обновляем координаты маркера
+    // Обновляем координаты маркера.
     const lat = Number(data.lat);
     const lng = Number(data.lng);
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
         placemark.geometry.setCoordinates([lat, lng]);
     }
-    // Обновляем полигон парковочной зоны
+    // Обновляем полигон парковочной зоны.
     const oldPolygon = placemark.properties.get('polygon');
     const newCoords = Array.isArray(data.coordinates)
         ? data.coordinates
         : [];
     const hasValidPolygon = newCoords.length >= 3;
-    let oldCoords = null;
+     let oldCoords = null;
     if (oldPolygon && oldPolygon.geometry) {
         const polygonCoordinates =
             oldPolygon.geometry.getCoordinates();
@@ -517,31 +520,28 @@ function updateParkingMarker(id, data) {
     const coordinatesChanged =
         JSON.stringify(oldCoords) !== JSON.stringify(newCoords);
     // Удаляем старый полигон, если координаты изменились
-    // или новые координаты отсутствуют
+    // или новые координаты отсутствуют.
     if (oldPolygon && (!hasValidPolygon || coordinatesChanged)) {
         map.geoObjects.remove(oldPolygon);
         placemark.properties.set('polygon', null);
     }
-    // Создаём новый полигон или обновляем его стиль
+    // Создаём новый полигон или обновляем его стиль.
     if (hasValidPolygon) {
         let polygon = placemark.properties.get('polygon');
         if (!polygon) {
-polygon = new ymaps.Polygon(
-    [data.coordinates],
-    {},
-    {
-        // Более насыщенная заливка
-        fillColor: color + '99',
-        // Чёткий контур парковки
-        strokeColor: color,
-        strokeWidth: 2,
-        strokeOpacity: 1,
-        fillOpacity: 0.6,
-        // Видимость управляется масштабом карты
-        visible: false,
-        zIndex: 5
-    }
-);
+            polygon = new ymaps.Polygon(
+                [data.coordinates],
+                {},
+                {
+                    fillColor: color + '99',
+                    strokeColor: color,
+                    strokeWidth: 2,
+                    strokeOpacity: 1,
+                    fillOpacity: 0.6,
+                    visible: false,
+                    zIndex: 5
+                }
+            );
             polygon.__parkingId = id;
             map.geoObjects.add(polygon);
             placemark.properties.set('polygon', polygon);
@@ -552,7 +552,7 @@ polygon = new ymaps.Polygon(
             });
         }
     }
-    // Обновляем кэш парковок
+    // Обновляем кэш парковок.
     if (
         typeof parkingDataCache !== 'undefined' &&
         parkingDataCache[id]
@@ -565,7 +565,14 @@ polygon = new ymaps.Polygon(
             occupiedSpots: occupiedSpots
         };
     }
-    // Обновляем общий счётчик свободных мест
+    // Пересчитываем кластеры после обновления парковки.
+    if (
+        ENABLE_PARKING_CLUSTERS &&
+        typeof refreshParkingClusters === 'function'
+    ) {
+        refreshParkingClusters();
+    }
+    // Обновляем общий счётчик свободных мест.
     if (typeof updateTotalFreeCircle === 'function') {
         updateTotalFreeCircle();
     }
@@ -578,20 +585,20 @@ function refreshParkingMarker(parkingId) {
     updateParkingMarker(id, data);
 }
 function refreshParkingClusters() {
-    if (!map) return;
-    // Если кластеры выключены — оставляем маркеры на карте.
     if (
-        typeof ENABLE_PARKING_CLUSTERS === 'undefined' ||
+        !map ||
         !ENABLE_PARKING_CLUSTERS ||
         !clusterer
     ) {
         return;
     }
     const markers = Object.values(mapMarkers).filter(Boolean);
-      clusterer.removeAll();
-    markers.forEach(function(marker) {
-        clusterer.add(marker);
-    });
+    // Удаляем маркеры из текущих кластеров.
+    clusterer.removeAll();
+    // Добавляем актуальные маркеры повторно.
+    if (markers.length > 0) {
+        clusterer.add(markers);
+    }
 }
 function clearAllMarkers() {
     if (clusterer) {
