@@ -91,8 +91,11 @@
 
 function getParkingRef(parkingId) {
     const p = parkingDataCache[parkingId];
-    if (p?.groupId) return database.ref(`parkings/${p.groupId}/${parkingId}`);
+    // Если парковка находится внутри группы (например, города)
+    if (p?.groupId) {
+        return database.ref(`parkings/${p.groupId}/${parkingId}`);
     }
+    // Для парковок в старой структуре базы
     return database.ref(`parkings/${parkingId}`);
 }
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
