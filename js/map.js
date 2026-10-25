@@ -647,49 +647,102 @@ function clearAllMarkers() {
         updateTotalFreeCircle();
     }
 }
-  function loadAllParkings(city = '', force = false) {
-    const selectedCity = String(city || currentCity || '').trim().toLowerCase();
-    if (!force && Date.now() - lastDataRefresh < 30000 && Object.keys(parkingDataCache).length > 0) {
+function loadAllParkings(city = '', force = false) {
+    const selectedCity = String(city || currentCity || '')
+        .trim()
+        .toLowerCase();
+    if (
+        !force &&
+        Date.now() - lastDataRefresh < 30000 &&
+        Object.keys(parkingDataCache).length > 0
+    ) {
         clearAllMarkers();
-        Object.entries(parkingDataCache).forEach(([id, p]) => {
-            const pc = normalizeCity(getParkingCity(p));
-            if (!selectedCity || pc === selectedCity) addMarkerToMap(id, p);
+        Object.entries(parkingDataCache).forEach(([id, parking]) => {
+            const parkingCity = String(
+                parking.city || ''
+            ).trim().toLowerCase();
+            if (!selectedCity || parkingCity === selectedCity) {
+                addMarkerToMap(id, parking);
+            }
         });
         updateTotalFreeCircle();
         return Promise.resolve();
     }
-    clearAllMarkers();
+        clearAllMarkers();
     return database.ref('parkings').once('value').then(snapshot => {
-        const data = snapshot.val() || {};
+        const root = snapshot.val() || {};
         const newCache = {};
-        Object.keys(data).forEach(topKey => {
-            const top = data[topKey];
-            if (!top) return;
-            const normalize = (p, id, groupId) => {
-                p.id = id;
-                p.groupId = p.groupId || groupId;
-                p.lat = Number(p.lat);
-                p.lng = Number(p.lng);
-                p.totalSpots = Number(p.totalSpots) || 0;
-                p.occupiedSpots = Math.max(0, Math.min(Number(p.occupiedSpots) || 0, p.totalSpots));
-                return p;
-            };
-            if (top.lat != null && top.lng != null) {
-                newCache[topKey] = normalize(top, topKey, null);
-            } else if (typeof top === 'object') {
-                Object.keys(top).forEach(subKey => {
-                    const p = top[subKey];
-                    if (p && p.lat != null && p.lng != null) newCache[subKey] = normalize(p, subKey, topKey);
-                });
+        function visit(node, pathParts) {
+            if (!node || typeof node !== 'object') return;
+            // Обнаружена запись парковки
+            if (node.lat != null && node.lng != null) {
+                const id = String(
+                    node.id || pathParts[pathParts.length - 1]
+                );
+                const parking = {
+                    ...node,
+                    id,
+                    _dbPath: `parkings/${pathParts.join('/')}`,
+                    groupId: node.groupId ||
+                        (pathParts.length > 1 ? pathParts[0] : null)
+                };
+                parking.lat = Number(parking.lat);
+                parking.lng = Number(parking.lng);
+                parking.totalSpots = Math.max(
+                    0,
+                    Number(parking.totalSpots) || 0
+                );
+                parking.occupiedSpots = Math.max(
+                    0,
+                    Math.min(
+                        Number(parking.occupiedSpots) || 0,
+                        parking.totalSpots
+                    )
+                );
+                if (
+                    !Number.isFinite(parking.lat) ||
+                    !Number.isFinite(parking.lng) ||
+                    Math.abs(parking.lat) > 90 ||
+                    Math.abs(parking.lng) > 180
+                ) {
+                    console.warn(
+                        'Пропущена парковка с некорректными координатами:',
+                        id
+                    );
+                    return;
+                }
+                newCache[id] = parking;
+                return;
             }
+            // Ищем парковки на любом уровне вложенности
+            Object.entries(node).forEach(([key, value]) => {
+                visit(value, [...pathParts, key]);
+            });
+        }
+        Object.entries(root).forEach(([key, value]) => {
+            visit(value, [key]);
         });
         parkingDataCache = newCache;
         lastDataRefresh = Date.now();
-        try { localStorage.setItem('parkingCache', JSON.stringify({ city: 'all', data: newCache, timestamp: Date.now() })); } catch {}
-        const cityToShow = String(currentCity || city || '').trim().toLowerCase();
-        Object.entries(newCache).forEach(([id, p]) => {
-            const pc = String(p.city || '').trim().toLowerCase();
-            if (!cityToShow || pc === cityToShow) addMarkerToMap(id, p);
+        try {
+            localStorage.setItem(
+                'parkingCache',
+                JSON.stringify({
+                    city: 'all',
+                    data: newCache,
+                    timestamp: Date.now()
+                })
+            );
+        } catch (error) {
+            console.warn('Не удалось сохранить кэш парковок:', error);
+        }
+        Object.entries(newCache).forEach(([id, parking]) => {
+            const parkingCity = String(
+                parking.city || ''
+            ).trim().toLowerCase();
+            if (!selectedCity || parkingCity === selectedCity) {
+                addMarkerToMap(id, parking);
+            }
         });
         updateTotalFreeCircle();
     });
