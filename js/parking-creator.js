@@ -237,9 +237,7 @@ async function deleteParking(parkingId) {
             return showToast('Удалять парковку может только её автор');
         }
         // ✅ Используем groupId для правильного пути
-        const groupId = parking.groupId;
-        if (!groupId) throw new Error('Не найден ID группы парковки');
-        const ref = database.ref(`parkings/${groupId}/${parkingId}`);
+        const ref = getParkingRef(parkingId);
         await ref.remove();
         // Удаляем Placemark и Polygon корректно
         const placemark = mapMarkers[parkingId];
@@ -363,36 +361,35 @@ async function submitParkingWithPolygon() {
             status: 'unknown',
             statusConfirmations: 0
         };
-       
-let number = 1;
-let parkingKey = '';
-let committed = false;
-let parkingPath = '';
-let parkingRef = null;
-const MAX_ATTEMPTS = 50;
-    if (btn) btn.textContent = 'Сохраняем...';
-while (!committed && number <= MAX_ATTEMPTS) {
-    parkingKey = `${houseKey}(${number})`;
-
-    parkingPath =
-        `parkings/${cityKey}/${streetKey}/${houseKey}/${parkingKey}`;
-        parkingRef = database.ref(parkingPath);
-    const txResult = await parkingRef.transaction(currentData => {
-        if (currentData !== null) return undefined;
-        return parkingData;
-    });
-    committed = txResult.committed;
-        if (!committed) number++;
-}
-if (!committed || !parkingRef) {
-    throw new Error(
-        'Не удалось подобрать свободный идентификатор парковки. Попробуйте ещё раз.'
-    );
-}
+        let number = 1;
+        let parkingKey = '';
+        let committed = false;
+        let parkingPath = '';
+        let parkingRef = null;
+        const MAX_ATTEMPTS = 50;
+            if (btn) btn.textContent = 'Сохраняем...';
+        while (!committed && number <= MAX_ATTEMPTS) {
+            // Используем город, улицу и дом для уникального ключа
+        parkingKey = `${baseKey}(${number})`;
+            parkingPath =
+                `parkings/${cityKey}/${streetKey}/${houseKey}/${parkingKey}`;
+            parkingRef = database.ref(parkingPath);
+            const txResult = await parkingRef.transaction(currentData => {
+                if (currentData !== null) return;
+                return parkingData;
+            });
+            committed = txResult.committed;
+            if (!committed) number++;
+        }
+        if (!committed || !parkingRef) {
+            throw new Error(
+                'Не удалось подобрать свободный идентификатор парковки. Попробуйте ещё раз.'
+            );
+        }
         console.log('Путь парковки:', parkingPath);
         console.log('Ключ парковки:', parkingKey);
-        console.log('🔑 Группа:', groupNameKey, '| Ключ парковки:', parkingKey);
-        try {
+        console.log('Группа города:', cityKey);
+     try {
             await database.ref(`users/${currentUser.id}/stats/parkingsCreated`).transaction(count => (count || 0) + 1);
         } catch (error) {
             console.warn('⚠️ Не удалось обновить статистику:', error);
