@@ -90,12 +90,17 @@
     let newParkingCoords = null;
 
 function getParkingRef(parkingId) {
-    const p = parkingDataCache[parkingId];
-    // Если парковка находится внутри группы (например, города)
-    if (p?.groupId) {
-        return database.ref(`parkings/${p.groupId}/${parkingId}`);
+    const parking = parkingDataCache?.[parkingId];
+    // Предпочитаем полный путь, сохранённый при загрузке
+    if (parking?._dbPath) {
+        return database.ref(parking._dbPath);
     }
-    // Для парковок в старой структуре базы
+    // Совместимость со старой структурой базы
+    if (parking?.groupId) {
+        return database.ref(
+            `parkings/${parking.groupId}/${parkingId}`
+        );
+    }
     return database.ref(`parkings/${parkingId}`);
 }
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
@@ -950,10 +955,10 @@ async function fixParkingCity(parkingId, city, region) {
         return;
     }
     try {
-        await database.ref(`parkings/${parkingId}`).update({
-            city: city.trim(),
-            region: region ? region.trim() : ''
-        });
+       await getParkingRef(parkingId).update({
+    city: city.trim(),
+    region: region ? region.trim() : ''
+});
         console.log('✅ Город парковки обновлён:', { parkingId, city, region });
         if (parkingDataCache[parkingId]) {
             parkingDataCache[parkingId].city = city.trim();
@@ -981,13 +986,16 @@ async function saveEditedPolygon(newCoords) {
     try {
         const centerLat = newCoords.reduce((sum, c) => sum + Number(c[0]), 0) / newCoords.length;
         const centerLng = newCoords.reduce((sum, c) => sum + Number(c[1]), 0) / newCoords.length;
-        await database.ref(`parkings/${currentParkingId}`).update({
+        await getParkingRef(currentParkingId).update({
             coordinates: newCoords,
             lat: centerLat,
             lng: centerLng,
             lastUpdatedAt: Date.now(),
-            lastUpdatedBy: currentUser?.nickname || currentUser?.firstName || ''
-        });
+            lastUpdatedBy:
+                currentUser?.nickname ||
+                currentUser?.firstName ||
+                ''
+    });
         if (editingPolygon) {
             map.geoObjects.remove(editingPolygon);
             editingPolygon = null;
@@ -1930,8 +1938,11 @@ function loadHistoryPreview(parkingId) {
         const now = Date.now();
         const cutoff = now - days * 24 * 60 * 60 * 1000;
 
-        database.ref(`parkings/${parkingId}/history`).orderByChild('timestamp').limitToLast(limit).once('value',
-        snapshot => {
+       getParkingRef(parkingId)
+        .child('history')
+        .orderByChild('timestamp')
+        .limitToLast(limit)
+        .once('value', snapshot => {
             const history = snapshot.val();
             if (!history) {
                 container.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">История пуста</div>';
@@ -1978,7 +1989,9 @@ function loadHistoryPreview(parkingId) {
             container.innerHTML = html;
 
             if (loadMoreBtn) {
-                database.ref(`parkings/${parkingId}/history`).once('value', totalSnap => {
+               getParkingRef(parkingId)
+               .child('history')
+               .once('value', totalSnap => {
                     const total = totalSnap.numChildren ? totalSnap.numChildren() : 0;
                     if (total > limit) {
                         loadMoreBtn.style.display = 'block';
@@ -2141,7 +2154,9 @@ function loadHistoryPreview(parkingId) {
 }
     function confirmParking(parkingId) {
         if (!currentUser) return;
-        database.ref(`parkings/${parkingId}`).once('value').then(snapshot => {
+        getParkingRef(parkingId)
+            .once('value')
+            .then(snapshot => {
             const data = snapshot.val();
             if (data && data.authorId !== currentUser.id) {
                 database.ref(`users/${data.authorId}/stats/confirmations`).transaction(c => (c || 0) + 1);
