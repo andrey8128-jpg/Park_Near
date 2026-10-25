@@ -323,16 +323,22 @@ async function submitParkingWithPolygon() {
         const finalAddress = detectedAddress || [detectedCity, finalStreet, finalHouseNumber].filter(Boolean).join(', ');
         const name = fullStreet && houseNumber ? `${fullStreet}, ${houseNumber}` : finalAddress || `Парковка ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
         const now = Date.now();
-        // Функция для очистки ключей (убирает запрещенные символы)
-        const cleanKeyPart = value => String(value || '').trim().replace(/[.#$\/\[\]]/g, '').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+        // Очищаем значения для использования в ключах Firebase
+        const cleanKeyPart = value =>
+            String(value || '')
+                .trim()
+                .replace(/[.#$\/\[\]]/g, '')
+                .replace(/\s+/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_|_$/g, '');
         // Формируем ключи пути: город / улица / дом
-        const cityKey = cleanKeyPart(detectedCity) || 'Неизвестный_город';
-        const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
-        const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
-        // Ключ для конкретной уникальной парковки (город + улица + дом)
-        const cityKey = cleanKeyPart(detectedCity);
-        const streetKey = cleanKeyPart(finalStreet) || 'Неизвестная_улица';
-        const houseKey = cleanKeyPart(finalHouseNumber) || 'Без_дома';
+        const cityKey =
+            cleanKeyPart(detectedCity) || 'Неизвестный_город';
+        const streetKey =
+            cleanKeyPart(finalStreet) || 'Неизвестная_улица';
+        const houseKey =
+            cleanKeyPart(finalHouseNumber) || 'Без_дома';
+        // Уникальная основа ключа парковки
         const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
         const parkingData = {
             lat: centerLat,
