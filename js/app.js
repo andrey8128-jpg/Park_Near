@@ -3810,6 +3810,11 @@ function createAuthScreenFallback() {
             return;
         }
     }
+        console.log(
+    'ПРОВЕРКА renderHomePanel:',
+    'loadAllParkings =', typeof loadAllParkings,
+    'window.loadAllParkings =', typeof window.loadAllParkings
+  );
     // 2. Проверка наличия обязательных функций (чтобы не было ReferenceError)
     if (typeof loadAllParkings !== 'function') {
         content.innerHTML = '<div class="empty-state"><p>⚠️ Ошибка: функция загрузки парковок не найдена</p></div>';
