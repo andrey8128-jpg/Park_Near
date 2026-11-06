@@ -3491,8 +3491,9 @@ function saveCityFromSettingsInline() {
         });
     }
     // Поиск в избранном
-const searchInput = content.querySelector('#pnFavSearch');
-const clearSearch = content.querySelector('#pnFavClearSearch');
+    const searchInput = document.getElementById('pnFavSearch');
+    const clearSearch = document.getElementById('pnFavClearSearch');
+
   if (searchInput && clearSearch) {
     searchInput.addEventListener('input', function() {
         searchValue = this.value.trim();
