@@ -567,7 +567,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
                 filterParkings();
                 break;
             case 'favorites':
-                loadUserData('favorites', content);
+            renderFavorites(content);
                 break;
             case 'profile':
                 renderProfile(content);
