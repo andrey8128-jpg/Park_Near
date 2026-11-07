@@ -1381,8 +1381,7 @@ async function startParkingSession(parkingId) {
             return;
         }
         // 2. Загружаем парковку
-        const parkingSnapshot = await database
-            .ref(`parkings/${parkingId}`)
+        const parkingSnapshot = await getParkingRef(parkingId)
             .once('value');
         const parking = parkingSnapshot.val();
         if (!parking) {
