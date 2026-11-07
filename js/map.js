@@ -258,10 +258,6 @@ if (addBtn) {
                     }
                 });
         };
-        // ===== Загружаем парковки =====
-        loadAllParkings(currentCity).catch(function(err) {
-            console.warn('Не удалось загрузить парковки:', err);
-        });
         // ===== Автогеолокация через 1 секунду =====
         setTimeout(function() {
             getUserLocation()
