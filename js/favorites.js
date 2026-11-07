@@ -149,8 +149,56 @@ function renderFavorites(content) {
     const filterButtons = document.querySelectorAll('.pn-fav-filter');
     let favorites = [], currentSort = 'recent', searchValue = '';
     const city = userCityPrefs?.city || currentCity || '';
+    // Вспомогательные функции избранного
+function getFree(parking) {
+    const total = Number(parking?.totalSpots) || 0;
+    const occupied = Number(parking?.occupiedSpots) || 0;
+        return Math.max(0, total - occupied);
+}
+function getDistance(parking) {
+    const location =
+        typeof lastKnownLocation !== 'undefined'
+            ? lastKnownLocation
+            : null;
+    if (
+        !location ||
+        parking?.lat == null ||
+        parking?.lng == null ||
+        typeof getDistanceInMeters !== 'function'
+    ) {
+        return Infinity;
+    }
+    return getDistanceInMeters(
+        location.lat,
+        location.lng,
+        Number(parking.lat),
+        Number(parking.lng)
+    );
+}
+function getOccupancyClass(parking) {
+        const total = Number(parking?.totalSpots) || 0;
+    if (!total) return 'unknown';
+        const free = getFree(parking);
+        const ratio = free / total;
+    if (ratio <= 0.2) return 'critical';
+    if (ratio <= 0.5) return 'low';
 
-    function renderList() {
+    return 'good';
+}
+function getOccupancyText(parking) {
+    const total = Number(parking?.totalSpots) || 0;
+
+    if (!total) return 'Мест нет в данных';
+
+    return `${getFree(parking)} свободно из ${total}`;
+}
+function formatDistance(distance) {
+    if (!Number.isFinite(distance)) return '';
+    return distance < 1000
+        ? `${Math.round(distance)} м`
+        : `${(distance / 1000).toFixed(1)} км`;
+}
+function renderList() {
         if (!list) return;
         const query = searchValue.toLowerCase();
         let filtered = favorites.filter(item => {
