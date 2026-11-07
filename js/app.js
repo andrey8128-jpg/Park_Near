@@ -3815,12 +3815,22 @@ function createAuthScreenFallback() {
     'loadAllParkings =', typeof loadAllParkings,
     'window.loadAllParkings =', typeof window.loadAllParkings
   );
-    // 2. Проверка наличия обязательных функций (чтобы не было ReferenceError)
-    if (typeof loadAllParkings !== 'function') {
-        content.innerHTML = '<div class="empty-state"><p>⚠️ Ошибка: функция загрузки парковок не найдена</p></div>';
-        console.error('❌ loadAllParkings не определена. Проверьте подключение map.js');
-        return;
-    }
+   const parkingLoader =
+    typeof window.loadAllParkings === 'function'
+        ? window.loadAllParkings
+        : null;
+
+if (!parkingLoader) {
+    console.error('❌ loadAllParkings действительно отсутствует', {
+        local: typeof loadAllParkings,
+        global: typeof window.loadAllParkings,
+        scripts: [...document.scripts].map(script => script.src).filter(Boolean)
+    });
+
+    content.innerHTML =
+        '<div class="empty-state"><p>Не удалось найти функцию загрузки парковок.</p></div>';
+    return;
+}
     if (typeof renderHomeContent !== 'function') {
         content.innerHTML = '<div class="empty-state"><p>⚠️ Ошибка: функция отрисовки главной не найдена</p></div>';
         console.error('❌ renderHomeContent не определена.');
@@ -3876,7 +3886,7 @@ const needRefresh =
     }
 })();
         Promise.all([
-            loadAllParkings(currentCity, true),
+            parkingLoader(currentCity, true),
             getCoordsPromise
         ]).then(([, coords]) => {
             userLocationForSearch = coords;
