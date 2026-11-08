@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
@@ -142,29 +141,23 @@ function verifyTelegramWebApp(initData) {
         .createHmac('sha256', 'WebAppData')
         .update(botToken)
         .digest();
-
     const expectedHash = crypto
         .createHmac('sha256', secretKey)
         .update(dataCheckString)
         .digest('hex');
-
     if (!safeCompareHash(receivedHash, expectedHash)) {
         return null;
     }
-
     try {
         const userString = params.get('user');
-
         if (!userString) {
             return null;
         }
-
         return JSON.parse(userString);
     } catch (error) {
         return null;
     }
 }
-
 // Проверяем данные пользователя и создаём Firebase Custom Token
 async function createFirebaseToken(telegramUser) {
     if (
@@ -174,95 +167,28 @@ async function createFirebaseToken(telegramUser) {
     ) {
         throw new Error('Некорректный Telegram user ID');
     }
-
     const telegramId = String(telegramUser.id);
     const uid = `tg_${telegramId}`;
-
     const customToken = await auth.createCustomToken(uid, {
         provider: 'telegram',
         telegramId
     });
-
     return {
         customToken,
-        uid
+        uid,
+        user: {
+            id: uid,
+            telegramId,
+            username: telegramUser.username || 'tg_user',
+            firstName:
+                telegramUser.first_name ||
+                telegramUser.firstName ||
+                'Пользователь',
+            photoUrl:
+                telegramUser.photo_url ||
+                telegramUser.photoUrl ||
+                '',
+            isGuest: false
+        }
     };
 }
-
-// Проверка работоспособности сервера
-app.get('/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        service: 'Park Near Auth Server'
-    });
-});
-
-// Авторизация через Telegram Login Widget
-app.post('/auth/telegram-widget', async (req, res) => {
-    try {
-        const userData = req.body?.user;
-
-        if (!verifyTelegramWidget(userData)) {
-            return res.status(401).json({
-                success: false,
-                error: 'Не удалось подтвердить данные Telegram'
-            });
-        }
-
-        const result = await createFirebaseToken(userData);
-
-        return res.json({
-            success: true,
-            customToken: result.customToken,
-            uid: result.uid
-        });
-    } catch (error) {
-        console.error('Ошибка Telegram Widget:', error.message);
-
-        return res.status(500).json({
-            success: false,
-            error: 'Ошибка авторизации'
-        });
-    }
-});
-
-// Авторизация через Telegram Mini App
-app.post('/auth/telegram-webapp', async (req, res) => {
-    try {
-        const telegramUser = verifyTelegramWebApp(req.body?.initData);
-
-        if (!telegramUser) {
-            return res.status(401).json({
-                success: false,
-                error: 'Не удалось подтвердить данные Telegram'
-            });
-        }
-
-        const result = await createFirebaseToken(telegramUser);
-
-        return res.json({
-            success: true,
-            customToken: result.customToken,
-            uid: result.uid
-        });
-    } catch (error) {
-        console.error('Ошибка Telegram Mini App:', error.message);
-
-        return res.status(500).json({
-            success: false,
-            error: 'Ошибка авторизации'
-        });
-    }
-});
-
-// Обработка неизвестных адресов
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        error: 'Маршрут не найден'
-    });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Park Near Auth Server запущен на порту ${PORT}`);
-});
