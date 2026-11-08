@@ -944,75 +944,160 @@ async function getAddressByCoordinates(lat, lng) {
 }
 // ФИКС: проверка авторства перед изменением города
 async function fixParkingCity(parkingId, city, region) {
-    if (!parkingId || !city) {
+    if (!currentUser || !currentUser.id) {
+        showToast?.('Необходимо авторизоваться', 2000);
+        return;
+    }
+    if (!parkingId || !city || !city.trim()) {
         console.error('Не указан ID парковки или город');
         return;
     }
-    const parking = parkingDataCache[parkingId];
-    if (parking && currentUser && parking.authorId && parking.authorId !== currentUser.id) {
-        console.warn('⛔ Попытка изменить город чужой парковки заблокирована на клиенте');
-        showToast?.('Можно редактировать только свои парковки', 2000);
-        return;
-    }
     try {
-       await getParkingRef(parkingId).update({
-    city: city.trim(),
-    region: region ? region.trim() : ''
-});
-        console.log('✅ Город парковки обновлён:', { parkingId, city, region });
-        if (parkingDataCache[parkingId]) {
-            parkingDataCache[parkingId].city = city.trim();
-            parkingDataCache[parkingId].region = region ? region.trim() : '';
+        const parkingRef = getParkingRef(parkingId);
+        // Получаем актуальные данные из Firebase
+        const snapshot = await parkingRef.once('value');
+        const parking = snapshot.val();
+        if (!parking) {
+            showToast?.('Парковка не найдена', 2000);
+            return;
         }
+        // Проверяем авторство
+        if (
+            !parking.authorId ||
+            String(parking.authorId) !== String(currentUser.id)
+        ) {
+            console.warn('Попытка изменить город чужой парковки заблокирована');
+            showToast?.('Можно редактировать только свои парковки', 2000);
+            return;
+        }
+        const updates = {
+            city: city.trim(),
+            region: region ? region.trim() : '',
+            lastUpdatedAt: Date.now(),
+            lastUpdatedBy:
+                currentUser.nickname ||
+                currentUser.firstName ||
+                ''
+        };
+        await parkingRef.update(updates);
+        // Обновляем локальные данные
+        if (parkingDataCache[parkingId]) {
+            Object.assign(parkingDataCache[parkingId], updates);
+        }
+        if (
+            currentParkingId === parkingId &&
+            currentParkingData
+        ) {
+            Object.assign(currentParkingData, updates);
+        }
+        console.log('Город парковки обновлён:', {
+            parkingId,
+            city: updates.city,
+            region: updates.region
+        });
     } catch (error) {
-        console.error('❌ Ошибка изменения города:', error);
+        console.error('Ошибка изменения города:', error);
+        showToast?.('Не удалось изменить город парковки', 2000);
     }
 }
 // ФИКС: проверка авторства перед изменением границ
 async function saveEditedPolygon(newCoords) {
-    if (!currentParkingId) return;
-    if (currentParkingData?.authorId && currentUser && currentParkingData.authorId !== currentUser.id) {
-        console.warn('⛔ Попытка изменить границы чужой парковки заблокирована на клиенте');
-        alert('Можно редактировать только свои парковки');
+    if (!currentUser || !currentUser.id) {
+        alert('Необходимо авторизоваться');
         cancelDrawing();
         return;
     }
-    const sizeCheck = checkPolygonSize(newCoords);
-    if (!sizeCheck.valid) {
-        alert(sizeCheck.error);
+    if (!currentParkingId) {
+        alert('Не выбрана парковка');
         cancelDrawing();
         return;
     }
     try {
-        const centerLat = newCoords.reduce((sum, c) => sum + Number(c[0]), 0) / newCoords.length;
-        const centerLng = newCoords.reduce((sum, c) => sum + Number(c[1]), 0) / newCoords.length;
-        await getParkingRef(currentParkingId).update({
+        // Проверяем актуальные данные парковки в Firebase
+        const parkingRef = getParkingRef(currentParkingId);
+        const snapshot = await parkingRef.once('value');
+        const parking = snapshot.val();
+        if (!parking) {
+            alert('Парковка не найдена');
+            cancelDrawing();
+            return;
+        }
+        // Проверяем владельца
+        if (
+            !parking.authorId ||
+            String(parking.authorId) !== String(currentUser.id)
+        ) {
+            alert('Можно редактировать только свои парковки');
+            cancelDrawing();
+            return;
+        }
+        // Проверяем координаты
+        if (!Array.isArray(newCoords) || newCoords.length < 3) {
+            alert('Для парковочной зоны необходимо минимум 3 точки');
+            cancelDrawing();
+            return;
+        }
+        const validCoordinates = newCoords.every(point =>
+            Array.isArray(point) &&
+            point.length >= 2 &&
+            Number.isFinite(Number(point[0])) &&
+            Number.isFinite(Number(point[1])) &&
+            Number(point[0]) >= -90 &&
+            Number(point[0]) <= 90 &&
+            Number(point[1]) >= -180 &&
+            Number(point[1]) <= 180
+        );
+        if (!validCoordinates) {
+            alert('Обнаружены некорректные координаты');
+            cancelDrawing();
+            return;
+        }
+        const sizeCheck = checkPolygonSize(newCoords);
+        if (!sizeCheck.valid) {
+            alert(sizeCheck.error);
+            cancelDrawing();
+            return;
+        }
+        const centerLat = newCoords.reduce(
+            (sum, c) => sum + Number(c[0]), 0
+        ) / newCoords.length;
+        const centerLng = newCoords.reduce(
+            (sum, c) => sum + Number(c[1]), 0
+        ) / newCoords.length;
+        await parkingRef.update({
             coordinates: newCoords,
             lat: centerLat,
             lng: centerLng,
             lastUpdatedAt: Date.now(),
             lastUpdatedBy:
-                currentUser?.nickname ||
-                currentUser?.firstName ||
+                currentUser.nickname ||
+                currentUser.firstName ||
                 ''
-    });
+        });
         if (editingPolygon) {
             map.geoObjects.remove(editingPolygon);
             editingPolygon = null;
         }
-        const addBtn = document.getElementById('addBtn');
+            const addBtn = document.getElementById('addBtn');
         if (addBtn) {
             addBtn.classList.remove('drawing');
             addBtn.textContent = '+';
         }
-        isDrawingMode = false;
+            isDrawingMode = false;
         const controls = document.getElementById('drawingControls');
-        if (controls) controls.remove();
-        currentParkingData.coordinates = newCoords;
-        currentParkingData.lat = centerLat;
-        currentParkingData.lng = centerLng;
-        parkingDataCache[currentParkingId] = currentParkingData;
-        refreshParkingMarker();
+            if (controls) controls.remove();
+        currentParkingData = {
+            ...parking,
+            coordinates: newCoords,
+            lat: centerLat,
+            lng: centerLng,
+            lastUpdatedAt: Date.now()
+        };
+        parkingDataCache[currentParkingId] = {
+            ...currentParkingData,
+            _dbPath: parkingDataCache[currentParkingId]?._dbPath
+        };
+            refreshParkingMarker(currentParkingId);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
