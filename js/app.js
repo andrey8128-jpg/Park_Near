@@ -2020,12 +2020,14 @@ function loadHistoryPreview(parkingId) {
     if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
     if (totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
     if (totalSpots > 500) { alert('Количество мест не может быть больше 500'); return; }
-
-    if (currentParkingData.authorId && currentParkingData.authorId !== currentUser.id) {
-        alert('Можно редактировать только свои парковки');
-        return;
-    }
-
+    // Проверяем авторство парковки
+if (
+    !currentParkingData.authorId ||
+    String(currentParkingData.authorId) !== String(currentUser.id)
+) {
+    alert('Можно редактировать только свои парковки');
+    return;
+}
     const newAddress = [street, houseNumber].filter(Boolean).join(', ');
     const updates = {
         name: parkingName,
