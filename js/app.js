@@ -44,7 +44,7 @@
     // ===================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====================
     let map = null;
     let currentCity = null; // или 'Москва' по умолчанию
-    let  = null;
+    let currentUser = null;
     let lastKnownLocation = null;
     let mapMarkers = {};
     let myLocationPlacemark = null;
