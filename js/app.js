@@ -1629,9 +1629,8 @@ async function startParkingSession(parkingId) {
         );
     }
 }
-
 async function endParkingSession(parkingId) {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id || !parkingId) return;
     try {
         const snapshot = await database
             .ref('parkingSessions')
@@ -1640,39 +1639,69 @@ async function endParkingSession(parkingId) {
             .once('value');
         const sessions = snapshot.val() || {};
         let sessionKey = null;
-        Object.entries(sessions).some(([key, session]) => {
+        for (const [key, session] of Object.entries(sessions)) {
             if (
                 session &&
                 session.active === true &&
                 String(session.parkingId) === String(parkingId)
             ) {
                 sessionKey = key;
-                return true;
+                break;
             }
-            return false;
-        });
+        }
         if (!sessionKey) {
             alert('Активная парковка не найдена.');
             return;
         }
+        const sessionRef = database.ref(
+            `parkingSessions/${sessionKey}`
+        );
         const parkingRef = getParkingRef(parkingId);
-        const sessionRef = database.ref(`parkingSessions/${sessionKey}`);
-        // Сначала завершаем сессию.
-        await sessionRef.update({
-            active: false,
-            endedAt: Date.now()
+        const endedAt = Date.now();
+        // Атомарно завершаем сессию.
+        // Только один запрос сможет изменить active: true на false.
+        const sessionResult = await sessionRef.transaction(session => {
+            if (!session || session.active !== true) {
+                return;
+            }
+            return {
+                ...session,
+                active: false,
+                endedAt
+            };
         });
+        if (!sessionResult.committed) {
+            alert('Эта парковочная сессия уже завершена.');
+            return;
+        }
         try {
-            // Уменьшаем единый счётчик.
-            await parkingRef.child('occupiedSpots').transaction(value => {
-                return Math.max(0, (Number(value) || 0) - 1);
-            });
+            // Уменьшаем общий счётчик только один раз.
+            const counterResult = await parkingRef
+                .child('occupiedSpots')
+                .transaction(value => {
+                    return Math.max(
+                        0,
+                        (Number(value) || 0) - 1
+                    );
+                });
+            if (!counterResult.committed) {
+                throw new Error('Не удалось обновить счётчик занятости.');
+            }
         } catch (counterError) {
-            // Если счётчик не удалось обновить,
-            // восстанавливаем активность сессии.
-            await sessionRef.update({
-                active: true,
-                endedAt: null
+            // Восстанавливаем сессию, если счётчик не обновился.
+            await sessionRef.transaction(session => {
+                if (
+                    !session ||
+                    session.active !== false ||
+                    session.endedAt !== endedAt
+                ) {
+                    return;
+                }
+                return {
+                    ...session,
+                    active: true,
+                    endedAt: null
+                };
             });
             throw counterError;
         }
@@ -1700,7 +1729,10 @@ async function endParkingSession(parkingId) {
                 .notificationOccurred('success');
         }
     } catch (error) {
-        console.error('Ошибка завершения парковочной сессии:', error);
+        console.error(
+            'Ошибка завершения парковочной сессии:',
+            error
+        );
         alert('Не удалось завершить парковку.');
     }
 }
