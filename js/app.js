@@ -59,6 +59,8 @@
     let isDrawingMode = false;
     let currentParkingId = null;
     let currentParkingData = null;
+    // Защита от повторного запуска парковочной сессии
+    let isStartingParkingSession = false;
     let originalPolyCoords = null;
     let editingParkingId = null;
     let editingPolygon = null;
@@ -1482,6 +1484,11 @@ async function startParkingSession(parkingId) {
         alert('Не удалось определить парковку.');
         return;
     }
+    // Не допускаем повторный запуск, пока предыдущий запрос выполняется.
+    if (isStartingParkingSession) {
+        return;
+    }
+    isStartingParkingSession = true;
     let occupancyIncreased = false;
     let sessionRef = null;
     try {
@@ -1627,6 +1634,9 @@ async function startParkingSession(parkingId) {
                 : 'Не удалось начать парковочную сессию. ' +
                   'Проверьте геолокацию и подключение к интернету.'
         );
+         } finally {
+        // Снимаем блокировку повторного нажатия
+        isStartingParkingSession = false;
     }
 }
 async function endParkingSession(parkingId) {
