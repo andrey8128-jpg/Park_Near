@@ -3580,20 +3580,16 @@ function getGuestId() {
             console.warn('Ошибка создания статистики гостя:', err);
         });
     }
-
     // 2. Устанавливаем текущего пользователя
     currentUser = user;
     window.currentUser = user;
-
     // 3. Сохраняем в localStorage (для совместимости с initAuth)
     localStorage.setItem('tgUser', JSON.stringify(user));
-
     // 4. Обновляем активность (последний вход)
     database.ref('users/' + guestId + '/stats/lastActive').set(Date.now())
         .catch(function(err) {
             console.warn('Не удалось обновить lastActive:', err);
         });
-
     // 5. Обновляем активные дни (если сегодня ещё не было)
     const today = new Date().toISOString().split('T')[0];
     database.ref('users/' + guestId + '/stats/activeDates').once('value')
@@ -3607,45 +3603,72 @@ function getGuestId() {
         .catch(function(err) {
             console.warn('Не удалось обновить активные дни:', err);
         });
-
     // 6. Скрываем экран входа
     hideAuthScreen();
-
     // 7. Показываем главную панель и онбординг (если ещё не показывали)
     showPanel('home');
     showOnboarding();
-
-    console.log('✅ Гостевой вход выполнен');
+        console.log('✅ Гостевой вход выполнен');
 }
-
     function logout() {
         localStorage.removeItem('tgUser');
         currentUser = null;
         showAuthScreen();
     }
-
-    function deleteAccount() {
-        if (!currentUser || currentUser.id.startsWith('guest_')) {
-            alert('Гостевой аккаунт нельзя удалить');
-            return;
-        }
-        if (!confirm('Безвозвратно удалить аккаунт и все данные?')) return;
-        const uid = currentUser.id;
-        database.ref('parkings').once('value').then(snap => {
-            const updates = {};
-            snap.forEach(child => {
-                if (child.val().authorId === uid) updates[child.key] = null;
-            });
-            return database.ref('parkings').update(updates);
-        }).then(() => database.ref(`users/${uid}`).remove())
-            .then(() => {
-                localStorage.removeItem('tgUser');
-                currentUser = null;
-                showPanel('home');
-            }).catch(err => alert('Ошибка: ' + err.message));
+function deleteAccount() {
+    if (!currentUser || currentUser.id.startsWith('guest_')) {
+        alert('Гостевой аккаунт нельзя удалить');
+        return;
     }
-
-    
+    if (!confirm('Безвозвратно удалить аккаунт и все данные?')) {
+        return;
+    }
+        const uid = currentUser.id;
+    database.ref('parkings').once('value')
+        .then(snapshot => {
+            const updates = {};
+            // Рекурсивно ищем парковки пользователя
+            function findUserParkings(node, pathParts = []) {
+                if (!node || typeof node !== 'object') return;
+                // Проверяем, является ли объект парковкой пользователя
+                if (
+                    node.lat != null &&
+                    node.lng != null &&
+                    String(node.authorId) === String(uid)
+                ) {
+                    const relativePath = pathParts.join('/');
+                    if (relativePath) {
+                        updates[relativePath] = null;
+                    }
+                    return;
+                }
+                Object.entries(node).forEach(([key, value]) => {
+                    findUserParkings(value, [...pathParts, key]);
+                });
+            }
+            Object.entries(snapshot.val() || {}).forEach(([key, value]) => {
+                findUserParkings(value, [key]);
+            });
+            // Удаляем найденные парковки
+            if (Object.keys(updates).length > 0) {
+                return database.ref('parkings').update(updates);
+            }
+        })
+        .then(() => {
+            // Удаляем профиль пользователя
+            return database.ref(`users/${uid}`).remove();
+        })
+        .then(() => {
+            localStorage.removeItem('tgUser');
+            currentUser = null;
+                showAuthScreen();
+            alert('Аккаунт и созданные вами парковки удалены.');
+        })
+        .catch(error => {
+            console.error('Ошибка удаления аккаунта:', error);
+            alert('Не удалось удалить аккаунт: ' + error.message);
+        });
+}
 function showAuthScreen() {
     const overlay = document.getElementById('authOverlay');
     if (overlay) {
