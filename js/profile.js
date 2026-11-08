@@ -271,14 +271,54 @@ function loadUserParkingHistory() {
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
     database.ref('parkings').once('value').then(snapshot => {
-        const parkings = snapshot.val() || {};
-        let allEntries = [];
-        Object.keys(parkings).forEach(parkingId => {
-            const parking = parkings[parkingId];
-            if (!parking.history) return;
-            const history = parking.history;
-            Object.keys(history).forEach(entryKey => {
-                const entry = history[entryKey];
+       const parkings = snapshot.val() || {};
+let allEntries = [];
+
+function findParkingHistory(node, pathParts = []) {
+    if (!node || typeof node !== 'object') return;
+    // Проверяем, является ли текущий объект парковкой
+    if (node.lat != null && node.lng != null) {
+        const parkingId = String(
+            node.id || pathParts[pathParts.length - 1]
+        );
+          const parkingPath = `parkings/${pathParts.join('/')}`;
+          const history = node.history || {};
+         Object.keys(history).forEach(entryKey => {
+            const entry = history[entryKey];
+            if (!entry || entry.userId !== userId) return;
+            // Удаляем записи старше 7 дней
+            if (entry.timestamp < weekAgo) {
+                database.ref(
+                    `${parkingPath}/history/${entryKey}`
+                ).remove().catch(error => {
+                    console.error(
+                        'Ошибка удаления старой истории:',
+                        error
+                    );
+                });
+                return;
+            }
+            allEntries.push({
+                parkingId: parkingId,
+                parkingName: node.name || 'Без названия',
+                address: node.address || '',
+                action: entry.action || 'unknown',
+                timestamp: entry.timestamp,
+                car: entry.car || {},
+                previousOccupied: entry.previousOccupied,
+                newOccupied: entry.newOccupied
+            });
+        });
+        return;
+    }
+    // Рекурсивно ищем парковки во вложенных папках
+    Object.entries(node).forEach(([key, value]) => {
+        findParkingHistory(value, [...pathParts, key]);
+    });
+}
+Object.entries(parkings).forEach(([key, value]) => {
+    findParkingHistory(value, [key]);
+});
                 if (entry.userId === userId) {
                     // Удаляем записи старше 7 дней
                     if (entry.timestamp < weekAgo) {
