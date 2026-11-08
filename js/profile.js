@@ -266,95 +266,83 @@ function toggleProfileSection(section) {
 function loadUserParkingHistory() {
     const container = document.getElementById('historyListContainer');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Загрузка...</div>';
-    const userId = currentUser.id;
-    const now = Date.now();
-    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-    database.ref('parkings').once('value').then(snapshot => {
-       const parkings = snapshot.val() || {};
-let allEntries = [];
-
-function findParkingHistory(node, pathParts = []) {
-    if (!node || typeof node !== 'object') return;
-    // Проверяем, является ли текущий объект парковкой
-    if (node.lat != null && node.lng != null) {
-        const parkingId = String(
-            node.id || pathParts[pathParts.length - 1]
-        );
-          const parkingPath = `parkings/${pathParts.join('/')}`;
-          const history = node.history || {};
-         Object.keys(history).forEach(entryKey => {
-            const entry = history[entryKey];
-            if (!entry || entry.userId !== userId) return;
-            // Удаляем записи старше 7 дней
-            if (entry.timestamp < weekAgo) {
-                database.ref(
-                    `${parkingPath}/history/${entryKey}`
-                ).remove().catch(error => {
-                    console.error(
-                        'Ошибка удаления старой истории:',
-                        error
-                    );
-                });
-                return;
-            }
-            allEntries.push({
-                parkingId: parkingId,
-                parkingName: node.name || 'Без названия',
-                address: node.address || '',
-                action: entry.action || 'unknown',
-                timestamp: entry.timestamp,
-                car: entry.car || {},
-                previousOccupied: entry.previousOccupied,
-                newOccupied: entry.newOccupied
-            });
-        });
+    if (!currentUser || !currentUser.id) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Войдите в аккаунт</div>';
         return;
     }
-    // Рекурсивно ищем парковки во вложенных папках
-    Object.entries(node).forEach(([key, value]) => {
-        findParkingHistory(value, [...pathParts, key]);
-    });
-}
-Object.entries(parkings).forEach(([key, value]) => {
-    findParkingHistory(value, [key]);
-});
-                if (entry.userId === userId) {
-                    // Удаляем записи старше 7 дней
-                    if (entry.timestamp < weekAgo) {
-                        database.ref(`parkings/${parkingId}/history/${entryKey}`).remove();
+  container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Загрузка...</div>';
+    const userId = currentUser.id;
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  database.ref('parkings').once('value').then(snapshot => {
+        const parkings = snapshot.val() || {};
+        const allEntries = [];
+        // Рекурсивный поиск парковок во вложенной структуре Firebase
+        function findParkingHistory(node, pathParts = []) {
+            if (!node || typeof node !== 'object') return;
+            // Определяем запись парковки по координатам
+            if (node.lat != null && node.lng != null) {
+                const parkingId = String(
+                    node.id || pathParts[pathParts.length - 1]
+                );
+                const parkingPath = `parkings/${pathParts.join('/')}`;
+                const history = node.history || {};
+             Object.keys(history).forEach(entryKey => {
+                     const entry = history[entryKey];
+                    if (!entry || entry.userId !== userId) return;
+                    // Удаляем историю старше 7 дней
+                    if (
+                        typeof entry.timestamp === 'number' &&
+                        entry.timestamp < weekAgo
+                    ) {
+                        database.ref(
+                            `${parkingPath}/history/${entryKey}`
+                        ).remove().catch(error => {
+                            console.error(
+                                'Ошибка удаления старой истории:',
+                                error
+                            );
+                        });
                         return;
                     }
                     allEntries.push({
                         parkingId: parkingId,
-                        parkingName: parking.name || 'Без названия',
-                        address: parking.address || '',
+                        parkingName: node.name || 'Без названия',
+                        address: node.address || '',
                         action: entry.action || 'unknown',
-                        timestamp: entry.timestamp,
+                        timestamp: entry.timestamp || 0,
                         car: entry.car || {},
                         previousOccupied: entry.previousOccupied,
                         newOccupied: entry.newOccupied
                     });
-                }
+                });
+                return;
+            }
+            // Продолжаем поиск во вложенных папках
+            Object.entries(node).forEach(([key, value]) => {
+                findParkingHistory(value, [...pathParts, key]);
             });
+        }
+        // Запускаем поиск по всем городам
+        Object.entries(parkings).forEach(([key, value]) => {
+            findParkingHistory(value, [key]);
         });
+        // Сортируем от новых записей к старым
         allEntries.sort((a, b) => b.timestamp - a.timestamp);
         if (allEntries.length === 0) {
             container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Нет истории</div>';
             return;
         }
-        // Ограничиваем показ до 10 записей
+        // Показываем первые 10 записей
         const showCount = 10;
         const previewEntries = allEntries.slice(0, showCount);
         const remainingEntries = allEntries.slice(showCount);
-        let html = '';
-        // Основной список (первые 10)
+         let html = '';
         html += '<div id="historyPreviewList">';
         previewEntries.forEach(entry => {
             html += renderHistoryEntry(entry);
         });
         html += '</div>';
-        // Полный список (скрыт) и кнопки
+        // Дополнительные записи
         if (remainingEntries.length > 0) {
             html += '<div id="historyFullList" style="display:none;">';
             remainingEntries.forEach(entry => {
@@ -362,7 +350,7 @@ Object.entries(parkings).forEach(([key, value]) => {
             });
             html += '</div>';
             html += `<button id="showAllHistoryBtnProfile" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:8px;">См. все (${remainingEntries.length})</button>`;
-            html += `<button id="hideAllHistoryBtnProfile" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:8px;">Скрыть всё</button>`;
+            html += '<button id="hideAllHistoryBtnProfile" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:8px;">Скрыть всё</button>';
         }
         container.innerHTML = html;
         // Обработчики кнопок
@@ -370,15 +358,13 @@ Object.entries(parkings).forEach(([key, value]) => {
         const hideAllBtn = document.getElementById('hideAllHistoryBtnProfile');
         const previewList = document.getElementById('historyPreviewList');
         const fullList = document.getElementById('historyFullList');
-        if (showAllBtn) {
+     if (showAllBtn && hideAllBtn && previewList && fullList) {
             showAllBtn.onclick = function() {
                 previewList.style.display = 'none';
                 fullList.style.display = 'block';
                 showAllBtn.style.display = 'none';
                 hideAllBtn.style.display = 'inline-block';
             };
-        }
-        if (hideAllBtn) {
             hideAllBtn.onclick = function() {
                 fullList.style.display = 'none';
                 previewList.style.display = 'block';
