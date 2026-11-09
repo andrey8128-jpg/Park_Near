@@ -18,8 +18,18 @@ const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
 // ============================================
 app.use(cors({
     origin: ALLOWED_ORIGIN,
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type']
+    methods: [
+        'GET',
+        'POST',
+        'PATCH',
+        'PUT',
+        'DELETE',
+        'OPTIONS'
+    ],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization'
+    ]
 }));
 app.use(express.json({
     limit: '100kb'
