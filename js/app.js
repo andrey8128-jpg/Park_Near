@@ -10,6 +10,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+// API Park Near на Timeweb
+window.PARKNEAR_API_URL =
+    'https://andrey8128-jpg-park-near-3eb7.twc1.net';
     // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
    (function restoreTheme() {
     const darkTheme = localStorage.getItem('darkTheme');
