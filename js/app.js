@@ -4542,12 +4542,18 @@ async function initApp() {
             .then(registration => console.log('✅ SW зарегистрирован'))
             .catch(error => console.error('❌ Ошибка SW:', error));
     }
-    // Загрузка данных
-    loadAllParkings();
-    initPullToRefresh();
-    if (currentUser) {
-        showPanel('home');
-    }
+   // Инициализация обновления данных
+initPullToRefresh();
+if (currentUser) {
+    showPanel('home');
+} else {
+    loadAllParkings().catch(error => {
+        console.error(
+            'Ошибка первоначальной загрузки парковок:',
+            error
+        );
+    });
+}
     if (map && cityCoords) {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
     }
