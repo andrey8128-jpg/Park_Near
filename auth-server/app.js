@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 // ============================================
@@ -293,6 +294,25 @@ app.post('/auth/telegram-webapp', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: 'Ошибка авторизации'
+        });
+    }
+});
+// ПРОВЕРКА ПОДКЛЮЧЕНИЯ POSTGRESQL
+app.get('/health/db', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT NOW()');
+
+        res.json({
+            status: 'ok',
+            database: 'connected',
+            time: result.rows[0].now
+        });
+    } catch (error) {
+        console.error('Ошибка PostgreSQL:', error.message);
+
+        res.status(500).json({
+            status: 'error',
+            database: 'disconnected'
         });
     }
 });
