@@ -317,6 +317,45 @@ app.get('/health/db', async (req, res) => {
     }
 });
 // ============================================
+// ПОЛУЧЕНИЕ ПАРКОВОК ИЗ POSTGRESQL
+// ============================================
+app.get('/api/parkings', async (req, res) => {
+    try {
+        const city = String(req.query.city || '').trim();
+        let result;
+        if (city) {
+            result = await pool.query(
+                `SELECT id, data
+                 FROM parkings
+                 WHERE data->>'city' = $1
+                 ORDER BY id`,
+                [city]
+            );
+        } else {
+            result = await pool.query(
+                `SELECT id, data
+                 FROM parkings
+                 ORDER BY id`
+            );
+        }
+        const parkings = result.rows.map(row => ({
+            ...row.data,
+            id: row.id
+        }));
+        res.json({
+            success: true,
+            count: parkings.length,
+            parkings
+        });
+    } catch (error) {
+        console.error('Ошибка получения парковок:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Не удалось загрузить парковки'
+        });
+    }
+});
+// ============================================
 // ОБРАБОТКА НЕИЗВЕСТНЫХ МАРШРУТОВ
 // ============================================
 app.use((req, res) => {
