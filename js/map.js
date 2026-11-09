@@ -765,12 +765,12 @@ function loadAllParkings(city = '', force = false) {
             );
         })
         .catch(error => {
-            console.error(
-                'Ошибка загрузки парковок из PostgreSQL:',
-                error
-            );
-            throw error;
-        });
+    console.error(
+        'Ошибка загрузки парковок из PostgreSQL:',
+        error.message || error
+    );
+    return false;
+});
 }
   function showParkingsForCity(city) {
     if (!map || !city) return;
