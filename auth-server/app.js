@@ -86,6 +86,12 @@ async function initializeDatabase() {
 }
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BOT_API_SECRET = process.env.BOT_API_SECRET;
+if (!BOT_API_SECRET || BOT_API_SECRET.length < 32) {
+    throw new Error(
+        'BOT_API_SECRET не задан или слишком короткий'
+    );
+}
 // ============================================
 // НАСТРОЙКИ
 // ============================================
@@ -343,6 +349,117 @@ async function createFirebaseToken(telegramUser) {
         user
     };
 }
+app.post('/api/bot/login-token', async (req, res) => {
+    const receivedSecret = req.get('x-bot-api-secret') || '';
+    const expected = Buffer.from(BOT_API_SECRET);
+    const received = Buffer.from(receivedSecret);
+    if (
+        received.length !== expected.length ||
+        !crypto.timingSafeEqual(received, expected)
+    ) {
+        return res.status(401).json({
+            success: false,
+            error: 'Недействительный секрет'
+        });
+    }
+    const { token, userData } = req.body || {};
+    if (
+        typeof token !== 'string' ||
+        token.length < 16 ||
+        token.length > 256 ||
+        !userData ||
+        !userData.userId ||
+        !/^\d+$/.test(String(userData.userId))
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: 'Некорректные данные авторизации'
+        });
+    }
+    const telegramId = String(userData.userId);
+    const userId = `tg_${telegramId}`;
+    const now = Date.now();
+    const expires = now + 5 * 60 * 1000;
+    const user = {
+        id: userId,
+        telegramId,
+        username: userData.username || 'tg_user',
+        firstName: userData.firstName || 'Пользователь',
+        photoUrl: userData.photoUrl || '',
+        isGuest: false,
+        lastActive: now
+    };
+    const initialStats = {
+        registeredAt: now,
+        lastActive: now,
+        parkingsCreated: 0,
+        parkingsUpdated: 0,
+        confirmations: 0,
+        views: 0,
+        favorites: 0,
+        activeDates: [
+            new Date().toISOString().split('T')[0]
+        ]
+    };
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query(
+            `INSERT INTO users (id, data)
+             VALUES ($1, $2::jsonb)
+             ON CONFLICT (id)
+             DO UPDATE SET data =
+                COALESCE(users.data, '{}'::jsonb)
+                || EXCLUDED.data
+                || jsonb_build_object(
+                    'stats',
+                    COALESCE(
+                        users.data->'stats',
+                        EXCLUDED.data->'stats'
+                    )
+                )`,
+            [
+                userId,
+                JSON.stringify({
+                    ...user,
+                    stats: initialStats
+                })
+            ]
+        );
+        await client.query(
+            `INSERT INTO login_tokens (token, data)
+             VALUES ($1, $2::jsonb)`,
+            [
+                token,
+                JSON.stringify({
+                    userId,
+                    expires,
+                    userData: {
+                        ...userData,
+                        userId: telegramId
+                    }
+                })
+            ]
+        );
+        await client.query('COMMIT');
+        return res.json({
+            success: true,
+            expires
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(
+            'Ошибка создания токена входа:',
+            error.message
+        );
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось создать токен входа'
+        });
+    } finally {
+        client.release();
+    }
+});
 // ============================================
 // ПРОВЕРКА РАБОТОСПОСОБНОСТИ
 // ============================================
