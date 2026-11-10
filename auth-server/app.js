@@ -3,6 +3,25 @@ const cors = require('cors');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
 const pool = require('./db');
+// ============================================
+// АВТОМАТИЧЕСКАЯ ПОДГОТОВКА ТАБЛИЦЫ СЕССИЙ
+// ============================================
+async function initializeDatabase() {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS app_sessions (
+            token_hash TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL
+                REFERENCES users(id) ON DELETE CASCADE,
+            expires_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    `);
+    await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_app_sessions_user_id
+        ON app_sessions(user_id)
+    `);
+    console.log('Таблицы авторизации PostgreSQL подготовлены');
+}
 const app = express();
 const PORT = process.env.PORT || 3000;
 // ============================================
