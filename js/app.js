@@ -744,67 +744,91 @@ async function initAuth() {
 async function checkTelegramTokenFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    if (!token) return false;
-    // Очищаем URL, чтобы токен не остался в адресной строке
-    window.history.replaceState({}, document.title, window.location.pathname);
+    if (!token) {
+        return false;
+    }
+    // Убираем одноразовый токен из адресной строки.
+    window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+    );
     try {
-        // Ищем токен в Firebase
-        const snapshot = await database.ref(`loginTokens/${token}`).once('value');
-        const tokenData = snapshot.val();
-        if (!tokenData) {
-            alert('Ссылка недействительна.');
-            return false;
+        // Передаём временный токен серверу.
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/auth/telegram-token-login`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ token })
+            }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось подтвердить вход через Telegram.'
+            );
         }
-        if (Date.now() > tokenData.expires) {
-            alert('Ссылка истекла. Попробуйте войти снова.');
-            database.ref(`loginTokens/${token}`).remove();
-            return false;
+        if (!result.sessionToken || !result.user) {
+            throw new Error(
+                'Сервер вернул неполные данные авторизации.'
+            );
         }
-        if (!tokenData.userData || !tokenData.userData.userId) {
-            alert('Бот еще не подтвердил вход. Подождите пару секунд и обновите страницу.');
-            return false;
+        // Сохраняем серверную сессию.
+        localStorage.setItem(
+            'parkNearSessionToken',
+            result.sessionToken
+        );
+        if (result.expiresAt) {
+            localStorage.setItem(
+                'parkNearSessionExpiresAt',
+                result.expiresAt
+            );
         }
-        // Успех! Формируем профиль
-        const tgUser = tokenData.userData;
+        // Восстанавливаем профиль пользователя.
         const profile = {
-            id: 'tg_' + tgUser.userId,
-            username: tgUser.username || 'tg_user',
-            firstName: tgUser.firstName || 'Пользователь',
-            photoUrl: tgUser.photoUrl || '',
+            id: result.user.id,
+            telegramId: String(
+                result.user.telegramId || ''
+            ),
+            username: result.user.username || 'tg_user',
+            firstName:
+                result.user.firstName || 'Пользователь',
+            photoUrl: result.user.photoUrl || '',
             isGuest: false
         };
-        // Сохраняем в Firebase Database
-        const userRef = database.ref('users/' + profile.id);
-        await userRef.update({
-            id: profile.id,
-            telegramId: tgUser.userId,
-            username: profile.username,
-            firstName: profile.firstName,
-            photoUrl: profile.photoUrl,
-            isGuest: false,
-            lastActive: Date.now()
-        });
-        await userRef.child('stats').transaction(stats => {
-            if (stats !== null) return stats;
-            return {
-                registeredAt: Date.now(), lastActive: Date.now(),
-                parkingsCreated: 0, parkingsUpdated: 0, confirmations: 0,
-                views: 0, favorites: 0, activeDates: [new Date().toISOString().split('T')[0]]
-            };
-        });
-        // Сохраняем локально и обновляем UI
         currentUser = profile;
         window.currentUser = profile;
-        localStorage.setItem('tgUser', JSON.stringify(profile));
-        // Удаляем использованный токен
-        database.ref(`loginTokens/${token}`).remove();
+        localStorage.setItem(
+            'tgUser',
+            JSON.stringify(profile)
+        );
         hideAuthScreen();
         showPanel('home');
-        showToast('✅ Вы успешно вошли через Telegram!', 3000);
+        if (typeof showToast === 'function') {
+            showToast(
+                'Вы успешно вошли через Telegram!',
+                3000
+            );
+        }
+        console.log(
+            'Вход через Telegram-бота выполнен:',
+            profile.id
+        );
         return true;
     } catch (error) {
-        console.error('Ошибка проверки токена:', error);
-        alert('Не удалось завершить вход. Проверьте интернет.');
+        console.error(
+            'Ошибка входа через Telegram-бота:',
+            error
+        );
+        localStorage.removeItem('parkNearSessionToken');
+        localStorage.removeItem('parkNearSessionExpiresAt');
+     alert(
+            'Не удалось завершить вход: ' +
+            (error.message || 'Неизвестная ошибка')
+        );
         return false;
     }
 }
