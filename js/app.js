@@ -4387,124 +4387,90 @@ function renderParkingList(container, parkings) {
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 async function onTelegramAuth(authData) {
     try {
-        let verifiedUser = null;
-        // СЦЕНАРИЙ А: вход внутри Telegram Mini App
+        let endpoint;
+        let requestBody;
+        // Telegram Mini App
         if (authData && authData.initData) {
-            if (typeof window.verifyTelegramInitData !== 'function') {
-                throw new Error(
-                    'Не подключена серверная проверка для Mini App.'
-                );
-            }
-            verifiedUser = await window.verifyTelegramInitData(
-                authData.initData
-            );
+            endpoint = '/auth/telegram-webapp';
+            requestBody = {
+                initData: authData.initData
+            };
         }
-        // СЦЕНАРИЙ Б: вход через Telegram Login Widget
+        // Telegram Login Widget
         else if (authData && authData.id) {
-            // ВНИМАНИЕ:
-            // Для публичного приложения здесь необходима
-            // серверная проверка подписи Telegram.
-            verifiedUser = authData;
-        }
-        // Проверяем наличие пользователя
-        if (!verifiedUser || !verifiedUser.id) {
+            endpoint = '/auth/telegram-widget';
+            requestBody = {
+                user: authData
+            };
+        } else {
             throw new Error(
-                'Не удалось получить ID пользователя Telegram.'
+                'Не получены данные для авторизации Telegram.'
             );
         }
-        // Формируем профиль
-        const telegramId = String(verifiedUser.id);
-        const rawPhotoUrl =
-            verifiedUser.photo_url ||
-            verifiedUser.photoUrl ||
-            '';
-        // Проверяем ссылку на аватар
-        let photoUrl = '';
-        if (rawPhotoUrl) {
-            try {
-                const parsedUrl = new URL(rawPhotoUrl);
-                if (parsedUrl.protocol === 'https:') {
-                    photoUrl = parsedUrl.href;
-                } else {
-                    console.warn(
-                        'Ссылка на аватар должна использовать HTTPS.'
-                    );
-                }
-            } catch (error) {
-                console.warn(
-                    'Некорректная ссылка на аватар Telegram.'
-                );
+        // Передаём данные на сервер для проверки подписи Telegram
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}${endpoint}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
             }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Сервер не подтвердил авторизацию Telegram.'
+            );
         }
+        if (!result.customToken || !result.user) {
+            throw new Error(
+                'Сервер вернул неполные данные авторизации.'
+            );
+        }
+        // Временно сохраняем совместимость с Firebase Authentication.
+        // Проверка Telegram и сохранение профиля выполняются сервером.
+        if (
+            typeof firebase === 'undefined' ||
+            !firebase.auth
+        ) {
+            throw new Error(
+                'Firebase Authentication пока недоступен.'
+            );
+        }
+        await firebase.auth().signInWithCustomToken(
+            result.customToken
+        );
+        // Используем профиль, полученный от сервера
         const profile = {
-            id: 'tg_' + telegramId,
-            username: verifiedUser.username || 'tg_user',
-            firstName:
-                verifiedUser.first_name ||
-                verifiedUser.firstName ||
-                'Пользователь',
-            photoUrl: photoUrl,
+            id: result.user.id,
+            telegramId: String(result.user.telegramId),
+            username: result.user.username || 'tg_user',
+            firstName: result.user.firstName || 'Пользователь',
+            photoUrl: result.user.photoUrl || '',
             isGuest: false
         };
-        // Ссылка на профиль пользователя в Firebase
-        const userRef = database.ref(
-            'users/' + profile.id
-        );
-        const now = Date.now();
-        const today = new Date().toISOString().split('T')[0];
-        // Сохраняем данные пользователя
-        await userRef.update({
-            id: profile.id,
-            telegramId: telegramId,
-            username: profile.username,
-            firstName: profile.firstName,
-            photoUrl: profile.photoUrl,
-            isGuest: false,
-            lastActive: now
-        });
-        // Создаём статистику, если её ещё нет
-        await userRef.child('stats').transaction(stats => {
-            if (stats !== null) {
-                return stats;
-            }
-            return {
-                registeredAt: now,
-                lastActive: now,
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
-                activeDates: [today]
-            };
-        });
-        // Обновляем время последней активности
-        await userRef.child('stats/lastActive').set(now);
-        // Авторизуем пользователя в приложении
         currentUser = profile;
         window.currentUser = profile;
-        // Сохраняем профиль локально
         localStorage.setItem(
             'tgUser',
             JSON.stringify(profile)
         );
-        // Закрываем экран авторизации
         if (typeof hideAuthScreen === 'function') {
             hideAuthScreen();
         }
-        // Открываем главный экран
         if (typeof showPanel === 'function') {
             showPanel('home');
         }
-        // Показываем уведомление
         if (typeof showToast === 'function') {
             showToast(
-                '✅ Вы успешно вошли через Telegram!',
+                'Вы успешно вошли через Telegram!',
                 3000
             );
         }
         console.log(
-            'Вход выполнен:',
+            'Вход через сервер выполнен:',
             profile.id
         );
         return profile;
