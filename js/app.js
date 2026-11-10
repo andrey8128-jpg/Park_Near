@@ -1663,9 +1663,14 @@ async function endParkingSession(parkingId) {
             }
         }
         if (!sessionKey) {
-            alert('Активная парковка не найдена.');
-            return;
-        }
+    // Активной сессии в Firebase уже нет.
+    // Удаляем устаревшее локальное состояние.
+    if (typeof window.clearLocalActiveParking === 'function') {
+        window.clearLocalActiveParking();
+    }
+    alert('Активная парковка уже завершена. Состояние приложения обновлено.');
+    return;
+}
         const sessionRef = database.ref(
             `parkingSessions/${sessionKey}`
         );
@@ -1684,9 +1689,21 @@ async function endParkingSession(parkingId) {
             };
         });
         if (!sessionResult.committed) {
-            alert('Эта парковочная сессия уже завершена.');
-            return;
+    const latestSession = sessionResult.snapshot
+        ? sessionResult.snapshot.val()
+        : null;
+    // Очищаем локальный баннер только если база
+    // действительно подтверждает, что сессия неактивна.
+    if (!latestSession || latestSession.active !== true) {
+        if (typeof window.clearLocalActiveParking === 'function') {
+            window.clearLocalActiveParking();
         }
+        alert('Эта парковочная сессия уже завершена. Состояние приложения обновлено.');
+        return;
+    }
+    alert('Не удалось завершить парковку. Попробуйте ещё раз.');
+    return;
+}
         try {
             // Уменьшаем общий счётчик только один раз.
             const counterResult = await parkingRef
