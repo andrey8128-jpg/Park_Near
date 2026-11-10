@@ -17,6 +17,16 @@ async function initializeDatabase() {
         )
         `,
         `
+        CREATE TABLE IF NOT EXISTS auth_sessions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL
+                REFERENCES users(id) ON DELETE CASCADE,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at TIMESTAMPTZ NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        `,
+        `
         CREATE TABLE IF NOT EXISTS parkings (
             id TEXT PRIMARY KEY,
             data JSONB NOT NULL DEFAULT '{}'::jsonb,
