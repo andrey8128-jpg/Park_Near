@@ -613,6 +613,59 @@ function restoreSavedUser() {
         return false;
     }
 }
+async function restorePostgresSession() {
+    const sessionToken = localStorage.getItem(
+        'parkNearSessionToken'
+    );
+    if (!sessionToken) {
+        return false;
+    }
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/auth/me`,
+            {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`
+                }
+            }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success || !result.user) {
+            throw new Error('Серверная сессия недействительна');
+        }
+        const profile = {
+            id: result.user.id,
+            telegramId: String(result.user.telegramId || ''),
+            username: result.user.username || 'tg_user',
+            firstName: result.user.firstName || 'Пользователь',
+            photoUrl: result.user.photoUrl || '',
+            isGuest: false
+        };
+        currentUser = profile;
+        window.currentUser = profile;
+        localStorage.setItem(
+            'tgUser',
+            JSON.stringify(profile)
+        );
+        console.log(
+            'Серверная сессия восстановлена:',
+            profile.id
+        );
+        return true;
+    } catch (error) {
+        console.warn(
+            'Не удалось восстановить серверную сессию:',
+            error.message
+        );
+        localStorage.removeItem('parkNearSessionToken');
+        localStorage.removeItem('parkNearSessionExpiresAt');
+        localStorage.removeItem('tgUser');
+        currentUser = null;
+        window.currentUser = null;
+        return false;
+    }
+}
 function logoutUser() {
     if (!currentUser) {
         alert('Вы уже вышли из аккаунта.');
