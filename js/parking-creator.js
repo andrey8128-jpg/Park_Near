@@ -340,15 +340,11 @@ async function submitParkingWithPolygon() {
         const centerLat = coordsToSave.reduce(
             (sum, c) => sum + Number(c[0]), 0
         ) / coordsToSave.length;
-
         const centerLng = coordsToSave.reduce(
             (sum, c) => sum + Number(c[1]), 0
         ) / coordsToSave.length;
-
         if (btn) btn.textContent = 'Определяем город...';
-
         const geoData = await getAddressByCoordinates(centerLat, centerLng);
-
         let detectedCity = String(
             geoData?.city ||
             currentCity ||
@@ -356,18 +352,15 @@ async function submitParkingWithPolygon() {
             userCityPrefs?.city ||
             ''
         ).trim();
-
         const detectedRegion = String(
             geoData?.region ||
             mapCity?.region ||
             userCityPrefs?.region ||
             ''
         ).trim();
-
         const detectedAddress = String(geoData?.address || '').trim();
         const detectedStreet = String(geoData?.street || '').trim();
         const detectedHouseNumber = String(geoData?.houseNumber || '').trim();
-
         if (!detectedCity) {
             detectedCity = String(
                 currentCity ||
@@ -376,30 +369,24 @@ async function submitParkingWithPolygon() {
                 ''
             ).trim();
         }
-
         const fullStreet =
             streetType && streetName
                 ? `${streetType} ${streetName}`
                 : streetName;
-
         const finalStreet = fullStreet || detectedStreet;
         const finalHouseNumber = houseNumber || detectedHouseNumber;
-
         const finalAddress = detectedAddress ||
             [
                 detectedCity,
                 finalStreet,
                 finalHouseNumber
             ].filter(Boolean).join(', ');
-
         const name =
             fullStreet && houseNumber
                 ? `${fullStreet}, ${houseNumber}`
                 : finalAddress ||
                   `Парковка ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
-
         const now = Date.now();
-
         // Очищаем значения для ключей Firebase
         const cleanKeyPart = value =>
             String(value || '')
@@ -408,19 +395,14 @@ async function submitParkingWithPolygon() {
                 .replace(/\s+/g, '_')
                 .replace(/_+/g, '_')
                 .replace(/^_|_$/g, '');
-
         // Формируем путь: город / улица / дом
         const cityKey =
             cleanKeyPart(detectedCity) || 'Неизвестный_город';
-
         const streetKey =
             cleanKeyPart(finalStreet) || 'Неизвестная_улица';
-
         const houseKey =
             cleanKeyPart(finalHouseNumber) || 'Без_дома';
-
         const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
-
         // Данные парковки
         const parkingData = {
             lat: centerLat,
@@ -449,77 +431,45 @@ async function submitParkingWithPolygon() {
             status: 'unknown',
             statusConfirmations: 0
         };
-
-        // Подбираем уникальный ключ парковки
-        let number = 1;
-        let parkingKey = '';
-        let committed = false;
-        let parkingPath = '';
-        let parkingRef = null;
-
-        const MAX_ATTEMPTS = 50;
-
+        // Сохраняем парковку через PostgreSQL API
         if (btn) btn.textContent = 'Сохраняем...';
-
-        while (!committed && number <= MAX_ATTEMPTS) {
-            parkingKey = `${baseKey}(${number})`;
-
-            parkingPath =
-                `parkings/${cityKey}/${streetKey}/${houseKey}/${parkingKey}`;
-
-            parkingRef = database.ref(parkingPath);
-
-            const txResult = await parkingRef.transaction(currentData => {
-                if (currentData !== null) return;
-                return parkingData;
-            });
-
-            committed = txResult.committed;
-
-            if (!committed) number++;
-        }
-
-        if (!committed || !parkingRef) {
+        const sessionToken = localStorage.getItem('parkNearSessionToken');
+        if (!sessionToken) {
             throw new Error(
-                'Не удалось подобрать свободный идентификатор парковки. Попробуйте ещё раз.'
+                'Нет активной серверной сессии. Войдите через Telegram.'
             );
         }
-
-        console.log('Путь парковки:', parkingPath);
-        console.log('Ключ парковки:', parkingKey);
-        console.log('Группа города:', cityKey);
-
-        // Обновляем статистику пользователя
-        try {
-            await database
-                .ref(`users/${currentUser.id}/stats/parkingsCreated`)
-                .transaction(count => (count || 0) + 1);
-        } catch (error) {
-            console.warn('Не удалось обновить статистику:', error);
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionToken}`
+                },
+                body: JSON.stringify(parkingData)
+            }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success || !result.id) {
+            throw new Error(
+                result.error || 'Не удалось сохранить парковку'
+            );
         }
-
-        // Сохраняем запись в истории
-        try {
-            await parkingRef.child('history').push({
-                action: 'created',
-                timestamp: now,
-                userId: currentUser.id,
-                username: currentUser.username || ''
-            });
-        } catch (error) {
-            console.warn('Не удалось сохранить history:', error);
-        }
-
-        // Обновляем локальный кэш
-        parkingDataCache[parkingKey] = {
+        const parkingKey = result.id;
+        const savedParkingData = result.parking || {
             ...parkingData,
-            id: parkingKey,
-            _dbPath: parkingPath
+            id: parkingKey
         };
-
+        console.log('Парковка сохранена в PostgreSQL:', parkingKey);
+       // Обновляем локальный кэш
+    parkingDataCache[parkingKey] = {
+        ...savedParkingData,
+        id: parkingKey
+    };
         // Добавляем маркер на карту
         try {
-            addMarkerToMap(parkingKey, parkingData);
+            addMarkerToMap(parkingKey, savedParkingData);
         } catch (error) {
             console.warn('Маркер не добавлен:', error);
         }
