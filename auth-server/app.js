@@ -3,24 +3,86 @@ const cors = require('cors');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
 const pool = require('./db');
+
 // ============================================
-// АВТОМАТИЧЕСКАЯ ПОДГОТОВКА ТАБЛИЦЫ СЕССИЙ
+// ПОДГОТОВКА СТРУКТУРЫ POSTGRESQL
 // ============================================
 async function initializeDatabase() {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS app_sessions (
-            token_hash TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL
-                REFERENCES users(id) ON DELETE CASCADE,
-            expires_at TIMESTAMPTZ NOT NULL,
+    const statements = [
+        `
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            data JSONB NOT NULL DEFAULT '{}'::jsonb,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
-    `);
-    await pool.query(`
-        CREATE INDEX IF NOT EXISTS idx_app_sessions_user_id
-        ON app_sessions(user_id)
-    `);
-    console.log('Таблицы авторизации PostgreSQL подготовлены');
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS parkings (
+            id TEXT PRIMARY KEY,
+            data JSONB NOT NULL DEFAULT '{}'::jsonb,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS parking_sessions (
+            id TEXT PRIMARY KEY,
+            data JSONB NOT NULL DEFAULT '{}'::jsonb,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS favorites (
+            user_id TEXT NOT NULL
+                REFERENCES users(id) ON DELETE CASCADE,
+            parking_id TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (user_id, parking_id)
+        )
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL
+                REFERENCES users(id) ON DELETE CASCADE,
+            data JSONB NOT NULL DEFAULT '{}'::jsonb,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_parkings_city
+        ON parkings ((data->>'city'))
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_parking_sessions_user
+        ON parking_sessions ((data->>'userId'))
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_favorites_user
+        ON favorites (user_id)
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user
+        ON push_subscriptions (user_id)
+        `
+    ];
+     const client = await pool.connect();
+    try {
+          await client.query('BEGIN');
+        for (const statement of statements) {
+            await client.query(statement);
+        }
+           await client.query('COMMIT');
+        console.log('Структура PostgreSQL проверена и подготовлена');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(
+            'Ошибка подготовки PostgreSQL:',
+            error.message
+        );
+        throw error;
+    } finally {
+        client.release();
+    }
 }
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -410,10 +472,23 @@ app.use((error, req, res, next) => {
     });
 });
 // ============================================
-// ЗАПУСК СЕРВЕРА
+// ЗАПУСК СЕРВЕРА ПОСЛЕ ПРОВЕРКИ POSTGRESQL
 // ============================================
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(
-        `Park Near Auth Server запущен на порту ${PORT}`
-    );
-});
+async function startServer() {
+    try {
+        await initializeDatabase();
+
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(
+                `Park Near API запущен на порту ${PORT}`
+            );
+        });
+    } catch (error) {
+        console.error(
+            'Сервер не запущен: PostgreSQL недоступен:',
+            error.message
+        );
+        process.exit(1);
+    }
+}
+startServer();
