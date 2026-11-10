@@ -16,7 +16,7 @@ async function initializeDatabase() {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
         `,
-        `
+                `
         CREATE TABLE IF NOT EXISTS auth_sessions (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL
@@ -25,6 +25,10 @@ async function initializeDatabase() {
             expires_at TIMESTAMPTZ NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_auth_sessions_user
+        ON auth_sessions (user_id)
         `,
         `
         CREATE TABLE IF NOT EXISTS parkings (
@@ -394,6 +398,84 @@ async function createPostgresSession(telegramUser) {
         client.release();
     }
 }
+// ============================================
+// ПРОВЕРКА СЕССИИ PARK NEAR
+// ============================================
+async function requireAuth(req, res, next) {
+    try {
+        const authorization = req.headers.authorization || '';
+        const match = authorization.match(/^Bearer ([a-f0-9]{64})$/i);
+        if (!match) {
+            return res.status(401).json({
+                success: false,
+                error: 'Требуется авторизация'
+            });
+        }
+        const tokenHash = crypto
+            .createHash('sha256')
+            .update(match[1])
+            .digest('hex');
+        const result = await pool.query(
+            `SELECT
+                s.id AS session_id,
+                u.id AS user_id,
+                u.data AS user_data
+             FROM auth_sessions s
+             JOIN users u ON u.id = s.user_id
+             WHERE s.token_hash = $1
+               AND s.expires_at > NOW()
+             LIMIT 1`,
+            [tokenHash]
+        );
+        if (result.rows.length === 0) {
+            return res.status(401).json({
+                success: false,
+                error: 'Сессия истекла или недействительна'
+            });
+        }
+        req.authUser = {
+            id: result.rows[0].user_id,
+            ...result.rows[0].user_data
+        };
+        req.authSessionId = result.rows[0].session_id;
+        next();
+    } catch (error) {
+        console.error('Ошибка проверки сессии:', error.message);
+        return res.status(500).json({
+            success: false,
+            error: 'Ошибка проверки авторизации'
+        });
+    }
+}
+// ============================================
+// ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+// ============================================
+app.get('/auth/me', requireAuth, (req, res) => {
+    res.json({
+        success: true,
+        user: req.authUser
+    });
+});
+// ============================================
+// ЗАВЕРШЕНИЕ СЕССИИ
+// ============================================
+app.post('/auth/logout', requireAuth, async (req, res) => {
+    try {
+        await pool.query(
+            'DELETE FROM auth_sessions WHERE id = $1',
+            [req.authSessionId]
+        );
+        return res.json({
+            success: true
+        });
+    } catch (error) {
+        console.error('Ошибка завершения сессии:', error.message);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось завершить сессию'
+        });
+    }
+});
 // ============================================
 // ПРОВЕРКА РАБОТОСПОСОБНОСТИ
 // ============================================
