@@ -15,7 +15,7 @@ async function initializeDatabase() {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
         `,
-                `
+        `
         CREATE TABLE IF NOT EXISTS auth_sessions (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL
@@ -29,7 +29,7 @@ async function initializeDatabase() {
         CREATE INDEX IF NOT EXISTS idx_auth_sessions_user
         ON auth_sessions (user_id)
         `,
-         `
+        `
         CREATE TABLE IF NOT EXISTS login_tokens (
             token TEXT PRIMARY KEY,
             data JSONB NOT NULL,
@@ -85,13 +85,17 @@ async function initializeDatabase() {
         ON push_subscriptions (user_id)
         `
     ];
-     const client = await pool.connect();
+
+    const client = await pool.connect();
+
     try {
-          await client.query('BEGIN');
+        await client.query('BEGIN');
+
         for (const statement of statements) {
             await client.query(statement);
         }
-           await client.query('COMMIT');
+
+        await client.query('COMMIT');
         console.log('Структура PostgreSQL проверена и подготовлена');
     } catch (error) {
         await client.query('ROLLBACK');
@@ -104,22 +108,27 @@ async function initializeDatabase() {
         client.release();
     }
 }
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_API_SECRET = process.env.BOT_API_SECRET;
+
 if (!BOT_API_SECRET || BOT_API_SECRET.length < 32) {
     throw new Error(
         'BOT_API_SECRET не задан или слишком короткий'
     );
 }
+
 // ============================================
 // НАСТРОЙКИ
 // ============================================
 const ALLOWED_ORIGIN =
     process.env.ALLOWED_ORIGIN ||
     'https://andrey8128-jpg.github.io';
+
 // Максимальный возраст данных Telegram — 24 часа
 const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
+
 // ============================================
 // CORS И JSON
 // ============================================
@@ -138,24 +147,30 @@ app.use(cors({
         'Authorization'
     ]
 }));
+
 app.use(express.json({
     limit: '100kb'
 }));
+
 // ============================================
 // СЕКРЕТНЫЕ ПЕРЕМЕННЫЕ
 // ============================================
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
 if (!botToken) {
     throw new Error('Не задан TELEGRAM_BOT_TOKEN');
 }
+
 if (!serviceAccountJson) {
     throw new Error('Не задан FIREBASE_SERVICE_ACCOUNT_JSON');
 }
+
 // ============================================
 // FIREBASE ADMIN
 // ============================================
 let serviceAccount;
+
 try {
     serviceAccount = JSON.parse(serviceAccountJson);
 } catch (error) {
@@ -163,26 +178,33 @@ try {
         'FIREBASE_SERVICE_ACCOUNT_JSON содержит некорректный JSON'
     );
 }
+
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL:
         'https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app'
 });
+
 const auth = admin.auth();
+
 // ============================================
 // ПРОВЕРКА ДАТЫ АВТОРИЗАЦИИ
 // ============================================
 function isAuthDateValid(authDate) {
     const date = Number(authDate);
+
     if (!Number.isFinite(date) || date <= 0) {
         return false;
     }
+
     const now = Math.floor(Date.now() / 1000);
+
     return (
         date <= now + 60 &&
         now - date <= MAX_AUTH_AGE_SECONDS
     );
 }
+
 // ============================================
 // БЕЗОПАСНОЕ СРАВНЕНИЕ ХЕШЕЙ
 // ============================================
@@ -193,13 +215,16 @@ function safeCompareHash(receivedHash, expectedHash) {
     ) {
         return false;
     }
+
     const received = Buffer.from(receivedHash, 'hex');
     const expected = Buffer.from(expectedHash, 'hex');
+
     return (
         received.length === expected.length &&
         crypto.timingSafeEqual(received, expected)
     );
 }
+
 // ============================================
 // TELEGRAM LOGIN WIDGET
 // ============================================
@@ -211,31 +236,38 @@ function verifyTelegramWidget(userData) {
     ) {
         return false;
     }
+
     const receivedHash = userData.hash;
+
     if (
         !receivedHash ||
         !isAuthDateValid(userData.auth_date)
     ) {
         return false;
     }
+
     const dataCheckString = Object.keys(userData)
         .filter(key => key !== 'hash')
         .sort()
         .map(key => `${key}=${userData[key]}`)
         .join('\n');
+
     const secretKey = crypto
         .createHash('sha256')
         .update(botToken)
         .digest();
+
     const expectedHash = crypto
         .createHmac('sha256', secretKey)
         .update(dataCheckString)
         .digest('hex');
+
     return safeCompareHash(
         receivedHash,
         expectedHash
     );
 }
+
 // ============================================
 // TELEGRAM MINI APP
 // ============================================
@@ -246,15 +278,20 @@ function verifyTelegramWebApp(initData) {
     ) {
         return null;
     }
+
     const params = new URLSearchParams(initData);
     const receivedHash = params.get('hash');
+
     if (!receivedHash) {
         return null;
     }
+
     const authDate = params.get('auth_date');
+
     if (!isAuthDateValid(authDate)) {
         return null;
     }
+
     const dataCheckString = [...params.entries()]
         .filter(([key]) => key !== 'hash')
         .sort(([a], [b]) => {
@@ -264,25 +301,30 @@ function verifyTelegramWebApp(initData) {
         })
         .map(([key, value]) => `${key}=${value}`)
         .join('\n');
+
     const secretKey = crypto
         .createHmac('sha256', 'WebAppData')
         .update(botToken)
         .digest();
+
     const expectedHash = crypto
         .createHmac('sha256', secretKey)
         .update(dataCheckString)
         .digest('hex');
-    if (
-        !safeCompareHash(receivedHash, expectedHash)
-    ) {
+
+    if (!safeCompareHash(receivedHash, expectedHash)) {
         return null;
     }
+
     try {
         const userString = params.get('user');
+
         if (!userString) {
             return null;
         }
+
         const user = JSON.parse(userString);
+
         if (
             !user ||
             !user.id ||
@@ -290,11 +332,13 @@ function verifyTelegramWebApp(initData) {
         ) {
             return null;
         }
+
         return user;
     } catch (error) {
         return null;
     }
 }
+
 // ============================================
 // СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ И СЕССИИ В POSTGRESQL
 // ============================================
@@ -306,9 +350,11 @@ async function createPostgresSession(telegramUser) {
     ) {
         throw new Error('Некорректный Telegram user ID');
     }
+
     const telegramId = String(telegramUser.id);
     const userId = `tg_${telegramId}`;
     const now = Date.now();
+
     const user = {
         id: userId,
         telegramId,
@@ -324,6 +370,7 @@ async function createPostgresSession(telegramUser) {
         isGuest: false,
         lastActive: now
     };
+
     const initialStats = {
         registeredAt: now,
         lastActive: now,
@@ -336,19 +383,26 @@ async function createPostgresSession(telegramUser) {
             new Date().toISOString().split('T')[0]
         ]
     };
+
     // Генерируем случайный токен и сохраняем в БД только его SHA-256.
     const sessionToken = crypto.randomBytes(32).toString('hex');
+
     const tokenHash = crypto
         .createHash('sha256')
         .update(sessionToken)
         .digest('hex');
+
     const sessionId = crypto.randomBytes(16).toString('hex');
+
     const expiresAt = new Date(
         Date.now() + 30 * 24 * 60 * 60 * 1000
     );
+
     const client = await pool.connect();
+
     try {
         await client.query('BEGIN');
+
         // Создаём пользователя или обновляем его профиль,
         // сохраняя уже существующую статистику.
         await client.query(
@@ -373,6 +427,7 @@ async function createPostgresSession(telegramUser) {
                 })
             ]
         );
+
         // Создаём серверную сессию.
         await client.query(
             `INSERT INTO auth_sessions
@@ -385,12 +440,15 @@ async function createPostgresSession(telegramUser) {
                 expiresAt
             ]
         );
+
         // Удаляем просроченные сессии.
         await client.query(
             `DELETE FROM auth_sessions
              WHERE expires_at <= NOW()`
         );
+
         await client.query('COMMIT');
+
         return {
             sessionToken,
             uid: userId,
@@ -404,6 +462,7 @@ async function createPostgresSession(telegramUser) {
         client.release();
     }
 }
+
 // ============================================
 // ПРОВЕРКА СЕССИИ PARK NEAR
 // ============================================
@@ -411,16 +470,19 @@ async function requireAuth(req, res, next) {
     try {
         const authorization = req.headers.authorization || '';
         const match = authorization.match(/^Bearer ([a-f0-9]{64})$/i);
+
         if (!match) {
             return res.status(401).json({
                 success: false,
                 error: 'Требуется авторизация'
             });
         }
+
         const tokenHash = crypto
             .createHash('sha256')
             .update(match[1])
             .digest('hex');
+
         const result = await pool.query(
             `SELECT
                 s.id AS session_id,
@@ -433,20 +495,24 @@ async function requireAuth(req, res, next) {
              LIMIT 1`,
             [tokenHash]
         );
+
         if (result.rows.length === 0) {
             return res.status(401).json({
                 success: false,
                 error: 'Сессия истекла или недействительна'
             });
         }
+
         req.authUser = {
             id: result.rows[0].user_id,
             ...result.rows[0].user_data
         };
+
         req.authSessionId = result.rows[0].session_id;
         next();
     } catch (error) {
         console.error('Ошибка проверки сессии:', error.message);
+
         return res.status(500).json({
             success: false,
             error: 'Ошибка проверки авторизации'
@@ -462,6 +528,7 @@ app.get('/auth/me', requireAuth, (req, res) => {
         user: req.authUser
     });
 });
+
 // ============================================
 // ЗАВЕРШЕНИЕ СЕССИИ
 // ============================================
@@ -471,22 +538,26 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
             'DELETE FROM auth_sessions WHERE id = $1',
             [req.authSessionId]
         );
+
         return res.json({
             success: true
         });
     } catch (error) {
         console.error('Ошибка завершения сессии:', error.message);
+
         return res.status(500).json({
             success: false,
             error: 'Не удалось завершить сессию'
         });
     }
 });
+
 // ============================================
 // ОБМЕН ОДНОРАЗОВОГО TELEGRAM-ТОКЕНА НА СЕССИЮ
 // ============================================
 app.post('/auth/telegram-token-login', async (req, res) => {
     const { token } = req.body || {};
+
     if (
         typeof token !== 'string' ||
         token.length < 16 ||
@@ -497,9 +568,12 @@ app.post('/auth/telegram-token-login', async (req, res) => {
             error: 'Некорректный токен авторизации'
         });
     }
-const client = await pool.connect();
+
+    const client = await pool.connect();
+
     try {
         await client.query('BEGIN');
+
         // Блокируем запись, чтобы один токен нельзя было
         // одновременно использовать в нескольких запросах.
         const tokenResult = await client.query(
@@ -509,17 +583,21 @@ const client = await pool.connect();
              FOR UPDATE`,
             [token]
         );
+
         if (tokenResult.rows.length === 0) {
             await client.query('ROLLBACK');
-                return res.status(401).json({
-                    success: false,
+
+            return res.status(401).json({
+                success: false,
                 error: 'Токен не найден или уже использован'
             });
         }
+
         const tokenData = tokenResult.rows[0].data;
         const expires = Number(tokenData.expires);
         const userId = String(tokenData.userId || '');
-    if (
+
+        if (
             !Number.isFinite(expires) ||
             expires <= Date.now() ||
             !/^tg_\d+$/.test(userId)
@@ -528,12 +606,15 @@ const client = await pool.connect();
                 'DELETE FROM login_tokens WHERE token = $1',
                 [token]
             );
-                await client.query('COMMIT');
+
+            await client.query('COMMIT');
+
             return res.status(401).json({
                 success: false,
                 error: 'Токен истёк или содержит некорректные данные'
             });
         }
+
         // Получаем существующего пользователя из PostgreSQL.
         const userResult = await client.query(
             `SELECT id, data
@@ -541,35 +622,46 @@ const client = await pool.connect();
              WHERE id = $1`,
             [userId]
         );
+
         if (userResult.rows.length === 0) {
             await client.query('ROLLBACK');
+
             return res.status(401).json({
                 success: false,
                 error: 'Пользователь не найден'
             });
         }
+
         const sessionToken = crypto.randomBytes(32).toString('hex');
+
         const tokenHash = crypto
             .createHash('sha256')
             .update(sessionToken)
             .digest('hex');
+
         const sessionId = crypto.randomBytes(16).toString('hex');
+
         const expiresAt = new Date(
             Date.now() + 30 * 24 * 60 * 60 * 1000
         );
+
         await client.query(
             `INSERT INTO auth_sessions
                 (id, user_id, token_hash, expires_at)
              VALUES ($1, $2, $3, $4)`,
             [sessionId, userId, tokenHash, expiresAt]
         );
+
         // Удаляем временный токен после успешного обмена.
         await client.query(
             'DELETE FROM login_tokens WHERE token = $1',
             [token]
         );
+
         await client.query('COMMIT');
-            const userData = userResult.rows[0].data;
+
+        const userData = userResult.rows[0].data;
+
         return res.json({
             success: true,
             sessionToken,
@@ -582,10 +674,12 @@ const client = await pool.connect();
         });
     } catch (error) {
         await client.query('ROLLBACK');
+
         console.error(
             'Ошибка обмена Telegram-токена:',
             error.message
         );
+
         return res.status(500).json({
             success: false,
             error: 'Не удалось выполнить авторизацию'
@@ -594,6 +688,7 @@ const client = await pool.connect();
         client.release();
     }
 });
+
 // ============================================
 // ПРОВЕРКА РАБОТОСПОСОБНОСТИ
 // ============================================
@@ -603,19 +698,23 @@ app.get('/health', (req, res) => {
         service: 'Park Near Auth Server'
     });
 });
+
 // ============================================
 // АВТОРИЗАЦИЯ TELEGRAM LOGIN WIDGET
 // ============================================
 app.post('/auth/telegram-widget', async (req, res) => {
     try {
         const userData = req.body?.user;
+
         if (!verifyTelegramWidget(userData)) {
             return res.status(401).json({
                 success: false,
                 error: 'Не удалось подтвердить данные Telegram'
             });
         }
+
         const result = await createPostgresSession(userData);
+
         return res.json({
             success: true,
             sessionToken: result.sessionToken,
@@ -628,12 +727,14 @@ app.post('/auth/telegram-widget', async (req, res) => {
             'Ошибка Telegram Widget:',
             error.message
         );
+
         return res.status(500).json({
             success: false,
             error: 'Ошибка авторизации'
         });
     }
 });
+
 // ============================================
 // АВТОРИЗАЦИЯ TELEGRAM MINI APP
 // ============================================
@@ -642,13 +743,16 @@ app.post('/auth/telegram-webapp', async (req, res) => {
         const telegramUser = verifyTelegramWebApp(
             req.body?.initData
         );
+
         if (!telegramUser) {
             return res.status(401).json({
                 success: false,
                 error: 'Не удалось подтвердить данные Telegram'
             });
         }
+
         const result = await createPostgresSession(telegramUser);
+
         return res.json({
             success: true,
             sessionToken: result.sessionToken,
@@ -661,12 +765,14 @@ app.post('/auth/telegram-webapp', async (req, res) => {
             'Ошибка Telegram Mini App:',
             error.message
         );
+
         return res.status(500).json({
             success: false,
             error: 'Ошибка авторизации'
         });
     }
 });
+
 // ============================================
 // СОХРАНЕНИЕ TELEGRAM LOGIN TOKEN ОТ БОТА
 // ============================================
@@ -687,7 +793,9 @@ app.post('/api/bot/login-token', async (req, res) => {
                 error: 'Доступ запрещён'
             });
         }
+
         const { token, userData } = req.body || {};
+
         if (
             typeof token !== 'string' ||
             !/^[a-f0-9]{32,128}$/i.test(token) ||
@@ -699,9 +807,11 @@ app.post('/api/bot/login-token', async (req, res) => {
                 error: 'Некорректные данные'
             });
         }
+
         const telegramId = String(userData.userId);
         const userId = `tg_${telegramId}`;
         const now = Date.now();
+
         const user = {
             id: userId,
             telegramId,
@@ -712,9 +822,12 @@ app.post('/api/bot/login-token', async (req, res) => {
             isGuest: false,
             lastActive: now
         };
+
         const client = await pool.connect();
+
         try {
             await client.query('BEGIN');
+
             await client.query(
                 `INSERT INTO users (id, data)
                  VALUES ($1, $2::jsonb)
@@ -748,6 +861,7 @@ app.post('/api/bot/login-token', async (req, res) => {
                     })
                 ]
             );
+
             await client.query(
                 `INSERT INTO login_tokens (token, data)
                  VALUES ($1, $2::jsonb)`,
@@ -760,7 +874,9 @@ app.post('/api/bot/login-token', async (req, res) => {
                     })
                 ]
             );
+
             await client.query('COMMIT');
+
             return res.json({
                 success: true
             });
@@ -775,12 +891,14 @@ app.post('/api/bot/login-token', async (req, res) => {
             'Ошибка сохранения Telegram-токена:',
             error.message
         );
+
         return res.status(500).json({
             success: false,
             error: 'Не удалось сохранить токен'
         });
     }
 });
+
 // ПРОВЕРКА ПОДКЛЮЧЕНИЯ POSTGRESQL
 app.get('/health/db', async (req, res) => {
     try {
@@ -800,6 +918,7 @@ app.get('/health/db', async (req, res) => {
         });
     }
 });
+
 // ============================================
 // ПОЛУЧЕНИЕ ПАРКОВОК ИЗ POSTGRESQL
 // ============================================
@@ -807,6 +926,7 @@ app.get('/api/parkings', async (req, res) => {
     try {
         const city = String(req.query.city || '').trim();
         let result;
+
         if (city) {
             result = await pool.query(
                 `SELECT id, data
@@ -822,10 +942,12 @@ app.get('/api/parkings', async (req, res) => {
                  ORDER BY id`
             );
         }
+
         const parkings = result.rows.map(row => ({
             ...row.data,
             id: row.id
         }));
+
         res.json({
             success: true,
             count: parkings.length,
@@ -833,6 +955,7 @@ app.get('/api/parkings', async (req, res) => {
         });
     } catch (error) {
         console.error('Ошибка получения парковок:', error.message);
+
         res.status(500).json({
             success: false,
             error: 'Не удалось загрузить парковки'
@@ -851,6 +974,7 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
     const lat = Number(parking.lat);
     const lng = Number(parking.lng);
     const coordinates = parking.coordinates;
+
     if (
         !Number.isInteger(totalSpots) ||
         totalSpots < 1 ||
@@ -861,6 +985,7 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
             error: 'Количество мест должно быть от 1 до 500'
         });
     }
+
     if (
         !Number.isFinite(lat) ||
         !Number.isFinite(lng) ||
@@ -872,6 +997,7 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
             error: 'Некорректные координаты'
         });
     }
+
     if (
         !Array.isArray(coordinates) ||
         coordinates.length < 3 ||
@@ -891,6 +1017,7 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
             error: 'Некорректный контур парковки'
         });
     }
+
     const cleanKeyPart = value =>
         String(value || '')
             .trim()
@@ -898,12 +1025,14 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
             .replace(/\s+/g, '_')
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
+
     const cityKey = cleanKeyPart(city) || 'Неизвестный_город';
     const streetKey = cleanKeyPart(street) || 'Неизвестная_улица';
     const houseKey = cleanKeyPart(houseNumber) || 'Без_дома';
     const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
     const now = Date.now();
     const user = req.authUser;
+
     const parkingData = {
         lat,
         lng,
@@ -937,12 +1066,17 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
             username: user.username || ''
         }]
     };
+
     const client = await pool.connect();
+
     try {
         await client.query('BEGIN');
+
         let parkingId = null;
+
         for (let number = 1; number <= 50; number++) {
             const candidate = `${baseKey}(${number})`;
+
             const result = await client.query(
                 `INSERT INTO parkings (id, data)
                  VALUES ($1, $2::jsonb)
@@ -950,18 +1084,22 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
                  RETURNING id`,
                 [candidate, JSON.stringify(parkingData)]
             );
+
             if (result.rowCount > 0) {
                 parkingId = candidate;
                 break;
             }
         }
+
         if (!parkingId) {
             await client.query('ROLLBACK');
+
             return res.status(409).json({
                 success: false,
                 error: 'Не удалось подобрать свободный идентификатор парковки'
             });
         }
+
         await client.query(
             `UPDATE users
              SET data = jsonb_set(
@@ -978,7 +1116,9 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
              WHERE id = $1`,
             [user.id]
         );
+
         await client.query('COMMIT');
+
         return res.status(201).json({
             success: true,
             id: parkingId,
@@ -990,6 +1130,7 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Ошибка создания парковки:', error.message);
+
         return res.status(500).json({
             success: false,
             error: 'Не удалось сохранить парковку'
@@ -998,49 +1139,68 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
         client.release();
     }
 });
-// Редактирование парковки
+
+// ============================================
+// РЕДАКТИРОВАНИЕ ПАРКОВКИ
+// ============================================
 app.put('/api/parkings/:id', requireAuth, async (req, res) => {
     const client = await pool.connect();
+
     try {
         const { name, street, houseNumber, totalSpots, description } = req.body;
+
         if (!name || !String(name).trim()) {
             return res.status(400).json({
                 success: false,
                 error: 'Введите название парковки'
             });
         }
+
         if (!street?.trim() && !houseNumber?.trim()) {
             return res.status(400).json({
                 success: false,
                 error: 'Укажите улицу или номер дома'
             });
         }
-        if (!Number.isInteger(totalSpots) || totalSpots < 1 || totalSpots > 500) {
+
+        if (
+            !Number.isInteger(totalSpots) ||
+            totalSpots < 1 ||
+            totalSpots > 500
+        ) {
             return res.status(400).json({
                 success: false,
                 error: 'Количество мест должно быть от 1 до 500'
             });
         }
+
         await client.query('BEGIN');
+
         const result = await client.query(
             'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
             [req.params.id]
         );
+
         if (result.rows.length === 0) {
             await client.query('ROLLBACK');
+
             return res.status(404).json({
                 success: false,
                 error: 'Парковка не найдена'
             });
         }
+
         const parking = result.rows[0].data;
+
         if (String(parking.authorId) !== String(req.authUser.id)) {
             await client.query('ROLLBACK');
+
             return res.status(403).json({
                 success: false,
                 error: 'Редактировать парковку может только её автор'
             });
         }
+
         const updates = {
             name: String(name).trim(),
             street: String(street || '').trim(),
@@ -1052,6 +1212,7 @@ app.put('/api/parkings/:id', requireAuth, async (req, res) => {
                 String(houseNumber || '').trim()
             ].filter(Boolean).join(', ')
         };
+
         const updated = await client.query(
             `UPDATE parkings
              SET data = data || $2::jsonb
@@ -1059,6 +1220,7 @@ app.put('/api/parkings/:id', requireAuth, async (req, res) => {
              RETURNING data`,
             [req.params.id, JSON.stringify(updates)]
         );
+
         await client.query(
             `UPDATE users
              SET data = jsonb_set(
@@ -1074,7 +1236,9 @@ app.put('/api/parkings/:id', requireAuth, async (req, res) => {
              WHERE id = $1`,
             [req.authUser.id]
         );
+
         await client.query('COMMIT');
+
         res.json({
             success: true,
             parking: updated.rows[0].data
@@ -1082,6 +1246,7 @@ app.put('/api/parkings/:id', requireAuth, async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Ошибка редактирования парковки:', error);
+
         res.status(500).json({
             success: false,
             error: 'Не удалось обновить парковку'
@@ -1090,6 +1255,172 @@ app.put('/api/parkings/:id', requireAuth, async (req, res) => {
         client.release();
     }
 });
+
+// ============================================
+// УДАЛЕНИЕ ПАРКОВКИ В POSTGRESQL
+// ============================================
+app.delete('/api/parkings/:id', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const result = await client.query(
+            'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+
+            return res.status(404).json({
+                success: false,
+                error: 'Парковка не найдена'
+            });
+        }
+
+        const parking = result.rows[0].data;
+
+        if (String(parking.authorId) !== String(req.authUser.id)) {
+            await client.query('ROLLBACK');
+
+            return res.status(403).json({
+                success: false,
+                error: 'Удалять парковку может только её автор'
+            });
+        }
+
+        await client.query(
+            'DELETE FROM parkings WHERE id = $1',
+            [req.params.id]
+        );
+
+        await client.query('COMMIT');
+
+        return res.json({ success: true });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Ошибка удаления парковки:', error);
+
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось удалить парковку'
+        });
+    } finally {
+        client.release();
+    }
+});
+
+// ============================================
+// ИЗМЕНЕНИЕ ЗАНЯТОСТИ ПАРКОВКИ В POSTGRESQL
+// ============================================
+app.patch('/api/parkings/:id/occupancy', requireAuth, async (req, res) => {
+    const delta = Number(req.body?.delta);
+
+    if (delta !== 1 && delta !== -1) {
+        return res.status(400).json({
+            success: false,
+            error: 'Допустимо изменить занятость только на одно место'
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const result = await client.query(
+            'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+
+            return res.status(404).json({
+                success: false,
+                error: 'Парковка не найдена'
+            });
+        }
+
+        const parking = result.rows[0].data || {};
+        const total = Number(parking.totalSpots || 0);
+        const previousOccupied = Number(parking.occupiedSpots || 0);
+        const newOccupied = previousOccupied + delta;
+
+        if (
+            !Number.isInteger(total) ||
+            !Number.isInteger(previousOccupied) ||
+            newOccupied < 0 ||
+            newOccupied > total
+        ) {
+            await client.query('ROLLBACK');
+
+            return res.status(400).json({
+                success: false,
+                error: 'Нельзя изменить занятость: достигнут предел мест'
+            });
+        }
+
+        const now = Date.now();
+
+        const username =
+            req.authUser.nickname ||
+            req.authUser.firstName ||
+            req.authUser.username ||
+            'Пользователь';
+
+        const historyEntry = {
+            action: delta < 0 ? 'freed' : 'occupied',
+            timestamp: now,
+            userId: req.authUser.id,
+            username,
+            previousOccupied,
+            newOccupied
+        };
+
+        // История из Firebase могла быть объектом, новая история — массивом.
+        const previousHistory = Array.isArray(parking.history)
+            ? parking.history
+            : Object.values(parking.history || {});
+
+        const updatedParking = {
+            ...parking,
+            occupiedSpots: newOccupied,
+            lastUpdatedAt: now,
+            lastUpdatedBy: username,
+            history: [...previousHistory, historyEntry]
+        };
+
+        await client.query(
+            'UPDATE parkings SET data = $2::jsonb WHERE id = $1',
+            [req.params.id, JSON.stringify(updatedParking)]
+        );
+
+        await client.query('COMMIT');
+
+        return res.json({
+            success: true,
+            previousOccupied,
+            occupiedSpots: newOccupied,
+            parking: {
+                ...updatedParking,
+                id: req.params.id
+            }
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Ошибка изменения занятости:', error);
+
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось изменить занятость парковки'
+        });
+    } finally {
+        client.release();
+    }
+});
+
 // ============================================
 // ОБРАБОТКА НЕИЗВЕСТНЫХ МАРШРУТОВ
 // ============================================
@@ -1099,22 +1430,26 @@ app.use((req, res) => {
         error: 'Маршрут не найден'
     });
 });
+
 // ============================================
 // ОБРАБОТКА ОШИБОК JSON
 // ============================================
 app.use((error, req, res, next) => {
     console.error('Ошибка сервера:', error.message);
+
     if (error instanceof SyntaxError && error.status === 400) {
         return res.status(400).json({
             success: false,
             error: 'Некорректный JSON'
         });
     }
+
     return res.status(500).json({
         success: false,
         error: 'Внутренняя ошибка сервера'
     });
 });
+
 // ============================================
 // ЗАПУСК СЕРВЕРА ПОСЛЕ ПРОВЕРКИ POSTGRESQL
 // ============================================
@@ -1132,7 +1467,9 @@ async function startServer() {
             'Сервер не запущен: PostgreSQL недоступен:',
             error.message
         );
+
         process.exit(1);
     }
 }
+
 startServer();
