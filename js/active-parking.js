@@ -70,7 +70,7 @@
             }, 1000);
         }
     }
-    // Вызывается после успешного создания сессии в Firebase.
+    // Вызывается после успешного создания парковочной сессии.
     window.setLocalActiveParking = function (parkingId, parkingName, startedAt) {
         saveParking({
             parkingId: String(parkingId),
@@ -80,7 +80,7 @@
         renderBanner();
         updateParkingButtonHighlight();
     };
-    // Вызывается после успешного завершения сессии в Firebase.
+    // Вызывается после успешного завершения парковочной сессии.
     window.clearLocalActiveParking = function () {
         try {
             localStorage.removeItem(STORAGE_KEY);
