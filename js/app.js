@@ -666,7 +666,7 @@ async function restorePostgresSession() {
         return false;
     }
 }
-function logoutUser() {
+async function logoutUser() {
     if (!currentUser) {
         alert('Вы уже вышли из аккаунта.');
         return;
@@ -674,23 +674,36 @@ function logoutUser() {
     if (!confirm('Вы действительно хотите выйти из аккаунта?')) {
         return;
     }
-    // Выход из Firebase Authentication, если он используется
-    if (
-        typeof firebase !== 'undefined' &&
-        firebase.auth &&
-        firebase.auth().currentUser
-    ) {
-        firebase.auth().signOut()
-            .then(() => {
-                finishLogout();
-            })
-            .catch(error => {
-                console.error('Ошибка выхода:', error);
-                alert('Не удалось выйти из аккаунта. Попробуйте ещё раз.');
-            });
-    } else {
-        // Для авторизации, реализованной без Firebase Authentication
-        finishLogout();
+    const sessionToken = localStorage.getItem(
+        'parkNearSessionToken'
+    );
+    try {
+        if (sessionToken) {
+            const response = await fetch(
+                `${window.PARKNEAR_API_URL}/auth/logout`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${sessionToken}`
+                    }
+                }
+            );
+            if (!response.ok && response.status !== 401) {
+                throw new Error(
+                    'Сервер не смог завершить сессию.'
+                );
+            }
+        }
+        localStorage.removeItem('parkNearSessionToken');
+        localStorage.removeItem('parkNearSessionExpiresAt');
+            finishLogout();
+        console.log('Сессия PostgreSQL завершена.');
+    } catch (error) {
+        console.error('Ошибка выхода:', error);
+        alert(
+            'Не удалось завершить сессию на сервере. ' +
+            'Проверьте подключение к интернету и попробуйте ещё раз.'
+        );
     }
 }
 function finishLogout() {
