@@ -477,6 +477,118 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
     }
 });
 // ============================================
+// ОБМЕН ОДНОРАЗОВОГО TELEGRAM-ТОКЕНА НА СЕССИЮ
+// ============================================
+app.post('/auth/telegram-token-login', async (req, res) => {
+    const { token } = req.body || {};
+    if (
+        typeof token !== 'string' ||
+        token.length < 16 ||
+        token.length > 256
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: 'Некорректный токен авторизации'
+        });
+    }
+const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        // Блокируем запись, чтобы один токен нельзя было
+        // одновременно использовать в нескольких запросах.
+        const tokenResult = await client.query(
+            `SELECT data
+             FROM login_tokens
+             WHERE token = $1
+             FOR UPDATE`,
+            [token]
+        );
+        if (tokenResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+                return res.status(401).json({
+                    success: false,
+                error: 'Токен не найден или уже использован'
+            });
+        }
+        const tokenData = tokenResult.rows[0].data;
+        const expires = Number(tokenData.expires);
+        const userId = String(tokenData.userId || '');
+    if (
+            !Number.isFinite(expires) ||
+            expires <= Date.now() ||
+            !/^tg_\d+$/.test(userId)
+        ) {
+            await client.query(
+                'DELETE FROM login_tokens WHERE token = $1',
+                [token]
+            );
+                await client.query('COMMIT');
+            return res.status(401).json({
+                success: false,
+                error: 'Токен истёк или содержит некорректные данные'
+            });
+        }
+        // Получаем существующего пользователя из PostgreSQL.
+        const userResult = await client.query(
+            `SELECT id, data
+             FROM users
+             WHERE id = $1`,
+            [userId]
+        );
+        if (userResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(401).json({
+                success: false,
+                error: 'Пользователь не найден'
+            });
+        }
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto
+            .createHash('sha256')
+            .update(sessionToken)
+            .digest('hex');
+        const sessionId = crypto.randomBytes(16).toString('hex');
+        const expiresAt = new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000
+        );
+        await client.query(
+            `INSERT INTO auth_sessions
+                (id, user_id, token_hash, expires_at)
+             VALUES ($1, $2, $3, $4)`,
+            [sessionId, userId, tokenHash, expiresAt]
+        );
+        // Удаляем временный токен после успешного обмена.
+        await client.query(
+            'DELETE FROM login_tokens WHERE token = $1',
+            [token]
+        );
+        await client.query('COMMIT');
+            const userData = userResult.rows[0].data;
+        return res.json({
+            success: true,
+            sessionToken,
+            uid: userId,
+            user: {
+                ...userData,
+                id: userId
+            },
+            expiresAt: expiresAt.toISOString()
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(
+            'Ошибка обмена Telegram-токена:',
+            error.message
+        );
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось выполнить авторизацию'
+        });
+    } finally {
+        client.release();
+    }
+});
+// ============================================
 // ПРОВЕРКА РАБОТОСПОСОБНОСТИ
 // ============================================
 app.get('/health', (req, res) => {
