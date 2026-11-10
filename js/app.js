@@ -4407,7 +4407,7 @@ async function onTelegramAuth(authData) {
                 'Не получены данные для авторизации Telegram.'
             );
         }
-        // Передаём данные на сервер для проверки подписи Telegram
+        // Проверяем данные Telegram на сервере.
         const response = await fetch(
             `${window.PARKNEAR_API_URL}${endpoint}`,
             {
@@ -4421,33 +4421,33 @@ async function onTelegramAuth(authData) {
         const result = await response.json();
         if (!response.ok || !result.success) {
             throw new Error(
-                result.error || 'Сервер не подтвердил авторизацию Telegram.'
+                result.error ||
+                'Сервер не подтвердил авторизацию Telegram.'
             );
         }
-        if (!result.customToken || !result.user) {
+        if (!result.sessionToken || !result.user) {
             throw new Error(
                 'Сервер вернул неполные данные авторизации.'
             );
         }
-        // Временно сохраняем совместимость с Firebase Authentication.
-        // Проверка Telegram и сохранение профиля выполняются сервером.
-        if (
-            typeof firebase === 'undefined' ||
-            !firebase.auth
-        ) {
-            throw new Error(
-                'Firebase Authentication пока недоступен.'
+        // Сохраняем токен собственной серверной сессии.
+        localStorage.setItem(
+            'parkNearSessionToken',
+            result.sessionToken
+        );
+        if (result.expiresAt) {
+            localStorage.setItem(
+                'parkNearSessionExpiresAt',
+                result.expiresAt
             );
         }
-        await firebase.auth().signInWithCustomToken(
-            result.customToken
-        );
-        // Используем профиль, полученный от сервера
+        // Используем профиль, полученный от сервера.
         const profile = {
             id: result.user.id,
             telegramId: String(result.user.telegramId),
             username: result.user.username || 'tg_user',
-            firstName: result.user.firstName || 'Пользователь',
+            firstName:
+                result.user.firstName || 'Пользователь',
             photoUrl: result.user.photoUrl || '',
             isGuest: false
         };
@@ -4470,7 +4470,7 @@ async function onTelegramAuth(authData) {
             );
         }
         console.log(
-            'Вход через сервер выполнен:',
+            'Вход через PostgreSQL-сессию выполнен:',
             profile.id
         );
         return profile;
