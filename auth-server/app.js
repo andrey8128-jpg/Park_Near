@@ -269,9 +269,6 @@ function verifyTelegramWebApp(initData) {
         return null;
     }
 }
-// ============================================
-// СОЗДАНИЕ FIREBASE CUSTOM TOKEN
-// ============================================
 async function createFirebaseToken(telegramUser) {
     if (
         !telegramUser ||
@@ -281,22 +278,12 @@ async function createFirebaseToken(telegramUser) {
         throw new Error('Некорректный Telegram user ID');
     }
     const telegramId = String(telegramUser.id);
-    // UID Firebase
     const uid = `tg_${telegramId}`;
-    // Создаём Custom Token
-    const customToken = await auth.createCustomToken(
-        uid,
-        {
-            provider: 'telegram',
-            telegramId: telegramId
-        }
-    );
-    // Формируем проверенный профиль
+    const now = Date.now();
     const user = {
         id: uid,
-        telegramId: telegramId,
-        username:
-            telegramUser.username || 'tg_user',
+        telegramId,
+        username: telegramUser.username || 'tg_user',
         firstName:
             telegramUser.first_name ||
             telegramUser.firstName ||
@@ -305,8 +292,51 @@ async function createFirebaseToken(telegramUser) {
             telegramUser.photo_url ||
             telegramUser.photoUrl ||
             '',
-        isGuest: false
+        isGuest: false,
+        lastActive: now
     };
+    const initialStats = {
+        registeredAt: now,
+        lastActive: now,
+        parkingsCreated: 0,
+        parkingsUpdated: 0,
+        confirmations: 0,
+        views: 0,
+        favorites: 0,
+        activeDates: [new Date().toISOString().split('T')[0]]
+    };
+    await pool.query(
+        `INSERT INTO users (id, data)
+         VALUES ($1, $2::jsonb)
+         ON CONFLICT (id)
+         DO UPDATE SET
+            data = jsonb_set(
+                COALESCE(users.data, '{}'::jsonb)
+                || EXCLUDED.data,
+                '{stats}',
+                CASE
+                    WHEN users.data->'stats' IS NULL
+                         OR users.data->'stats' = 'null'::jsonb
+                    THEN EXCLUDED.data->'stats'
+                    ELSE users.data->'stats'
+                END,
+                true
+            )`,
+        [
+            uid,
+            JSON.stringify({
+                ...user,
+                stats: initialStats
+            })
+        ]
+    );
+    const customToken = await auth.createCustomToken(
+        uid,
+        {
+            provider: 'telegram',
+            telegramId
+        }
+    );
     return {
         customToken,
         uid,
