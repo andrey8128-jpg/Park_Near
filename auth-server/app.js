@@ -418,7 +418,7 @@ app.get('/api/parkings', async (req, res) => {
             result = await pool.query(
                 `SELECT id, data
                  FROM parkings
-                 WHERE data->>'city' = $1
+                 WHERE LOWER(TRIM(data->>'city')) = LOWER($1)
                  ORDER BY id`,
                 [city]
             );
