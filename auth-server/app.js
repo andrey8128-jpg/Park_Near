@@ -3,7 +3,6 @@ const cors = require('cors');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
 const pool = require('./db');
-
 // ============================================
 // ПОДГОТОВКА СТРУКТУРЫ POSTGRESQL
 // ============================================
@@ -838,6 +837,171 @@ app.get('/api/parkings', async (req, res) => {
             success: false,
             error: 'Не удалось загрузить парковки'
         });
+    }
+});
+// ============================================
+// СОЗДАНИЕ ПАРКОВКИ В POSTGRESQL
+// ============================================
+app.post('/api/parkings', requireAuth, async (req, res) => {
+    const parking = req.body || {};
+    const city = String(parking.city || '').trim();
+    const street = String(parking.street || '').trim();
+    const houseNumber = String(parking.houseNumber || '').trim();
+    const totalSpots = Number(parking.totalSpots);
+    const lat = Number(parking.lat);
+    const lng = Number(parking.lng);
+    const coordinates = parking.coordinates;
+    if (!city || !street || !houseNumber) {
+        return res.status(400).json({
+            success: false,
+            error: 'Не указаны город, улица или номер дома'
+        });
+    }
+    if (
+        !Number.isInteger(totalSpots) ||
+        totalSpots < 1 ||
+        totalSpots > 500
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: 'Количество мест должно быть от 1 до 500'
+        });
+    }
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: 'Некорректные координаты'
+        });
+    }
+    if (
+        !Array.isArray(coordinates) ||
+        coordinates.length < 3 ||
+        !coordinates.every(point =>
+            Array.isArray(point) &&
+            point.length >= 2 &&
+            Number.isFinite(Number(point[0])) &&
+            Number.isFinite(Number(point[1])) &&
+            Number(point[0]) >= -90 &&
+            Number(point[0]) <= 90 &&
+            Number(point[1]) >= -180 &&
+            Number(point[1]) <= 180
+        )
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: 'Некорректный контур парковки'
+        });
+    }
+    const cleanKeyPart = value =>
+        String(value || '')
+            .trim()
+            .replace(/[.#$\/\[\]]/g, '')
+            .replace(/\s+/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
+    const cityKey = cleanKeyPart(city) || 'Неизвестный_город';
+    const streetKey = cleanKeyPart(street) || 'Неизвестная_улица';
+    const houseKey = cleanKeyPart(houseNumber) || 'Без_дома';
+    const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
+    const now = Date.now();
+    const user = req.authUser;
+    const parkingData = {
+        lat,
+        lng,
+        coordinates,
+        totalSpots,
+        occupiedSpots: 0,
+        name: String(parking.name || '').trim(),
+        groupId: cityKey,
+        isPaid: false,
+        address: String(parking.address || '').trim(),
+        city,
+        region: String(parking.region || '').trim(),
+        street,
+        houseNumber,
+        authorId: user.id,
+        authorName: user.firstName || user.username || '',
+        authorUsername: user.username || '',
+        lastUpdatedAt: now,
+        lastUpdatedBy:
+            user.nickname ||
+            user.firstName ||
+            user.username ||
+            'Пользователь',
+        timestamp: now,
+        status: 'unknown',
+        statusConfirmations: 0,
+        history: [{
+            action: 'created',
+            timestamp: now,
+            userId: user.id,
+            username: user.username || ''
+        }]
+    };
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        let parkingId = null;
+        for (let number = 1; number <= 50; number++) {
+            const candidate = `${baseKey}(${number})`;
+            const result = await client.query(
+                `INSERT INTO parkings (id, data)
+                 VALUES ($1, $2::jsonb)
+                 ON CONFLICT (id) DO NOTHING
+                 RETURNING id`,
+                [candidate, JSON.stringify(parkingData)]
+            );
+            if (result.rowCount > 0) {
+                parkingId = candidate;
+                break;
+            }
+        }
+        if (!parkingId) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                success: false,
+                error: 'Не удалось подобрать свободный идентификатор парковки'
+            });
+        }
+        await client.query(
+            `UPDATE users
+             SET data = jsonb_set(
+                 COALESCE(data, '{}'::jsonb),
+                 '{stats,parkingsCreated}',
+                 to_jsonb(
+                     COALESCE(
+                         (data->'stats'->>'parkingsCreated')::integer,
+                         0
+                     ) + 1
+                 ),
+                 true
+             )
+             WHERE id = $1`,
+            [user.id]
+        );
+        await client.query('COMMIT');
+        return res.status(201).json({
+            success: true,
+            id: parkingId,
+            parking: {
+                ...parkingData,
+                id: parkingId
+            }
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Ошибка создания парковки:', error.message);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось сохранить парковку'
+        });
+    } finally {
+        client.release();
     }
 });
 // ============================================
