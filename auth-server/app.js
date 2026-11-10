@@ -851,12 +851,6 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
     const lat = Number(parking.lat);
     const lng = Number(parking.lng);
     const coordinates = parking.coordinates;
-    if (!city || !street || !houseNumber) {
-        return res.status(400).json({
-            success: false,
-            error: 'Не указаны город, улица или номер дома'
-        });
-    }
     if (
         !Number.isInteger(totalSpots) ||
         totalSpots < 1 ||
