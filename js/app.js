@@ -111,26 +111,32 @@ function getParkingRef(parkingId) {
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
 const savedMapPrefs = localStorage.getItem('parknear_map_city');
-if (savedCity) {
-    currentCity = savedCity;
-    try {
-        const prefs = JSON.parse(savedMapPrefs || '{}');
-        mapCity = {
-            city: prefs.city || savedCity,
-            region: prefs.region || ''
-        };
-    } catch (e) {
-        console.warn('⚠️ Не удалось восстановить город карты:', e);
-        mapCity = {
-            city: savedCity,
-            region: ''
-        };
-    }
-} else {
-    currentCity = '';
-    mapCity = null;
+const savedUserCity = localStorage.getItem('parknear_city');
+let mapPrefs = {};
+let userPrefs = {};
+try {
+    mapPrefs = JSON.parse(savedMapPrefs || '{}');
+} catch (e) {
+    console.warn('Не удалось восстановить настройки города карты:', e);
 }
-console.log('🏙️ Город карты:', currentCity);
+try {
+    userPrefs = JSON.parse(savedUserCity || '{}');
+} catch (e) {
+    console.warn('Не удалось восстановить настройки города пользователя:', e);
+}
+currentCity = String(
+    savedCity ||
+    mapPrefs.city ||
+    userPrefs.city ||
+    ''
+).trim();
+mapCity = currentCity
+    ? {
+        city: currentCity,
+        region: mapPrefs.region || userPrefs.region || ''
+    }
+    : null;
+console.log('🏙️ Восстановленный город карты:', currentCity);
     // ===================== УТИЛИТЫ =====================
   function getOccupancyColor(occupied, total) {
     const occupiedCount = Number(occupied) || 0;
