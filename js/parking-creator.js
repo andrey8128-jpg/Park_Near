@@ -228,23 +228,47 @@ async function deleteParking(parkingId) {
         showToast('Необходимо авторизоваться');
         return;
     }
-    if (!parkingId) return showToast('ID парковки не найден');
-    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) return;
+    if (!parkingId) {
+        return showToast('ID парковки не найден');
+    }
+    if (!confirm('Вы уверены, что хотите удалить эту парковку?')) {
+        return;
+    }
     try {
         const parking = parkingDataCache[parkingId];
-        if (!parking) return showToast('Парковка не найдена в кэше');
+        if (!parking) {
+            return showToast('Парковка не найдена в кэше');
+        }
         if (parking.authorId !== currentUser.id) {
             return showToast('Удалять парковку может только её автор');
         }
-        // ✅ Используем groupId для правильного пути
-        const ref = getParkingRef(parkingId);
-        await ref.remove();
-        // Удаляем Placemark и Polygon корректно
+        const sessionToken = localStorage.getItem('parkNearSessionToken');
+        if (!sessionToken) {
+            throw new Error('Нет активной серверной сессии. Войдите через Telegram.');
+        }
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${sessionToken}`
+                }
+            }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Не удалось удалить парковку');
+        }
+        // Удаляем Placemark и Polygon
         const placemark = mapMarkers[parkingId];
         if (placemark) {
             const polygon = placemark.properties.get('polygon');
-            if (polygon) map.geoObjects.remove(polygon);
-            if (clusterer) clusterer.remove(placemark);
+            if (polygon) {
+                map.geoObjects.remove(polygon);
+            }
+            if (clusterer) {
+                clusterer.remove(placemark);
+            }
             delete mapMarkers[parkingId];
         }
         if (activePolygon && activePolygon.__parkingId === parkingId) {
@@ -252,15 +276,18 @@ async function deleteParking(parkingId) {
             activePolygon = null;
         }
         delete parkingDataCache[parkingId];
-        if (clusterer) clusterer.reload();
+        if (clusterer) {
+            clusterer.reload();
+        }
         closePanel();
         showMap();
-        if (document.getElementById('searchResults')) filterParkings();
+        if (document.getElementById('searchResults')) {
+            filterParkings();
+        }
         showToast('Парковка удалена');
-
     } catch (error) {
         console.error('Ошибка удаления:', error);
-        showToast('Не удалось удалить парковку');
+        showToast(error.message || 'Не удалось удалить парковку');
     }
 }
 function cleanParkingPathPart(value, fallback) {
