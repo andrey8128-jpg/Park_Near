@@ -709,23 +709,24 @@ function finishLogout() {
 // ============================================
 // ИНИЦИАЛИЗАЦИЯ АВТОРИЗАЦИИ
 // ============================================
-function initAuth() {
-    // Пытаемся восстановить предыдущую сессию
-    const restored = restoreSavedUser();
+async function initAuth() {
+    // Сначала проверяем серверную сессию в PostgreSQL.
+    const restored = await restorePostgresSession();
     if (restored) {
-        // Пользователь уже авторизован
         hideAuthScreen();
-        // Если панель ещё не открыта — открываем главную
         const panel = document.getElementById('panel');
         if (panel && !panel.classList.contains('active')) {
             showPanel('home');
         }
-        console.log('✅ Авторизация восстановлена');
-        return;
+        console.log('Авторизация PostgreSQL восстановлена');
+        return true;
     }
-    // Пользователь не найден
-    console.log('ℹ️ Пользователь не авторизован');
+    // Нет действующей серверной сессии.
+    currentUser = null;
+    window.currentUser = null;
+    console.log('Пользователь не авторизован');
     showAuthScreen();
+    return false;
 }
 async function checkTelegramTokenFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -4543,11 +4544,11 @@ async function initApp() {
     // Проверяем токен из бота (если пользователь возвращается по ссылке)
     const isTokenLogin = await checkTelegramTokenFromUrl();
     if (isTokenLogin) return; 
-    // Проверяем данные в URL (если вернулись из Mini App или Widget)
+    // Проверяем данные авторизации Telegram из URL.
     if (checkTelegramAuthFromUrl()) {
         showPanel('home');
     } else {
-        initAuth();
+        await initAuth();
     }
     // Восстановление выбранного города
     const savedCity = localStorage.getItem('parknear_city');
