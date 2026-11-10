@@ -2360,71 +2360,94 @@ function loadHistoryPreview(parkingId) {
             }
         });
     }
- function saveParkingDetails() {
-    if (!currentUser) { alert('Необходимо авторизоваться'); return; }
+async function saveParkingDetails() {
+    if (!currentUser) {
+        alert('Необходимо авторизоваться');
+        return;
+    }
     if (!currentParkingId || !currentParkingData) return;
-
-    // ✅ Читаем ID, которые реально есть в форме
-    const parkingName = document.getElementById('editParkingName')?.value.trim() || '';
-    const street = document.getElementById('editParkingStreet')?.value.trim() || '';
-    const houseNumber = document.getElementById('editHouseNumber')?.value.trim() || '';
-    const totalSpots = parseInt(document.getElementById('editParkingTotalSpots')?.value, 10) || 0;
-    const description = document.getElementById('editParkingDescription')?.value.trim() || '';
-
-    if (!parkingName) { alert('Введите название парковки'); return; }
-    if (!street && !houseNumber) { alert('Введите улицу или номер дома'); return; }
-    if (totalSpots < 1) { alert('Количество мест должно быть больше 0'); return; }
-    if (totalSpots > 500) { alert('Количество мест не может быть больше 500'); return; }
-    // Проверяем авторство парковки
-if (
-    !currentParkingData.authorId ||
-    String(currentParkingData.authorId) !== String(currentUser.id)
-) {
-    alert('Можно редактировать только свои парковки');
-    return;
-}
-    const newAddress = [street, houseNumber].filter(Boolean).join(', ');
+    const parkingName =
+        document.getElementById('editParkingName')?.value.trim() || '';
+    const street =
+        document.getElementById('editParkingStreet')?.value.trim() || '';
+    const houseNumber =
+        document.getElementById('editHouseNumber')?.value.trim() || '';
+    const totalSpots =
+        parseInt(document.getElementById('editParkingTotalSpots')?.value, 10) || 0;
+    const description =
+        document.getElementById('editParkingDescription')?.value.trim() || '';
+    if (!parkingName) {
+        alert('Введите название парковки');
+        return;
+    }
+    if (!street && !houseNumber) {
+        alert('Введите улицу или номер дома');
+        return;
+    }
+    if (totalSpots < 1 || totalSpots > 500) {
+        alert('Количество мест должно быть от 1 до 500');
+        return;
+    }
+    if (
+        !currentParkingData.authorId ||
+        String(currentParkingData.authorId) !== String(currentUser.id)
+    ) {
+        alert('Можно редактировать только свои парковки');
+        return;
+    }
+    const sessionToken = localStorage.getItem('parkNearSessionToken');
+    if (!sessionToken) {
+        alert('Нет активной серверной сессии. Войдите через Telegram.');
+        return;
+    }
     const updates = {
         name: parkingName,
-        street: street,
-        houseNumber: houseNumber,
-        totalSpots: totalSpots,
-        description: description,
-        address: newAddress
+        street,
+        houseNumber,
+        totalSpots,
+        description
     };
-    getParkingRef(currentParkingId).update(updates)
-        .then(() => {
-            if (currentParkingData.authorId === currentUser.id) {
-                database.ref(`users/${currentUser.id}/stats/parkingsUpdated`)
-                    .transaction(c => (c || 0) + 1)
-                    .catch(err => console.warn(err));
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(currentParkingId)}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionToken}`
+                },
+                body: JSON.stringify(updates)
             }
-            currentParkingData = Object.assign({}, currentParkingData, updates);
-            parkingDataCache[currentParkingId] = currentParkingData;
-            // Обновляем маркер парковки после сохранения.
-            try {
-                refreshParkingMarker(currentParkingId);
-            } catch (e) {
-                console.warn(
-                    'Не удалось обновить маркер парковки:',
-                    e
-                );
-            }
-            // Обновляем кластеры после изменения вместимости.
-            if (typeof refreshParkingClusters === 'function') {
-                refreshParkingClusters();
-            }
-            closePanel();
-            showMap();
-            showToast('✅ Парковка обновлена', 2000);
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
-        })
-        .catch(err => {
-            console.error('Ошибка сохранения:', err);
-            alert('Ошибка: ' + (err.message || 'неизвестная'));
-        });
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось обновить парковку'
+            );
+        }
+        currentParkingData = {
+            ...currentParkingData,
+            ...(result.parking || updates)
+        };
+        parkingDataCache[currentParkingId] = currentParkingData;
+        try {
+            refreshParkingMarker(currentParkingId);
+        } catch (error) {
+            console.warn('Не удалось обновить маркер парковки:', error);
+        }
+        if (typeof refreshParkingClusters === 'function') {
+            refreshParkingClusters();
+        }
+        closePanel();
+        showMap();
+        showToast('Парковка обновлена', 2000);
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        alert('Ошибка: ' + (error.message || 'неизвестная'));
+    }
 }
     function updateOccupancyDisplay(newOccupied) {
         if (!currentParkingData) return;
