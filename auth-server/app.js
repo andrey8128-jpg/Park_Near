@@ -30,6 +30,13 @@ async function initializeDatabase() {
         CREATE INDEX IF NOT EXISTS idx_auth_sessions_user
         ON auth_sessions (user_id)
         `,
+         `
+        CREATE TABLE IF NOT EXISTS login_tokens (
+            token TEXT PRIMARY KEY,
+            data JSONB NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        `,
         `
         CREATE TABLE IF NOT EXISTS parkings (
             id TEXT PRIMARY KEY,
@@ -658,6 +665,120 @@ app.post('/auth/telegram-webapp', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: 'Ошибка авторизации'
+        });
+    }
+});
+// ============================================
+// СОХРАНЕНИЕ TELEGRAM LOGIN TOKEN ОТ БОТА
+// ============================================
+app.post('/api/bot/login-token', async (req, res) => {
+    try {
+        const receivedSecret = req.headers['x-bot-api-secret'];
+
+        if (
+            typeof receivedSecret !== 'string' ||
+            receivedSecret.length !== BOT_API_SECRET.length ||
+            !crypto.timingSafeEqual(
+                Buffer.from(receivedSecret),
+                Buffer.from(BOT_API_SECRET)
+            )
+        ) {
+            return res.status(401).json({
+                success: false,
+                error: 'Доступ запрещён'
+            });
+        }
+        const { token, userData } = req.body || {};
+        if (
+            typeof token !== 'string' ||
+            !/^[a-f0-9]{32,128}$/i.test(token) ||
+            !userData ||
+            !/^\d+$/.test(String(userData.userId || ''))
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректные данные'
+            });
+        }
+        const telegramId = String(userData.userId);
+        const userId = `tg_${telegramId}`;
+        const now = Date.now();
+        const user = {
+            id: userId,
+            telegramId,
+            username: userData.username || 'tg_user',
+            firstName: userData.firstName || 'Пользователь',
+            lastName: userData.lastName || '',
+            photoUrl: userData.photoUrl || '',
+            isGuest: false,
+            lastActive: now
+        };
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(
+                `INSERT INTO users (id, data)
+                 VALUES ($1, $2::jsonb)
+                 ON CONFLICT (id)
+                 DO UPDATE SET data =
+                    COALESCE(users.data, '{}'::jsonb)
+                    || EXCLUDED.data
+                    || jsonb_build_object(
+                        'stats',
+                        COALESCE(
+                            users.data->'stats',
+                            EXCLUDED.data->'stats'
+                        )
+                    )`,
+                [
+                    userId,
+                    JSON.stringify({
+                        ...user,
+                        stats: {
+                            registeredAt: now,
+                            lastActive: now,
+                            parkingsCreated: 0,
+                            parkingsUpdated: 0,
+                            confirmations: 0,
+                            views: 0,
+                            favorites: 0,
+                            activeDates: [
+                                new Date().toISOString().split('T')[0]
+                            ]
+                        }
+                    })
+                ]
+            );
+            await client.query(
+                `INSERT INTO login_tokens (token, data)
+                 VALUES ($1, $2::jsonb)`,
+                [
+                    token,
+                    JSON.stringify({
+                        userId,
+                        expires: now + 5 * 60 * 1000,
+                        userData: user
+                    })
+                ]
+            );
+            await client.query('COMMIT');
+            return res.json({
+                success: true
+            });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error(
+            'Ошибка сохранения Telegram-токена:',
+            error.message
+        );
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось сохранить токен'
         });
     }
 });
