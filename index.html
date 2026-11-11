@@ -324,7 +324,8 @@
             <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
         </div>
     </div>
-  <!-- Окно авторизации Park Near -->
+ 
+<!-- Окно авторизации Park Near -->
 <div
     id="authOverlay"
     style="
@@ -335,12 +336,13 @@
         z-index: 6000;
         align-items: center;
         justify-content: center;
-        flex-direction: column;
         padding: 20px;
     "
 >
+    <!-- Внутренняя карточка -->
     <div style="
-        background: var(--bg-secondary, #fff);
+        background: var(--bg-secondary, #151a1b);
+        color: var(--text-primary, #fff);
         border-radius: 24px;
         padding: 30px 20px;
         width: 90%;
@@ -349,6 +351,7 @@
         box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         position: relative;
     ">
+
         <button
             type="button"
             onclick="closeAuthScreen()"
@@ -363,18 +366,23 @@
                 cursor: pointer;
             "
         >✕</button>
+
         <div style="font-size:48px; margin-bottom:12px;">🚗</div>
+
         <h2 style="margin:0 0 8px; font-size:22px;">
             Добро пожаловать в ParkNear
         </h2>
+
         <p style="
-            color: var(--text-secondary, #666);
+            color: var(--text-secondary, #aaa);
             margin-bottom:20px;
             font-size:15px;
         ">
-            Войдите через Telegram, чтобы сохранять данные
-            и пользоваться всеми функциями
+            Войдите, чтобы сохранять парковки,
+            города и настройки
         </p>
+
+        <!-- Telegram -->
         <div id="telegram-widget-container">
             <script
                 async
@@ -385,8 +393,7 @@
                 data-request-access="write">
             </script>
         </div>
-               </div>
-        <!-- Вход через Яндекс -->
+        <!-- Яндекс -->
         <button
             type="button"
             onclick="startYandexLogin()"
@@ -408,9 +415,10 @@
         </button>
         <div style="
             margin:12px 0;
-            color:var(--text-secondary);
+            color:var(--text-secondary, #aaa);
             font-size:14px;
         ">— или —</div>
+        <!-- Гостевой вход -->
         <button
             class="guest-btn"
             type="button"
@@ -419,6 +427,7 @@
         >
             Продолжить как гость
         </button>
+
     </div>
 </div>
     <!-- Onboarding Overlay -->
