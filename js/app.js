@@ -4218,6 +4218,25 @@ function createAuthScreenFallback() {
             <div style="font-size:48px; margin-bottom:12px;">🚗</div>
             <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
             <p style="color:var(--text-secondary, #666); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
+                       <button
+                type="button"
+                onclick="startYandexLogin()"
+                style="
+                    width:100%;
+                    padding:15px;
+                    margin-bottom:12px;
+                    border:0;
+                    border-radius:12px;
+                    background:#FCE000;
+                    color:#111;
+                    font-size:16px;
+                    font-weight:600;
+                    cursor:pointer;
+                "
+            >
+                <span style="font-weight:800; margin-right:8px;">Я</span>
+                Войти через Яндекс
+            </button>
             <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
                 data-telegram-login="parknear_bot"
                 data-size="large"
@@ -4847,7 +4866,113 @@ async function onTelegramAuth(authData) {
         throw error;
     }
 }
+
+// ============================================
+// ЯНДЕКС ID — НАЧАЛО ВХОДА
+// ============================================
+function startYandexLogin() {
+    const apiUrl = String(window.PARKNEAR_API_URL || '').replace(/\/+$/, '');
+
+    if (!apiUrl) {
+        alert('Не указан адрес сервера Park Near');
+        return;
+    }
+
+    window.location.href = `${apiUrl}/auth/yandex`;
+}
+// ============================================
+// ЯНДЕКС ID — ЗАВЕРШЕНИЕ ВХОДА
+// ============================================
+async function completeYandexLogin() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('yandex_code');
+    const error = params.get('yandex_error');
+    if (!code && !error) {
+        return false;
+    }
+    // Убираем одноразовый код из адресной строки.
+    window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.hash
+    );
+    if (error) {
+        console.error('Ошибка входа через Яндекс:', error);
+        alert('Не удалось войти через Яндекс. Попробуйте ещё раз.');
+        return false;
+    }
+    try {
+        const apiUrl = String(window.PARKNEAR_API_URL || '').replace(/\/+$/, '');
+        const response = await fetch(`${apiUrl}/auth/yandex/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ code }),
+            cache: 'no-store'
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Ошибка завершения авторизации');
+        }
+        if (
+            !result.sessionToken ||
+            !result.user ||
+            !result.user.id
+        ) {
+            throw new Error('Сервер вернул неполные данные пользователя');
+        }
+        const profile = {
+            id: String(result.user.id),
+            yandexId: String(result.user.yandexId || ''),
+            username: result.user.username || 'yandex_user',
+            firstName: result.user.firstName || 'Пользователь',
+            lastName: result.user.lastName || '',
+            photoUrl: result.user.photoUrl || '',
+            email: result.user.email || '',
+            isGuest: false
+        };
+        localStorage.setItem(
+            'parkNearSessionToken',
+            result.sessionToken
+        );
+        if (result.expiresAt) {
+            localStorage.setItem(
+                'parkNearSessionExpiresAt',
+                result.expiresAt
+            );
+        } else {
+            localStorage.removeItem('parkNearSessionExpiresAt');
+        }
+        currentUser = profile;
+        window.currentUser = profile;
+        localStorage.setItem('tgUser', JSON.stringify(profile));
+        if (typeof hideAuthScreen === 'function') {
+            hideAuthScreen();
+        }
+        console.log('Вход через Яндекс выполнен:', profile.id);
+        if (typeof showToast === 'function') {
+            showToast('Вы успешно вошли через Яндекс!', 3000);
+        }
+        return true;
+    } catch (error) {
+        console.error('Ошибка завершения входа через Яндекс:', error);
+        localStorage.removeItem('parkNearSessionToken');
+        localStorage.removeItem('parkNearSessionExpiresAt');
+        localStorage.removeItem('tgUser');
+        alert(
+            'Не удалось завершить вход через Яндекс: ' +
+            (error.message || 'Ошибка соединения')
+        );
+        return false;
+    }
+}
 async function initApp() {
+    // Сначала проверяем возврат после входа через Яндекс.
+    const yandexLoginCompleted = await completeYandexLogin();
+    if (yandexLoginCompleted) {
+        showPanel('home');
+    }
     // Проверяем токен из бота (если пользователь возвращается по ссылке)
     const isTokenLogin = await checkTelegramTokenFromUrl();
     if (isTokenLogin) return; 
