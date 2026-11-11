@@ -4511,53 +4511,152 @@ function renderParkingList(container, parkings) {
     }
     return false;
 }
+
 // ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
 async function onTelegramAuth(authData) {
     try {
+        // Проверяем адрес API.
+        const apiUrl = String(
+            window.PARKNEAR_API_URL || ''
+        ).replace(/\/+$/, '');
+        if (!apiUrl) {
+            throw new Error(
+                'Не указан адрес сервера авторизации.'
+            );
+        }
         let endpoint;
         let requestBody;
-        // Telegram Mini App
-        if (authData && authData.initData) {
+        // ============================================
+        // TELEGRAM MINI APP
+        // ============================================
+        if (
+            authData &&
+            typeof authData.initData === 'string' &&
+            authData.initData.length > 0
+        ) {
             endpoint = '/auth/telegram-webapp';
             requestBody = {
                 initData: authData.initData
             };
         }
-        // Telegram Login Widget
-        else if (authData && authData.id) {
+        // ============================================
+        // TELEGRAM LOGIN WIDGET
+        // ============================================
+        else if (
+            authData &&
+            typeof authData === 'object' &&
+            authData.id
+        ) {
             endpoint = '/auth/telegram-widget';
             requestBody = {
                 user: authData
             };
-        } else {
+        }
+        // ============================================
+        // НЕТ ДАННЫХ TELEGRAM
+        // ============================================
+        else {
             throw new Error(
-                'Не получены данные для авторизации Telegram.'
+                'Telegram не передал данные для авторизации.'
             );
         }
-        // Проверяем данные Telegram на сервере.
-        const response = await fetch(
-            `${window.PARKNEAR_API_URL}${endpoint}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            }
+        console.log(
+            'Отправка данных Telegram на сервер:',
+            endpoint
         );
-        const result = await response.json();
+        // ============================================
+        // ОТПРАВЛЯЕМ ДАННЫЕ НА BACKEND
+        // ============================================
+        let response;
+        try {
+            response = await fetch(
+                `${apiUrl}${endpoint}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody),
+                    cache: 'no-store'
+                }
+            );
+        } catch (networkError) {
+            console.error(
+                'Ошибка соединения с сервером авторизации:',
+                networkError
+            );
+            throw new Error(
+                'Не удалось связаться с сервером. ' +
+                'Проверь интернет-соединение и доступность сервера.'
+            );
+        }
+        // ============================================
+        // ЧИТАЕМ ОТВЕТ СЕРВЕРА
+        // ============================================
+        const responseText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error(
+                'Некорректный ответ сервера:',
+                response.status,
+                responseText
+            );
+            throw new Error(
+                `Сервер вернул некорректный ответ. HTTP ${response.status}`
+            );
+        }
+        // ============================================
+        // ПРОВЕРЯЕМ РЕЗУЛЬТАТ АВТОРИЗАЦИИ
+        // ============================================
         if (!response.ok || !result.success) {
+            console.error(
+                'Ошибка авторизации Telegram:',
+                response.status,
+                result.error || response.statusText
+            );
             throw new Error(
                 result.error ||
-                'Сервер не подтвердил авторизацию Telegram.'
+                `Не удалось войти через Telegram. HTTP ${response.status}`
             );
         }
-        if (!result.sessionToken || !result.user) {
+        // ============================================
+        // ПРОВЕРЯЕМ НАЛИЧИЕ СЕССИИ
+        // ============================================
+        if (
+            typeof result.sessionToken !== 'string' ||
+            !result.sessionToken ||
+            !result.user ||
+            !result.user.id
+        ) {
+            console.error(
+                'Сервер вернул неполные данные авторизации:',
+                result
+            );
             throw new Error(
-                'Сервер вернул неполные данные авторизации.'
+                'Сервер не вернул данные пользовательской сессии.'
             );
         }
-        // Сохраняем токен собственной серверной сессии.
+        // ============================================
+        // ФОРМИРУЕМ ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
+        // ============================================
+        const profile = {
+            id: String(result.user.id),
+            telegramId: String(
+                result.user.telegramId || ''
+            ),
+            username:
+                result.user.username || 'tg_user',
+            firstName:
+                result.user.firstName || 'Пользователь',
+            photoUrl:
+                result.user.photoUrl || '',
+            isGuest: false
+        };
+        // ============================================
+        // СОХРАНЯЕМ СЕРВЕРНУЮ СЕССИЮ
+        // ============================================
         localStorage.setItem(
             'parkNearSessionToken',
             result.sessionToken
@@ -4567,38 +4666,58 @@ async function onTelegramAuth(authData) {
                 'parkNearSessionExpiresAt',
                 result.expiresAt
             );
+        } else {
+            localStorage.removeItem(
+                'parkNearSessionExpiresAt'
+            );
         }
-        // Используем профиль, полученный от сервера.
-        const profile = {
-            id: result.user.id,
-            telegramId: String(result.user.telegramId),
-            username: result.user.username || 'tg_user',
-            firstName:
-                result.user.firstName || 'Пользователь',
-            photoUrl: result.user.photoUrl || '',
-            isGuest: false
-        };
+        // ============================================
+        // СОХРАНЯЕМ ПРОФИЛЬ
+        // ============================================
         currentUser = profile;
         window.currentUser = profile;
         localStorage.setItem(
             'tgUser',
             JSON.stringify(profile)
         );
-        if (typeof hideAuthScreen === 'function') {
+        // ============================================
+        // ЗАКРЫВАЕМ ЭКРАН АВТОРИЗАЦИИ
+        // ============================================
+        if (
+            typeof hideAuthScreen === 'function'
+        ) {
             hideAuthScreen();
         }
-        if (typeof showPanel === 'function') {
+        // ============================================
+        // ОТКРЫВАЕМ ГЛАВНУЮ ПАНЕЛЬ
+        // ============================================
+        if (
+            typeof showPanel === 'function'
+        ) {
             showPanel('home');
         }
-        if (typeof showToast === 'function') {
+        // ============================================
+        // УВЕДОМЛЕНИЕ
+        // ============================================
+        if (
+            typeof showToast === 'function'
+        ) {
             showToast(
                 'Вы успешно вошли через Telegram!',
                 3000
             );
         }
         console.log(
-            'Вход через PostgreSQL-сессию выполнен:',
-            profile.id
+            'Авторизация Telegram успешно завершена.',
+            {
+                userId: profile.id,
+                username: profile.username,
+                sessionSaved: Boolean(
+                    localStorage.getItem(
+                        'parkNearSessionToken'
+                    )
+                )
+            }
         );
         return profile;
     } catch (error) {
