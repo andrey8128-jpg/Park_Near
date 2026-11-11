@@ -885,17 +885,20 @@ app.post('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => 
              RETURNING parking_id`,
             [userId, parkingId]
         );
-
-        await client.query(
+             await client.query(
             `UPDATE users
              SET data = jsonb_set(
                  COALESCE(data, '{}'::jsonb),
-                 '{stats,favorites}',
-                 to_jsonb((
-                     SELECT COUNT(*)
-                     FROM favorites
-                     WHERE user_id = $1
-                 )),
+                 '{stats}',
+                 COALESCE(data->'stats', '{}'::jsonb) ||
+                 jsonb_build_object(
+                     'favorites',
+                     (
+                         SELECT COUNT(*)::int
+                         FROM favorites
+                         WHERE user_id = $1
+                     )
+                 ),
                  true
              )
              WHERE id = $1`,
@@ -932,16 +935,20 @@ app.delete('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) =
              RETURNING parking_id`,
             [userId, parkingId]
         );
-        await client.query(
+              await client.query(
             `UPDATE users
              SET data = jsonb_set(
                  COALESCE(data, '{}'::jsonb),
-                 '{stats,favorites}',
-                 to_jsonb((
-                     SELECT COUNT(*)
-                     FROM favorites
-                     WHERE user_id = $1
-                 )),
+                 '{stats}',
+                 COALESCE(data->'stats', '{}'::jsonb) ||
+                 jsonb_build_object(
+                     'favorites',
+                     (
+                         SELECT COUNT(*)::int
+                         FROM favorites
+                         WHERE user_id = $1
+                     )
+                 ),
                  true
              )
              WHERE id = $1`,
