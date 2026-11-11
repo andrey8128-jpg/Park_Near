@@ -887,3 +887,6 @@ function loadAllParkings(city = '', force = false) {
  function loadAllParkingsNoFilter() {
     return loadAllParkings('', true);
 }
+// Делаем загрузчик парковок доступным для app.js.
+window.loadAllParkings = loadAllParkings;
+window.loadAllParkingsNoFilter = loadAllParkingsNoFilter;
