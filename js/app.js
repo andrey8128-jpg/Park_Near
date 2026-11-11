@@ -1462,52 +1462,40 @@ async function openCenterSheet(parkingId,data){
     `;
     sheet.classList.add('active');
 }
+
 async function getParkingOccupancy(parkingId) {
     if (!parkingId) {
         throw new Error('Не указан идентификатор парковки.');
     }
-    const parkingRef = getParkingRef(parkingId);
-    const parkingSnapshot = await parkingRef.once('value');
-    const parking = parkingSnapshot.val();
-    if (!parking) {
-        throw new Error('Парковка не найдена.');
+
+    const response = await fetch(
+        `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
+        { cache: 'no-store' }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success || !result.parking) {
+        throw new Error(
+            result.error || 'Не удалось получить парковку'
+        );
     }
-    // Однократный перенос старых активных сессий
-    // в общий счётчик occupiedSpots.
-    if (parking._occupancySessionsMigrated !== true) {
-        const sessionsSnapshot = await database
-            .ref('parkingSessions')
-            .orderByChild('parkingId')
-            .equalTo(String(parkingId))
-            .once('value');
-        const sessions = sessionsSnapshot.val() || {};
-        const activeSessionsCount = Object.values(sessions)
-            .filter(session => session && session.active === true)
-            .length;
-        const total = Math.max(0, Number(parking.totalSpots) || 0);
-        await parkingRef.child('occupiedSpots').transaction(value => {
-            const current = Math.max(0, Number(value) || 0);
-            // Не складываем старые данные:
-            // выбираем большее значение, чтобы не удваивать занятость.
-            return Math.min(
-                total,
-                Math.max(current, activeSessionsCount)
-            );
-        });
-        await parkingRef.update({
-            _occupancySessionsMigrated: true
-        });
-    }
-    const updatedSnapshot = await parkingRef.child('occupiedSpots').once('value');
-    const occupied = Math.max(
+
+    const parking = result.parking;
+
+    const total = Math.max(
         0,
-        Number(updatedSnapshot.val()) || 0
+        Number(parking.totalSpots) || 0
     );
-    return Math.min(
-        Math.max(0, Number(parking.totalSpots) || 0),
-        occupied
+
+    const occupied = Math.min(
+        total,
+        Math.max(0, Number(parking.occupiedSpots) || 0)
     );
+
+    return occupied;
 }
+
 async function getUserActiveParkingSession() {
 
     const token = localStorage.getItem('parkNearSessionToken');
@@ -2012,60 +2000,101 @@ function editFromCenter() {
     openOccupancyPanel(parkingId);
 }
     // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
-function openOccupancyPanel(parkingId) {
+
+async function openOccupancyPanel(parkingId) {
     if (!parkingId) return;
+
     const panel = document.getElementById('panel');
     const content = document.getElementById('panelContent');
+
     if (!panel || !content) {
-        console.error('❌ openOccupancyPanel: нет #panel или #panelContent');
+        console.error('Нет #panel или #panelContent');
         return;
     }
-    // ✅ Открываем панель (это и было пропущено!)
+
     document.getElementById('panelTitle').textContent = 'Парковка';
     panel.classList.add('active');
+
     const donateBtn = document.getElementById('donateBtn');
     if (donateBtn) donateBtn.style.display = 'none';
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
-    getParkingRef(parkingId).once('value')
-        .then(snapshot => {
-            const data = snapshot.val();
-            if (!data) {
-                content.innerHTML = '<div class="empty-state"><p>Парковка не найдена</p></div>';
-                return;
-            }
-            if (currentUser && currentUser.id !== data.authorId) {
-                getParkingRef(parkingId).child('views').transaction(v => (v || 0) + 1);
-                if (data.authorId) {
-                    database.ref(`users/${data.authorId}/stats/views`).transaction(v => (v || 0) + 1);
+
+    content.innerHTML =
+        '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
+
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
+            { cache: 'no-store' }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success || !result.parking) {
+            throw new Error(
+                result.error || 'Парковка не найдена'
+            );
+        }
+
+        const data = result.parking;
+
+        currentParkingId = parkingId;
+        currentParkingData = data;
+        parkingDataCache[parkingId] = data;
+
+        const token = localStorage.getItem('parkNearSessionToken');
+
+        // Учитываем просмотр только для авторизованного
+        // пользователя, который не является автором парковки.
+        if (
+            currentUser &&
+            String(currentUser.id) !== String(data.authorId) &&
+            token
+        ) {
+            fetch(
+                `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}/view`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 }
-            }
-            currentParkingId = parkingId;
-            currentParkingData = data;
-            parkingDataCache[parkingId] = data;
+            ).catch(error =>
+                console.warn('Не удалось учесть просмотр:', error)
+            );
+        }
 
-            const carPromise = currentUser
-                ? database.ref(`users/${currentUser.id}/car`).once('value')
-                : Promise.resolve(null);
-            const favPromise = currentUser
-                ? database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value')
-                : Promise.resolve(null);
+        // Данные автомобиля и избранного пока остаются
+        // в Firebase: это будет перенесено на следующих этапах.
+        const carPromise = currentUser
+            ? database.ref(`users/${currentUser.id}/car`).once('value')
+            : Promise.resolve(null);
 
-            Promise.all([carPromise, favPromise])
-                .then(([carSnap, favSnap]) => {
-                    if (carSnap && currentUser) currentUser.car = carSnap.val() || {};
-                    const isFavorite = favSnap ? favSnap.exists() : false;
-                    renderEditPanel(data, isFavorite, content);   // ✅ передаём контейнер
-                })
-                .catch(err => {
-                    console.error(err);
-                    renderEditPanel(data, false, content);
-                });
-        })
-        .catch(err => {
-            console.error('Ошибка загрузки парковки:', err);
-            content.innerHTML = '<div class="empty-state"><p>Не удалось загрузить парковку</p></div>';
-        });
-} 
+        const favPromise = currentUser
+            ? database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value')
+            : Promise.resolve(null);
+
+        const [carSnap, favSnap] = await Promise.all([
+            carPromise,
+            favPromise
+        ]);
+
+        if (carSnap && currentUser) {
+            currentUser.car = carSnap.val() || {};
+        }
+
+        const isFavorite = favSnap
+            ? favSnap.exists()
+            : false;
+
+        renderEditPanel(data, isFavorite, content);
+
+    } catch (error) {
+        console.error('Ошибка загрузки парковки:', error);
+
+        content.innerHTML =
+            `<div class="empty-state"><p>${escapeHtml(error.message || 'Не удалось загрузить парковку')}</p></div>`;
+    }
+}
 function renderEditPanel(data, isFavorite, content) {
     if (!content) {
         content = document.getElementById('panelContent');
@@ -2298,135 +2327,159 @@ function renderEditPanel(data, isFavorite, content) {
         loadHistoryPreview(currentParkingId);
     }
 }
-function loadHistoryPreview(parkingId) {
-    const container = document.getElementById('historyList');
-    const fullContainer = document.getElementById('historyFullList');
-    const countEl = document.getElementById('historyCount');
-    const showAllBtn = document.getElementById('showAllHistoryBtn');
-    const hideAllBtn = document.getElementById('hideAllHistoryBtn');
+
+async function loadHistoryPreview(parkingId) {
     const previewBox = document.getElementById('parkingHistoryPreview');
 
-    if (!previewBox || !currentParkingId) return;
+    if (!previewBox || !parkingId) return;
 
-    // ✅ Сначала создаём контейнеры истории внутри #parkingHistoryPreview
-    if (!container) {
+    if (!document.getElementById('historyList')) {
         previewBox.innerHTML = `
             <div id="historyList"></div>
             <div id="historyFullList" style="display:none;"></div>
         `;
     }
 
-    getParkingRef(parkingId).child('history')
-        .orderByChild('timestamp')
-        .limitToLast(100)
-        .once('value')
-        .then(snapshot => {
-            const history = snapshot.val();
-            const list = document.getElementById('historyList');
-            if (!list) return;
+    const list = document.getElementById('historyList');
+    if (!list) return;
 
-            if (!history) {
-                list.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">История пуста</div>';
-                return;
-            }
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}/history?limit=100`,
+            { cache: 'no-store' }
+        );
 
-            const entries = Object.entries(history)
-                .map(([k, v]) => ({ key: k, ...v }))
-                .sort((a, b) => b.timestamp - a.timestamp);
+        const result = await response.json();
 
-            const renderEntry = (e) => {
-                const date = new Date(e.timestamp);
-                const timeStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                const action = e.action === 'occupied' ? 'Занял' : (e.action === 'freed' ? 'Освободил' : 'Создал');
-                const color = e.action === 'occupied' ? 'var(--history-occupied)' : 'var(--history-freed)';
-                return `<div style="padding:6px 10px; background:var(--bg-primary); border-radius:8px; margin-bottom:4px; font-size:12px; display:flex; justify-content:space-between; gap:6px;">
-                    <span style="color:${color}; font-weight:600;">${action}</span>
-                    <span style="color:var(--text-secondary);">${escapeHtml(e.username || '')}</span>
-                    <span style="color:var(--text-secondary); font-size:11px;">${timeStr}</span>
-                </div>`;
-            };
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Не удалось загрузить историю');
+        }
 
-            list.innerHTML = entries.slice(0, 5).map(renderEntry).join('');
-        })
-        .catch(err => console.error('История:', err));
-}
-    function loadHistory(parkingId, limit = 10, days = 3) {
-        const container = document.getElementById('historyList');
-        const countEl = document.getElementById('historyCount');
-        const loadMoreBtn = document.getElementById('loadMoreHistory');
-        if (!container) return;
+        const entries = result.history || [];
 
-        const now = Date.now();
-        const cutoff = now - days * 24 * 60 * 60 * 1000;
+        if (!entries.length) {
+            list.innerHTML =
+                '<div style="color:var(--text-secondary);font-size:13px;">История пуста</div>';
+            return;
+        }
 
-       getParkingRef(parkingId)
-        .child('history')
-        .orderByChild('timestamp')
-        .limitToLast(limit)
-        .once('value', snapshot => {
-            const history = snapshot.val();
-            if (!history) {
-                container.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">История пуста</div>';
-                if (countEl) countEl.textContent = '';
-                return;
-            }
+        list.innerHTML = entries.slice(0, 5).map(entry => {
+            const date = new Date(Number(entry.timestamp) || 0);
 
-            let entries = Object.entries(history).map(([key, val]) => ({ key, ...val }))
-                .sort((a, b) => b.timestamp - a.timestamp)
-                .filter(entry => entry.timestamp >= cutoff);
-
-            if (countEl) countEl.textContent = `(${entries.length})`;
-
-            if (entries.length === 0) {
-                container.innerHTML =
-                    `<div style="color:var(--text-secondary); font-size:13px;">Нет изменений за последние ${days} дней</div>`;
-                if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-                return;
-            }
-
-            let html = '';
-            entries.forEach(entry => {
-                const date = new Date(entry.timestamp);
-                const timeStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit',
-                    year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                const action = entry.action === 'occupied' ? '🚗 Занял' : '🚗 Освободил';
-                const username = entry.username || 'Неизвестный';
-                const car = entry.car || {};
-                let carStr = '';
-                if (car.brand || car.model) {
-                    carStr = `${car.brand} ${car.model}`;
-                    if (car.plate) carStr += ` (${car.plate})`;
-                } else {
-                    carStr = 'машина не указана';
-                }
-                html += `
-            <div style="padding:8px 12px; background:var(--bg-primary); border-radius:8px; margin-bottom:4px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
-                <div><span style="font-weight:500;">${action}</span> (${entry.previousOccupied} → ${entry.newOccupied})</div>
-                <div style="color:var(--text-secondary); font-size:12px;">${username} • ${carStr}</div>
-                <div style="color:var(--text-secondary); font-size:11px;">${timeStr}</div>
-            </div>
-            `;
+            const time = date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
             });
-            container.innerHTML = html;
 
-            if (loadMoreBtn) {
-               getParkingRef(parkingId)
-               .child('history')
-               .once('value', totalSnap => {
-                    const total = totalSnap.numChildren ? totalSnap.numChildren() : 0;
-                    if (total > limit) {
-                        loadMoreBtn.style.display = 'block';
-                        loadMoreBtn.onclick = function() {
-                            loadHistory(parkingId, 100, days);
-                            this.style.display = 'none';
-                        };
-                    } else {
-                        loadMoreBtn.style.display = 'none';
-                    }
-                });
-            }
-        });
+            const action =
+                entry.action === 'occupied'
+                    ? 'Занял'
+                    : entry.action === 'freed'
+                        ? 'Освободил'
+                        : 'Изменил';
+
+            return `
+                <div style="padding:6px 10px;background:var(--bg-primary);border-radius:8px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between;gap:6px;">
+                    <span>${action}</span>
+                    <span>${escapeHtml(entry.username || '')}</span>
+                    <span>${time}</span>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Ошибка загрузки истории:', error);
+        list.textContent = 'Не удалось загрузить историю';
     }
+}
+
+async function loadHistory(parkingId, limit = 10, days = 3) {
+    const container = document.getElementById('historyList');
+    const countEl = document.getElementById('historyCount');
+    const loadMoreBtn = document.getElementById('loadMoreHistory');
+
+    if (!container || !parkingId) return;
+
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}/history?limit=100`,
+            { cache: 'no-store' }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Не удалось загрузить историю');
+        }
+
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+        const entries = (result.history || [])
+            .filter(entry =>
+                Number(entry.timestamp) >= cutoff
+            );
+
+        if (countEl) {
+            countEl.textContent = `(${entries.length})`;
+        }
+
+        if (!entries.length) {
+            container.innerHTML =
+                `<div style="color:var(--text-secondary);font-size:13px;">Нет изменений за последние ${days} дней</div>`;
+
+            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            return;
+        }
+
+        container.innerHTML = entries.slice(0, limit).map(entry => {
+            const date = new Date(Number(entry.timestamp) || 0);
+
+            const time = date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const action =
+                entry.action === 'occupied'
+                    ? 'Занял'
+                    : entry.action === 'freed'
+                        ? 'Освободил'
+                        : 'Изменил';
+
+            const car = entry.car || {};
+            const carName = [car.brand, car.model]
+                .filter(Boolean)
+                .join(' ') || 'машина не указана';
+
+            return `
+                <div style="padding:8px 12px;background:var(--bg-primary);border-radius:8px;margin-bottom:4px;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+                    <div>${action} (${entry.previousOccupied ?? '—'} → ${entry.newOccupied ?? '—'})</div>
+                    <div style="color:var(--text-secondary);font-size:12px;">${escapeHtml(entry.username || 'Неизвестный')} • ${escapeHtml(carName)}</div>
+                    <div style="color:var(--text-secondary);font-size:11px;">${time}</div>
+                </div>
+            `;
+        }).join('');
+
+        if (loadMoreBtn) {
+            loadMoreBtn.style.display =
+                (result.total || 0) > limit ? 'block' : 'none';
+
+            loadMoreBtn.onclick = () => {
+                loadHistory(parkingId, 100, days);
+                loadMoreBtn.style.display = 'none';
+            };
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки истории:', error);
+        container.textContent = 'Не удалось загрузить историю';
+    }
+}
 async function saveParkingDetails() {
     if (!currentUser) {
         alert('Необходимо авторизоваться');
@@ -2535,81 +2588,124 @@ async function saveParkingDetails() {
         currentParkingData.occupiedSpots = newOccupied;
     }
 
-  async function changeOccupancy(delta, parkingId) {
+  
+async function changeOccupancy(delta, parkingId) {
     if (!currentUser) {
         showToast('Необходимо авторизоваться');
         return;
     }
+
     const id = parkingId || currentParkingId;
+
     if (!id) {
         showToast('ID парковки не найден');
         return;
     }
-    const parkingRef = getParkingRef(id);
+
+    const token = localStorage.getItem('parkNearSessionToken');
+
+    if (!token) {
+        showToast('Нет активной серверной сессии. Войдите заново.');
+        return;
+    }
+
+    if (delta !== 1 && delta !== -1) {
+        showToast('Недопустимое изменение занятости');
+        return;
+    }
+
     try {
-        const snapshot = await parkingRef.once('value');
-        const data = snapshot.val();
-        if (!data) {
-            showToast('Парковка не найдена');
-            return;
-        }
-        const total = Number(data.totalSpots || 0);
-        let previousOccupied = 0;
-        let newOccupied = 0;
-        const result = await parkingRef.child('occupiedSpots').transaction(
-            currentValue => {
-                previousOccupied = Number(currentValue || 0);
-                newOccupied = previousOccupied + delta;
-                if (newOccupied < 0 || newOccupied > total) return;
-                return newOccupied;
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(id)}/occupancy`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ delta })
             }
         );
-        if (!result.committed) {
-            showToast('Количество мест уже изменилось');
-            return;
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось изменить занятость'
+            );
         }
-        const now = Date.now();
-        await parkingRef.update({
-            lastUpdatedAt: now,
-            lastUpdatedBy: currentUser.nickname || currentUser.firstName || 'Пользователь'
-        });
-        await parkingRef.child('history').push({
-            action: delta < 0 ? 'freed' : 'occupied',
-            timestamp: now,
-            userId: currentUser.id,
-            username: currentUser.username || currentUser.nickname || 'Пользователь',
-            previousOccupied,
-            newOccupied
-        });
-        if (parkingDataCache[id]) parkingDataCache[id].occupiedSpots = newOccupied;
-        if (id === currentParkingId && currentParkingData) currentParkingData.occupiedSpots = newOccupied;
-        updateOccupancyDisplay(newOccupied);
-        refreshParkingMarker(id);
-         // Пересчитываем кластеры после обновления данных парковки.
-           if (typeof refreshParkingClusters === 'function') {
-         refreshParkingClusters();
- }
-        if (document.getElementById('historyList')) loadHistoryPreview(id);
+
+        const updatedParking = result.parking;
+
+        parkingDataCache[id] = {
+            ...parkingDataCache[id],
+            ...updatedParking,
+            id
+        };
+
+        if (id === currentParkingId) {
+            currentParkingData = parkingDataCache[id];
+        }
+
+        updateOccupancyDisplay(result.occupiedSpots);
+
+        if (typeof refreshParkingMarker === 'function') {
+            refreshParkingMarker(id);
+        }
+
+        if (typeof refreshParkingClusters === 'function') {
+            refreshParkingClusters();
+        }
+
+        if (document.getElementById('historyList')) {
+            loadHistoryPreview(id);
+        }
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
     } catch (error) {
         console.error('Ошибка обновления занятости:', error);
-        showToast('Не удалось изменить количество мест');
+        showToast(error.message || 'Не удалось изменить количество мест');
     }
 }
-    function confirmParking(parkingId) {
-        if (!currentUser) return;
-        getParkingRef(parkingId)
-            .once('value')
-            .then(snapshot => {
-            const data = snapshot.val();
-            if (data && data.authorId !== currentUser.id) {
-                database.ref(`users/${data.authorId}/stats/confirmations`).transaction(c => (c || 0) + 1);
-                alert('Спасибо за подтверждение!');
-            }
-        });
+    
+async function confirmParking(parkingId) {
+    if (!currentUser) {
+        showToast('Необходимо авторизоваться');
+        return;
     }
+
+    const token = localStorage.getItem('parkNearSessionToken');
+
+    if (!token) {
+        showToast('Нет активной серверной сессии');
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}/confirm`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось подтвердить парковку'
+            );
+        }
+        showToast('Спасибо за подтверждение!');
+    } catch (error) {
+        console.error('Ошибка подтверждения парковки:', error);
+        showToast(error.message || 'Ошибка подтверждения');
+    }
+}
     // ===================== АДРЕСА =====================
     function addHomeAddress() {
         if (!currentUser) { alert('Необходимо войти'); return; }
