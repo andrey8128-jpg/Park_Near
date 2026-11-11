@@ -787,7 +787,6 @@ app.post('/auth/telegram-widget', async (req, res) => {
         }
 
         const result = await createPostgresSession(userData);
-
         return res.json({
             success: true,
             sessionToken: result.sessionToken,
@@ -800,14 +799,12 @@ app.post('/auth/telegram-widget', async (req, res) => {
             'Ошибка Telegram Widget:',
             error.message
         );
-
         return res.status(500).json({
             success: false,
             error: 'Ошибка авторизации'
         });
     }
 });
-
 // ============================================
 // АВТОРИЗАЦИЯ TELEGRAM MINI APP
 // ============================================
@@ -816,16 +813,13 @@ app.post('/auth/telegram-webapp', async (req, res) => {
         const telegramUser = verifyTelegramWebApp(
             req.body?.initData
         );
-
         if (!telegramUser) {
             return res.status(401).json({
                 success: false,
                 error: 'Не удалось подтвердить данные Telegram'
             });
         }
-
         const result = await createPostgresSession(telegramUser);
-
         return res.json({
             success: true,
             sessionToken: result.sessionToken,
@@ -838,21 +832,18 @@ app.post('/auth/telegram-webapp', async (req, res) => {
             'Ошибка Telegram Mini App:',
             error.message
         );
-
         return res.status(500).json({
             success: false,
             error: 'Ошибка авторизации'
         });
     }
 });
-
 // ============================================
 // СОХРАНЕНИЕ TELEGRAM LOGIN TOKEN ОТ БОТА
 // ============================================
 app.post('/api/bot/login-token', async (req, res) => {
     try {
         const receivedSecret = req.headers['x-bot-api-secret'];
-
         if (
             typeof receivedSecret !== 'string' ||
             receivedSecret.length !== BOT_API_SECRET.length ||
@@ -866,9 +857,7 @@ app.post('/api/bot/login-token', async (req, res) => {
                 error: 'Доступ запрещён'
             });
         }
-
         const { token, userData } = req.body || {};
-
         if (
             typeof token !== 'string' ||
             !/^[a-f0-9]{32,128}$/i.test(token) ||
@@ -880,11 +869,9 @@ app.post('/api/bot/login-token', async (req, res) => {
                 error: 'Некорректные данные'
             });
         }
-
         const telegramId = String(userData.userId);
         const userId = `tg_${telegramId}`;
         const now = Date.now();
-
         const user = {
             id: userId,
             telegramId,
@@ -895,12 +882,9 @@ app.post('/api/bot/login-token', async (req, res) => {
             isGuest: false,
             lastActive: now
         };
-
         const client = await pool.connect();
-
         try {
             await client.query('BEGIN');
-
             await client.query(
                 `INSERT INTO users (id, data)
                  VALUES ($1, $2::jsonb)
@@ -934,7 +918,6 @@ app.post('/api/bot/login-token', async (req, res) => {
                     })
                 ]
             );
-
             await client.query(
                 `INSERT INTO login_tokens (token, data)
                  VALUES ($1, $2::jsonb)`,
@@ -947,9 +930,7 @@ app.post('/api/bot/login-token', async (req, res) => {
                     })
                 ]
             );
-
             await client.query('COMMIT');
-
             return res.json({
                 success: true
             });
@@ -964,19 +945,16 @@ app.post('/api/bot/login-token', async (req, res) => {
             'Ошибка сохранения Telegram-токена:',
             error.message
         );
-
         return res.status(500).json({
             success: false,
             error: 'Не удалось сохранить токен'
         });
     }
 });
-
 // ПРОВЕРКА ПОДКЛЮЧЕНИЯ POSTGRESQL
 app.get('/health/db', async (req, res) => {
     try {
         const result = await pool.query('SELECT NOW()');
-
         res.json({
             status: 'ok',
             database: 'connected',
@@ -984,14 +962,256 @@ app.get('/health/db', async (req, res) => {
         });
     } catch (error) {
         console.error('Ошибка PostgreSQL:', error.message);
-
         res.status(500).json({
             status: 'error',
             database: 'disconnected'
         });
     }
 });
+// ============================================
+// АКТИВНАЯ ПАРКОВОЧНАЯ СЕССИЯ: ПОЛУЧЕНИЕ
+// ============================================
+app.get('/api/parking-sessions/active', requireAuth, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, data
+             FROM parking_sessions
+             WHERE data->>'userId' = $1
+               AND data->>'active' = 'true'
+             ORDER BY created_at DESC
+             LIMIT 1`,
+            [String(req.authUser.id)]
+        );
+        if (result.rows.length === 0) {
+            return res.json({
+                success: true,
+                session: null
+            });
+        }
+        return res.json({
+            success: true,
+            session: {
+                id: result.rows[0].id,
+                ...result.rows[0].data
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка получения активной парковки:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось получить активную парковку'
+        });
+    }
+});
+// ============================================
+// НАЧАЛО ПАРКОВОЧНОЙ СЕССИИ
+// ============================================
+app.post('/api/parking-sessions', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const parkingId = String(req.body?.parkingId || '');
+        const userId = String(req.authUser.id);
+        if (!parkingId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Не указан идентификатор парковки'
+            });
+        }
+        await client.query('BEGIN');
+        // Не допускаем две одновременные активные сессии одного пользователя.
+        await client.query(
+            'SELECT pg_advisory_xact_lock(hashtext($1))',
+            [userId]
+        );
+        const existing = await client.query(
+            `SELECT id
+             FROM parking_sessions
+             WHERE data->>'userId' = $1
+               AND data->>'active' = 'true'
+             LIMIT 1`,
+            [userId]
+        );
+        if (existing.rows.length > 0) {
+            await client.query('ROLLBACK');
 
+            return res.status(409).json({
+                success: false,
+                error: 'У вас уже есть активная парковка'
+            });
+        }
+        const parkingResult = await client.query(
+            `SELECT id, data
+             FROM parkings
+             WHERE id = $1
+             FOR UPDATE`,
+            [parkingId]
+        );
+        if (parkingResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({
+                success: false,
+                error: 'Парковка не найдена'
+            });
+        }
+        const parking = parkingResult.rows[0].data;
+        const total = Math.max(0, Number(parking.totalSpots) || 0);
+        const occupied = Math.max(0, Number(parking.occupiedSpots) || 0);
+        if (total > 0 && occupied >= total) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                success: false,
+                error: 'Свободных мест больше нет'
+            });
+        }
+        const startedAt = Date.now();
+        const sessionId = crypto.randomUUID();
+        const session = {
+            parkingId,
+            userId,
+            startedAt,
+            endedAt: null,
+            active: true
+        };
+        const updatedParking = {
+            ...parking,
+            occupiedSpots: occupied + 1
+        };
+        await client.query(
+            `UPDATE parkings
+             SET data = $2::jsonb
+             WHERE id = $1`,
+            [parkingId, JSON.stringify(updatedParking)]
+        );
+        await client.query(
+            `INSERT INTO parking_sessions (id, data)
+             VALUES ($1, $2::jsonb)`,
+            [sessionId, JSON.stringify(session)]
+        );
+        await client.query('COMMIT');
+        return res.status(201).json({
+            success: true,
+            session: {
+                id: sessionId,
+                ...session
+            },
+            parking: {
+                ...updatedParking,
+                id: parkingId
+            }
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Ошибка начала парковки:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось начать парковочную сессию'
+        });
+    } finally {
+        client.release();
+    }
+});
+// ============================================
+// ЗАВЕРШЕНИЕ АКТИВНОЙ ПАРКОВОЧНОЙ СЕССИИ
+// ============================================
+app.delete(
+    '/api/parking-sessions/active/:parkingId',
+    requireAuth,
+    async (req, res) => {
+        const client = await pool.connect();
+        try {
+            const parkingId = String(req.params.parkingId);
+            const userId = String(req.authUser.id);
+            await client.query('BEGIN');
+            await client.query(
+                'SELECT pg_advisory_xact_lock(hashtext($1))',
+                [userId]
+            );
+            const sessionResult = await client.query(
+                `SELECT id, data
+                 FROM parking_sessions
+                 WHERE data->>'userId' = $1
+                   AND data->>'parkingId' = $2
+                   AND data->>'active' = 'true'
+                 ORDER BY created_at DESC
+                 LIMIT 1
+                 FOR UPDATE`,
+                [userId, parkingId]
+            );
+            if (sessionResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    error: 'Активная парковочная сессия не найдена'
+                });
+            }
+            const sessionRow = sessionResult.rows[0];
+            const endedAt = Date.now();
+            const updatedSession = {
+                ...sessionRow.data,
+                active: false,
+                endedAt
+            };
+            const parkingResult = await client.query(
+                `SELECT id, data
+                 FROM parkings
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [parkingId]
+            );
+            if (parkingResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    error: 'Парковка не найдена'
+                });
+            }
+            const parking = parkingResult.rows[0].data;
+            const updatedParking = {
+                ...parking,
+                occupiedSpots: Math.max(
+                    0,
+                    (Number(parking.occupiedSpots) || 0) - 1
+                )
+            };
+            await client.query(
+                `UPDATE parking_sessions
+                 SET data = $2::jsonb
+                 WHERE id = $1`,
+                [
+                    sessionRow.id,
+                    JSON.stringify(updatedSession)
+                ]
+            );
+            await client.query(
+                `UPDATE parkings
+                 SET data = $2::jsonb
+                 WHERE id = $1`,
+                [parkingId, JSON.stringify(updatedParking)]
+            );
+            await client.query('COMMIT');
+            return res.json({
+                success: true,
+                session: {
+                    id: sessionRow.id,
+                    ...updatedSession
+                },
+                parking: {
+                    ...updatedParking,
+                    id: parkingId
+                }
+            });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('Ошибка завершения парковки:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось завершить парковочную сессию'
+            });
+        } finally {
+            client.release();
+        }
+    }
+);
 // ============================================
 // ПОЛУЧЕНИЕ ПАРКОВОК ИЗ POSTGRESQL
 // ============================================
