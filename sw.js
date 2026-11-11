@@ -57,7 +57,7 @@ self.addEventListener('notificationclick', (event) => {
       .then((clientList) => {
         // Если уже есть открытое окно, переключаемся на него
         for (const client of clientList) {
-          if (client.url.includes('/Park_Near/') && 'focus' in client) {
+          if (client.url.startsWith(self.location.origin) && 'focus' in client) {
             client.postMessage({ action: 'focusParking', parkingId });
             return client.focus();
           }
