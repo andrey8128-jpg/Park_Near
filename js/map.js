@@ -24,10 +24,6 @@ function initMap() {
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
-        if (Object.keys(parkingDataCache).length > 0) {
-    loadAllParkings(currentCity, false);
-} else {
-    loadAllParkings(currentCity, true);
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 16 =====
 map.events.add('zoomchange', function() {
     if (!map) return;
@@ -281,6 +277,28 @@ if (addBtn) {
                     showToast('Нажмите 📍, чтобы определить ваше местоположение', 4000);
                 });
         }, 1000);
+// ============================================
+// ЗАГРУЗКА ПАРКОВОК ПОСЛЕ ПОЛНОЙ ИНИЦИАЛИЗАЦИИ КАРТЫ
+// ============================================
+console.log('Загружаем парковки после инициализации карты');
+loadAllParkings(
+    currentCity || '',
+    true
+).then(() => {
+    console.log(
+        'Парковки обработаны:',
+        Object.keys(parkingDataCache).length
+    );
+    console.log(
+        'Создано маркеров:',
+        Object.keys(mapMarkers).length
+    );
+}).catch(error => {
+    console.error(
+        'Не удалось загрузить парковки:',
+        error
+    );
+});
        // ===== Скрываем сплеш-экран =====
 setTimeout(function() {
     const splash = document.getElementById('splashScreen');
