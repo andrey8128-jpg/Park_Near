@@ -24,6 +24,10 @@ function initMap() {
             type: 'yandex#map'
         });
         console.log('✅ Карта инициализирована');
+        if (Object.keys(parkingDataCache).length > 0) {
+    loadAllParkings(currentCity, false);
+} else {
+    loadAllParkings(currentCity, true);
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 16 =====
 map.events.add('zoomchange', function() {
     if (!map) return;
@@ -644,6 +648,7 @@ function clearAllMarkers() {
     }
 }
 
+
 function loadAllParkings(city = '', force = false) {
     const selectedCity = String(
         city || currentCity || ''
@@ -656,9 +661,13 @@ function loadAllParkings(city = '', force = false) {
         .replace(/\s+/g, ' ');
 
     function renderMarkers(data) {
+        // Если карта ещё не готова, сохраняем данные.
+        // Маркеры будут добавлены после повторного вызова функции.
         if (!map) {
-            console.warn('Карта ещё не инициализирована.');
-            return;
+            console.warn(
+                'Карта ещё не инициализирована. Данные сохранены в кэше.'
+            );
+            return false;
         }
 
         clearAllMarkers();
@@ -677,9 +686,7 @@ function loadAllParkings(city = '', force = false) {
             })
             : entries;
 
-        // Если ни одна запись не совпала с выбранным городом,
-        // не оставляем карту пустой: показываем загруженные парковки
-        // и выводим предупреждение для диагностики.
+        // Если совпадений нет, временно показываем все парковки.
         const visibleEntries =
             selectedCity && matching.length === 0
                 ? entries
@@ -687,8 +694,7 @@ function loadAllParkings(city = '', force = false) {
 
         if (selectedCity && matching.length === 0 && entries.length) {
             console.warn(
-                'Не найдено точного совпадения города. ' +
-                'Временно показываем все парковки.',
+                'Не найдено совпадение города. Показываем все парковки.',
                 {
                     selectedCity,
                     parkingCities: [
@@ -700,29 +706,41 @@ function loadAllParkings(city = '', force = false) {
             );
         }
 
+        let markerCount = 0;
+
         visibleEntries.forEach(([id, parking]) => {
-            addMarkerToMap(id, parking);
+            try {
+                addMarkerToMap(id, parking);
+                markerCount++;
+            } catch (error) {
+                console.error(
+                    'Ошибка создания маркера:',
+                    id,
+                    error
+                );
+            }
         });
 
         updateTotalFreeCircle();
 
-        console.log(
-            'Парковок в кэше:',
-            entries.length,
-            'Маркеров на карте:',
-            visibleEntries.length,
-            'Выбранный город:',
-            selectedCity || 'все'
-        );
+        console.log('Отображение парковок:', {
+            total: entries.length,
+            visible: visibleEntries.length,
+            markers: markerCount,
+            city: selectedCity || 'все города'
+        });
+
+        return true;
     }
 
+    // Используем кэш, если он актуален.
     if (
         !force &&
         Date.now() - lastDataRefresh < 30000 &&
         Object.keys(parkingDataCache).length > 0
     ) {
         renderMarkers(parkingDataCache);
-        return Promise.resolve();
+        return Promise.resolve(true);
     }
 
     if (!window.PARKNEAR_API_URL) {
@@ -731,8 +749,6 @@ function loadAllParkings(city = '', force = false) {
         );
     }
 
-    // Загружаем все парковки, а фильтрацию выполняем
-    // единообразно на клиенте.
     const url = new URL(
         '/api/parkings',
         window.PARKNEAR_API_URL
@@ -740,74 +756,88 @@ function loadAllParkings(city = '', force = false) {
 
     return fetch(url.toString(), {
         method: 'GET',
-        cache: 'no-store'
+        cache: 'no-store',
+        headers: {
+            'Accept': 'application/json'
+        }
     })
-        .then(response => {
+        .then(async response => {
+            const responseText = await response.text();
+
+            let result;
+
+            try {
+                result = JSON.parse(responseText);
+            } catch (error) {
+                throw new Error(
+                    `Некорректный ответ сервера HTTP ${response.status}: ` +
+                    responseText.slice(0, 300)
+                );
+            }
+
             if (!response.ok) {
                 throw new Error(
+                    result.error ||
                     `Ошибка сервера: ${response.status}`
                 );
             }
 
-            return response.json();
-        })
-        .then(result => {
             if (
                 !result.success ||
                 !Array.isArray(result.parkings)
             ) {
                 throw new Error(
-                    'Сервер вернул некорректные данные'
+                    'Сервер вернул некорректный список парковок'
                 );
             }
 
             const newCache = {};
 
             result.parkings.forEach(node => {
-                if (!node || node.lat == null || node.lng == null) {
-                    return;
-                }
+                if (!node) return;
 
                 const id = String(node.id || '');
 
                 if (!id) return;
 
-                const parking = {
-                    ...node,
-                    id,
-                    _dbPath: null,
-                    lat: Number(node.lat),
-                    lng: Number(node.lng),
-                    totalSpots: Math.max(
-                        0,
-                        Number(node.totalSpots) || 0
-                    ),
-                    occupiedSpots: Math.max(
-                        0,
-                        Number(node.occupiedSpots) || 0
-                    )
-                };
+                const lat = Number(node.lat);
+                const lng = Number(node.lng);
 
                 if (
-                    !Number.isFinite(parking.lat) ||
-                    !Number.isFinite(parking.lng) ||
-                    Math.abs(parking.lat) > 90 ||
-                    Math.abs(parking.lng) > 180
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lng) ||
+                    Math.abs(lat) > 90 ||
+                    Math.abs(lng) > 180
                 ) {
                     console.warn(
-                        'Пропущена парковка с некорректными координатами:',
-                        id
+                        'Некорректные координаты парковки:',
+                        id,
+                        node
                     );
                     return;
                 }
-
-                parking.occupiedSpots = Math.min(
-                    parking.occupiedSpots,
-                    parking.totalSpots
+                const totalSpots = Math.max(
+                    0,
+                    Number(node.totalSpots) || 0
                 );
-
-                newCache[id] = parking;
+                const occupiedSpots = Math.min(
+                    totalSpots,
+                    Math.max(
+                        0,
+                        Number(node.occupiedSpots) || 0
+                    )
+                );
+                newCache[id] = {
+                    ...node,
+                    id,
+                    lat,
+                    lng,
+                    totalSpots,
+                    occupiedSpots,
+                    _dbPath: null
+                };
             });
+            // Сохраняем загруженные данные.
             parkingDataCache = newCache;
             lastDataRefresh = Date.now();
             try {
@@ -825,6 +855,7 @@ function loadAllParkings(city = '', force = false) {
                     error
                 );
             }
+            // Пытаемся отобразить маркеры.
             renderMarkers(newCache);
             console.log(
                 'Парковки загружены из PostgreSQL:',
@@ -837,7 +868,7 @@ function loadAllParkings(city = '', force = false) {
                 'Ошибка загрузки парковок из PostgreSQL:',
                 error
             );
-            return false;
+            throw error;
         });
 }
   function showParkingsForCity(city) {
