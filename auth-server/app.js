@@ -530,6 +530,159 @@ app.get('/auth/me', requireAuth, (req, res) => {
 });
 
 // ============================================
+// ПОЛУЧЕНИЕ ПРОФИЛЯ ИЗ POSTGRESQL
+// ============================================
+app.get('/api/users/me/profile', requireAuth, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT data FROM users WHERE id = $1',
+            [req.authUser.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Пользователь не найден'
+            });
+        }
+        return res.json({
+            success: true,
+            profile: result.rows[0].data || {}
+        });
+    } catch (error) {
+        console.error('Ошибка получения профиля:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось загрузить профиль'
+        });
+    }
+});
+// ============================================
+// ОБНОВЛЕНИЕ ПРОФИЛЯ В POSTGRESQL
+// ============================================
+app.patch('/api/users/me/profile', requireAuth, async (req, res) => {
+    try {
+        const allowedFields = [
+            'nickname',
+            'car',
+            'cityPreferences',
+            'parkingSettings',
+            'homeAddresses'
+        ];
+        const updates = {};
+        for (const field of allowedFields) {
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    req.body || {},
+                    field
+                )
+            ) {
+                updates[field] = req.body[field];
+            }
+        }
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Нет допустимых полей для обновления'
+            });
+        }
+        if (
+            updates.nickname !== undefined &&
+            (
+                typeof updates.nickname !== 'string' ||
+                updates.nickname.trim().length > 40
+            )
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректный никнейм'
+            });
+        }
+        if (
+            updates.car !== undefined &&
+            (
+                !updates.car ||
+                typeof updates.car !== 'object' ||
+                Array.isArray(updates.car)
+            )
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректные данные автомобиля'
+            });
+        }
+        if (
+            updates.cityPreferences !== undefined &&
+            (
+                !updates.cityPreferences ||
+                typeof updates.cityPreferences !== 'object' ||
+                Array.isArray(updates.cityPreferences)
+            )
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректные настройки города'
+            });
+        }
+        if (
+            updates.parkingSettings !== undefined &&
+            (
+                !updates.parkingSettings ||
+                typeof updates.parkingSettings !== 'object' ||
+                Array.isArray(updates.parkingSettings)
+            )
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректные настройки парковки'
+            });
+        }
+        if (
+            updates.homeAddresses !== undefined &&
+            (
+                !updates.homeAddresses ||
+                typeof updates.homeAddresses !== 'object' ||
+                Array.isArray(updates.homeAddresses) ||
+                Object.keys(updates.homeAddresses).length > 3
+            )
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректный список домашних адресов'
+            });
+        }
+        if (updates.nickname !== undefined) {
+            updates.nickname = updates.nickname.trim();
+        }
+        const result = await pool.query(
+            `UPDATE users
+             SET data = COALESCE(data, '{}'::jsonb) || $2::jsonb
+             WHERE id = $1
+             RETURNING data`,
+            [
+                req.authUser.id,
+                JSON.stringify(updates)
+            ]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Пользователь не найден'
+            });
+        }
+        return res.json({
+            success: true,
+            profile: result.rows[0].data
+        });
+    } catch (error) {
+        console.error('Ошибка сохранения профиля:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось сохранить профиль'
+        });
+    }
+});
+// ============================================
 // ЗАВЕРШЕНИЕ СЕССИИ
 // ============================================
 app.post('/auth/logout', requireAuth, async (req, res) => {
