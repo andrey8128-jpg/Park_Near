@@ -1971,33 +1971,25 @@ async function openOccupancyPanel(parkingId) {
                 console.warn('Не удалось учесть просмотр:', error)
             );
         }
-
-        // Данные автомобиля и избранного пока остаются
-        // в Firebase: это будет перенесено на следующих этапах.
-        const carPromise = currentUser
-            ? database.ref(`users/${currentUser.id}/car`).once('value')
-            : Promise.resolve(null);
-
-        const favPromise = currentUser
-        ? isFavorite(parkingId)
-        : Promise.resolve(false);
-
-        const [carSnap, favSnap] = await Promise.all([
-            carPromise,
-            favPromise
+               // Загружаем профиль автомобиля из PostgreSQL
+        // и проверяем избранное через PostgreSQL API.
+        const profilePromise = currentUser
+            ? requestUserProfile('GET')
+            : Promise.resolve({});
+        const favoritePromise = currentUser
+            ? isFavorite(parkingId)
+            : Promise.resolve(false);
+        const [profile, favoriteResult] = await Promise.all([
+            profilePromise,
+            favoritePromise
         ]);
-
-        if (carSnap && currentUser) {
-            currentUser.car = carSnap.val() || {};
+        if (currentUser) {
+            currentUser.car = profile.car || {};
         }
-
-        const favoriteStatus = Boolean(favSnap);
-
+        const favoriteStatus = Boolean(favoriteResult);
         renderEditPanel(data, favoriteStatus, content);
-
     } catch (error) {
         console.error('Ошибка загрузки парковки:', error);
-
         content.innerHTML =
             `<div class="empty-state"><p>${escapeHtml(error.message || 'Не удалось загрузить парковку')}</p></div>`;
     }
@@ -2614,14 +2606,47 @@ async function confirmParking(parkingId) {
     }
 }
     // ===================== АДРЕСА =====================
-    function addHomeAddress() {
-        if (!currentUser) { alert('Необходимо войти'); return; }
-        database.ref(`users/${currentUser.id}/homeAddresses`).once('value').then(snap => {
-            if (Object.keys(snap.val() || {}).length >= 3) { alert('Максимум 3 адреса'); return; }
-            openAddressPicker();
-        }).catch(err => { console.error(err);
-            alert('Ошибка'); });
+// ============================================
+// ДОМАШНИЕ АДРЕСА — POSTGRESQL
+// ============================================
+async function getHomeAddresses() {
+    const profile = await requestUserProfile('GET');
+    const addresses = profile.homeAddresses || {};
+    return Array.isArray(addresses)
+        ? Object.fromEntries(
+            addresses.map((address, index) => [
+                String(address.id || `address_${index}`),
+                address
+            ])
+        )
+        : addresses;
+}
+async function saveHomeAddresses(addresses) {
+    await requestUserProfile('PATCH', {
+        homeAddresses: addresses
+    });
+    if (currentUser) {
+        currentUser.homeAddresses = addresses;
     }
+    return addresses;
+}
+   async function addHomeAddress() {
+    if (!currentUser) {
+        alert('Необходимо войти');
+        return;
+    }
+    try {
+        const addresses = await getHomeAddresses();
+        if (Object.keys(addresses).length >= 3) {
+            alert('Максимум 3 адреса');
+            return;
+        }
+        openAddressPicker();
+    } catch (error) {
+        console.error('Ошибка загрузки домашних адресов:', error);
+        alert('Не удалось загрузить домашние адреса');
+    }
+}
 async function centerMapOnAddress(lat, lng) {
     if (!Number.isFinite(Number(lat)) ||
         !Number.isFinite(Number(lng))) {
@@ -2792,115 +2817,129 @@ function setAddressPickerCoords(coords) {
             });
     }
 
-    function selectLabel(label) {
-        if (!pendingAddressData) return;
-        const data = pendingAddressData;
-        database.ref(`users/${currentUser.id}/homeAddresses`).once('value')
-            .then(snap => {
-                const count = Object.keys(snap.val() || {}).length;
-                if (count >= 3) {
-                    alert('Максимум 3 адреса');
-                    cancelLabelPicker();
-                    return;
-                }
-                return database.ref(`users/${currentUser.id}/homeAddresses`).push({
-                    address: data.address,
-                    lat: data.lat || null,
-                    lng: data.lng || null,
-                    label: label,
-                    city: data.city || '',
-                    street: data.street || '',
-                    houseNumber: data.houseNumber || '',
-                    timestamp: Date.now()
-                });
-            })
-            .then(() => {
-                cancelLabelPicker();
-                alert('Адрес сохранён!');
-                showPanel('favorites');
-            })
-            .catch(err => {
-                console.error('Ошибка сохранения адреса:', err);
-                alert('Ошибка сохранения: ' + err.message);
-                cancelLabelPicker();
-            });
+  async function selectLabel(label) {
+    if (!pendingAddressData || !currentUser) return;
+    const data = pendingAddressData;
+    try {
+        const addresses = await getHomeAddresses();
+        if (Object.keys(addresses).length >= 3) {
+            alert('Максимум 3 адреса');
+            cancelLabelPicker();
+            return;
+        }
+        const addressId = (
+            typeof crypto !== 'undefined' &&
+            typeof crypto.randomUUID === 'function'
+        )
+            ? crypto.randomUUID()
+            : `address_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        addresses[addressId] = {
+            address: data.address,
+            lat: data.lat ?? null,
+            lng: data.lng ?? null,
+            label,
+            city: data.city || '',
+            street: data.street || '',
+            houseNumber: data.houseNumber || '',
+            timestamp: Date.now()
+        };
+        await saveHomeAddresses(addresses);
+        cancelLabelPicker();
+        alert('Адрес сохранён!');
+        showPanel('favorites');
+    } catch (error) {
+        console.error('Ошибка сохранения адреса:', error);
+        alert('Ошибка сохранения: ' + error.message);
+        cancelLabelPicker();
     }
-
+}
     function cancelLabelPicker() {
         document.getElementById('labelPickerOverlay').classList.remove('active');
         pendingAddressData = null;
     }
-
-    function removeHomeAddress(addressId) {
-        if (confirm('Удалить адрес?')) {
-            database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).remove()
-                .then(() => showPanel('favorites'))
-                .catch(err => alert('Ошибка: ' + err.message));
-        }
-    }
-
-    // ===================== РЕДАКТОР АДРЕСА =====================
-  function openAddressEditor(addressId) {
+    async function removeHomeAddress(addressId) {
     if (!currentUser || !addressId) return;
-
+    if (!confirm('Удалить адрес?')) return;
+    try {
+        const addresses = await getHomeAddresses();
+        if (!addresses[addressId]) {
+            alert('Адрес не найден');
+            return;
+        }
+        delete addresses[addressId];
+        await saveHomeAddresses(addresses);
+        showPanel('favorites');
+    } catch (error) {
+        console.error('Ошибка удаления адреса:', error);
+        alert('Ошибка: ' + error.message);
+    }
+}
+    // ===================== РЕДАКТОР АДРЕСА =====================
+ async function openAddressEditor(addressId) {
+    if (!currentUser || !addressId) return;
     const overlay = document.getElementById('addressEditorOverlay');
     if (!overlay) return;
-
-    document.getElementById('editAddrId').value = addressId;
-
-    database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).once('value')
-        .then(snap => {
-            if (!snap.exists()) {
-                alert('Адрес не найден');
-                return;
-            }
-
-            const addr = snap.val() || {};
-
-            document.getElementById('editAddrLabel').value = addr.label || 'Дом';
-            document.getElementById('editAddrCity').value = addr.city || '';
-            document.getElementById('editAddrStreet').value = addr.street || '';
-            document.getElementById('editAddrHouse').value = addr.houseNumber || '';
-
-            overlay.classList.add('active');
-        })
-        .catch(err => {
-            console.error('Ошибка загрузки адреса:', err);
-            alert('Не удалось загрузить адрес');
-        });
+    try {
+        const addresses = await getHomeAddresses();
+        const addr = addresses[addressId];
+        if (!addr) {
+            alert('Адрес не найден');
+            return;
+        }
+        document.getElementById('editAddrId').value = addressId;
+        document.getElementById('editAddrLabel').value = addr.label || 'Дом';
+        document.getElementById('editAddrCity').value = addr.city || '';
+        document.getElementById('editAddrStreet').value = addr.street || '';
+        document.getElementById('editAddrHouse').value = addr.houseNumber || '';
+        overlay.classList.add('active');
+    } catch (error) {
+        console.error('Ошибка загрузки адреса:', error);
+        alert('Не удалось загрузить адрес');
+    }
 }
     function closeAddressEditor() {
         document.getElementById('addressEditorOverlay').classList.remove('active');
     }
-
-    function saveAddressChanges() {
-        if (!currentUser) return;
-        const addressId = document.getElementById('editAddrId').value;
-        const label = document.getElementById('editAddrLabel').value;
-        const city = document.getElementById('editAddrCity').value.trim();
-        const street = document.getElementById('editAddrStreet').value.trim();
-        const houseNumber = document.getElementById('editAddrHouse').value.trim();
-
-        const fullAddress = [city, street, houseNumber ? `д. ${houseNumber}` : ''].filter(Boolean).join(', ') ||
-            'Адрес не указан';
-
-        database.ref(`users/${currentUser.id}/homeAddresses/${addressId}`).update({
-            label: label,
-            city: city,
-            street: street,
-            houseNumber: houseNumber,
+  async function saveAddressChanges() {
+    if (!currentUser) return;
+    const addressId = document.getElementById('editAddrId').value;
+    const label = document.getElementById('editAddrLabel').value;
+    const city = document.getElementById('editAddrCity').value.trim();
+    const street = document.getElementById('editAddrStreet').value.trim();
+    const houseNumber = document.getElementById('editAddrHouse').value.trim();
+    const fullAddress = [
+        city,
+        street,
+        houseNumber ? `д. ${houseNumber}` : ''
+    ].filter(Boolean).join(', ') || 'Адрес не указан';
+    try {
+        const addresses = await getHomeAddresses();
+        if (!addresses[addressId]) {
+            alert('Адрес не найден');
+            return;
+        }
+        addresses[addressId] = {
+            ...addresses[addressId],
+            label,
+            city,
+            street,
+            houseNumber,
             address: fullAddress
-        }).then(() => {
-            closeAddressEditor();
-            if (document.getElementById('panel').classList.contains('active')) {
-                const content = document.getElementById('panelContent');
-                loadUserData('favorites', content);
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
-        }).catch(err => alert('Ошибка: ' + err.message));
+        };
+        await saveHomeAddresses(addresses);
+        closeAddressEditor();
+        if (document.getElementById('panel')?.classList.contains('active')) {
+            const content = document.getElementById('panelContent');
+            loadUserData('favorites', content);
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    } catch (error) {
+        console.error('Ошибка обновления адреса:', error);
+        alert('Ошибка: ' + error.message);
     }
+}
     function findParkingsNearAddress(lat, lng, addressText) {
         if (lat && lng) {
             nearbySearchFilter = { lat: lat, lng: lng, radius: 300 };
@@ -3683,40 +3722,53 @@ function updateCitySelectInSettingsInline() {
         });
     }
 }
-function saveCityFromSettingsInline() {
+async function saveCityFromSettingsInline() {
     if (!currentUser) return;
-    var regionSelect = document.getElementById('settingsRegionInline');
-    var citySelect = document.getElementById('settingsCityInline');
-    var region = regionSelect ? regionSelect.value : '';
-    var city = citySelect ? citySelect.value : '';
+    const regionSelect = document.getElementById('settingsRegionInline');
+    const citySelect = document.getElementById('settingsCityInline');
+    const region = regionSelect ? regionSelect.value : '';
+    const city = citySelect ? citySelect.value : '';
     if (!region || !city) return;
-    mapCity = null;
-    database.ref('users/' + currentUser.id + '/cityPreferences').set({ region: region, city: city })
-        .then(function() {
-            userCityPrefs = { region: region, city: city };
-            // Сохраняем в localStorage
-            localStorage.setItem('parknear_city', JSON.stringify({ region, city }));
-            // Обновляем координаты города
-            ymaps.geocode(city, { results: 1 }).then(function(res) {
-                const geo = res.geoObjects.get(0);
-                if (geo) {
-                    const coords = geo.geometry.getCoordinates();
-                    cityCoords = { lat: coords[0], lng: coords[1] };
-                    localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
-                    if (map) {
-                        map.setCenter(coords, 12, { duration: 500 });
-                    }
-                }
-            });
-            updateCityDisplay();
-            loadAllParkings(city);   // ← передаём city
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
-        })
-        .catch(function(err) {
-            alert('Ошибка: ' + err.message);
+    try {
+        await requestUserProfile('PATCH', {
+            cityPreferences: { region, city }
         });
+        userCityPrefs = { region, city };
+        currentCity = city;
+        mapCity = null;
+        localStorage.setItem(
+            'parknear_city',
+            JSON.stringify({ region, city })
+        );
+        localStorage.setItem('selectedCity', city);
+        const result = await ymaps.geocode(city, { results: 1 });
+        const geo = result.geoObjects.get(0);
+        if (geo) {
+            const coords = geo.geometry.getCoordinates();
+            cityCoords = {
+                lat: coords[0],
+                lng: coords[1]
+            };
+            localStorage.setItem(
+                'parknear_city_coords',
+                JSON.stringify(cityCoords)
+            );
+            if (map) {
+                map.setCenter(coords, 12, { duration: 500 });
+            }
+        }
+        updateCityDisplay();
+        loadAllParkings(city);
+        if (
+            window.Telegram &&
+            window.Telegram.WebApp &&
+            window.Telegram.WebApp.HapticFeedback
+        ) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+    } catch (err) {
+        alert('Ошибка сохранения города: ' + err.message);
+    }
 }
     function updateCitySelectInSettings() {
         const region = document.getElementById('settingsRegion')?.value;
