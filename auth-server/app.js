@@ -682,6 +682,184 @@ app.patch('/api/users/me/profile', requireAuth, async (req, res) => {
         });
     }
 });
+
+// ============================================
+// ПОЛУЧЕНИЕ ИЗБРАННЫХ ПАРКОВОК
+// ============================================
+app.get('/api/users/me/favorites', requireAuth, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT
+                f.parking_id AS "parkingId",
+                f.created_at AS "savedAt",
+                p.data AS parking
+             FROM favorites f
+             LEFT JOIN parkings p ON p.id = f.parking_id
+             WHERE f.user_id = $1
+             ORDER BY f.created_at DESC`,
+            [String(req.authUser.id)]
+        );
+
+        const favorites = result.rows.map(row => ({
+            parkingId: row.parkingId,
+            savedAt: new Date(row.savedAt).getTime(),
+            parking: row.parking
+                ? { ...row.parking, id: row.parkingId }
+                : null
+        }));
+
+        return res.json({
+            success: true,
+            count: favorites.length,
+            favorites
+        });
+    } catch (error) {
+        console.error('Ошибка загрузки избранного:', error);
+
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось загрузить избранные парковки'
+        });
+    }
+});
+
+// ============================================
+// ДОБАВЛЕНИЕ ПАРКОВКИ В ИЗБРАННОЕ
+// ============================================
+app.post('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const userId = String(req.authUser.id);
+        const parkingId = String(req.params.parkingId);
+
+        await client.query('BEGIN');
+
+        const parking = await client.query(
+            'SELECT id FROM parkings WHERE id = $1',
+            [parkingId]
+        );
+
+        if (parking.rowCount === 0) {
+            await client.query('ROLLBACK');
+
+            return res.status(404).json({
+                success: false,
+                error: 'Парковка не найдена'
+            });
+        }
+
+        const inserted = await client.query(
+            `INSERT INTO favorites (user_id, parking_id)
+             VALUES ($1, $2)
+             ON CONFLICT (user_id, parking_id) DO NOTHING
+             RETURNING parking_id`,
+            [userId, parkingId]
+        );
+
+        await client.query(
+            `UPDATE users
+             SET data = jsonb_set(
+                 COALESCE(data, '{}'::jsonb),
+                 '{stats,favorites}',
+                 to_jsonb((
+                     SELECT COUNT(*)
+                     FROM favorites
+                     WHERE user_id = $1
+                 )),
+                 true
+             )
+             WHERE id = $1`,
+            [userId]
+        );
+        await client.query('COMMIT');
+        return res.status(200).json({
+            success: true,
+            added: inserted.rowCount > 0
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+         console.error('Ошибка добавления избранного:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось добавить парковку в избранное'
+        });
+    } finally {
+        client.release();
+    }
+});
+// ============================================
+// УДАЛЕНИЕ ПАРКОВКИ ИЗ ИЗБРАННОГО
+// ============================================
+app.delete('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const userId = String(req.authUser.id);
+        const parkingId = String(req.params.parkingId);
+          await client.query('BEGIN');
+        const deleted = await client.query(
+            `DELETE FROM favorites
+             WHERE user_id = $1 AND parking_id = $2
+             RETURNING parking_id`,
+            [userId, parkingId]
+        );
+        await client.query(
+            `UPDATE users
+             SET data = jsonb_set(
+                 COALESCE(data, '{}'::jsonb),
+                 '{stats,favorites}',
+                 to_jsonb((
+                     SELECT COUNT(*)
+                     FROM favorites
+                     WHERE user_id = $1
+                 )),
+                 true
+             )
+             WHERE id = $1`,
+            [userId]
+        );
+         await client.query('COMMIT');
+        return res.json({
+            success: true,
+            removed: deleted.rowCount > 0
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+          console.error('Ошибка удаления избранного:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось удалить парковку из избранного'
+        });
+    } finally {
+        client.release();
+    }
+});
+// ============================================
+// ПРОВЕРКА, ЕСТЬ ЛИ ПАРКОВКА В ИЗБРАННОМ
+// ============================================
+app.get('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT 1
+             FROM favorites
+             WHERE user_id = $1 AND parking_id = $2`,
+            [
+                String(req.authUser.id),
+                String(req.params.parkingId)
+            ]
+        );
+        return res.json({
+            success: true,
+            favorite: result.rowCount > 0
+        });
+    } catch (error) {
+        console.error('Ошибка проверки избранного:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось проверить избранное'
+        });
+    }
+});
 // ============================================
 // ЗАВЕРШЕНИЕ СЕССИИ
 // ============================================
