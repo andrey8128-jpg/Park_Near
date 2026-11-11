@@ -433,23 +433,31 @@ function renderList() {
         }
         list?.querySelector('#pnFavRetry')?.addEventListener('click', () => renderFavorites(content));
     });
-        database.ref('parkings').once('value')
-    ]).then(([favSnap, parkSnap]) => {
+          favoritesRequest().then(result => {
         if (!content.isConnected || !content.querySelector('#pnFavList')) return;
-        const favData = favSnap.val() || {};
-        const parkRaw = parkSnap.val() || {};
-        const flat = {};
-        Object.keys(parkRaw).forEach(k => {
-            const v = parkRaw[k];
-            if (!v) return;
-            if (v.lat != null) flat[k] = v;
-            else if (typeof v === 'object') Object.keys(v).forEach(sk => { if (v[sk]?.lat != null) flat[sk] = v[sk]; });
-        });
-        favorites = Object.values(favData).filter(i => i?.parkingId).map(i => ({ ...i, parking: flat[i.parkingId] ? { ...flat[i.parkingId], id: i.parkingId } : { ...i, id: i.parkingId } }));
+        favorites = (result.favorites || [])
+            .filter(item => item?.parkingId)
+            .map(item => {
+                const parking = item.parking || {};
+                return {
+                    ...parking,
+                    parkingId: String(item.parkingId),
+                    savedAt: Number(item.savedAt) || 0,
+                    parking: {
+                        ...parking,
+                        id: String(item.parkingId)
+                    }
+                };
+            });
         renderList();
     }).catch(err => {
-        console.error(err);
-        if (list) list.innerHTML = '<div class="pn-fav-empty"><div class="pn-fav-empty-icon">⚠️</div><h3>Ошибка</h3><button id="pnFavRetry">Повторить</button></div>';
-        list?.querySelector('#pnFavRetry')?.addEventListener('click', () => renderFavorites(content));
+        console.error('Ошибка загрузки избранного:', err);
+        if (list) {
+            list.innerHTML = '<div class="pn-fav-empty"><div class="pn-fav-empty-icon">⚠️</div><h3>Ошибка</h3><button id="pnFavRetry">Повторить</button></div>';
+        }
+        list?.querySelector('#pnFavRetry')?.addEventListener(
+            'click',
+            () => renderFavorites(content)
+        );
     });
 }
