@@ -4300,7 +4300,9 @@ function createAuthScreenFallback() {
    const parkingLoader =
     typeof window.loadAllParkings === 'function'
         ? window.loadAllParkings
-        : null;
+        : typeof loadAllParkings === 'function'
+            ? loadAllParkings
+            : null;
 
 if (!parkingLoader) {
     console.error('❌ loadAllParkings действительно отсутствует', {
