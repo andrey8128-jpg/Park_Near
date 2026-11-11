@@ -648,6 +648,28 @@ async function restorePostgresSession() {
             'tgUser',
             JSON.stringify(profile)
         );
+      // Восстанавливаем активную парковку из PostgreSQL.
+const activeParkingSession = await getUserActiveParkingSession();
+
+if (activeParkingSession) {
+    const parkingId = String(activeParkingSession.parkingId);
+    const parking = parkingDataCache[parkingId];
+
+    if (typeof window.setLocalActiveParking === 'function') {
+        window.setLocalActiveParking(
+            parkingId,
+            parking?.name || 'Парковка',
+            activeParkingSession.startedAt
+        );
+    }
+
+    console.log(
+        'Активная парковка восстановлена:',
+        activeParkingSession
+    );
+} else if (typeof window.clearLocalActiveParking === 'function') {
+    window.clearLocalActiveParking();
+}
         console.log(
             'Серверная сессия восстановлена:',
             profile.id
@@ -1486,25 +1508,41 @@ async function getParkingOccupancy(parkingId) {
         occupied
     );
 }
-async function getUserActiveParkingSession(){
-    if(!currentUser?.id)return null;
-    try{
-        const snapshot=await database.ref('parkingSessions')
-            .orderByChild('userId')
-            .equalTo(String(currentUser.id))
-            .once('value');
-        const sessions=snapshot.val()||{};
-        for(const [sessionId,session] of Object.entries(sessions)){
-            if(session&&session.active===true){
-                return{
-                    id:sessionId,
-                    ...session
-                };
-            }
-        }
+async function getUserActiveParkingSession() {
+
+    const token = localStorage.getItem('parkNearSessionToken');
+
+    if (!token || !currentUser?.id) {
+
         return null;
-    }catch(error){
-        console.error('Ошибка получения активной парковочной сессии:',error);
+
+    }
+
+    try {
+
+        const response = await fetch(
+
+            `${window.PARKNEAR_API_URL}/api/parking-sessions/active`,
+
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                cache: 'no-store'
+            }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось получить активную парковку'
+            );
+        }
+        return result.session || null;
+    } catch (error) {
+        console.error(
+            'Ошибка получения активной парковки:',
+            error
+        );
         return null;
     }
 }
@@ -1576,291 +1614,320 @@ function getCurrentUserLocation() {
     });
 }
 async function startParkingSession(parkingId) {
-    if (!currentUser?.id) {
-        alert('Чтобы припарковаться, необходимо войти в аккаунт.');
-        return;
-    }
-    if (!parkingId) {
-        alert('Не удалось определить парковку.');
-        return;
-    }
-    // Не допускаем повторный запуск, пока предыдущий запрос выполняется.
-    if (isStartingParkingSession) {
-        return;
-    }
-    isStartingParkingSession = true;
-    let occupancyIncreased = false;
-    let sessionRef = null;
-    try {
-        // Проверяем существующую активную сессию пользователя.
-        const existingSnapshot = await database
-            .ref('parkingSessions')
-            .orderByChild('userId')
-            .equalTo(String(currentUser.id))
-            .once('value');
-        const existingSessions = existingSnapshot.val() || {};
-        const alreadyParked = Object.values(existingSessions).some(
-            session => session && session.active === true
-        );
-        if (alreadyParked) {
-            alert('У вас уже есть активная парковка.');
-            return;
-        }
-        // Получаем парковку по правильному вложенному пути.
-        const parkingRef = getParkingRef(parkingId);
-        const parkingSnapshot = await parkingRef.once('value');
-        const parking = parkingSnapshot.val();
-        if (!parking) {
-            alert('Парковка не найдена.');
-            return;
-        }
-        const parkingLat = Number(parking.lat ?? parking.latitude);
-        const parkingLng = Number(parking.lng ?? parking.longitude);
-        if (
-            !Number.isFinite(parkingLat) ||
-            !Number.isFinite(parkingLng) ||
-            Math.abs(parkingLat) > 90 ||
-            Math.abs(parkingLng) > 180
-        ) {
-            alert('Не удалось определить координаты парковки.');
-            return;
-        }
-        // Проверяем местоположение пользователя.
-        const position = await getCurrentUserLocation();
-        const distance = getDistanceInMeters(
-            position.latitude,
-            position.longitude,
-            parkingLat,
-            parkingLng
-        );
-        const radius = 170;
-        const accuracy = Number(position.accuracy) || 0;
-        if (distance > radius + accuracy) {
-            alert(
-                `Вы находитесь примерно в ${Math.round(distance)} м от парковки. ` +
-                'Подойдите ближе, чтобы отметить парковку.'
-            );
-            return;
-        }
-        // Переносим старые данные, если это ещё не сделано.
-        const occupiedBefore = await getParkingOccupancy(parkingId);
-        const totalSpots = Math.max(0, Number(parking.totalSpots) || 0);
-        if (totalSpots > 0 && occupiedBefore >= totalSpots) {
-            alert('По данным приложения, свободных мест сейчас нет.');
-            return;
-        }
-        // Увеличиваем единый счётчик.
-        const occupancyResult = await parkingRef
-            .child('occupiedSpots')
-            .transaction(value => {
-                const occupied = Math.max(0, Number(value) || 0);
-                if (totalSpots > 0 && occupied >= totalSpots) {
-                    return;
-                }
-                return occupied + 1;
-            });
-        if (!occupancyResult.committed) {
-            alert('Свободных мест больше нет или данные изменились.');
-            return;
-        }
-        occupancyIncreased = true;
-        // Создаём сессию.
-        sessionRef = database.ref('parkingSessions').push();
-        const startedAt = Date.now();
-        await sessionRef.set({
-            parkingId: String(parkingId),
-            userId: String(currentUser.id),
-            startedAt,
-            endedAt: null,
-            active: true
-        });
-        occupancyIncreased = false;
-        if (typeof window.setLocalActiveParking === 'function') {
-            window.setLocalActiveParking(
-                parkingId,
-                parking.name || 'Парковка',
-                startedAt
-            );
-        }
-        // Обновляем локальные данные.
-        const updatedSnapshot = await parkingRef.once('value');
-        const updatedParking = updatedSnapshot.val();
 
-        if (updatedParking) {
-            currentParkingData = updatedParking;
-            parkingDataCache[parkingId] = {
-                ...updatedParking,
-                _dbPath: parkingDataCache[parkingId]?._dbPath
-            };
+    if (!currentUser?.id) {
+
+        alert('Чтобы припарковаться, необходимо войти в аккаунт.');
+
+        return;
+
+    }
+
+    if (!parkingId) {
+
+        alert('Не удалось определить парковку.');
+
+        return;
+
+    }
+
+    if (isStartingParkingSession) return;
+
+    isStartingParkingSession = true;
+
+    try {
+
+        const token = localStorage.getItem('parkNearSessionToken');
+
+        if (!token) {
+
+            throw new Error('Сессия пользователя не найдена. Войдите заново.');
+
         }
-        await openCenterSheet(parkingId, updatedParking || parking);
+
+        const parking = parkingDataCache[parkingId];
+
+        if (!parking) {
+
+            throw new Error('Парковка не найдена в загруженных данных.');
+
+        }
+
+        const parkingLat = Number(parking.lat ?? parking.latitude);
+
+        const parkingLng = Number(parking.lng ?? parking.longitude);
+
+        if (
+
+            !Number.isFinite(parkingLat) ||
+
+            !Number.isFinite(parkingLng) ||
+
+            Math.abs(parkingLat) > 90 ||
+
+            Math.abs(parkingLng) > 180
+
+        ) {
+
+            throw new Error('Не удалось определить координаты парковки.');
+
+        }
+
+        const position = await getCurrentUserLocation();
+
+        const distance = getDistanceInMeters(
+
+            position.latitude,
+
+            position.longitude,
+
+            parkingLat,
+
+            parkingLng
+
+        );
+
+        const radius = 170;
+
+        const accuracy = Number(position.accuracy) || 0;
+
+        if (distance > radius + accuracy) {
+
+            alert(
+
+                `Вы находитесь примерно в ${Math.round(distance)} м от парковки. ` +
+
+                'Подойдите ближе, чтобы отметить парковку.'
+
+            );
+
+            return;
+
+        }
+
+        const response = await fetch(
+
+            `${window.PARKNEAR_API_URL}/api/parking-sessions`,
+
+            {
+
+                method: 'POST',
+
+                headers: {
+
+                    'Content-Type': 'application/json',
+
+                    'Authorization': `Bearer ${token}`
+
+                },
+
+                body: JSON.stringify({
+
+                    parkingId: String(parkingId)
+
+                })
+
+            }
+
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+
+            throw new Error(
+
+                result.error || 'Не удалось начать парковочную сессию'
+
+            );
+
+        }
+
+        const session = result.session;
+
+        const updatedParking = result.parking || parking;
+
+        if (typeof window.setLocalActiveParking === 'function') {
+
+            window.setLocalActiveParking(
+
+                parkingId,
+
+                updatedParking.name || parking.name || 'Парковка',
+
+                session.startedAt
+
+            );
+
+        }
+
+        parkingDataCache[parkingId] = {
+
+            ...parking,
+
+            ...updatedParking,
+
+            id: String(parkingId),
+
+            _dbPath: null
+
+        };
+
+        currentParkingData = parkingDataCache[parkingId];
+
+        await openCenterSheet(
+
+            parkingId,
+
+            parkingDataCache[parkingId]
+
+        );
+
         if (typeof refreshParkingMarker === 'function') {
+
             refreshParkingMarker(parkingId);
+
         }
+
         if (typeof refreshParkingClusters === 'function') {
+
             refreshParkingClusters();
+
         }
+
         if (window.Telegram?.WebApp?.HapticFeedback) {
+
             window.Telegram.WebApp.HapticFeedback
+
                 .notificationOccurred('success');
+
         }
+
+        console.log('Парковочная сессия создана в PostgreSQL:', session);
+
     } catch (error) {
         console.error('Ошибка начала парковки:', error);
-        // Если сессию создать не удалось, возвращаем счётчик назад.
-        if (occupancyIncreased) {
-            try {
-                const parkingRef = getParkingRef(parkingId);
-
-                await parkingRef.child('occupiedSpots').transaction(value => {
-                    return Math.max(0, (Number(value) || 0) - 1);
-                });
-            } catch (rollbackError) {
-                console.error(
-                    'Не удалось восстановить счётчик занятости:',
-                    rollbackError
-                );
-            }
-        }
-        if (sessionRef) {
-            try {
-                await sessionRef.remove();
-            } catch (removeError) {
-                console.error('Не удалось удалить сессию:', removeError);
-            }
-        }
         alert(
-            error.message === 'Разрешите доступ к геолокации.'
-                ? error.message
-                : 'Не удалось начать парковочную сессию. ' +
-                  'Проверьте геолокацию и подключение к интернету.'
+            error.message ||
+            'Не удалось начать парковочную сессию.'
         );
-         } finally {
-        // Снимаем блокировку повторного нажатия
+    } finally {
         isStartingParkingSession = false;
     }
 }
 async function endParkingSession(parkingId) {
+
     if (!currentUser?.id || !parkingId) return;
+
     try {
-        const snapshot = await database
-            .ref('parkingSessions')
-            .orderByChild('userId')
-            .equalTo(String(currentUser.id))
-            .once('value');
-        const sessions = snapshot.val() || {};
-        let sessionKey = null;
-        for (const [key, session] of Object.entries(sessions)) {
-            if (
-                session &&
-                session.active === true &&
-                String(session.parkingId) === String(parkingId)
-            ) {
-                sessionKey = key;
-                break;
-            }
+
+        const token = localStorage.getItem('parkNearSessionToken');
+
+        if (!token) {
+
+            throw new Error('Сессия пользователя не найдена.');
+
         }
-        if (!sessionKey) {
-    // Активной сессии в Firebase уже нет.
-    // Удаляем устаревшее локальное состояние.
-    if (typeof window.clearLocalActiveParking === 'function') {
-        window.clearLocalActiveParking();
-    }
-    alert('Активная парковка уже завершена. Состояние приложения обновлено.');
-    return;
-}
-        const sessionRef = database.ref(
-            `parkingSessions/${sessionKey}`
-        );
-        const parkingRef = getParkingRef(parkingId);
-        const endedAt = Date.now();
-        // Атомарно завершаем сессию.
-        // Только один запрос сможет изменить active: true на false.
-        const sessionResult = await sessionRef.transaction(session => {
-            if (!session || session.active !== true) {
-                return;
-            }
-            return {
-                ...session,
-                active: false,
-                endedAt
-            };
-        });
-        if (!sessionResult.committed) {
-    const latestSession = sessionResult.snapshot
-        ? sessionResult.snapshot.val()
-        : null;
-    // Очищаем локальный баннер только если база
-    // действительно подтверждает, что сессия неактивна.
-    if (!latestSession || latestSession.active !== true) {
-        if (typeof window.clearLocalActiveParking === 'function') {
-            window.clearLocalActiveParking();
-        }
-        alert('Эта парковочная сессия уже завершена. Состояние приложения обновлено.');
-        return;
-    }
-    alert('Не удалось завершить парковку. Попробуйте ещё раз.');
-    return;
-}
-        try {
-            // Уменьшаем общий счётчик только один раз.
-            const counterResult = await parkingRef
-                .child('occupiedSpots')
-                .transaction(value => {
-                    return Math.max(
-                        0,
-                        (Number(value) || 0) - 1
-                    );
-                });
-            if (!counterResult.committed) {
-                throw new Error('Не удалось обновить счётчик занятости.');
-            }
-        } catch (counterError) {
-            // Восстанавливаем сессию, если счётчик не обновился.
-            await sessionRef.transaction(session => {
-                if (
-                    !session ||
-                    session.active !== false ||
-                    session.endedAt !== endedAt
-                ) {
-                    return;
+
+        const response = await fetch(
+
+            `${window.PARKNEAR_API_URL}/api/parking-sessions/active/${encodeURIComponent(parkingId)}`,
+
+            {
+
+                method: 'DELETE',
+
+                headers: {
+
+                    'Authorization': `Bearer ${token}`
+
                 }
-                return {
-                    ...session,
-                    active: true,
-                    endedAt: null
-                };
-            });
-            throw counterError;
-        }
-        if (typeof window.clearLocalActiveParking === 'function') {
-            window.clearLocalActiveParking();
-        }
-        const parkingSnapshot = await parkingRef.once('value');
-        const parking = parkingSnapshot.val();
-        if (parking) {
-            currentParkingData = parking;
-            parkingDataCache[parkingId] = {
-                ...parking,
-                _dbPath: parkingDataCache[parkingId]?._dbPath
-            };
-            await openCenterSheet(parkingId, parking);
-        }
-        if (typeof refreshParkingMarker === 'function') {
-            refreshParkingMarker(parkingId);
-        }
-        if (typeof refreshParkingClusters === 'function') {
-            refreshParkingClusters();
-        }
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback
-                .notificationOccurred('success');
-        }
-    } catch (error) {
-        console.error(
-            'Ошибка завершения парковочной сессии:',
-            error
+
+            }
+
         );
-        alert('Не удалось завершить парковку.');
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+
+            throw new Error(
+
+                result.error || 'Не удалось завершить парковку'
+
+            );
+
+        }
+
+        if (typeof window.clearLocalActiveParking === 'function') {
+
+            window.clearLocalActiveParking();
+
+        }
+
+        const updatedParking = result.parking;
+
+        if (updatedParking) {
+
+            parkingDataCache[parkingId] = {
+
+                ...parkingDataCache[parkingId],
+
+                ...updatedParking,
+
+                id: String(parkingId),
+
+                _dbPath: null
+
+            };
+
+            currentParkingData = parkingDataCache[parkingId];
+
+            await openCenterSheet(
+
+                parkingId,
+
+                parkingDataCache[parkingId]
+
+            );
+
+        }
+
+        if (typeof refreshParkingMarker === 'function') {
+
+            refreshParkingMarker(parkingId);
+
+        }
+
+        if (typeof refreshParkingClusters === 'function') {
+
+            refreshParkingClusters();
+
+        }
+
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+
+            window.Telegram.WebApp.HapticFeedback
+
+                .notificationOccurred('success');
+
+        }
+
+        console.log('Парковочная сессия завершена в PostgreSQL.');
+
+    } catch (error) {
+
+        console.error(
+
+            'Ошибка завершения парковочной сессии:',
+
+            error
+
+        );
+        alert(
+            error.message ||
+            'Не удалось завершить парковку.'
+        );
     }
 }
 function getParkingPlacesWord(number) {
