@@ -551,7 +551,80 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
         });
     }
 });
-
+// ============================================
+// СОЗДАНИЕ ГОСТЕВОЙ СЕССИИ
+// ============================================
+app.post('/auth/guest', async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const now = Date.now();
+        // ID и токен создаются сервером.
+        const guestId =
+            `guest_${crypto.randomBytes(16).toString('hex')}`;
+        const sessionToken =
+            crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto
+            .createHash('sha256')
+            .update(sessionToken)
+            .digest('hex');
+        const sessionId =
+            crypto.randomBytes(16).toString('hex');
+        const expiresAt = new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000
+        );
+        const user = {
+            id: guestId,
+            username: 'guest',
+            firstName: 'Гость',
+            photoUrl: '',
+            isGuest: true,
+            lastActive: now,
+            stats: {
+                registeredAt: now,
+                lastActive: now,
+                parkingsCreated: 0,
+                parkingsUpdated: 0,
+                confirmations: 0,
+                views: 0,
+                favorites: 0,
+                activeDates: [
+                    new Date().toISOString().split('T')[0]
+                ]
+            }
+        };
+        await client.query('BEGIN');
+        await client.query(
+            `INSERT INTO users (id, data)
+             VALUES ($1, $2::jsonb)`,
+            [guestId, JSON.stringify(user)]
+        );
+        await client.query(
+            `INSERT INTO auth_sessions
+                (id, user_id, token_hash, expires_at)
+             VALUES ($1, $2, $3, $4)`,
+            [sessionId, guestId, tokenHash, expiresAt]
+        );
+        await client.query('COMMIT');
+        return res.json({
+            success: true,
+            sessionToken,
+            expiresAt: expiresAt.toISOString(),
+            user
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(
+            'Ошибка создания гостевой сессии:',
+            error.message
+        );
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось создать гостевую сессию'
+        });
+    } finally {
+        client.release();
+    }
+});
 // ============================================
 // ОБМЕН ОДНОРАЗОВОГО TELEGRAM-ТОКЕНА НА СЕССИЮ
 // ============================================
