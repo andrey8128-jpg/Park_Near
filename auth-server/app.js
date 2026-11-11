@@ -1212,6 +1212,211 @@ app.delete(
         }
     }
 );
+
+// ============================================
+// ПОЛУЧЕНИЕ ОДНОЙ ПАРКОВКИ
+// ============================================
+app.get('/api/parkings/:id', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, data FROM parkings WHERE id = $1',
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Парковка не найдена'
+            });
+        }
+
+        return res.json({
+            success: true,
+            parking: {
+                ...result.rows[0].data,
+                id: result.rows[0].id
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка получения парковки:', error);
+
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось получить парковку'
+        });
+    }
+});
+
+// ============================================
+// ПОЛУЧЕНИЕ ИСТОРИИ ПАРКОВКИ
+// ============================================
+app.get('/api/parkings/:id/history', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT data FROM parkings WHERE id = $1',
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Парковка не найдена'
+            });
+        }
+
+        const history = result.rows[0].data?.history || [];
+        const entries = Array.isArray(history)
+            ? history
+            : Object.values(history);
+
+        const limit = Math.min(
+            100,
+            Math.max(1, Number(req.query.limit) || 10)
+        );
+
+        return res.json({
+            success: true,
+            total: entries.length,
+            history: entries
+                .filter(Boolean)
+                .sort((a, b) =>
+                    Number(b.timestamp) - Number(a.timestamp)
+                )
+                .slice(0, limit)
+        });
+    } catch (error) {
+        console.error('Ошибка истории парковки:', error);
+
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось загрузить историю'
+        });
+    }
+});
+
+// ============================================
+// УЧЁТ ПРОСМОТРОВ ПАРКОВКИ
+// ============================================
+app.post(
+    '/api/parkings/:id/view',
+    requireAuth,
+    async (req, res) => {
+        try {
+            const result = await pool.query(
+                `UPDATE parkings
+                 SET data = jsonb_set(
+                     COALESCE(data, '{}'::jsonb),
+                     '{views}',
+                     to_jsonb(
+                         COALESCE((data->>'views')::integer, 0) + 1
+                     ),
+                     true
+                 )
+                 WHERE id = $1
+                   AND data->>'authorId' <> $2
+                 RETURNING data`,
+                [req.params.id, String(req.authUser.id)]
+            );
+
+            return res.json({
+                success: true,
+                counted: result.rowCount > 0
+            });
+        } catch (error) {
+            console.error('Ошибка учёта просмотра:', error);
+
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось учесть просмотр'
+            });
+        }
+    }
+);
+
+// ============================================
+// ПОДТВЕРЖДЕНИЕ ПАРКОВКИ
+// ============================================
+app.post(
+    '/api/parkings/:id/confirm',
+    requireAuth,
+    async (req, res) => {
+        const client = await pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            const result = await client.query(
+                `SELECT data
+                 FROM parkings
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [req.params.id]
+            );
+
+            if (result.rows.length === 0) {
+                await client.query('ROLLBACK');
+
+                return res.status(404).json({
+                    success: false,
+                    error: 'Парковка не найдена'
+                });
+            }
+
+            const parking = result.rows[0].data || {};
+
+            if (
+                String(parking.authorId) ===
+                String(req.authUser.id)
+            ) {
+                await client.query('ROLLBACK');
+
+                return res.status(400).json({
+                    success: false,
+                    error: 'Нельзя подтверждать собственную парковку'
+                });
+            }
+
+            const updated = await client.query(
+                `UPDATE users
+                 SET data = jsonb_set(
+                     COALESCE(data, '{}'::jsonb),
+                     '{stats}',
+                     COALESCE(data->'stats', '{}'::jsonb) ||
+                     jsonb_build_object(
+                         'confirmations',
+                         COALESCE(
+                             (data #>> '{stats,confirmations}')::integer,
+                             0
+                         ) + 1
+                     ),
+                     true
+                 )
+                 WHERE id = $1`,
+                [parking.authorId]
+            );
+
+            await client.query('COMMIT');
+
+            return res.json({
+                success: true,
+                counted: updated.rowCount > 0
+            });
+
+        } catch (error) {
+            await client.query('ROLLBACK');
+
+            console.error('Ошибка подтверждения парковки:', error);
+
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось подтвердить парковку'
+            });
+        } finally {
+            client.release();
+        }
+    }
+);
+
 // ============================================
 // ПОЛУЧЕНИЕ ПАРКОВОК ИЗ POSTGRESQL
 // ============================================
