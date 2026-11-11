@@ -640,7 +640,7 @@ async function restorePostgresSession() {
             username: result.user.username || 'tg_user',
             firstName: result.user.firstName || 'Пользователь',
             photoUrl: result.user.photoUrl || '',
-            isGuest: false
+            isGuest: Boolean(result.user.isGuest)
         };
         currentUser = profile;
         window.currentUser = profile;
@@ -3919,76 +3919,89 @@ function getGuestId() {
         localStorage.setItem('parknear_guest_id', guestId);
     }
     return guestId;
-}
-   function continueAsGuest() {
-    // 1. Пытаемся восстановить существующего гостя
-    let guestId = localStorage.getItem('parknear_guest_id');
-    let user;
-    if (guestId) {
-        // Восстанавливаем существующего гостя
-        user = {
-            id: guestId,
-            username: 'guest',
-            firstName: 'Гость',
-            photoUrl: '',
-            isGuest: true
-        };
-        console.log('👤 Восстановлен гость:', guestId);
-    } else {
-        // Создаём нового гостя
-        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('parknear_guest_id', guestId);
-        user = {
-            id: guestId,
-            username: 'guest',
-            firstName: 'Гость',
-            photoUrl: '',
-            isGuest: true
-        };
-        console.log('🆕 Создан новый гость:', guestId);
-        // Создаём статистику в Firebase только для нового гостя
-        database.ref('users/' + guestId + '/stats').set({
-            registeredAt: Date.now(),
-            lastActive: Date.now(),
-            parkingsCreated: 0,
-            parkingsUpdated: 0,
-            confirmations: 0,
-            views: 0,
-            favorites: 0,
-            activeDates: [new Date().toISOString().split('T')[0]]
-        }).catch(function(err) {
-            console.warn('Ошибка создания статистики гостя:', err);
-        });
+}   
+async function continueAsGuest() {
+    const guestButton = document.querySelector('.guest-btn');
+    if (guestButton) {
+        guestButton.disabled = true;
+        guestButton.textContent = 'Выполняется вход...';
     }
-    // 2. Устанавливаем текущего пользователя
-    currentUser = user;
-    window.currentUser = user;
-    // 3. Сохраняем в localStorage (для совместимости с initAuth)
-    localStorage.setItem('tgUser', JSON.stringify(user));
-    // 4. Обновляем активность (последний вход)
-    database.ref('users/' + guestId + '/stats/lastActive').set(Date.now())
-        .catch(function(err) {
-            console.warn('Не удалось обновить lastActive:', err);
-        });
-    // 5. Обновляем активные дни (если сегодня ещё не было)
-    const today = new Date().toISOString().split('T')[0];
-    database.ref('users/' + guestId + '/stats/activeDates').once('value')
-        .then(function(snap) {
-            var dates = snap.val() || [];
-            if (!dates.includes(today)) {
-                dates.push(today);
-                database.ref('users/' + guestId + '/stats/activeDates').set(dates);
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/auth/guest`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
             }
-        })
-        .catch(function(err) {
-            console.warn('Не удалось обновить активные дни:', err);
-        });
-    // 6. Скрываем экран входа
-    hideAuthScreen();
-    // 7. Показываем главную панель и онбординг (если ещё не показывали)
-    showPanel('home');
-    showOnboarding();
-        console.log('✅ Гостевой вход выполнен');
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось войти как гость'
+            );
+        }
+        if (!result.sessionToken || !result.user) {
+            throw new Error(
+                'Сервер вернул неполные данные гостя'
+            );
+        }
+        const user = {
+            id: result.user.id,
+            username: 'guest',
+            firstName: 'Гость',
+            photoUrl: '',
+            isGuest: true
+        };
+        // Сохраняем серверную сессию.
+        localStorage.setItem(
+            'parkNearSessionToken',
+            result.sessionToken
+        );
+        if (result.expiresAt) {
+            localStorage.setItem(
+                'parkNearSessionExpiresAt',
+                result.expiresAt
+            );
+        }
+        // Сохраняем профиль гостя.
+        currentUser = user;
+        window.currentUser = user;
+        localStorage.setItem(
+            'tgUser',
+            JSON.stringify(user)
+        );
+        localStorage.setItem(
+            'parknear_guest_id',
+            user.id
+        );
+        hideAuthScreen();
+        showPanel('home');
+        showOnboarding();
+        console.log(
+            'Гостевой вход через PostgreSQL выполнен:',
+            user.id
+        );
+        if (typeof showToast === 'function') {
+            showToast('Вы вошли как гость', 3000);
+        }
+    } catch (error) {
+        console.error(
+            'Ошибка гостевого входа:',
+            error
+        );
+        alert(
+            'Не удалось войти как гость: ' +
+            (error.message || 'Ошибка соединения')
+        );
+    } finally {
+        if (guestButton) {
+            guestButton.disabled = false;
+            guestButton.textContent = 'Продолжить как гость';
+        }
+    }
 }
     function logout() {
         localStorage.removeItem('tgUser');
