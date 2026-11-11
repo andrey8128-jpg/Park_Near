@@ -49,25 +49,45 @@ function renderSettingsInline() {
         </div>
     `;
     if (!isGuest) {
-      // Добавьте в html настроек
-html += `
-  <div class="settings-row">
-    <span class="settings-label">🔔 Уведомления о парковках</span>
-    <label class="theme-switch" style="width: 51px; height: 31px;">
-      <input type="checkbox" id="pushToggle" ${Notification.permission === 'granted' ? 'checked' : ''} onchange="togglePushNotifications()">
-      <span class="theme-slider"></span>
-    </label>
-  </div>
-`;
-// Функция для переключения
-window.togglePushNotifications = async function() {
-  const isChecked = document.getElementById('pushToggle').checked;
-  if (isChecked) {
-    await initPushNotifications();
-  } else {
-    await unsubscribePush();
-  }
-};
+              // Web Push
+        const notificationsGranted =
+            'Notification' in window &&
+            Notification.permission === 'granted';
+
+        html += `
+            <div class="settings-row">
+                <span class="settings-label">🔔 Уведомления о парковках</span>
+                <label class="theme-switch" style="width: 51px; height: 31px;">
+                    <input
+                        type="checkbox"
+                        id="pushToggle"
+                        ${notificationsGranted ? 'checked' : ''}
+                        onchange="togglePushNotifications()"
+                    >
+                    <span class="theme-slider"></span>
+                </label>
+            </div>
+        `;
+        window.togglePushNotifications = async function() {
+            const toggle = document.getElementById('pushToggle');
+            if (!toggle) return;
+            toggle.disabled = true;
+            try {
+                if (toggle.checked) {
+                    const success = await initPushNotifications();
+                    if (!success) {
+                        toggle.checked = false;
+                    }
+                } else {
+                    const success = await unsubscribePush();
+                    if (!success) {
+                        toggle.checked = true;
+                    }
+                }
+            } finally {
+                toggle.disabled = false;
+            }
+        };
         // Город
         html += `
             <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 6px;">
