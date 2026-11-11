@@ -359,7 +359,6 @@ function verifyTelegramWebApp(initData) {
         return null;
     }
 }
-
 // ============================================
 // СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ И СЕССИИ В POSTGRESQL
 // ============================================
@@ -371,11 +370,9 @@ async function createPostgresSession(telegramUser) {
     ) {
         throw new Error('Некорректный Telegram user ID');
     }
-
     const telegramId = String(telegramUser.id);
     const userId = `tg_${telegramId}`;
     const now = Date.now();
-
     const user = {
         id: userId,
         telegramId,
@@ -391,7 +388,6 @@ async function createPostgresSession(telegramUser) {
         isGuest: false,
         lastActive: now
     };
-
     const initialStats = {
         registeredAt: now,
         lastActive: now,
@@ -404,26 +400,19 @@ async function createPostgresSession(telegramUser) {
             new Date().toISOString().split('T')[0]
         ]
     };
-
     // Генерируем случайный токен и сохраняем в БД только его SHA-256.
     const sessionToken = crypto.randomBytes(32).toString('hex');
-
     const tokenHash = crypto
         .createHash('sha256')
         .update(sessionToken)
         .digest('hex');
-
     const sessionId = crypto.randomBytes(16).toString('hex');
-
     const expiresAt = new Date(
         Date.now() + 30 * 24 * 60 * 60 * 1000
     );
-
     const client = await pool.connect();
-
     try {
         await client.query('BEGIN');
-
         // Создаём пользователя или обновляем его профиль,
         // сохраняя уже существующую статистику.
         await client.query(
@@ -448,7 +437,6 @@ async function createPostgresSession(telegramUser) {
                 })
             ]
         );
-
         // Создаём серверную сессию.
         await client.query(
             `INSERT INTO auth_sessions
@@ -461,15 +449,12 @@ async function createPostgresSession(telegramUser) {
                 expiresAt
             ]
         );
-
         // Удаляем просроченные сессии.
         await client.query(
             `DELETE FROM auth_sessions
              WHERE expires_at <= NOW()`
         );
-
         await client.query('COMMIT');
-
         return {
             sessionToken,
             uid: userId,
@@ -483,7 +468,316 @@ async function createPostgresSession(telegramUser) {
         client.release();
     }
 }
+// ============================================
+// YANDEX ID — СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ И СЕССИИ
+// ============================================
+async function createYandexPostgresSession(yandexProfile) {
+    const yandexId = String(yandexProfile.id || '');
+    if (!/^\d+$/.test(yandexId)) {
+        throw new Error('Некорректный ID пользователя Яндекса');
+    }
+    const userId = `ya_${yandexId}`;
+    const now = Date.now();
+    const user = {
+        id: userId,
+        yandexId,
+        authProvider: 'yandex',
+        username: yandexProfile.login || `yandex_${yandexId}`,
+        firstName:
+            yandexProfile.first_name ||
+            yandexProfile.display_name ||
+            yandexProfile.login ||
+            'Пользователь',
+        lastName: yandexProfile.last_name || '',
+        photoUrl: yandexProfile.is_avatar_empty
+            ? ''
+            : yandexProfile.default_avatar_id
+                ? `https://avatars.yandex.net/get-yapic/${encodeURIComponent(yandexProfile.default_avatar_id)}/islands-200`
+                : '',
+        email: yandexProfile.default_email || '',
+        isGuest: false,
+        lastActive: now
+    };
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256')
+        .update(sessionToken)
+        .digest('hex');
+    const sessionId = crypto.randomBytes(16).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const initialStats = {
+        registeredAt: now,
+        lastActive: now,
+        parkingsCreated: 0,
+        parkingsUpdated: 0,
+        confirmations: 0,
+        views: 0,
+        favorites: 0,
+        activeDates: [new Date().toISOString().split('T')[0]]
+    };
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query(
+            `INSERT INTO users (id, data)
+             VALUES ($1, $2::jsonb)
+             ON CONFLICT (id)
+             DO UPDATE SET data =
+                COALESCE(users.data, '{}'::jsonb)
+                || EXCLUDED.data
+                || jsonb_build_object(
+                    'stats',
+                    COALESCE(
+                        users.data->'stats',
+                        EXCLUDED.data->'stats'
+                    )
+                )`,
+            [
+                userId,
+                JSON.stringify({
+                    ...user,
+                    stats: initialStats
+                })
+            ]
+        );
+        await client.query(
+            `INSERT INTO auth_sessions
+                (id, user_id, token_hash, expires_at)
+             VALUES ($1, $2, $3, $4)`,
+            [sessionId, userId, tokenHash, expiresAt]
+        );
+        await client.query('DELETE FROM auth_sessions WHERE expires_at <= NOW()');
+        await client.query('COMMIT');
+        return {
+            sessionToken,
+            user,
+            expiresAt: expiresAt.toISOString()
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+// ============================================
+// YANDEX ID — НАЧАЛО АВТОРИЗАЦИИ
+// ============================================
+app.get('/auth/yandex', async (req, res) => {
+    try {
+        const clientId = process.env.YANDEX_CLIENT_ID;
+        const redirectUri = process.env.YANDEX_REDIRECT_URI;
+        if (!clientId || !redirectUri) {
+            return res.status(503).send('Яндекс ID не настроен на сервере');
+        }
+        const state = crypto.randomBytes(32).toString('hex');
+        const verifier = crypto.randomBytes(48).toString('base64url');
+        const challenge = crypto
+            .createHash('sha256')
+            .update(verifier)
+            .digest('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/g, '');
+        await pool.query(
+            `INSERT INTO login_tokens (token, data)
+             VALUES ($1, $2::jsonb)`,
+            [
+                state,
+                JSON.stringify({
+                    provider: 'yandex',
+                    verifier,
+                    expiresAt: Date.now() + 10 * 60 * 1000
+                })
+            ]
+        );
+        const params = new URLSearchParams({
+            response_type: 'code',
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            state,
+            code_challenge: challenge,
+            code_challenge_method: 'S256'
+        });
+        return res.redirect(
+            `https://oauth.yandex.ru/authorize?${params.toString()}`
+        );
+    } catch (error) {
+        console.error('Ошибка начала авторизации Яндекс:', error.message);
+        return res.status(500).send('Не удалось начать вход через Яндекс');
+    }
+});
+// ============================================
+// YANDEX ID — CALLBACK
+// ============================================
+app.get('/auth/yandex/callback', async (req, res) => {
+    const frontendUrl =
+        process.env.FRONTEND_URL ||
+        'https://andrey8128-jpg.github.io';
 
+    try {
+        const { code, state, error } = req.query;
+        if (error) {
+            return res.redirect(
+                `${frontendUrl}/?yandex_error=access_denied`
+            );
+        }
+        if (
+            typeof code !== 'string' ||
+            typeof state !== 'string'
+        ) {
+            return res.redirect(
+                `${frontendUrl}/?yandex_error=invalid_callback`
+            );
+        }
+        // Получаем и одновременно удаляем одноразовый state.
+        const stateResult = await pool.query(
+            `DELETE FROM login_tokens
+             WHERE token = $1
+             RETURNING data`,
+            [state]
+        );
+        if (stateResult.rows.length === 0) {
+            return res.redirect(
+                `${frontendUrl}/?yandex_error=invalid_state`
+            );
+        }
+        const stateData = stateResult.rows[0].data;
+        if (
+            stateData.provider !== 'yandex' ||
+            Number(stateData.expiresAt) < Date.now()
+        ) {
+            return res.redirect(
+                `${frontendUrl}/?yandex_error=expired_state`
+            );
+        }
+        const clientId = process.env.YANDEX_CLIENT_ID;
+        const clientSecret = process.env.YANDEX_CLIENT_SECRET;
+        const redirectUri = process.env.YANDEX_REDIRECT_URI;
+        if (!clientId || !clientSecret || !redirectUri) {
+            throw new Error('Не настроены переменные Яндекс OAuth');
+        }
+        // Обмениваем код авторизации на OAuth-токен.
+        const tokenResponse = await fetch(
+            'https://oauth.yandex.ru/token',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    grant_type: 'authorization_code',
+                    code,
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    redirect_uri: redirectUri,
+                    code_verifier: stateData.verifier
+                })
+            }
+        );
+        const tokenData = await tokenResponse.json();
+        if (!tokenResponse.ok || !tokenData.access_token) {
+            console.error('Ошибка обмена кода Яндекс:', tokenData);
+            throw new Error('Яндекс не выдал токен авторизации');
+        }
+        // Получаем подтверждённый профиль пользователя.
+        const profileResponse = await fetch(
+            'https://login.yandex.ru/info?format=json',
+            {
+                headers: {
+                    'Authorization': `OAuth ${tokenData.access_token}`
+                }
+            }
+        );
+        const yandexProfile = await profileResponse.json();
+        if (
+            !profileResponse.ok ||
+            !yandexProfile.id ||
+            String(yandexProfile.client_id) !== String(clientId)
+        ) {
+            throw new Error('Не удалось подтвердить профиль Яндекса');
+        }
+        const session = await createYandexPostgresSession(yandexProfile);
+        // Создаём короткоживущий одноразовый код передачи сессии
+        // на frontend. Сам sessionToken не помещается в URL.
+        const handoffCode = crypto.randomBytes(32).toString('hex');
+        await pool.query(
+            `INSERT INTO login_tokens (token, data)
+             VALUES ($1, $2::jsonb)`,
+            [
+                handoffCode,
+                JSON.stringify({
+                    provider: 'yandex_handoff',
+                    sessionToken: session.sessionToken,
+                    user: session.user,
+                    expiresAt: Date.now() + 2 * 60 * 1000
+                })
+            ]
+        );
+        return res.redirect(
+            `${frontendUrl}/?yandex_code=${handoffCode}`
+        );
+    } catch (error) {
+        console.error('Ошибка авторизации Яндекс:', error.message);
+        return res.redirect(
+            `${frontendUrl}/?yandex_error=server_error`
+        );
+    }
+});
+// ============================================
+// YANDEX ID — ОБМЕН ОДНОРАЗОВОГО КОДА НА СЕССИЮ
+// ============================================
+app.post('/auth/yandex/complete', async (req, res) => {
+    try {
+        const handoffCode = req.body?.code;
+        if (
+            typeof handoffCode !== 'string' ||
+            !/^[a-f0-9]{64}$/i.test(handoffCode)
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректный код авторизации'
+            });
+        }
+        const result = await pool.query(
+            `DELETE FROM login_tokens
+             WHERE token = $1
+             RETURNING data`,
+            [handoffCode]
+        );
+        if (result.rows.length === 0) {
+            return res.status(401).json({
+                success: false,
+                error: 'Код авторизации уже использован или истёк'
+            });
+        }
+        const data = result.rows[0].data;
+        if (
+            data.provider !== 'yandex_handoff' ||
+            Number(data.expiresAt) < Date.now() ||
+            !data.sessionToken ||
+            !data.user
+        ) {
+            return res.status(401).json({
+                success: false,
+                error: 'Код авторизации недействителен'
+            });
+        }
+        return res.json({
+            success: true,
+            sessionToken: data.sessionToken,
+            user: data.user,
+            expiresAt: new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+            ).toISOString()
+        });
+    } catch (error) {
+        console.error('Ошибка завершения входа Яндекс:', error.message);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось завершить вход через Яндекс'
+        });
+    }
+});
 // ============================================
 // ПРОВЕРКА СЕССИИ PARK NEAR
 // ============================================
