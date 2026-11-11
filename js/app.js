@@ -763,97 +763,6 @@ async function initAuth() {
     showAuthScreen();
     return false;
 }
-async function checkTelegramTokenFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    if (!token) {
-        return false;
-    }
-    // Убираем одноразовый токен из адресной строки.
-    window.history.replaceState(
-        {},
-        document.title,
-        window.location.pathname
-    );
-    try {
-        // Передаём временный токен серверу.
-        const response = await fetch(
-            `${window.PARKNEAR_API_URL}/auth/telegram-token-login`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ token })
-            }
-        );
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-            throw new Error(
-                result.error || 'Не удалось подтвердить вход через Telegram.'
-            );
-        }
-        if (!result.sessionToken || !result.user) {
-            throw new Error(
-                'Сервер вернул неполные данные авторизации.'
-            );
-        }
-        // Сохраняем серверную сессию.
-        localStorage.setItem(
-            'parkNearSessionToken',
-            result.sessionToken
-        );
-        if (result.expiresAt) {
-            localStorage.setItem(
-                'parkNearSessionExpiresAt',
-                result.expiresAt
-            );
-        }
-        // Восстанавливаем профиль пользователя.
-        const profile = {
-            id: result.user.id,
-            telegramId: String(
-                result.user.telegramId || ''
-            ),
-            username: result.user.username || 'tg_user',
-            firstName:
-                result.user.firstName || 'Пользователь',
-            photoUrl: result.user.photoUrl || '',
-            isGuest: false
-        };
-        currentUser = profile;
-        window.currentUser = profile;
-        localStorage.setItem(
-            'tgUser',
-            JSON.stringify(profile)
-        );
-        hideAuthScreen();
-        showPanel('home');
-        if (typeof showToast === 'function') {
-            showToast(
-                'Вы успешно вошли через Telegram!',
-                3000
-            );
-        }
-        console.log(
-            'Вход через Telegram-бота выполнен:',
-            profile.id
-        );
-        return true;
-    } catch (error) {
-        console.error(
-            'Ошибка входа через Telegram-бота:',
-            error
-        );
-        localStorage.removeItem('parkNearSessionToken');
-        localStorage.removeItem('parkNearSessionExpiresAt');
-     alert(
-            'Не удалось завершить вход: ' +
-            (error.message || 'Неизвестная ошибка')
-        );
-        return false;
-    }
-}
 // ============================================
 // БЫСТРОЕ ВОССТАНОВЛЕНИЕ СЕССИИ
 // Выполняется сразу, не дожидаясь загрузки карты
@@ -4217,7 +4126,10 @@ function createAuthScreenFallback() {
             <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary, #888); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
             <div style="font-size:48px; margin-bottom:12px;">🚗</div>
             <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
-            <p style="color:var(--text-secondary, #666); margin-bottom:20px; font-size:15px;">Войдите через Telegram, чтобы сохранять данные и пользоваться всеми функциями</p>
+           <p style="color:var(--text-secondary, #666); margin-bottom:20px; font-size:15px;">
+            Войдите через Яндекс или продолжите как гость,
+                чтобы сохранять парковки, город и настройки.
+            </p>
                        <button
                 type="button"
                 onclick="startYandexLogin()"
@@ -4237,12 +4149,6 @@ function createAuthScreenFallback() {
                 <span style="font-weight:800; margin-right:8px;">Я</span>
                 Войти через Яндекс
             </button>
-            <script async src="https://telegram.org/js/telegram-widget.js?24&v=1"
-                data-telegram-login="parknear_bot"
-                data-size="large"
-                data-onauth="onTelegramAuth(user)"
-                data-request-access="write">
-            <\/script>
             <div style="margin:12px 0; color:var(--text-secondary, #666); font-size:14px;">— или —</div>
             <button class="guest-btn" onclick="continueAsGuest()" style="width:100%; padding:16px; border-radius:14px; border:none; font-size:16px; font-weight:600; cursor:pointer; background:var(--bg-secondary, #fff); color:var(--accent, #007AFF); border:1px solid var(--accent, #007AFF);">Продолжить как гость</button>
         </div>
@@ -4629,244 +4535,6 @@ function renderParkingList(container, parkings) {
         userLocationForSearch
     );
 }
-    // ===================== ИНИЦИАЛИЗАЦИЯ =====================
-  function checkTelegramAuthFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authData = urlParams.get('tg_auth_data');
-    if (authData) {
-        try {
-            const userData = JSON.parse(decodeURIComponent(authData));
-            if (userData.id) {
-                onTelegramAuth(userData);
-                window.history.replaceState({}, document.title, window.location.pathname);
-                return true;
-            }
-        } catch (e) { console.warn('Ошибка разбора URL:', e); }
-    }
-    return false;
-}
-
-// ===================== АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM =====================
-async function onTelegramAuth(authData) {
-    try {
-        // Проверяем адрес API.
-        const apiUrl = String(
-            window.PARKNEAR_API_URL || ''
-        ).replace(/\/+$/, '');
-        if (!apiUrl) {
-            throw new Error(
-                'Не указан адрес сервера авторизации.'
-            );
-        }
-        let endpoint;
-        let requestBody;
-        // ============================================
-        // TELEGRAM MINI APP
-        // ============================================
-        if (
-            authData &&
-            typeof authData.initData === 'string' &&
-            authData.initData.length > 0
-        ) {
-            endpoint = '/auth/telegram-webapp';
-            requestBody = {
-                initData: authData.initData
-            };
-        }
-        // ============================================
-        // TELEGRAM LOGIN WIDGET
-        // ============================================
-        else if (
-            authData &&
-            typeof authData === 'object' &&
-            authData.id
-        ) {
-            endpoint = '/auth/telegram-widget';
-            requestBody = {
-                user: authData
-            };
-        }
-        // ============================================
-        // НЕТ ДАННЫХ TELEGRAM
-        // ============================================
-        else {
-            throw new Error(
-                'Telegram не передал данные для авторизации.'
-            );
-        }
-        console.log(
-            'Отправка данных Telegram на сервер:',
-            endpoint
-        );
-        // ============================================
-        // ОТПРАВЛЯЕМ ДАННЫЕ НА BACKEND
-        // ============================================
-        let response;
-        try {
-            response = await fetch(
-                `${apiUrl}${endpoint}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody),
-                    cache: 'no-store'
-                }
-            );
-        } catch (networkError) {
-            console.error(
-                'Ошибка соединения с сервером авторизации:',
-                networkError
-            );
-            throw new Error(
-                'Не удалось связаться с сервером. ' +
-                'Проверь интернет-соединение и доступность сервера.'
-            );
-        }
-        // ============================================
-        // ЧИТАЕМ ОТВЕТ СЕРВЕРА
-        // ============================================
-        const responseText = await response.text();
-        let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error(
-                'Некорректный ответ сервера:',
-                response.status,
-                responseText
-            );
-            throw new Error(
-                `Сервер вернул некорректный ответ. HTTP ${response.status}`
-            );
-        }
-        // ============================================
-        // ПРОВЕРЯЕМ РЕЗУЛЬТАТ АВТОРИЗАЦИИ
-        // ============================================
-        if (!response.ok || !result.success) {
-            console.error(
-                'Ошибка авторизации Telegram:',
-                response.status,
-                result.error || response.statusText
-            );
-            throw new Error(
-                result.error ||
-                `Не удалось войти через Telegram. HTTP ${response.status}`
-            );
-        }
-        // ============================================
-        // ПРОВЕРЯЕМ НАЛИЧИЕ СЕССИИ
-        // ============================================
-        if (
-            typeof result.sessionToken !== 'string' ||
-            !result.sessionToken ||
-            !result.user ||
-            !result.user.id
-        ) {
-            console.error(
-                'Сервер вернул неполные данные авторизации:',
-                result
-            );
-            throw new Error(
-                'Сервер не вернул данные пользовательской сессии.'
-            );
-        }
-        // ============================================
-        // ФОРМИРУЕМ ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
-        // ============================================
-        const profile = {
-            id: String(result.user.id),
-            telegramId: String(
-                result.user.telegramId || ''
-            ),
-            username:
-                result.user.username || 'tg_user',
-            firstName:
-                result.user.firstName || 'Пользователь',
-            photoUrl:
-                result.user.photoUrl || '',
-            isGuest: false
-        };
-        // ============================================
-        // СОХРАНЯЕМ СЕРВЕРНУЮ СЕССИЮ
-        // ============================================
-        localStorage.setItem(
-            'parkNearSessionToken',
-            result.sessionToken
-        );
-        if (result.expiresAt) {
-            localStorage.setItem(
-                'parkNearSessionExpiresAt',
-                result.expiresAt
-            );
-        } else {
-            localStorage.removeItem(
-                'parkNearSessionExpiresAt'
-            );
-        }
-        // ============================================
-        // СОХРАНЯЕМ ПРОФИЛЬ
-        // ============================================
-        currentUser = profile;
-        window.currentUser = profile;
-        localStorage.setItem(
-            'tgUser',
-            JSON.stringify(profile)
-        );
-        // ============================================
-        // ЗАКРЫВАЕМ ЭКРАН АВТОРИЗАЦИИ
-        // ============================================
-        if (
-            typeof hideAuthScreen === 'function'
-        ) {
-            hideAuthScreen();
-        }
-        // ============================================
-        // ОТКРЫВАЕМ ГЛАВНУЮ ПАНЕЛЬ
-        // ============================================
-        if (
-            typeof showPanel === 'function'
-        ) {
-            showPanel('home');
-        }
-        // ============================================
-        // УВЕДОМЛЕНИЕ
-        // ============================================
-        if (
-            typeof showToast === 'function'
-        ) {
-            showToast(
-                'Вы успешно вошли через Telegram!',
-                3000
-            );
-        }
-        console.log(
-            'Авторизация Telegram успешно завершена.',
-            {
-                userId: profile.id,
-                username: profile.username,
-                sessionSaved: Boolean(
-                    localStorage.getItem(
-                        'parkNearSessionToken'
-                    )
-                )
-            }
-        );
-        return profile;
-    } catch (error) {
-        console.error(
-            'Ошибка авторизации Telegram:',
-            error
-        );
-        alert(
-            'Не удалось выполнить вход: ' +
-            (error.message || 'Неизвестная ошибка')
-        );
-        throw error;
-    }
-}
-
 // ============================================
 // ЯНДЕКС ID — НАЧАЛО ВХОДА
 // ============================================
@@ -4968,16 +4636,10 @@ async function completeYandexLogin() {
     }
 }
 async function initApp() {
-    // Сначала проверяем возврат после входа через Яндекс.
+    // Проверяем возврат после входа через Яндекс.
     const yandexLoginCompleted = await completeYandexLogin();
+
     if (yandexLoginCompleted) {
-        showPanel('home');
-    }
-    // Проверяем токен из бота (если пользователь возвращается по ссылке)
-    const isTokenLogin = await checkTelegramTokenFromUrl();
-    if (isTokenLogin) return; 
-    // Проверяем данные авторизации Telegram из URL.
-    if (checkTelegramAuthFromUrl()) {
         showPanel('home');
     } else {
         await initAuth();
@@ -5031,60 +4693,6 @@ if (currentUser) {
 }
     if (map && cityCoords) {
         map.setCenter([cityCoords.lat, cityCoords.lng], 12, { duration: 300 });
-    }
-}
-function openTelegramBot() {
-    console.log('openTelegramBot вызвана'); 
-    // Если мы уже внутри Telegram (Mini App) — вызываем авторизацию автоматически
-    const webApp = window.Telegram?.WebApp;
-    if (webApp && webApp.initData) {
-        webApp.ready();
-        onTelegramAuth({ initData: webApp.initData }).catch(console.error);
-        return;
-    }
-    // Если мы в обычном браузере или PWA — показываем встроенный виджет Telegram
-    const authContainer = document.getElementById('telegram-widget-container');
-    // Если контейнера нет, создаем его и открываем модальное окно
-    if (!authContainer) {
-        // Создаем оверлей
-        const overlay = document.createElement('div');
-        overlay.id = 'tg-auth-overlay';
-        overlay.style.cssText = `
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6); z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
-        `;
-        // Создаем контейнер для виджета
-        const widgetBox = document.createElement('div');
-        widgetBox.id = 'telegram-widget-container';
-        widgetBox.style.cssText = `
-            background: var(--bg-secondary, #fff); padding: 20px; 
-            border-radius: 16px; text-align: center; position: relative;
-        `;
-        // Закрытие окна
-        const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '✕';
-        closeBtn.style.cssText = `position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #888;`;
-        closeBtn.onclick = () => overlay.remove();
-        // Текст подсказки
-        const hint = document.createElement('p');
-        hint.textContent = 'Введите номер телефона для входа:';
-        hint.style.cssText = 'margin-bottom: 15px; font-size: 15px; color: #333; font-weight: 600;';
-        widgetBox.appendChild(closeBtn);
-        widgetBox.appendChild(hint);
-        overlay.appendChild(widgetBox);
-        document.body.appendChild(overlay);
-        // Загружаем скрипт Telegram Widget
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = "https://telegram.org/js/telegram-widget.js?22";
-        script.setAttribute('data-telegram-login', 'parknear_bot'); // Ваш бот
-        script.setAttribute('data-size', 'large');
-        script.setAttribute('data-radius', '10');
-        script.setAttribute('data-onauth', 'onTelegramAuth(user)'); // Вызов нашей функции
-        script.setAttribute('data-request-access', 'write');
-    
-        widgetBox.appendChild(script);
     }
 }
 function closeAuthScreen() {
