@@ -324,10 +324,80 @@
             <button class="btn-secondary" onclick="closeCityPicker()">Отмена</button>
         </div>
     </div>
-    <!-- Вход через Яндекс ID и гостя -->
-      <!-- <button type="button"id="yandexAuthButtonProfile" class="yandex-auth-button" onclick="startYandexLogin()">Войти через Яндекс</button> -->
-        <div style="margin:12px 0; color:var(--text-secondary); font-size:14px;">— или —</div>
-        <button class="guest-btn" onclick="continueAsGuest()">Продолжить как гость</button>
+  <!-- Окно авторизации Park Near -->
+<div
+    id="authOverlay"
+    style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: var(--overlay-bg, rgba(14,41,49,0.8));
+        z-index: 6000;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 20px;
+    "
+>
+    <div style="
+        background: var(--bg-secondary, #fff);
+        border-radius: 24px;
+        padding: 30px 20px;
+        width: 90%;
+        max-width: 380px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        position: relative;
+    ">
+        <button
+            type="button"
+            onclick="closeAuthScreen()"
+            style="
+                position: absolute;
+                top: 12px;
+                right: 16px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                color: var(--text-secondary, #888);
+                cursor: pointer;
+            "
+        >✕</button>
+        <div style="font-size:48px; margin-bottom:12px;">🚗</div>
+        <h2 style="margin:0 0 8px; font-size:22px;">
+            Добро пожаловать в ParkNear
+        </h2>
+        <p style="
+            color: var(--text-secondary, #666);
+            margin-bottom:20px;
+            font-size:15px;
+        ">
+            Войдите через Telegram, чтобы сохранять данные
+            и пользоваться всеми функциями
+        </p>
+        <div id="telegram-widget-container">
+            <script
+                async
+                src="https://telegram.org/js/telegram-widget.js?24"
+                data-telegram-login="parknear_bot"
+                data-size="large"
+                data-onauth="onTelegramAuth(user)"
+                data-request-access="write">
+            </script>
+        </div>
+        <div style="
+            margin:12px 0;
+            color:var(--text-secondary);
+            font-size:14px;
+        ">— или —</div>
+        <button
+            class="guest-btn"
+            type="button"
+            onclick="continueAsGuest()"
+            style="width:100%;"
+        >
+            Продолжить как гость
+        </button>
     </div>
 </div>
     <!-- Onboarding Overlay -->
