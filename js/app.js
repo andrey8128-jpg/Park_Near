@@ -13,6 +13,28 @@
 // API Park Near на Timeweb
 window.PARKNEAR_API_URL =
     'https://andrey8128-jpg-park-near-3eb7.twc1.net';
+async function patchParkingInPostgres(parkingId, updates) {
+    const token = localStorage.getItem('parkNearSessionToken');
+    if (!token) {
+        throw new Error('Необходимо авторизоваться');
+    }
+    const response = await fetch(
+        `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
+        {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updates)
+        }
+    );
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Ошибка обновления парковки');
+    }
+    return result.parking;
+}
     // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
    (function restoreTheme() {
     const darkTheme = localStorage.getItem('darkTheme');
@@ -982,27 +1004,10 @@ async function fixParkingCity(parkingId, city, region) {
         return;
     }
     if (!parkingId || !city || !city.trim()) {
-        console.error('Не указан ID парковки или город');
+        showToast?.('Не указан город парковки', 2000);
         return;
     }
     try {
-        const parkingRef = getParkingRef(parkingId);
-        // Получаем актуальные данные из Firebase
-        const snapshot = await parkingRef.once('value');
-        const parking = snapshot.val();
-        if (!parking) {
-            showToast?.('Парковка не найдена', 2000);
-            return;
-        }
-        // Проверяем авторство
-        if (
-            !parking.authorId ||
-            String(parking.authorId) !== String(currentUser.id)
-        ) {
-            console.warn('Попытка изменить город чужой парковки заблокирована');
-            showToast?.('Можно редактировать только свои парковки', 2000);
-            return;
-        }
         const updates = {
             city: city.trim(),
             region: region ? region.trim() : '',
@@ -1012,25 +1017,25 @@ async function fixParkingCity(parkingId, city, region) {
                 currentUser.firstName ||
                 ''
         };
-        await parkingRef.update(updates);
-        // Обновляем локальные данные
+        const parking = await patchParkingInPostgres(parkingId, updates);
         if (parkingDataCache[parkingId]) {
-            Object.assign(parkingDataCache[parkingId], updates);
+            Object.assign(parkingDataCache[parkingId], parking);
         }
-        if (
-            currentParkingId === parkingId &&
-            currentParkingData
-        ) {
-            Object.assign(currentParkingData, updates);
+        if (currentParkingId === parkingId && currentParkingData) {
+            Object.assign(currentParkingData, parking);
         }
         console.log('Город парковки обновлён:', {
             parkingId,
             city: updates.city,
             region: updates.region
         });
+        showToast?.('Город парковки обновлён', 2000);
     } catch (error) {
         console.error('Ошибка изменения города:', error);
-        showToast?.('Не удалось изменить город парковки', 2000);
+        showToast?.(
+            error.message || 'Не удалось изменить город парковки',
+            3000
+        );
     }
 }
 // ФИКС: проверка авторства перед изменением границ
@@ -1046,25 +1051,6 @@ async function saveEditedPolygon(newCoords) {
         return;
     }
     try {
-        // Проверяем актуальные данные парковки в Firebase
-        const parkingRef = getParkingRef(currentParkingId);
-        const snapshot = await parkingRef.once('value');
-        const parking = snapshot.val();
-        if (!parking) {
-            alert('Парковка не найдена');
-            cancelDrawing();
-            return;
-        }
-        // Проверяем владельца
-        if (
-            !parking.authorId ||
-            String(parking.authorId) !== String(currentUser.id)
-        ) {
-            alert('Можно редактировать только свои парковки');
-            cancelDrawing();
-            return;
-        }
-        // Проверяем координаты
         if (!Array.isArray(newCoords) || newCoords.length < 3) {
             alert('Для парковочной зоны необходимо минимум 3 точки');
             cancelDrawing();
@@ -1092,16 +1078,17 @@ async function saveEditedPolygon(newCoords) {
             return;
         }
         const centerLat = newCoords.reduce(
-            (sum, c) => sum + Number(c[0]), 0
+            (sum, point) => sum + Number(point[0]), 0
         ) / newCoords.length;
         const centerLng = newCoords.reduce(
-            (sum, c) => sum + Number(c[1]), 0
+            (sum, point) => sum + Number(point[1]), 0
         ) / newCoords.length;
-        await parkingRef.update({
+        const updatedAt = Date.now();
+        const parking = await patchParkingInPostgres(currentParkingId, {
             coordinates: newCoords,
             lat: centerLat,
             lng: centerLng,
-            lastUpdatedAt: Date.now(),
+            lastUpdatedAt: updatedAt,
             lastUpdatedBy:
                 currentUser.nickname ||
                 currentUser.firstName ||
@@ -1111,26 +1098,23 @@ async function saveEditedPolygon(newCoords) {
             map.geoObjects.remove(editingPolygon);
             editingPolygon = null;
         }
-            const addBtn = document.getElementById('addBtn');
+        const addBtn = document.getElementById('addBtn');
         if (addBtn) {
             addBtn.classList.remove('drawing');
             addBtn.textContent = '+';
         }
-            isDrawingMode = false;
+        isDrawingMode = false;
         const controls = document.getElementById('drawingControls');
-            if (controls) controls.remove();
+        if (controls) controls.remove();
         currentParkingData = {
-            ...parking,
-            coordinates: newCoords,
-            lat: centerLat,
-            lng: centerLng,
-            lastUpdatedAt: Date.now()
+            ...currentParkingData,
+            ...parking
         };
         parkingDataCache[currentParkingId] = {
             ...currentParkingData,
             _dbPath: parkingDataCache[currentParkingId]?._dbPath
         };
-            refreshParkingMarker(currentParkingId);
+        refreshParkingMarker(currentParkingId);
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
