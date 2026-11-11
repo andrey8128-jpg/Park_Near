@@ -1,13 +1,9 @@
-
 // ===================== ИЗБРАННОЕ: POSTGRESQL =====================
-
 async function favoritesRequest(path = '', method = 'GET') {
     const token = localStorage.getItem('parkNearSessionToken');
-
     if (!token) {
         throw new Error('Необходимо войти в аккаунт');
     }
-
     const response = await fetch(
         `${window.PARKNEAR_API_URL}/api/users/me/favorites${path}`,
         {
@@ -19,18 +15,14 @@ async function favoritesRequest(path = '', method = 'GET') {
             cache: 'no-store'
         }
     );
-
     const result = await response.json();
-
     if (!response.ok || !result.success) {
         throw new Error(
             result.error || `Ошибка избранного: HTTP ${response.status}`
         );
     }
-
     return result;
 }
-
 async function isFavorite(parkingId) {
     if (!currentUser?.id || !parkingId) return false;
 
@@ -417,8 +409,30 @@ function renderList() {
         currentSort = this.dataset.sort || 'recent';
         renderList();
     }));
-    Promise.all([
-        database.ref(`users/${currentUser.id}/favorites`).once('value'),
+        favoritesRequest().then(result => {
+        if (!content.isConnected || !content.querySelector('#pnFavList')) return;
+        favorites = (result.favorites || [])
+            .filter(item => item?.parkingId)
+            .map(item => {
+                const parking = item.parking || {};
+                return {
+                    ...parking,
+                    parkingId: String(item.parkingId),
+                    savedAt: Number(item.savedAt) || 0,
+                    parking: {
+                        ...parking,
+                        id: String(item.parkingId)
+                    }
+                };
+            });
+        renderList();
+    }).catch(err => {
+        console.error('Ошибка загрузки избранного:', err);
+        if (list) {
+            list.innerHTML = '<div class="pn-fav-empty"><div class="pn-fav-empty-icon">⚠️</div><h3>Ошибка</h3><button id="pnFavRetry">Повторить</button></div>';
+        }
+        list?.querySelector('#pnFavRetry')?.addEventListener('click', () => renderFavorites(content));
+    });
         database.ref('parkings').once('value')
     ]).then(([favSnap, parkSnap]) => {
         if (!content.isConnected || !content.querySelector('#pnFavList')) return;
