@@ -112,13 +112,6 @@ async function initializeDatabase() {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const BOT_API_SECRET = process.env.BOT_API_SECRET;
-
-if (!BOT_API_SECRET || BOT_API_SECRET.length < 32) {
-    throw new Error(
-        'BOT_API_SECRET не задан или слишком короткий'
-    );
-}
 // ============================================
 // НАСТРОЙКИ WEB PUSH / VAPID
 // ============================================
@@ -146,10 +139,6 @@ if (isWebPushConfigured) {
 const ALLOWED_ORIGIN =
     process.env.ALLOWED_ORIGIN ||
     'https://andrey8128-jpg.github.io';
-
-// Максимальный возраст данных Telegram — 24 часа
-const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
-
 // ============================================
 // CORS И JSON
 // ============================================
@@ -168,30 +157,20 @@ app.use(cors({
         'Authorization'
     ]
 }));
-
 app.use(express.json({
     limit: '100kb'
 }));
-
 // ============================================
 // СЕКРЕТНЫЕ ПЕРЕМЕННЫЕ
 // ============================================
-const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-
-if (!botToken) {
-    throw new Error('Не задан TELEGRAM_BOT_TOKEN');
-}
-
 if (!serviceAccountJson) {
     throw new Error('Не задан FIREBASE_SERVICE_ACCOUNT_JSON');
 }
-
 // ============================================
 // FIREBASE ADMIN
 // ============================================
 let serviceAccount;
-
 try {
     serviceAccount = JSON.parse(serviceAccountJson);
 } catch (error) {
@@ -199,275 +178,12 @@ try {
         'FIREBASE_SERVICE_ACCOUNT_JSON содержит некорректный JSON'
     );
 }
-
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL:
         'https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app'
 });
-
 const auth = admin.auth();
-
-// ============================================
-// ПРОВЕРКА ДАТЫ АВТОРИЗАЦИИ
-// ============================================
-function isAuthDateValid(authDate) {
-    const date = Number(authDate);
-
-    if (!Number.isFinite(date) || date <= 0) {
-        return false;
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-
-    return (
-        date <= now + 60 &&
-        now - date <= MAX_AUTH_AGE_SECONDS
-    );
-}
-
-// ============================================
-// БЕЗОПАСНОЕ СРАВНЕНИЕ ХЕШЕЙ
-// ============================================
-function safeCompareHash(receivedHash, expectedHash) {
-    if (
-        typeof receivedHash !== 'string' ||
-        !/^[a-f0-9]{64}$/i.test(receivedHash)
-    ) {
-        return false;
-    }
-
-    const received = Buffer.from(receivedHash, 'hex');
-    const expected = Buffer.from(expectedHash, 'hex');
-
-    return (
-        received.length === expected.length &&
-        crypto.timingSafeEqual(received, expected)
-    );
-}
-
-// ============================================
-// TELEGRAM LOGIN WIDGET
-// ============================================
-function verifyTelegramWidget(userData) {
-    if (
-        !userData ||
-        typeof userData !== 'object' ||
-        Array.isArray(userData)
-    ) {
-        return false;
-    }
-
-    const receivedHash = userData.hash;
-
-    if (
-        !receivedHash ||
-        !isAuthDateValid(userData.auth_date)
-    ) {
-        return false;
-    }
-
-    const dataCheckString = Object.keys(userData)
-        .filter(key => key !== 'hash')
-        .sort()
-        .map(key => `${key}=${userData[key]}`)
-        .join('\n');
-
-    const secretKey = crypto
-        .createHash('sha256')
-        .update(botToken)
-        .digest();
-
-    const expectedHash = crypto
-        .createHmac('sha256', secretKey)
-        .update(dataCheckString)
-        .digest('hex');
-
-    return safeCompareHash(
-        receivedHash,
-        expectedHash
-    );
-}
-
-// ============================================
-// TELEGRAM MINI APP
-// ============================================
-function verifyTelegramWebApp(initData) {
-    if (
-        typeof initData !== 'string' ||
-        !initData
-    ) {
-        return null;
-    }
-
-    const params = new URLSearchParams(initData);
-    const receivedHash = params.get('hash');
-
-    if (!receivedHash) {
-        return null;
-    }
-
-    const authDate = params.get('auth_date');
-
-    if (!isAuthDateValid(authDate)) {
-        return null;
-    }
-
-    const dataCheckString = [...params.entries()]
-        .filter(([key]) => key !== 'hash')
-        .sort(([a], [b]) => {
-            if (a < b) return -1;
-            if (a > b) return 1;
-            return 0;
-        })
-        .map(([key, value]) => `${key}=${value}`)
-        .join('\n');
-
-    const secretKey = crypto
-        .createHmac('sha256', 'WebAppData')
-        .update(botToken)
-        .digest();
-
-    const expectedHash = crypto
-        .createHmac('sha256', secretKey)
-        .update(dataCheckString)
-        .digest('hex');
-
-    if (!safeCompareHash(receivedHash, expectedHash)) {
-        return null;
-    }
-
-    try {
-        const userString = params.get('user');
-
-        if (!userString) {
-            return null;
-        }
-
-        const user = JSON.parse(userString);
-
-        if (
-            !user ||
-            !user.id ||
-            !/^\d+$/.test(String(user.id))
-        ) {
-            return null;
-        }
-
-        return user;
-    } catch (error) {
-        return null;
-    }
-}
-// ============================================
-// СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ И СЕССИИ В POSTGRESQL
-// ============================================
-async function createPostgresSession(telegramUser) {
-    if (
-        !telegramUser ||
-        !telegramUser.id ||
-        !/^\d+$/.test(String(telegramUser.id))
-    ) {
-        throw new Error('Некорректный Telegram user ID');
-    }
-    const telegramId = String(telegramUser.id);
-    const userId = `tg_${telegramId}`;
-    const now = Date.now();
-    const user = {
-        id: userId,
-        telegramId,
-        username: telegramUser.username || 'tg_user',
-        firstName:
-            telegramUser.first_name ||
-            telegramUser.firstName ||
-            'Пользователь',
-        photoUrl:
-            telegramUser.photo_url ||
-            telegramUser.photoUrl ||
-            '',
-        isGuest: false,
-        lastActive: now
-    };
-    const initialStats = {
-        registeredAt: now,
-        lastActive: now,
-        parkingsCreated: 0,
-        parkingsUpdated: 0,
-        confirmations: 0,
-        views: 0,
-        favorites: 0,
-        activeDates: [
-            new Date().toISOString().split('T')[0]
-        ]
-    };
-    // Генерируем случайный токен и сохраняем в БД только его SHA-256.
-    const sessionToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto
-        .createHash('sha256')
-        .update(sessionToken)
-        .digest('hex');
-    const sessionId = crypto.randomBytes(16).toString('hex');
-    const expiresAt = new Date(
-        Date.now() + 30 * 24 * 60 * 60 * 1000
-    );
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        // Создаём пользователя или обновляем его профиль,
-        // сохраняя уже существующую статистику.
-        await client.query(
-            `INSERT INTO users (id, data)
-             VALUES ($1, $2::jsonb)
-             ON CONFLICT (id)
-             DO UPDATE SET data =
-                COALESCE(users.data, '{}'::jsonb)
-                || EXCLUDED.data
-                || jsonb_build_object(
-                    'stats',
-                    COALESCE(
-                        users.data->'stats',
-                        EXCLUDED.data->'stats'
-                    )
-                )`,
-            [
-                userId,
-                JSON.stringify({
-                    ...user,
-                    stats: initialStats
-                })
-            ]
-        );
-        // Создаём серверную сессию.
-        await client.query(
-            `INSERT INTO auth_sessions
-                (id, user_id, token_hash, expires_at)
-             VALUES ($1, $2, $3, $4)`,
-            [
-                sessionId,
-                userId,
-                tokenHash,
-                expiresAt
-            ]
-        );
-        // Удаляем просроченные сессии.
-        await client.query(
-            `DELETE FROM auth_sessions
-             WHERE expires_at <= NOW()`
-        );
-        await client.query('COMMIT');
-        return {
-            sessionToken,
-            uid: userId,
-            user,
-            expiresAt: expiresAt.toISOString()
-        };
-    } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-    } finally {
-        client.release();
-    }
-}
 // ============================================
 // YANDEX ID — СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ И СЕССИИ
 // ============================================
