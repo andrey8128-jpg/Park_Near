@@ -3828,112 +3828,64 @@ function saveCityFromSettingsInline() {
             });
         }
     }
-    function loadUserData(type, content) {
-    if (!currentUser) {
-        if (content) {
-            content.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><p>Войдите</p></div>';
-        }
+async function loadUserData(type, content) {
+    if (!currentUser || !content) return;
+
+    const token = localStorage.getItem('parkNearSessionToken');
+
+    if (!token) {
+        content.innerHTML =
+            '<div class="empty-state">Необходимо войти в аккаунт</div>';
         return;
     }
-    database.ref(`users/${currentUser.id}/stats`).once('value').then(snapshot => {
-        if (!snapshot.exists()) {
-            const initialStats = {
-                registeredAt: Date.now(),
-                lastActive: Date.now(),
-                parkingsCreated: 0,
-                parkingsUpdated: 0,
-                confirmations: 0,
-                views: 0,
-                favorites: 0,
-                activeDates: [new Date().toISOString().split('T')[0]]
-            };
-            database.ref(`users/${currentUser.id}/stats`).set(initialStats);
-        } else {
-            const stats = snapshot.val();
-            const today = new Date().toISOString().split('T')[0];
-            let activeDates = stats.activeDates || [];
-            if (!activeDates.includes(today)) activeDates.push(today);
-            database.ref(`users/${currentUser.id}/stats`).update({
-                lastActive: Date.now(),
-                activeDates: activeDates
-            });
-        }
-    });
-    database.ref(`users/${currentUser.id}/cityPreferences`).once('value').then(snap => {
-        if (snap.exists()) {
-            userCityPrefs = snap.val();
-            if (typeof updateCityDisplay === 'function') {
-                updateCityDisplay();
+    content.innerHTML =
+        '<div class="loading-state">Загрузка...</div>';
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/users/me/profile`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                },
+                cache: 'no-store'
             }
-        }
-    });
-    if (type === 'favorites' && content) {
-        database.ref(`users/${currentUser.id}/favorites`).once('value').then(favSnap => {
-            const favs = favSnap.val() || {};
-            const favIds = Object.keys(favs);
+        );
+        const result = await response.json();
 
-            let html = `
-                <div class="pn-favorites">
-                    <div class="pn-fav-header">
-                        <div>
-                            <h2>Избранное</h2>
-                            <p>${favIds.length ? `${favIds.length} сохранённых парковок` : 'Сохранённые парковки появятся здесь'}</p>
-                        </div>
-                        <span class="pn-fav-icon">❤️</span>
-                    </div>
-            `;
-            if (!favIds.length) {
-                html += `
-                    <div class="empty-state">
-                        <div class="icon">❤️</div>
-                        <p>Избранное пусто</p>
-                        <span>Нажмите ❤️ на парковке, чтобы сохранить её здесь</span>
-                    </div>
-                `;
-            } else {
-                html += `
-                    <div class="fav-search">
-                        <input type="text" id="favSearchInput" placeholder="Поиск по избранному..." oninput="filterFavorites()">
-                    </div>
-                    <div id="favListContainer">
-                `;
-                Object.values(favs).forEach(item => {
-                    if (!item || !item.parkingId) return;
-                    const name = escapeHtml(item.name || 'Парковка');
-                    const address = escapeHtml(item.address || 'Адрес не указан');
-                    html += `
-                        <div class="fav-item" data-name="${name}" data-address="${address}" onclick="highlightAndShowParking('${item.parkingId}')">
-                            <div class="fav-item-info">
-                                <div class="fav-item-name">${name}</div>
-                                <div class="fav-item-meta">📍 ${address}</div>
-                            </div>
-                            <div class="fav-item-right">
-                                <span class="occupancy-dot" style="background:var(--accent);"></span>
-                                <button class="settings-edit-btn" onclick="event.stopPropagation(); removeFromFavorites('${item.parkingId}')" title="Удалить из избранного">❤️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += `
-                    </div>
-                `;
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось загрузить профиль'
+            );
+        }
+        const profile = result.profile || {};
+        currentUser.car = profile.car || {};
+        currentUser.nickname = profile.nickname || '';
+        currentUser.parkingSettings = profile.parkingSettings || {};
+        userCityPrefs = profile.cityPreferences || userCityPrefs || {};
+
+        if (type === 'favorites') {
+            // Избранное будет подключено к PostgreSQL
+            // на третьем этапе миграции.
+            if (typeof loadFavoritesInline === 'function') {
+                await loadFavoritesInline(true);
             }
-            html += `
-                </div>
-            `;
-            content.innerHTML = html;
-            if (typeof attachSwipeToContainers === 'function') {
-                attachSwipeToContainers(content);
-            }
-        }).catch(err => {
-            console.error('Ошибка загрузки избранного:', err);
-            content.innerHTML = `
-                <div class="empty-state">
-                    <div class="icon">⚠️</div>
-                    <p>Не удалось загрузить избранное</p>
-                </div>
-            `;
-        });
+            return;
+        }
+        content.innerHTML = '';
+        if (type === 'profile') {
+            renderProfile(content);
+            return;
+        }
+        if (type === 'settings') {
+            renderSettingsInline();
+            return;
+        }
+        console.warn('Неизвестный тип пользовательских данных:', type);
+    } catch (error) {
+        console.error('Ошибка загрузки данных пользователя:', error);
+        content.innerHTML =
+            `<div class="empty-state">${escapeHtml(error.message)}</div>`;
     }
 }
     // ===================== UI КОНТРОЛЛЕРЫ =====================
