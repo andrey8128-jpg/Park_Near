@@ -32,17 +32,20 @@ if (!currentUser) {
     return;
 }
     const isGuest = currentUser.id.startsWith('guest_');
+   
     Promise.all([
-        database.ref(`users/${currentUser.id}/stats`).once('value'),
-        database.ref(`users/${currentUser.id}/car`).once('value'),
-        database.ref(`users/${currentUser.id}/cityPreferences`).once('value'),
+        requestUserProfile('GET'),
         database.ref(`users/${currentUser.id}/favorites`).once('value')
-    ]).then(([statsSnap, carSnap, citySnap, favSnap]) => {
-        const stats = statsSnap.val() || {};
-        const car = carSnap.val() || {};
-        const prefs = citySnap.val() || userCityPrefs || {};
+    ]).then(([profileData, favSnap]) => {
+        const stats = profileData.stats || {};
+        const car = profileData.car || {};
+        const prefs = profileData.cityPreferences || userCityPrefs || {};
         const favorites = favSnap.val() || {};
+
         userCityPrefs = prefs;
+        currentUser.car = car;
+        currentUser.nickname = profileData.nickname || currentUser.nickname || '';
+        currentUser.parkingSettings = profileData.parkingSettings || {};
         const created = Number(stats.parkingsCreated || 0);
         const updated = Number(stats.parkingsUpdated || 0);
         const confirmations = Number(stats.confirmations || 0);
