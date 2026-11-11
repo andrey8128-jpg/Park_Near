@@ -7,12 +7,21 @@ if (!currentUser) {
             <div class="pn-profile-login-icon">👤</div>
             <h2>Добро пожаловать</h2>
             <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
-            <button
+                        <button
                 type="button"
-                class="telegram-btn"
-                onclick="openTelegramBot()"
+                onclick="startYandexLogin()"
+                style="
+                    width:100%;
+                    padding:14px;
+                    border:0;
+                    border-radius:12px;
+                    background:#FCE000;
+                    color:#111;
+                    font-weight:600;
+                    cursor:pointer;
+                "
             >
-                Войти через Telegram
+                Я  Войти через Яндекс
             </button>
             <button
                 type="button"
@@ -210,13 +219,22 @@ ${isGuest ? `
         Вы используете ParkNear как гость
     </div>
     <div class="pn-profile-auth-actions">
-        <button
-            type="button"
-            class="telegram-btn"
-            onclick="openTelegramBot()"
-        >
-            Войти через Telegram
-        </button>
+                    <button
+                type="button"
+                onclick="startYandexLogin()"
+                style="
+                    width:100%;
+                    padding:14px;
+                    border:0;
+                    border-radius:12px;
+                    background:#FCE000;
+                    color:#111;
+                    font-weight:600;
+                    cursor:pointer;
+                "
+            >
+                Я  Войти через Яндекс
+            </button>
         <button
             type="button"
             class="logout-button"
