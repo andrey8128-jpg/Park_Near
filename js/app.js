@@ -2070,8 +2070,8 @@ async function openOccupancyPanel(parkingId) {
             : Promise.resolve(null);
 
         const favPromise = currentUser
-            ? database.ref(`users/${currentUser.id}/favorites/${parkingId}`).once('value')
-            : Promise.resolve(null);
+        ? isFavorite(parkingId)
+        : Promise.resolve(false);
 
         const [carSnap, favSnap] = await Promise.all([
             carPromise,
@@ -2082,11 +2082,9 @@ async function openOccupancyPanel(parkingId) {
             currentUser.car = carSnap.val() || {};
         }
 
-        const isFavorite = favSnap
-            ? favSnap.exists()
-            : false;
+        const favoriteStatus = Boolean(favSnap);
 
-        renderEditPanel(data, isFavorite, content);
+        renderEditPanel(data, favoriteStatus, content);
 
     } catch (error) {
         console.error('Ошибка загрузки парковки:', error);
