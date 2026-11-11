@@ -3,6 +3,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
 const pool = require('./db');
+const webpush = require('web-push');
 // ============================================
 // ПОДГОТОВКА СТРУКТУРЫ POSTGRESQL
 // ============================================
@@ -118,7 +119,27 @@ if (!BOT_API_SECRET || BOT_API_SECRET.length < 32) {
         'BOT_API_SECRET не задан или слишком короткий'
     );
 }
-
+// ============================================
+// НАСТРОЙКИ WEB PUSH / VAPID
+// ============================================
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT;
+const isWebPushConfigured = Boolean(
+    VAPID_PUBLIC_KEY &&
+    VAPID_PRIVATE_KEY &&
+    VAPID_SUBJECT
+);
+if (isWebPushConfigured) {
+    webpush.setVapidDetails(
+        VAPID_SUBJECT,
+        VAPID_PUBLIC_KEY,
+        VAPID_PRIVATE_KEY
+    );
+    console.log('Web Push / VAPID настроен');
+} else {
+    console.warn('Web Push не настроен: проверь VAPID-переменные окружения');
+}
 // ============================================
 // НАСТРОЙКИ
 // ============================================
@@ -519,6 +540,114 @@ async function requireAuth(req, res, next) {
         });
     }
 }
+// ============================================
+// WEB PUSH: ПОЛУЧЕНИЕ ПУБЛИЧНОГО VAPID-КЛЮЧА
+// ============================================
+app.get('/api/push/vapid-public-key', (req, res) => {
+    if (!isWebPushConfigured) {
+        return res.status(503).json({
+            success: false,
+            error: 'Web Push временно не настроен'
+        });
+    }
+
+    return res.json({
+        success: true,
+        publicKey: VAPID_PUBLIC_KEY
+    });
+});
+// ============================================
+// WEB PUSH: СОХРАНЕНИЕ ПОДПИСКИ
+// ============================================
+app.post('/api/push/subscriptions', requireAuth, async (req, res) => {
+    try {
+        if (!isWebPushConfigured) {
+            return res.status(503).json({
+                success: false,
+                error: 'Web Push не настроен на сервере'
+            });
+        }
+        const subscription = req.body?.subscription;
+        if (
+            !subscription ||
+            typeof subscription.endpoint !== 'string' ||
+            !subscription.endpoint.startsWith('https://') ||
+            !subscription.keys?.p256dh ||
+            !subscription.keys?.auth
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректная push-подписка'
+            });
+        }
+        const id = crypto
+            .createHash('sha256')
+            .update(subscription.endpoint)
+            .digest('hex');
+        const data = {
+            subscription,
+            userAgent: String(req.headers['user-agent'] || ''),
+            updatedAt: new Date().toISOString()
+        };
+        await pool.query(
+            `INSERT INTO push_subscriptions (id, user_id, data)
+             VALUES ($1, $2, $3::jsonb)
+             ON CONFLICT (id)
+             DO UPDATE SET
+                user_id = EXCLUDED.user_id,
+                data = EXCLUDED.data`,
+            [
+                id,
+                req.authUser.id,
+                JSON.stringify(data)
+            ]
+        );
+        return res.json({
+            success: true
+        });
+    } catch (error) {
+        console.error('Ошибка сохранения Web Push-подписки:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось сохранить подписку'
+        });
+    }
+});
+// ============================================
+// WEB PUSH: УДАЛЕНИЕ ПОДПИСКИ
+// ============================================
+app.delete('/api/push/subscriptions', requireAuth, async (req, res) => {
+    try {
+        const endpoint = req.body?.endpoint;
+        if (
+            typeof endpoint !== 'string' ||
+            !endpoint.startsWith('https://')
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректный endpoint подписки'
+            });
+        }
+        const id = crypto
+            .createHash('sha256')
+            .update(endpoint)
+            .digest('hex');
+        await pool.query(
+            `DELETE FROM push_subscriptions
+             WHERE id = $1 AND user_id = $2`,
+            [id, req.authUser.id]
+        );
+        return res.json({
+            success: true
+        });
+    } catch (error) {
+        console.error('Ошибка удаления Web Push-подписки:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось удалить подписку'
+        });
+    }
+});
 // ============================================
 // ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
 // ============================================
