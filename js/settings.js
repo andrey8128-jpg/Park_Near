@@ -1,4 +1,33 @@
 // ---- НАСТРОЙКИ----
+async function requestUserProfile(method = 'GET', updates = null) {
+    const token = localStorage.getItem('parkNearSessionToken');
+    if (!token) {
+        throw new Error('Сессия пользователя не найдена. Войдите заново.');
+    }
+    const options = {
+        method,
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+        },
+        cache: 'no-store'
+    };
+    if (updates !== null) {
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(updates);
+    }
+    const response = await fetch(
+        `${window.PARKNEAR_API_URL}/api/users/me/profile`,
+        options
+    );
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+        throw new Error(
+            result.error || `Ошибка профиля: HTTP ${response.status}`
+        );
+    }
+    return result.profile || {};
+}
 function renderSettingsInline() {
     const container = document.getElementById('settingsContentInline');
     if (!container) return;
@@ -144,132 +173,174 @@ window.togglePushNotifications = async function() {
         contentEl.innerHTML = html;
         syncThemeToggles();
 }
-function saveCityFromSettings() {
-    if (!currentUser) {
-        console.warn('Пользователь не авторизован');
-        return;
-    }
-    var regionSelect = document.getElementById('settingsRegion');
-    var citySelect = document.getElementById('settingsCity');
-    var region = regionSelect ? regionSelect.value : '';
-    var city = citySelect ? citySelect.value : '';
+
+async function saveCityFromSettings() {
+    if (!currentUser) return;
+
+    const region = document.getElementById('settingsRegion')?.value || '';
+    const city = document.getElementById('settingsCity')?.value || '';
+
     if (!region || !city) return;
-    mapCity = null;
-    database.ref('users/' + currentUser.id + '/cityPreferences').set({ region: region, city: city })
-        .then(function() {
-            userCityPrefs = { region: region, city: city };
-            currentCity = city;
-            localStorage.setItem('parknear_city', JSON.stringify({ region, city }));
-            // Получаем координаты и сохраняем
-            ymaps.geocode(city, { results: 1 }).then(function(res) {
-                const geo = res.geoObjects.get(0);
-                if (geo) {
-                    const coords = geo.geometry.getCoordinates();
-                    cityCoords = { lat: coords[0], lng: coords[1] };
-                    localStorage.setItem('parknear_city_coords', JSON.stringify(cityCoords));
-                    if (map) {
-                        map.setCenter(coords, 12, { duration: 500 });
-                    }
-                }
-            });
-            updateCityDisplay();
-            loadAllParkings(city);   // ← передаём city
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.selectionChanged();
-            }
-            console.log('✅ Город сохранён в профиле:', city);
-        })
-        .catch(function(err) {
-            console.error('❌ Ошибка сохранения города:', err);
-            alert('Не удалось сохранить город: ' + err.message);
+
+    try {
+        await requestUserProfile('PATCH', {
+            cityPreferences: { region, city }
         });
-}
-    function saveNickname(newNickname) {
-        if (!currentUser) return;
-        const nick = newNickname || (document.getElementById('settingsNickname')?.value?.trim());
-        if (!nick) { alert('Введите никнейм'); return; }
-        database.ref(`users/${currentUser.id}/nickname`).set(nick)
-            .then(() => {
-                currentUser.nickname = nick;
-                localStorage.setItem('tgUser', JSON.stringify(currentUser));
-                if (document.getElementById('settingsOverlay')?.style?.display === 'flex') {
-                    renderSettings();
-                }
-                if (window.Telegram?.WebApp?.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+
+        userCityPrefs = { region, city };
+        currentCity = city;
+        mapCity = null;
+
+        localStorage.setItem(
+            'parknear_city',
+            JSON.stringify({ region, city })
+        );
+
+        localStorage.setItem('selectedCity', city);
+
+        ymaps.geocode(city, { results: 1 })
+            .then(result => {
+                const geo = result.geoObjects.get(0);
+                if (!geo) return;
+                const coords = geo.geometry.getCoordinates();
+                cityCoords = {
+                    lat: coords[0],
+                    lng: coords[1]
+                };
+                localStorage.setItem(
+                    'parknear_city_coords',
+                    JSON.stringify(cityCoords)
+                );
+                if (map) {
+                    map.setCenter(coords, 12, { duration: 500 });
                 }
             })
-            .catch(err => alert('Ошибка: ' + err.message));
-}
-  function saveCarData() {
-        if (!currentUser) {
-            alert('Необходимо авторизоваться');
-            return;
+            .catch(error => {
+                console.warn('Не удалось определить координаты города:', error);
+            });
+        updateCityDisplay();
+        if (typeof window.loadAllParkings === 'function') {
+            await window.loadAllParkings(city, true);
         }
-        const brand = document.getElementById('carBrandSelect')?.value;
-        const model = document.getElementById('carModelSelect')?.value;
-        const color = document.getElementById('carColorSelect')?.value;
-        const plate = document.getElementById('carPlateInput')?.value?.trim()?.toUpperCase();
-        if (!brand || !model) {
-            alert('Пожалуйста, выберите марку и модель');
-            return;
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
-        database.ref(`users/${currentUser.id}/car`).set({
-            brand: brand,
-            model: model,
-            color: color || null,
-            plate: plate || null
-        }).then(() => {
-            closeCarEditor();
-            // Перерисовываем профиль, если он открыт
-      const panel = document.getElementById('panel');
-      if (panel && panel.classList.contains('active')) {
-      const title = document.getElementById('panelTitle');
-      if (title && title.textContent === 'Профиль') {
-      const content = document.getElementById('panelContent');
-      renderProfile(content);
+        console.log('Город сохранён в PostgreSQL:', city);
+    } catch (error) {
+        console.error('Ошибка сохранения города:', error);
+        alert('Не удалось сохранить город: ' + error.message);
     }
 }
-            if (document.getElementById('settingsOverlay')?.style?.display === 'flex') {
-                renderSettings();
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
-        }).catch(err => {
-            alert('Ошибка сохранения: ' + err.message);
+async function saveNickname(newNickname) {
+    if (!currentUser) return;
+    const nick = String(
+        newNickname ||
+        document.getElementById('settingsNickname')?.value ||
+        ''
+    ).trim();
+    if (!nick) {
+        alert('Введите никнейм');
+        return;
+    }
+    try {
+        const profile = await requestUserProfile('PATCH', {
+            nickname: nick
         });
+        currentUser.nickname = profile.nickname || nick;
+        localStorage.setItem(
+            'tgUser',
+            JSON.stringify(currentUser)
+        );
+        if (
+            document.getElementById('settingsOverlay')
+                ?.style?.display === 'flex'
+        ) {
+            renderSettings();
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback
+                .notificationOccurred('success');
+        }
+        showToast('Никнейм сохранён');
+    } catch (error) {
+        console.error('Ошибка сохранения никнейма:', error);
+        alert('Ошибка: ' + error.message);
     }
-function removeCar() {
+}
+async function saveCarData() {
+    if (!currentUser) {
+        alert('Необходимо авторизоваться');
+        return;
+    }
+    const brand = document.getElementById('carBrandSelect')?.value;
+    const model = document.getElementById('carModelSelect')?.value;
+    const color = document.getElementById('carColorSelect')?.value;
+    const plate = document.getElementById('carPlateInput')
+        ?.value?.trim()?.toUpperCase();
+    if (!brand || !model) {
+        alert('Пожалуйста, выберите марку и модель');
+        return;
+    }
+    const car = {
+        brand,
+        model,
+        color: color || null,
+        plate: plate || null
+    };
+    try {
+        await requestUserProfile('PATCH', { car });
+        currentUser.car = car;
+        closeCarEditor();
+        const panel = document.getElementById('panel');
+        if (
+            panel?.classList.contains('active') &&
+            document.getElementById('panelTitle')?.textContent === 'Профиль'
+        ) {
+            renderProfile(document.getElementById('panelContent'));
+        }
+        if (
+            document.getElementById('settingsOverlay')
+                ?.style?.display === 'flex'
+        ) {
+            renderSettings();
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback
+                .notificationOccurred('success');
+        }
+        showToast('Автомобиль сохранён');
+    } catch (error) {
+        console.error('Ошибка сохранения автомобиля:', error);
+        alert('Ошибка сохранения: ' + error.message);
+    }
+}
+async function removeCar() {
     if (!currentUser) {
         alert('Необходимо авторизоваться');
         return;
     }
     if (!confirm('Удалить данные об автомобиле?')) return;
-    database.ref(`users/${currentUser.id}/car`).remove()
-        .then(() => {
-            // Обновляем объект пользователя
-            if (currentUser) {
-                currentUser.car = {};
-            }
-            // Перерисовываем профиль, если он открыт
-            const panel = document.getElementById('panel');
-            if (panel && panel.classList.contains('active')) {
-                const title = document.getElementById('panelTitle');
-                if (title && title.textContent === 'Профиль') {
-                    const content = document.getElementById('panelContent');
-                    renderProfile(content);
-                }
-            }
-            if (window.Telegram?.WebApp?.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
-            showToast('🚗 Автомобиль удалён');
-        })
-        .catch(err => {
-            console.error('Ошибка удаления автомобиля:', err);
-            alert('Не удалось удалить автомобиль: ' + err.message);
+    try {
+        await requestUserProfile('PATCH', {
+            car: {}
         });
+        currentUser.car = {};
+        const panel = document.getElementById('panel');
+        if (
+            panel?.classList.contains('active') &&
+            document.getElementById('panelTitle')?.textContent === 'Профиль'
+        ) {
+            renderProfile(document.getElementById('panelContent'));
+        }
+        showToast('Автомобиль удалён');
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback
+                .notificationOccurred('success');
+        }
+    } catch (error) {
+        console.error('Ошибка удаления автомобиля:', error);
+        alert('Не удалось удалить автомобиль: ' + error.message);
+    }
 }
     function getUserParkingSettings() {
     const defaults = { spotArea: 12.5}; // ← объявляем defaults
@@ -286,10 +357,26 @@ function removeCar() {
     }
     return defaults;
 }
-function saveParkingSettings(settings) {
-    if (currentUser) {
-        database.ref(`users/${currentUser.id}/parkingSettings`).set(settings);
-        currentUser.parkingSettings = settings;
+async function saveParkingSettings(settings) {
+    if (!settings || typeof settings !== 'object') return;
+    try {
+        if (currentUser) {
+            await requestUserProfile('PATCH', {
+                parkingSettings: settings
+            });
+            currentUser.parkingSettings = settings;
+            localStorage.setItem(
+                'parkingSettings',
+                JSON.stringify(settings)
+            );
+        } else {
+            localStorage.setItem(
+                'parkingSettings',
+                JSON.stringify(settings)
+            );
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения настроек парковки:', error);
+        alert('Не удалось сохранить настройки: ' + error.message);
     }
-    localStorage.setItem('parkingSettings', JSON.stringify(settings));
 }
