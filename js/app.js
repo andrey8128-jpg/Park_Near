@@ -4060,59 +4060,48 @@ async function continueAsGuest() {
         currentUser = null;
         showAuthScreen();
     }
-function deleteAccount() {
+async function deleteAccount() {
     if (!currentUser || currentUser.id.startsWith('guest_')) {
         alert('Гостевой аккаунт нельзя удалить');
         return;
     }
-    if (!confirm('Безвозвратно удалить аккаунт и все данные?')) {
+    if (typeof window.getLocalActiveParking === 'function' && window.getLocalActiveParking()) {
+        alert('Перед удалением аккаунта необходимо завершить активную парковку.');
         return;
     }
-        const uid = currentUser.id;
-    database.ref('parkings').once('value')
-        .then(snapshot => {
-            const updates = {};
-            // Рекурсивно ищем парковки пользователя
-            function findUserParkings(node, pathParts = []) {
-                if (!node || typeof node !== 'object') return;
-                // Проверяем, является ли объект парковкой пользователя
-                if (
-                    node.lat != null &&
-                    node.lng != null &&
-                    String(node.authorId) === String(uid)
-                ) {
-                    const relativePath = pathParts.join('/');
-                    if (relativePath) {
-                        updates[relativePath] = null;
-                    }
-                    return;
-                }
-                Object.entries(node).forEach(([key, value]) => {
-                    findUserParkings(value, [...pathParts, key]);
-                });
+    if (!confirm('Безвозвратно удалить аккаунт, созданные вами парковки и все связанные данные?')) return;
+    const token = localStorage.getItem('parkNearSessionToken');
+    if (!token) {
+        alert('Не найдена сессия пользователя. Войдите в аккаунт заново.');
+        return;
+    }
+    try {
+        const response = await fetch(`${window.PARKNEAR_API_URL}/api/users/me/account`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
-            Object.entries(snapshot.val() || {}).forEach(([key, value]) => {
-                findUserParkings(value, [key]);
-            });
-            // Удаляем найденные парковки
-            if (Object.keys(updates).length > 0) {
-                return database.ref('parkings').update(updates);
-            }
-        })
-        .then(() => {
-            // Удаляем профиль пользователя
-            return database.ref(`users/${uid}`).remove();
-        })
-        .then(() => {
-            localStorage.removeItem('tgUser');
-            currentUser = null;
-                showAuthScreen();
-            alert('Аккаунт и созданные вами парковки удалены.');
-        })
-        .catch(error => {
-            console.error('Ошибка удаления аккаунта:', error);
-            alert('Не удалось удалить аккаунт: ' + error.message);
         });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Не удалось удалить аккаунт');
+        }
+        localStorage.removeItem('parkNearSessionToken');
+        localStorage.removeItem('parkNearSessionExpiresAt');
+        localStorage.removeItem('tgUser');
+        localStorage.removeItem('parknear_guest_id');
+        currentUser = null;
+        window.currentUser = null;
+        window.isOfflineSession = false;
+        if (typeof window.clearLocalActiveParking === 'function') {
+            window.clearLocalActiveParking();
+        }
+        showAuthScreen();
+        alert(`Аккаунт и созданные вами парковки удалены. Удалено парковок: ${result.deletedParkings || 0}.`);
+    } catch (error) {
+        console.error('Ошибка удаления аккаунта:', error);
+        alert(error.message || 'Не удалось удалить аккаунт. Проверьте подключение.');
+    }
 }
 function showAuthScreen() {
     const overlay = document.getElementById('authOverlay');
