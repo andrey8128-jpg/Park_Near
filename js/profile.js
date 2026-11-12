@@ -287,119 +287,72 @@ function toggleProfileSection(section) {
   }
 }
 // ---- Загрузка истории парковок пользователя (только последние 10) ----
-function loadUserParkingHistory() {
+async function loadUserParkingHistory() {
     const container = document.getElementById('historyListContainer');
     if (!container) return;
-    if (!currentUser || !currentUser.id) {
-        container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Войдите в аккаунт</div>';
+    if (!currentUser?.id) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);">Войдите в аккаунт</div>';
         return;
     }
-  container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Загрузка...</div>';
-    const userId = currentUser.id;
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  database.ref('parkings').once('value').then(snapshot => {
-        const parkings = snapshot.val() || {};
-        const allEntries = [];
-        // Рекурсивный поиск парковок во вложенной структуре Firebase
-        function findParkingHistory(node, pathParts = []) {
-            if (!node || typeof node !== 'object') return;
-            // Определяем запись парковки по координатам
-            if (node.lat != null && node.lng != null) {
-                const parkingId = String(
-                    node.id || pathParts[pathParts.length - 1]
-                );
-                const parkingPath = `parkings/${pathParts.join('/')}`;
-                const history = node.history || {};
-             Object.keys(history).forEach(entryKey => {
-                     const entry = history[entryKey];
-                    if (!entry || entry.userId !== userId) return;
-                    // Удаляем историю старше 7 дней
-                    if (
-                        typeof entry.timestamp === 'number' &&
-                        entry.timestamp < weekAgo
-                    ) {
-                        database.ref(
-                            `${parkingPath}/history/${entryKey}`
-                        ).remove().catch(error => {
-                            console.error(
-                                'Ошибка удаления старой истории:',
-                                error
-                            );
-                        });
-                        return;
-                    }
-                    allEntries.push({
-                        parkingId: parkingId,
-                        parkingName: node.name || 'Без названия',
-                        address: node.address || '',
-                        action: entry.action || 'unknown',
-                        timestamp: entry.timestamp || 0,
-                        car: entry.car || {},
-                        previousOccupied: entry.previousOccupied,
-                        newOccupied: entry.newOccupied
-                    });
-                });
-                return;
-            }
-            // Продолжаем поиск во вложенных папках
-            Object.entries(node).forEach(([key, value]) => {
-                findParkingHistory(value, [...pathParts, key]);
-            });
-        }
-        // Запускаем поиск по всем городам
-        Object.entries(parkings).forEach(([key, value]) => {
-            findParkingHistory(value, [key]);
+    container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);">Загрузка...</div>';
+    try {
+        const token = localStorage.getItem('parkNearSessionToken');
+        if (!token) throw new Error('Не найдена сессия пользователя');
+        const response = await fetch(`${window.PARKNEAR_API_URL}/api/users/me/history`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            cache: 'no-store'
         });
-        // Сортируем от новых записей к старым
-        allEntries.sort((a, b) => b.timestamp - a.timestamp);
-        if (allEntries.length === 0) {
-            container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">Нет истории</div>';
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Не удалось загрузить историю');
+        }
+        const allEntries = Array.isArray(result.history) ? result.history : [];
+        if (!allEntries.length) {
+            container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);">Нет истории за последние 7 дней</div>';
             return;
         }
-        // Показываем первые 10 записей
-        const showCount = 10;
-        const previewEntries = allEntries.slice(0, showCount);
-        const remainingEntries = allEntries.slice(showCount);
-         let html = '';
-        html += '<div id="historyPreviewList">';
+        const previewEntries = allEntries.slice(0, 10);
+        const remainingEntries = allEntries.slice(10);
+        let html = '<div id="historyPreviewList">';
         previewEntries.forEach(entry => {
             html += renderHistoryEntry(entry);
         });
         html += '</div>';
-        // Дополнительные записи
-        if (remainingEntries.length > 0) {
+        if (remainingEntries.length) {
             html += '<div id="historyFullList" style="display:none;">';
             remainingEntries.forEach(entry => {
                 html += renderHistoryEntry(entry);
             });
             html += '</div>';
-            html += `<button id="showAllHistoryBtnProfile" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:8px;">См. все (${remainingEntries.length})</button>`;
-            html += '<button id="hideAllHistoryBtnProfile" style="display:none; background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; margin-top:8px;">Скрыть всё</button>';
+            html += `<button id="showAllHistoryBtnProfile" style="background:none;border:0;color:var(--accent);cursor:pointer;font-size:14px;margin-top:8px;">См. все (${remainingEntries.length})</button>`;
+            html += '<button id="hideAllHistoryBtnProfile" style="display:none;background:none;border:0;color:var(--accent);cursor:pointer;font-size:14px;margin-top:8px;">Скрыть всё</button>';
         }
         container.innerHTML = html;
-        // Обработчики кнопок
         const showAllBtn = document.getElementById('showAllHistoryBtnProfile');
         const hideAllBtn = document.getElementById('hideAllHistoryBtnProfile');
         const previewList = document.getElementById('historyPreviewList');
         const fullList = document.getElementById('historyFullList');
-     if (showAllBtn && hideAllBtn && previewList && fullList) {
-            showAllBtn.onclick = function() {
+        if (showAllBtn && hideAllBtn && previewList && fullList) {
+            showAllBtn.onclick = () => {
                 previewList.style.display = 'none';
                 fullList.style.display = 'block';
                 showAllBtn.style.display = 'none';
                 hideAllBtn.style.display = 'inline-block';
             };
-            hideAllBtn.onclick = function() {
+            hideAllBtn.onclick = () => {
                 fullList.style.display = 'none';
                 previewList.style.display = 'block';
                 showAllBtn.style.display = 'inline-block';
                 hideAllBtn.style.display = 'none';
             };
         }
-    }).catch(err => {
-        console.error('Ошибка загрузки истории:', err);
-        container.innerHTML = '<div style="text-align:center; color:var(--red);">Ошибка загрузки</div>';
-    });
+    } catch (error) {
+        console.error('Ошибка загрузки истории:', error);
+        container.innerHTML = '<div style="text-align:center;color:var(--red);">Не удалось загрузить историю. Проверьте подключение и попробуйте снова.</div>';
+    }
 }
 // ---- Вспомогательная функция для отрисовки одной записи истории ----
 function renderHistoryEntry(entry) {
