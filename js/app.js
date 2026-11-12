@@ -4240,39 +4240,6 @@ function createAuthScreenFallback() {
             toast.style.transform = 'translateX(-50%) translateY(-20px)';
         }, duration);
     }
-  function loginAsGuest() {
-    const userId = 'guest_' + Date.now();
-    const user = {
-        id: userId,
-        username: 'guest',
-        firstName: 'Гость',
-        photoUrl: '',
-        isGuest: true
-    };
-    currentUser = user;
-    localStorage.setItem('tgUser', JSON.stringify(user));
-    const userRef = database.ref('users/' + currentUser.id);
-    userRef.update({
-        username: currentUser.username,
-        firstName: currentUser.firstName,
-        photoUrl: currentUser.photoUrl,
-        lastActive: Date.now()
-    }).catch(console.error);
-    userRef.child('stats').set({
-        registeredAt: Date.now(),
-        lastActive: Date.now(),
-        parkingsCreated: 0,
-        parkingsUpdated: 0,
-        confirmations: 0,
-        views: 0,
-        favorites: 0,
-        activeDates: [new Date().toISOString().split('T')[0]]
-    }).catch(console.error);
-
-    hideAuthScreen();
-    showPanel('home');
-    showOnboarding();
-}
    function renderHomePanel(content) {
     // 1. Проверка контейнера (если content не передан или удален)
     if (!content) {
