@@ -869,32 +869,42 @@ function loadAllParkings(city = '', force = false) {
             );
             return true;
         })
-       
-.catch(error => {
+.catch(async error => {
     console.warn('Не удалось загрузить парковки из PostgreSQL:', error);
+    window.isOfflineMode = true;
     try {
-        const savedCache = localStorage.getItem('parkingCache');
-        if (!savedCache) throw error;
-        const parsedCache = JSON.parse(savedCache);
-        const cachedParkings = parsedCache.data;
-        if (!cachedParkings || !Object.keys(cachedParkings).length) {
-            throw error;
+        let cachedParkings = {};
+        // Сначала пробуем восстановить парковки из IndexedDB.
+        if (window.ParkNearOffline) {
+            cachedParkings = await window.ParkNearOffline.getParkings();
+        }
+        // Если IndexedDB пуста, используем localStorage.
+        if (!Object.keys(cachedParkings).length) {
+            const savedCache = localStorage.getItem('parkingCache');
+            if (savedCache) {
+                const parsedCache = JSON.parse(savedCache);
+                cachedParkings = parsedCache.data || {};
+                lastDataRefresh = Number(parsedCache.timestamp) || 0;
+            }
+        }
+        if (!Object.keys(cachedParkings).length) {
+            throw new Error('Сохранённые парковки не найдены');
         }
         parkingDataCache = cachedParkings;
-        lastDataRefresh = Number(parsedCache.timestamp) || 0;
-        window.isOfflineMode = true;
         renderMarkers(cachedParkings);
-        console.log('Офлайн-режим: восстановлено парковок:', Object.keys(cachedParkings).length);
+        console.log(
+            'Офлайн-режим: восстановлено парковок:',
+            Object.keys(cachedParkings).length
+        );
         if (typeof showToast === 'function') {
             showToast('Нет интернета. Показаны сохранённые парковки.');
         }
         return true;
     } catch (cacheError) {
-        window.isOfflineMode = true;
-        console.warn('Локальный кэш парковок отсутствует или повреждён:', cacheError);
+        console.warn('Не удалось восстановить парковки:', cacheError);
         throw error;
-        }
-    });
+    }
+});
 }
   function showParkingsForCity(city) {
     if (!map || !city) return;
