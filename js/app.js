@@ -743,8 +743,37 @@ async function logoutUser() {
         alert('Вы уже вышли из аккаунта.');
         return;
     }
-    if (!confirm('Вы действительно хотите выйти из аккаунта?')) {
-        return;
+    // Проверяем локальную активную парковку.
+    const activeParking =
+        typeof window.getLocalActiveParking === 'function'
+            ? window.getLocalActiveParking()
+            : null;
+    // Если парковка активна, сначала предлагаем её завершить.
+    if (activeParking) {
+        const shouldFinish = confirm(
+            'У вас есть активная парковка.\n\n' +
+            'Перед выходом из аккаунта необходимо её завершить.\n\n' +
+            'Завершить парковку и выйти?'
+        );
+        if (!shouldFinish) {
+            return;
+        }
+        const finished = await endParkingSession(
+            activeParking.parkingId
+        );
+        // Если сервер не подтвердил завершение,
+        // не выходим и сохраняем локальную парковку.
+        if (!finished) {
+            alert(
+                'Выход отменён. Активная парковка не завершена.\n' +
+                'Проверьте подключение к интернету и попробуйте снова.'
+            );
+            return;
+        }
+    } else {
+        if (!confirm('Вы действительно хотите выйти из аккаунта?')) {
+            return;
+        }
     }
     const sessionToken = localStorage.getItem(
         'parkNearSessionToken'
@@ -768,7 +797,8 @@ async function logoutUser() {
         }
         localStorage.removeItem('parkNearSessionToken');
         localStorage.removeItem('parkNearSessionExpiresAt');
-            finishLogout();
+        window.isOfflineSession = false;
+        finishLogout();
         console.log('Сессия PostgreSQL завершена.');
     } catch (error) {
         console.error('Ошибка выхода:', error);
@@ -1721,118 +1751,68 @@ async function startParkingSession(parkingId) {
     }
 }
 async function endParkingSession(parkingId) {
-
-    if (!currentUser?.id || !parkingId) return;
-
+    if (!currentUser?.id || !parkingId) return false;
     try {
-
         const token = localStorage.getItem('parkNearSessionToken');
-
         if (!token) {
-
             throw new Error('Сессия пользователя не найдена.');
-
         }
-
         const response = await fetch(
-
             `${window.PARKNEAR_API_URL}/api/parking-sessions/active/${encodeURIComponent(parkingId)}`,
-
             {
-
                 method: 'DELETE',
-
                 headers: {
-
                     'Authorization': `Bearer ${token}`
-
                 }
-
             }
-
         );
-
         const result = await response.json();
-
         if (!response.ok || !result.success) {
-
             throw new Error(
-
                 result.error || 'Не удалось завершить парковку'
-
             );
-
         }
-
+        // Очищаем локальную активную парковку
+        // только после подтверждения сервера.
         if (typeof window.clearLocalActiveParking === 'function') {
-
             window.clearLocalActiveParking();
-
         }
-
         const updatedParking = result.parking;
-
         if (updatedParking) {
-
             parkingDataCache[parkingId] = {
-
                 ...parkingDataCache[parkingId],
-
                 ...updatedParking,
-
                 id: String(parkingId),
-
                 _dbPath: null
-
             };
-
             currentParkingData = parkingDataCache[parkingId];
-
             await openCenterSheet(
-
                 parkingId,
-
                 parkingDataCache[parkingId]
-
             );
-
         }
-
         if (typeof refreshParkingMarker === 'function') {
-
             refreshParkingMarker(parkingId);
-
         }
-
         if (typeof refreshParkingClusters === 'function') {
-
             refreshParkingClusters();
-
         }
-
         if (window.Telegram?.WebApp?.HapticFeedback) {
-
             window.Telegram.WebApp.HapticFeedback
-
                 .notificationOccurred('success');
-
         }
-
         console.log('Парковочная сессия завершена в PostgreSQL.');
-
+        return true;
     } catch (error) {
-
         console.error(
-
             'Ошибка завершения парковочной сессии:',
-
             error
-
         );
         alert(
             error.message ||
             'Не удалось завершить парковку.'
         );
+        return false;
     }
 }
 function getParkingPlacesWord(number) {
