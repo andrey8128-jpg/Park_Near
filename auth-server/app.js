@@ -1006,6 +1006,64 @@ app.get('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => {
         });
     }
 });
+app.delete('/api/users/me/account', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const userId = String(req.authUser.id);
+        await client.query('BEGIN');
+        const activeSession = await client.query(
+            `SELECT id
+             FROM parking_sessions
+             WHERE data->>'userId' = $1
+               AND data->>'active' = 'true'
+             LIMIT 1
+             FOR UPDATE`,
+            [userId]
+        );
+        if (activeSession.rowCount > 0) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                success: false,
+                error: 'Сначала завершите активную парковку'
+            });
+        }
+        const deletedParkings = await client.query(
+            `DELETE FROM parkings
+             WHERE data->>'authorId' = $1`,
+            [userId]
+        );
+        await client.query(
+            `DELETE FROM parking_sessions
+             WHERE data->>'userId' = $1`,
+            [userId]
+        );
+        const deletedUser = await client.query(
+            'DELETE FROM users WHERE id = $1 RETURNING id',
+            [userId]
+        );
+        if (deletedUser.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({
+                success: false,
+                error: 'Аккаунт не найден'
+            });
+        }
+        await client.query('COMMIT');
+        return res.json({
+            success: true,
+            deletedParkings: deletedParkings.rowCount
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Ошибка удаления аккаунта:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось удалить аккаунт'
+        });
+    } finally {
+        client.release();
+    }
+});
 // ============================================
 // ЗАВЕРШЕНИЕ СЕССИИ
 // ============================================
