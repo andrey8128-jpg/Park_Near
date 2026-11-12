@@ -15,15 +15,19 @@ function initMap() {
         return;
     }
     try {
-        // 1. Создаём карту с начальным зумом 15
-        map = new ymaps.Map("map", {
-            center: [55.7558, 37.6173],
-            zoom: 16,
-            maxZoom: 19,
-            controls: [],
-            type: 'yandex#map'
-        });
-        console.log('✅ Карта инициализирована');
+        // 1. Создаём карту с начальным зумом 15   
+map = new ymaps.Map("map", {
+    center: [55.7558, 37.6173],
+    zoom: 16,
+    maxZoom: 19,
+    controls: [],
+    type: 'yandex#map'
+});
+console.log('✅ Карта инициализирована');
+// Убираем сообщение об ошибке после успешного запуска карты.
+if (typeof window.clearParkNearInitError === 'function') {
+    window.clearParkNearInitError();
+}
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 16 =====
 map.events.add('zoomchange', function() {
     if (!map) return;
