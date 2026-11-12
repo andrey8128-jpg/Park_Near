@@ -881,13 +881,32 @@ function loadAllParkings(city = '', force = false) {
             );
             return true;
         })
-        .catch(error => {
-            console.error(
-                'Ошибка загрузки парковок из PostgreSQL:',
-                error
-            );
+       
+.catch(error => {
+    console.warn('Не удалось загрузить парковки из PostgreSQL:', error);
+    try {
+        const savedCache = localStorage.getItem('parkingCache');
+        if (!savedCache) throw error;
+        const parsedCache = JSON.parse(savedCache);
+        const cachedParkings = parsedCache.data;
+        if (!cachedParkings || !Object.keys(cachedParkings).length) {
             throw error;
-        });
+        }
+        parkingDataCache = cachedParkings;
+        lastDataRefresh = Number(parsedCache.timestamp) || 0;
+        window.isOfflineMode = true;
+        renderMarkers(cachedParkings);
+        console.log('Офлайн-режим: восстановлено парковок:', Object.keys(cachedParkings).length);
+        if (typeof showToast === 'function') {
+            showToast('Нет интернета. Показаны сохранённые парковки.');
+        }
+        return true;
+    } catch (cacheError) {
+        window.isOfflineMode = true;
+        console.warn('Локальный кэш парковок отсутствует или повреждён:', cacheError);
+        throw error;
+        }
+    });
 }
   function showParkingsForCity(city) {
     if (!map || !city) return;
