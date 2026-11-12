@@ -1446,9 +1446,7 @@ async function getParkingOccupancy(parkingId) {
 }
 async function getUserActiveParkingSession() {
     const token = localStorage.getItem('parkNearSessionToken');
-    if (!token || !currentUser?.id) {
-        return undefined;
-    }
+    if (!token || !currentUser?.id) return undefined;
     try {
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parking-sessions/active`,
@@ -1461,25 +1459,17 @@ async function getUserActiveParkingSession() {
             }
         );
         if (!response.ok) {
-            throw new Error('Не удалось получить активную парковку');
+            throw new Error(`Ошибка сервера: ${response.status}`);
         }
         const result = await response.json();
         if (!result.success) {
-            throw new Error(
-                result.error || 'Ошибка получения активной парковки'
-            );
+            throw new Error(result.error || 'Не удалось получить активную парковку');
         }
-        // null означает: сервер подтвердил, что активной парковки нет.
         return result.session || null;
     } catch (error) {
-        console.warn(
-            'Не удалось проверить активную парковку. Локальные данные сохранены:',
-            error.message
-        );
-        // undefined означает: сервер не ответил.
-        // Не удаляем локальную активную парковку.
-        return undefined;
-    }
+    console.warn('Не удалось проверить активную парковку:', error.message);
+    return undefined;
+}
 }
 function getCurrentUserLocation() {
     return new Promise((resolve, reject) => {
