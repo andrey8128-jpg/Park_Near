@@ -15,6 +15,7 @@ const APP_FILES = [
     './css/tab-bar.css',
     './css/favorites.css',
     './css/profile.css',
+    './js/offline-storage.js',
     './js/map.js',
     './js/app.js',
     './js/push-notifications.js',
