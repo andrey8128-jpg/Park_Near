@@ -40,19 +40,17 @@ if (!currentUser) {
         </div>`;
     return;
 }
-    const isGuest = currentUser.id.startsWith('guest_');
-   
-    
+const isGuest = currentUser.id.startsWith('guest_');
 Promise.all([
-    requestUserProfile('GET'),
-    currentUser.id.startsWith('guest_')
-        ? Promise.resolve({ favorites: [] })
-        : favoritesRequest()
+    isGuest ? Promise.resolve({}) : requestUserProfile('GET'),
+    isGuest ? Promise.resolve({ favorites: [] }) : favoritesRequest()
 ]).then(([profileData, favoritesResult]) => {
     const stats = profileData.stats || {};
     const car = profileData.car || {};
     const prefs = profileData.cityPreferences || userCityPrefs || {};
-    const favorites = favoritesResult.favorites || [];
+    const favorites = Array.isArray(favoritesResult.favorites)
+        ? favoritesResult.favorites
+        : [];
 
         userCityPrefs = prefs;
         currentUser.car = car;
