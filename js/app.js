@@ -4524,38 +4524,46 @@ function filterHomeParkings() {
     userLocationForSearch
 );
 }
-function goHome() {
+async function goHome() {
     if (!currentUser) {
         alert('Войдите, чтобы использовать домашний адрес');
         return;
     }
-    database.ref('users/' + currentUser.id + '/homeAddresses').once('value')
-        .then(function(snap) {
-            var addrs = snap.val() || {};
-            var home = null;
-            for (var key in addrs) {
-                if (addrs.hasOwnProperty(key) && addrs[key].label === 'Дом') {
-                    home = addrs[key];
-                    break;
-                }
-            }
-            if (!home) {
-                alert('Домашний адрес не найден. Добавьте его в избранном.');
-                return;
-            }
-            if (home.lat && home.lng) {
-                map.setCenter([home.lat, home.lng], 16, { duration: 500 });
-                var coords = { lat: home.lat, lng: home.lng };
-                userLocationForSearch = coords;
-                var container = document.getElementById('homeParkingList');
-                if (container) {
-                    showNearbyParkings(coords, 5);
-                }
-            } else {
-                alert('У домашнего адреса нет координат. Добавьте адрес через карту.');
-            }
-        })
-        .catch(function(err) { alert('Ошибка: ' + err.message); });
+    try {
+        const profile = await requestUserProfile('GET');
+        const addresses = profile.homeAddresses || {};
+        const addressList = Array.isArray(addresses)
+            ? addresses
+            : Object.values(addresses);
+        const home = addressList.find(address => address.label === 'Дом');
+        if (!home) {
+            alert('Домашний адрес не найден. Добавьте его в избранном.');
+            return;
+        }
+        if (home.lat == null || home.lng == null) {
+            alert('У домашнего адреса нет координат. Добавьте адрес через карту.');
+            return;
+        }
+        const coords = {
+            lat: Number(home.lat),
+            lng: Number(home.lng)
+        };
+        if (!Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) {
+            alert('Координаты домашнего адреса некорректны.');
+            return;
+        }
+        if (map) {
+            map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+        }
+        userLocationForSearch = coords;
+        const container = document.getElementById('homeParkingList');
+        if (container) {
+            showNearbyParkings(coords, 5);
+        }
+    } catch (error) {
+        console.error('Ошибка получения домашнего адреса:', error);
+        alert('Не удалось загрузить домашний адрес: ' + error.message);
+    }
 }
 // Вспомогательная функция для отображения списка парковок
 function renderParkingList(container, parkings) {
