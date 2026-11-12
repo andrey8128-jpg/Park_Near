@@ -665,19 +665,15 @@ function clearAllMarkers() {
         updateTotalFreeCircle();
     }
 }
-
-
 function loadAllParkings(city = '', force = false) {
     const selectedCity = String(
         city || currentCity || ''
     ).trim();
-
     const normalize = value => String(value || '')
         .trim()
         .toLowerCase()
         .replace(/ё/g, 'е')
         .replace(/\s+/g, ' ');
-
     function renderMarkers(data) {
         // Если карта ещё не готова, сохраняем данные.
         // Маркеры будут добавлены после повторного вызова функции.
@@ -687,11 +683,8 @@ function loadAllParkings(city = '', force = false) {
             );
             return false;
         }
-
         clearAllMarkers();
-
         const entries = Object.entries(data || {});
-
         const matching = selectedCity
             ? entries.filter(([id, parking]) => {
                 const parkingCity = normalize(
@@ -699,17 +692,14 @@ function loadAllParkings(city = '', force = false) {
                     parking.addressCity ||
                     parking.regionCity
                 );
-
                 return parkingCity === normalize(selectedCity);
             })
             : entries;
-
         // Если совпадений нет, временно показываем все парковки.
         const visibleEntries =
             selectedCity && matching.length === 0
                 ? entries
                 : matching;
-
         if (selectedCity && matching.length === 0 && entries.length) {
             console.warn(
                 'Не найдено совпадение города. Показываем все парковки.',
@@ -723,9 +713,7 @@ function loadAllParkings(city = '', force = false) {
                 }
             );
         }
-
         let markerCount = 0;
-
         visibleEntries.forEach(([id, parking]) => {
             try {
                 addMarkerToMap(id, parking);
@@ -738,19 +726,15 @@ function loadAllParkings(city = '', force = false) {
                 );
             }
         });
-
         updateTotalFreeCircle();
-
         console.log('Отображение парковок:', {
             total: entries.length,
             visible: visibleEntries.length,
             markers: markerCount,
             city: selectedCity || 'все города'
         });
-
         return true;
     }
-
     // Используем кэш, если он актуален.
     if (
         !force &&
@@ -760,18 +744,15 @@ function loadAllParkings(city = '', force = false) {
         renderMarkers(parkingDataCache);
         return Promise.resolve(true);
     }
-
     if (!window.PARKNEAR_API_URL) {
         return Promise.reject(
             new Error('Не задан адрес API Park Near')
         );
     }
-
     const url = new URL(
         '/api/parkings',
         window.PARKNEAR_API_URL
     );
-
     return fetch(url.toString(), {
         method: 'GET',
         cache: 'no-store',
@@ -781,9 +762,7 @@ function loadAllParkings(city = '', force = false) {
     })
         .then(async response => {
             const responseText = await response.text();
-
             let result;
-
             try {
                 result = JSON.parse(responseText);
             } catch (error) {
@@ -792,14 +771,12 @@ function loadAllParkings(city = '', force = false) {
                     responseText.slice(0, 300)
                 );
             }
-
             if (!response.ok) {
                 throw new Error(
                     result.error ||
                     `Ошибка сервера: ${response.status}`
                 );
             }
-
             if (
                 !result.success ||
                 !Array.isArray(result.parkings)
@@ -808,16 +785,11 @@ function loadAllParkings(city = '', force = false) {
                     'Сервер вернул некорректный список парковок'
                 );
             }
-
             const newCache = {};
-
             result.parkings.forEach(node => {
-                if (!node) return;
-
+                    if (!node) return;
                 const id = String(node.id || '');
-
-                if (!id) return;
-
+                    if (!id) return;
                 const lat = Number(node.lat);
                 const lng = Number(node.lng);
 
@@ -872,6 +844,22 @@ function loadAllParkings(city = '', force = false) {
                     'Не удалось сохранить кэш парковок:',
                     error
                 );
+            }
+            // Дополнительно сохраняем парковки в IndexedDB.
+            if (window.ParkNearOffline) {
+                window.ParkNearOffline.saveParkings(newCache)
+                    .then(() => {
+                        console.log(
+                            'Парковки сохранены в IndexedDB:',
+                            Object.keys(newCache).length
+                        );
+                    })
+                    .catch(error => {
+                        console.warn(
+                            'Ошибка сохранения парковок в IndexedDB:',
+                            error
+                        );
+                    });
             }
             // Пытаемся отобразить маркеры.
             renderMarkers(newCache);
