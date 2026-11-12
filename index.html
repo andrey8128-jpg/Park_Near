@@ -463,14 +463,14 @@ async function startParkNear() {
         await initApp();
         console.log('Park Near успешно запущен');
     } catch (error) {
-        console.error('Ошибка запуска Park Near:', error);
-        const splash = document.getElementById('splashScreen');
-        if (splash) {
-            const message = document.createElement('div');
-            message.style.cssText = 'position:absolute;left:20px;right:20px;bottom:30px;color:#fff;text-align:center;font-size:14px;';
-            message.textContent = 'Не удалось полностью запустить приложение. Проверьте подключение и обновите страницу.';
-            splash.appendChild(message);
-        }
+    console.error('Ошибка запуска Park Near:', error);
+    const splash = document.getElementById('splashScreen');
+    if (splash) {
+        const message = document.createElement('div');
+        message.style.cssText = 'position:absolute;left:15px;right:15px;top:70px;padding:12px;background:#b91c1c;color:white;border-radius:10px;text-align:center;font-size:13px;z-index:999999;';
+        message.textContent = 'Ошибка запуска: ' + (error?.message || String(error));
+        splash.appendChild(message);
+        }    
     } finally {
         forceHideSplash();
     }
