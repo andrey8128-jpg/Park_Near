@@ -42,14 +42,17 @@ if (!currentUser) {
 }
     const isGuest = currentUser.id.startsWith('guest_');
    
-    Promise.all([
-        requestUserProfile('GET'),
-        database.ref(`users/${currentUser.id}/favorites`).once('value')
-    ]).then(([profileData, favSnap]) => {
-        const stats = profileData.stats || {};
-        const car = profileData.car || {};
-        const prefs = profileData.cityPreferences || userCityPrefs || {};
-        const favorites = favSnap.val() || {};
+    
+Promise.all([
+    requestUserProfile('GET'),
+    currentUser.id.startsWith('guest_')
+        ? Promise.resolve({ favorites: [] })
+        : favoritesRequest()
+]).then(([profileData, favoritesResult]) => {
+    const stats = profileData.stats || {};
+    const car = profileData.car || {};
+    const prefs = profileData.cityPreferences || userCityPrefs || {};
+    const favorites = favoritesResult.favorites || [];
 
         userCityPrefs = prefs;
         currentUser.car = car;
@@ -59,7 +62,7 @@ if (!currentUser) {
         const updated = Number(stats.parkingsUpdated || 0);
         const confirmations = Number(stats.confirmations || 0);
         const views = Number(stats.views || 0);
-        const favoritesCount = Object.keys(favorites || {}).length;
+        const favoritesCount = favorites.length;
         const activeDates = Array.isArray(stats.activeDates) ? stats.activeDates : [];
         const score =
             created * 25 +
