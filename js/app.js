@@ -636,9 +636,7 @@ function restoreSavedUser() {
     }
 }
 async function restorePostgresSession() {
-    const sessionToken = localStorage.getItem(
-        'parkNearSessionToken'
-    );
+    const sessionToken = localStorage.getItem('parkNearSessionToken');
     if (!sessionToken) {
         return false;
     }
@@ -649,64 +647,94 @@ async function restorePostgresSession() {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${sessionToken}`
-                }
+                },
+                cache: 'no-store'
             }
         );
+        // Токен действительно недействителен.
+        // Только в этом случае очищаем локальную авторизацию.
+        if (response.status === 401 || response.status === 403) {
+            throw new Error('INVALID_SESSION');
+        }
+        // Сервер временно недоступен.
+        // Сохраняем локальный профиль и разрешаем офлайн-режим.
+        if (!response.ok) {
+            throw new Error('SERVER_UNAVAILABLE');
+        }
         const result = await response.json();
-        if (!response.ok || !result.success || !result.user) {
-            throw new Error('Серверная сессия недействительна');
+        if (!result.success || !result.user || !result.user.id) {
+            throw new Error('SERVER_UNAVAILABLE');
         }
         const profile = {
-            id: result.user.id,
-            telegramId: String(result.user.telegramId || ''),
-            username: result.user.username || 'tg_user',
+            ...result.user,
+            id: String(result.user.id),
+            username: result.user.username || 'user',
             firstName: result.user.firstName || 'Пользователь',
             photoUrl: result.user.photoUrl || '',
             isGuest: Boolean(result.user.isGuest)
         };
         currentUser = profile;
         window.currentUser = profile;
-        localStorage.setItem(
-            'tgUser',
-            JSON.stringify(profile)
-        );
-      // Восстанавливаем активную парковку из PostgreSQL.
-const activeParkingSession = await getUserActiveParkingSession();
+        localStorage.setItem('tgUser', JSON.stringify(profile));
+        // Серверная сессия подтверждена.
+        window.isOfflineSession = false;
+        // Восстанавливаем активную парковку.
+        const activeParkingSession = await getUserActiveParkingSession();
+        if (activeParkingSession) {
+            const parkingId = String(activeParkingSession.parkingId);
+            const parking = parkingDataCache[parkingId];
 
-if (activeParkingSession) {
-    const parkingId = String(activeParkingSession.parkingId);
-    const parking = parkingDataCache[parkingId];
-
-    if (typeof window.setLocalActiveParking === 'function') {
-        window.setLocalActiveParking(
-            parkingId,
-            parking?.name || 'Парковка',
-            activeParkingSession.startedAt
-        );
-    }
-
-    console.log(
-        'Активная парковка восстановлена:',
-        activeParkingSession
-    );
-} else if (typeof window.clearLocalActiveParking === 'function') {
-    window.clearLocalActiveParking();
-}
-        console.log(
-            'Серверная сессия восстановлена:',
-            profile.id
-        );
+            if (typeof window.setLocalActiveParking === 'function') {
+                window.setLocalActiveParking(
+                    parkingId,
+                    parking?.name || 'Парковка',
+                    activeParkingSession.startedAt
+                );
+            }
+        } else if (
+            activeParkingSession === null &&
+            typeof window.clearLocalActiveParking === 'function'
+        ) {
+            // Очищаем локальную парковку только после успешного
+            // ответа сервера, что активной парковки нет.
+            window.clearLocalActiveParking();
+        }
+        console.log('Серверная сессия восстановлена:', profile.id);
         return true;
     } catch (error) {
-        console.warn(
-            'Не удалось восстановить серверную сессию:',
-            error.message
-        );
-        localStorage.removeItem('parkNearSessionToken');
-        localStorage.removeItem('parkNearSessionExpiresAt');
-        localStorage.removeItem('tgUser');
+        console.warn('Ошибка восстановления сессии:', error.message);
+        if (error.message === 'INVALID_SESSION') {
+            localStorage.removeItem('parkNearSessionToken');
+            localStorage.removeItem('parkNearSessionExpiresAt');
+            localStorage.removeItem('tgUser');
+            currentUser = null;
+            window.currentUser = null;
+            window.isOfflineSession = false;
+            return false;
+        }
+        // При временной ошибке сети не удаляем токен.
+        const savedUser = localStorage.getItem('tgUser');
+        if (savedUser) {
+            try {
+                const profile = JSON.parse(savedUser);
+                if (profile && profile.id) {
+                    currentUser = profile;
+                    window.currentUser = profile;
+                    window.isOfflineSession = true;
+
+                    console.log(
+                        'Восстановлен локальный профиль. Работаем офлайн:',
+                        profile.id
+                    );
+                    return true;
+                }
+            } catch (parseError) {
+                console.error('Ошибка чтения локального профиля:', parseError);
+            }
+        }
         currentUser = null;
         window.currentUser = null;
+        window.isOfflineSession = false;
         return false;
     }
 }
@@ -1380,51 +1408,47 @@ async function getParkingOccupancy(parkingId) {
         0,
         Number(parking.totalSpots) || 0
     );
-
     const occupied = Math.min(
         total,
         Math.max(0, Number(parking.occupiedSpots) || 0)
     );
-
     return occupied;
 }
-
 async function getUserActiveParkingSession() {
-
     const token = localStorage.getItem('parkNearSessionToken');
-
     if (!token || !currentUser?.id) {
-
-        return null;
-
+        return undefined;
     }
-
     try {
-
         const response = await fetch(
-
             `${window.PARKNEAR_API_URL}/api/parking-sessions/active`,
-
             {
+                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
                 cache: 'no-store'
             }
         );
+        if (!response.ok) {
+            throw new Error('Не удалось получить активную парковку');
+        }
         const result = await response.json();
-        if (!response.ok || !result.success) {
+        if (!result.success) {
             throw new Error(
-                result.error || 'Не удалось получить активную парковку'
+                result.error || 'Ошибка получения активной парковки'
             );
         }
+        // null означает: сервер подтвердил, что активной парковки нет.
         return result.session || null;
     } catch (error) {
-        console.error(
-            'Ошибка получения активной парковки:',
-            error
+        console.warn(
+            'Не удалось проверить активную парковку. Локальные данные сохранены:',
+            error.message
         );
-        return null;
+        // undefined означает: сервер не ответил.
+        // Не удаляем локальную активную парковку.
+        return undefined;
     }
 }
 function getCurrentUserLocation() {
