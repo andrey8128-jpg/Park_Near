@@ -453,6 +453,8 @@ function forceHideSplash() {
     splash.style.pointerEvents = 'none';
     setTimeout(() => splash.remove(), 450);
 }
+
+let parkNearStarted = false;
 async function startParkNear() {
     if (parkNearStarted) return;
     parkNearStarted = true;
@@ -463,46 +465,61 @@ async function startParkNear() {
         await initApp();
         console.log('Park Near успешно запущен');
     } catch (error) {
-    console.error('Ошибка запуска Park Near:', error);
-    const splash = document.getElementById('splashScreen');
-    if (splash) {     
-const message = document.createElement('div');
-message.id = 'parkNearInitError';
-message.style.cssText = 'position:absolute;left:15px;right:15px;top:70px;padding:12px;background:#b91c1c;color:white;border-radius:10px;text-align:center;font-size:13px;z-index:999999;';
-message.textContent = 'Не удалось инициализировать приложение. Проверьте подключение к интернету.';
-splash.appendChild(message);
+        console.error('Ошибка запуска Park Near:', error);
+        const splash = document.getElementById('splashScreen');
+        if (splash) {
+            let message = document.getElementById('parkNearInitError');
+
+            if (!message) {
+                message = document.createElement('div');
+                message.id = 'parkNearInitError';
+                message.style.cssText = 'position:absolute;left:15px;right:15px;top:70px;padding:12px;background:#b91c1c;color:white;border-radius:10px;text-align:center;font-size:13px;z-index:999999;';
+                message.textContent = 'Не удалось инициализировать приложение. Проверьте подключение к интернету.';
+                splash.appendChild(message);
+            }
+        }
     } finally {
         forceHideSplash();
     }
+}
+window.clearParkNearInitError = function() {
+    const message = document.getElementById('parkNearInitError');
+    if (message) message.remove();
+};
+function tryInitializeMap() {
+    if (typeof ymaps === 'undefined') {
+        console.log('API Яндекс.Карт пока недоступен');
+        return;
+    }
+    ymaps.ready(() => {
+        if (typeof initMap === 'function' && (typeof map === 'undefined' || !map)) {
+            try {
+                initMap();
+
+                if (typeof loadAllParkings === 'function') {
+                    loadAllParkings().catch(error => {
+                        console.warn('Не удалось загрузить парковки:', error);
+                    });
+                }
+            } catch (error) {
+                console.error('Ошибка повторной инициализации карты:', error);
+            }
+        }
+    });
 }
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startParkNear, { once: true });
 } else {
     startParkNear();
 }
-// Инициализируем карту отдельно, когда загрузится API Яндекс.Карт.
-if (typeof ymaps !== 'undefined') {
-    ymaps.ready(() => {
-        if (typeof map !== 'undefined' && !map && typeof initMap === 'function') {
-            initMap();
-            if (typeof loadAllParkings === 'function') {
-                loadAllParkings().catch(error => {
-                    console.warn('Не удалось загрузить парковки:', error);
-                });
-            }
-        }
-    });
-}    
+tryInitializeMap();
 window.addEventListener('online', () => {
-    console.log('Интернет восстановлен. Проверяем доступность карты.');
+    console.log('Интернет восстановлен. Повторно проверяем карту.');
+    tryInitializeMap();
 });
 window.addEventListener('offline', () => {
     console.log('Интернет отсутствует.');
 });
-function clearParkNearInitError() {
-    const message = document.getElementById('parkNearInitError');
-    if (message) message.remove();
-}
 </script>
 </body>
 </html>
