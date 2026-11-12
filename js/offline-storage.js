@@ -1,36 +1,45 @@
 (function () {
     'use strict';
     const DB_NAME = 'ParkNearOfflineDB';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     let dbPromise = null;
-
-    function openDB() {
-        if (dbPromise) return dbPromise;
-        dbPromise = new Promise((resolve, reject) => {
-            if (!('indexedDB' in window)) {
-                reject(new Error('IndexedDB не поддерживается'));
-                return;
+    
+function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+        if (!('indexedDB' in window)) {
+            reject(new Error('IndexedDB не поддерживается'));
+            return;
+        }
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = event => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('parkingCache')) {
+                db.createObjectStore('parkingCache', { keyPath: 'id' });
             }
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onupgradeneeded = event => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('parkingCache')) {
-                    db.createObjectStore('parkingCache', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('syncQueue')) {
-                    const store = db.createObjectStore('syncQueue', {
-                        keyPath: 'id',
-                        autoIncrement: true
-                    });
-                    store.createIndex('createdAt', 'createdAt');
-                }
-            };
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-            request.onblocked = () => reject(new Error('База данных заблокирована другой вкладкой'));
-        });
-        return dbPromise;
-    }
+            if (!db.objectStoreNames.contains('syncQueue')) {
+                const store = db.createObjectStore('syncQueue', {
+                    keyPath: 'id',
+                    autoIncrement: true
+                });
+                store.createIndex('createdAt', 'createdAt');
+            }
+            if (!db.objectStoreNames.contains('userData')) {
+                db.createObjectStore('userData', { keyPath: 'key' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => {
+            dbPromise = null;
+            reject(request.error);
+        };
+        request.onblocked = () => {
+            dbPromise = null;
+            reject(new Error('База данных заблокирована другой вкладкой'));
+        };
+    });
+    return dbPromise;
+}
     async function saveParkings(parkings) {
         const db = await openDB();
         return new Promise((resolve, reject) => {
@@ -116,12 +125,37 @@
             transaction.onerror = () => reject(transaction.error);
         });
     }
-    window.ParkNearOffline = {
-        saveParkings,
-        getParkings,
-        addToQueue,
-        getQueue,
-        removeFromQueue,
-        updateQueueItem
-    };
+    
+async function saveUserData(key, data) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction('userData', 'readwrite');
+        transaction.objectStore('userData').put({
+            key: String(key),
+            data,
+            savedAt: Date.now()
+        });
+        transaction.oncomplete = () => resolve(true);
+        transaction.onerror = () => reject(transaction.error);
+    });
+}
+async function getUserData(key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const request = db.transaction('userData', 'readonly')
+            .objectStore('userData').get(String(key));
+        request.onsuccess = () => resolve(request.result?.data ?? null);
+        request.onerror = () => reject(request.error);
+    });
+}
+  window.ParkNearOffline = {
+    saveParkings,
+    getParkings,
+    addToQueue,
+    getQueue,
+    removeFromQueue,
+    updateQueueItem,
+    saveUserData,
+    getUserData
+};
 })();
