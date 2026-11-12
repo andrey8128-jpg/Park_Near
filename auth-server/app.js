@@ -1724,6 +1724,48 @@ app.get('/api/parkings/:id', async (req, res) => {
     }
 });
 
+// История действий текущего пользователя
+app.get('/api/users/me/history', requireAuth, async (req, res) => {
+    try {
+        const userId = String(req.authUser.id);
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const result = await pool.query('SELECT id, data FROM parkings');
+        const entries = [];
+        for (const row of result.rows) {
+            const parking = row.data || {};
+            const history = Array.isArray(parking.history)
+                ? parking.history
+                : Object.values(parking.history || {});
+            for (const entry of history) {
+                if (!entry || String(entry.userId) !== userId) continue;
+                const timestamp = Number(entry.timestamp) || 0;
+                if (timestamp < weekAgo) continue;
+                entries.push({
+                    parkingId: String(row.id),
+                    parkingName: parking.name || 'Без названия',
+                    address: parking.address || '',
+                    action: entry.action || 'unknown',
+                    timestamp,
+                    car: entry.car || {},
+                    previousOccupied: entry.previousOccupied,
+                    newOccupied: entry.newOccupied
+                });
+            }
+        }
+        entries.sort((a, b) => b.timestamp - a.timestamp);
+        return res.json({
+            success: true,
+            total: entries.length,
+            history: entries.slice(0, 100)
+        });
+    } catch (error) {
+        console.error('Ошибка получения истории пользователя:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось загрузить историю'
+        });
+    }
+});
 // ============================================
 // ПОЛУЧЕНИЕ ИСТОРИИ ПАРКОВКИ
 // ============================================
