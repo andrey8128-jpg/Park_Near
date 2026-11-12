@@ -1,15 +1,3 @@
-// ===================== FIREBASE =====================
-    const firebaseConfig = {
-        apiKey: "AIzaSyATLX5t2lmibbuiSXL_sWu_JnFFTb-nMqU",
-        authDomain: "parknear-bef41.firebaseapp.com",
-        databaseURL: "https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "parknear-bef41",
-        storageBucket: "parknear-bef41.firebasestorage.app",
-        messagingSenderId: "1066552333578",
-        appId: "1:1066552333578:web:e60e333cf877852eba16f3"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
 // API Park Near на Timeweb
 window.PARKNEAR_API_URL =
     'https://andrey8128-jpg-park-near-3eb7.twc1.net';
@@ -115,21 +103,6 @@ async function patchParkingInPostgres(parkingId, updates) {
     let userLocationForSearch = null;
     let pendingAddressData = null;
     let newParkingCoords = null;
-
-function getParkingRef(parkingId) {
-    const parking = parkingDataCache?.[parkingId];
-    // Предпочитаем полный путь, сохранённый при загрузке
-    if (parking?._dbPath) {
-        return database.ref(parking._dbPath);
-    }
-    // Совместимость со старой структурой базы
-    if (parking?.groupId) {
-        return database.ref(
-            `parkings/${parking.groupId}/${parkingId}`
-        );
-    }
-    return database.ref(`parkings/${parkingId}`);
-}
 // ===================== ВОССТАНОВЛЕНИЕ ГОРОДА =====================
 const savedCity = localStorage.getItem('selectedCity');
 const savedMapPrefs = localStorage.getItem('parknear_map_city');
