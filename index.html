@@ -465,12 +465,12 @@ async function startParkNear() {
     } catch (error) {
     console.error('Ошибка запуска Park Near:', error);
     const splash = document.getElementById('splashScreen');
-    if (splash) {
-        const message = document.createElement('div');
-        message.style.cssText = 'position:absolute;left:15px;right:15px;top:70px;padding:12px;background:#b91c1c;color:white;border-radius:10px;text-align:center;font-size:13px;z-index:999999;';
-        message.textContent = 'Ошибка запуска: ' + (error?.message || String(error));
-        splash.appendChild(message);
-        }    
+    if (splash) {     
+const message = document.createElement('div');
+message.id = 'parkNearInitError';
+message.style.cssText = 'position:absolute;left:15px;right:15px;top:70px;padding:12px;background:#b91c1c;color:white;border-radius:10px;text-align:center;font-size:13px;z-index:999999;';
+message.textContent = 'Не удалось инициализировать приложение. Проверьте подключение к интернету.';
+splash.appendChild(message);
     } finally {
         forceHideSplash();
     }
@@ -492,6 +492,16 @@ if (typeof ymaps !== 'undefined') {
             }
         }
     });
+}    
+window.addEventListener('online', () => {
+    console.log('Интернет восстановлен. Проверяем доступность карты.');
+});
+window.addEventListener('offline', () => {
+    console.log('Интернет отсутствует.');
+});
+function clearParkNearInitError() {
+    const message = document.getElementById('parkNearInitError');
+    if (message) message.remove();
 }
 </script>
 </body>
