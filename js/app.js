@@ -23,8 +23,8 @@ async function patchParkingInPostgres(parkingId, updates) {
     }
     return result.parking;
 }
-    // ===== Восстановление темы (с сохранением правильных цветов маркеров) =====
-   (function restoreTheme() {
+    // ===== Восстановление темы =====
+(function restoreTheme() {
     const darkTheme = localStorage.getItem('darkTheme');
     const isDark = darkTheme === '1';
     if (isDark) {
@@ -35,16 +35,20 @@ async function patchParkingInPostgres(parkingId, updates) {
             mapStyle.textContent = `
                 .dark-theme #map .ymaps-2-1-game-layer,
                 .dark-theme #map [class*="ymaps-2-1-17-events-pane"] {
-                    filter: invert(0.9) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.8) !important;
+                    filter: invert(0.9)
+                            hue-rotate(180deg)
+                            brightness(0.9)
+                            contrast(0.9)
+                            saturate(0.8) !important;
                 }
             `;
             document.head.appendChild(mapStyle);
         }
-         }
-     }
     }
-    const toggle1 = document.getElementById('settingsThemeToggle');
-    const toggle2 = document.getElementById('settingsThemeToggleInline');
+    const toggle1 =
+        document.getElementById('settingsThemeToggle');
+    const toggle2 =
+        document.getElementById('settingsThemeToggleInline');
     if (toggle1) toggle1.checked = isDark;
     if (toggle2) toggle2.checked = isDark;
 })();
@@ -4628,10 +4632,30 @@ async function initApp() {
             else startDrawingMode();
         };
     }
-    // Инициализация карты
-    if (!map) {
-        initMap();
-    }
+    // Ждём полной готовности API Яндекс.Карт
+if (typeof ymaps === 'undefined') {
+    throw new Error('API Яндекс.Карт не загружен');
+}
+await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+        reject(new Error(
+            'Истекло время ожидания API Яндекс.Карт'
+        ));
+    }, 15000);
+    ymaps.ready(() => {
+        clearTimeout(timeout);
+        resolve();
+    });
+});
+// Создаём карту только после готовности API
+if (!map) {
+    initMap();
+}
+if (!map) {
+    throw new Error(
+        'Карта не создана. Проверьте ошибку initMap в консоли.'
+    );
+}
     // Регистрация Service Worker для PWA
     if ('serviceWorker' in navigator) {
         const swScope = new URL('.', window.location.href).pathname;
