@@ -475,3 +475,180 @@
 .center-sheet-close:active {
     transform: scale(.92);
 }
+
+
+/* ==========================================================
+   PARK NEAR — АДАПТАЦИЯ КАРТОЧЕК И КНОПОК ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ
+   Дополнительные правила: исходный визуальный стиль сохранён.
+   ========================================================== */
+
+/* SVG и иконки не должны сжиматься внутри flex-контейнеров. */
+.parking-card-compact svg,
+.parking-item svg,
+.parking-secondary-btn svg,
+.parking-edit-btn svg,
+.parking-park-btn svg,
+.parking-route-btn svg {
+    display: block;
+    flex: 0 0 auto;
+    max-width: 100%;
+}
+
+/* Минимальная удобная область нажатия; внешний вид кнопок не меняется. */
+.parking-card-close,
+.center-sheet-close {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.parking-park-btn,
+.parking-route-btn,
+.parking-secondary-btn,
+.parking-edit-btn {
+    min-height: 44px;
+    box-sizing: border-box;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Не даём длинным названиям и адресам раздвигать карточку. */
+.parking-card-title,
+.parking-card-street,
+.parking-item-header,
+.parking-item .info {
+    min-width: 0;
+}
+
+.parking-card-title {
+    overflow-wrap: anywhere;
+}
+
+.parking-card-street {
+    overflow-wrap: anywhere;
+}
+
+/* Стабильная высота нижнего окна на устройствах с динамической адресной строкой. */
+.center-sheet-box {
+    max-height: min(60vh, 560px);
+    max-height: min(60dvh, 560px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Чёткий фокус для клавиатуры и внешних устройств управления. */
+.parking-card-close:focus-visible,
+.center-sheet-close:focus-visible,
+.parking-park-btn:focus-visible,
+.parking-route-btn:focus-visible,
+.parking-secondary-btn:focus-visible,
+.parking-edit-btn:focus-visible,
+.parking-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+/* Компактная раскладка для очень узких экранов, включая ширину 320 px. */
+@media (max-width: 360px) {
+    .parking-card-compact {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .parking-card-title {
+        font-size: 16px;
+        gap: 6px;
+    }
+
+    .parking-card-title .parking-icon {
+        font-size: 19px;
+    }
+
+    .parking-status-compact {
+        gap: 7px;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .parking-status-compact strong {
+        font-size: 14px;
+    }
+
+    .parking-status-available {
+        font-size: 11px;
+        padding: 3px 7px;
+    }
+
+    .parking-meta {
+        gap: 4px;
+    }
+
+    .parking-meta-item span {
+        font-size: 8px;
+        letter-spacing: 0;
+    }
+
+    .parking-secondary-actions {
+        gap: 6px;
+    }
+
+    .parking-secondary-btn,
+    .parking-edit-btn {
+        padding-left: 5px;
+        padding-right: 5px;
+        font-size: 12px;
+    }
+
+    .parking-item {
+        padding: 11px 12px;
+        gap: 8px;
+    }
+
+    .parking-item .name {
+        font-size: 13px;
+    }
+
+    .free-badge {
+        min-width: 42px;
+        height: 42px;
+        font-size: 15px;
+    }
+}
+/* Для устройств с сенсорным экраном увеличиваем только интерактивную область. */
+@media (hover: none) and (pointer: coarse) {
+    .parking-card-close,
+    .center-sheet-close,
+    .parking-park-btn,
+    .parking-route-btn,
+    .parking-secondary-btn,
+    .parking-edit-btn {
+        min-height: 48px;
+    }
+    .parking-card-close,
+    .center-sheet-close {
+        min-width: 48px;
+        width: 48px;
+        height: 48px;
+    }
+}
+/* Уважение системной настройки «Уменьшение движения». */
+@media (prefers-reduced-motion: reduce) {
+    .parking-card-compact,
+    .parking-item,
+    .parking-card-close,
+    .center-sheet-close,
+    .parking-park-btn,
+    .parking-route-btn,
+    .parking-secondary-btn,
+    .parking-edit-btn {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}
