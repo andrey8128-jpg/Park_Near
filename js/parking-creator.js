@@ -128,7 +128,7 @@ function showMapHint(text) {
     document.body.appendChild(hint);
     setTimeout(() => hint.remove(), 3000);
 }
-function openAddPanelWithPolygon(coordinates, sizeCheck) {
+function openAddPanelWithPolygon(coordinates, sizeCheck, restoreData = null) {
     try {
         console.log('openAddPanelWithPolygon вызвана');
         const panel = document.getElementById('panel');
@@ -181,19 +181,45 @@ function openAddPanelWithPolygon(coordinates, sizeCheck) {
             <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
         `;
         setTimeout(() => {
-            initMiniMap(coordinates);
-            if (coordinates && coordinates.length > 0) {
-                const centerLat = coordinates.reduce((sum, c) => sum + Number(c[0]), 0) / coordinates.length;
-                const centerLng = coordinates.reduce((sum, c) => sum + Number(c[1]), 0) / coordinates.length;
-                getAddressByCoordinates(centerLat, centerLng).then(data => {
-                    if (!data) return;
-                    const streetInput = document.getElementById('parkStreetName');
-                    const houseInput = document.getElementById('parkHouseNumber');
-                    if (streetInput && data.street) streetInput.value = data.street;
-                    if (houseInput && data.houseNumber) houseInput.value = data.houseNumber;
-                }).catch(() => {});
-            }
-        }, 100);
+    initMiniMap(coordinates);
+
+    // Восстанавливаем сохранённые значения формы.
+    if (restoreData) {
+        const streetTypeInput = document.getElementById('parkStreetType');
+        const streetNameInput = document.getElementById('parkStreetName');
+        const houseInput = document.getElementById('parkHouseNumber');
+        const spotsInput = document.getElementById('parkSpots');
+
+        if (streetTypeInput) {
+            streetTypeInput.value = restoreData.streetType || '';
+        }
+        if (streetNameInput) {
+            streetNameInput.value = restoreData.streetName || '';
+        }
+        if (houseInput) {
+            houseInput.value = restoreData.houseNumber || '';
+        }
+        if (spotsInput) {
+            spotsInput.value = restoreData.totalSpots || '';
+        }
+        return;
+    }
+    if (coordinates && coordinates.length > 0) {
+        const centerLat = coordinates.reduce(
+            (sum, c) => sum + Number(c[0]), 0
+        ) / coordinates.length;
+        const centerLng = coordinates.reduce(
+            (sum, c) => sum + Number(c[1]), 0
+        ) / coordinates.length;
+        getAddressByCoordinates(centerLat, centerLng).then(data => {
+            if (!data) return;
+            const streetInput = document.getElementById('parkStreetName');
+            const houseInput = document.getElementById('parkHouseNumber');
+            if (streetInput && data.street) streetInput.value = data.street;
+            if (houseInput && data.houseNumber) houseInput.value = data.houseNumber;
+        }).catch(() => {});
+    }
+}, 100);
     } catch (e) {
         console.error('Ошибка в openAddPanelWithPolygon:', e);
         showToast('Ошибка при открытии формы', 2000);
@@ -568,15 +594,21 @@ if (pendingOperation) {
 
             // Сначала сохраняем операцию локально, только потом отправляем серверу.
             localStorage.setItem(
-                pendingStorageKey,
-                JSON.stringify({
-                    operationId,
-                    fingerprint,
-                    payload: requestParkingData
-                })
-            );
+    pendingStorageKey,
+    JSON.stringify({
+        operationId,
+        fingerprint,
+        payload: requestParkingData,
+        formData: {
+            streetType,
+            streetName,
+            houseNumber,
+            totalSpots,
+            coordinates: coordsToSave
         }
-
+    })
+);
+        }
         // 5. Отправляем запрос. При повторе operationId и payload не меняются.
         if (btn) btn.textContent = 'Сохраняем парковку...';
 
