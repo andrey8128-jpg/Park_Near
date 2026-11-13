@@ -1,4 +1,20 @@
 const ENABLE_PARKING_CLUSTERS = true;
+function showMapInitError(message) {
+    const container = document.getElementById('map');
+    if (!container) return;
+       let error = document.getElementById('parkNearMapError');
+    if (!error) {
+        error = document.createElement('div');
+        error.id = 'parkNearMapError';
+        error.style.cssText = 'position:absolute;top:12px;left:12px;right:12px;z-index:1000;padding:12px;background:#b91c1c;color:white;border-radius:10px;text-align:center;font-size:13px;';
+        container.appendChild(error);
+    }
+    error.textContent = message;
+}
+function clearMapInitError() {
+    const error = document.getElementById('parkNearMapError');
+    if (error) error.remove();
+}
 function initMap() {
     console.log('▶️ initMap вызвана');
     const mapContainer = document.getElementById('map');
@@ -13,11 +29,11 @@ function initMap() {
     // =====================================================
     // ПРОВЕРКА ЗАГРУЗКИ ЯНДЕКС.КАРТ
     // =====================================================
-    if (typeof ymaps === 'undefined') {
-        mapContainer.innerHTML = '⚠️ API Яндекс.Карт не загружен. Проверьте ключ и интернет.';
-        console.error('❌ ymaps не определён – API не загружен');
-        return;
-    }
+   if (typeof ymaps === 'undefined') {
+    console.error('❌ API Яндекс.Карт ещё не загружен');
+    showMapInitError('API Яндекс.Карт не загружен. Проверьте подключение к интернету.');
+    return;
+}
     try {
         // 1. Создаём карту с начальным зумом 15   
 map = new ymaps.Map("map", {
@@ -28,6 +44,7 @@ map = new ymaps.Map("map", {
     type: 'yandex#map'
 });
 console.log('✅ Карта инициализирована');
+clearMapInitError();
 // Убираем сообщение об ошибке после успешного запуска карты.
 if (typeof window.clearParkNearInitError === 'function') {
     window.clearParkNearInitError();
@@ -318,29 +335,12 @@ setTimeout(function() {
     }
 }, 5000);
     } catch (e) {
-    console.error(
-        '❌ Ошибка инициализации ParkNear:',
-        e
-    );
+    console.error('❌ Ошибка инициализации ParkNear:', e);
     if (map) {
-        console.error(
-            '⚠️ Карта уже создана. Ошибка произошла после создания карты.'
-        );
+        console.error('Карта создана, но произошла ошибка при настройке.');
         return;
     }
-    const container =
-        document.getElementById('map');
-    if (container) {
-        container.innerHTML = `
-            <div style="
-                color: var(--red);
-                text-align: center;
-                padding: 20px;
-            ">
-                ⚠️ Не удалось инициализировать карту.
-            </div>
-        `;
-     }
+    showMapInitError('Не удалось инициализировать карту. Проверьте подключение к интернету.');
   }
 }
 function createParkingClusterer() {
