@@ -3956,37 +3956,20 @@ function createAuthScreenFallback() {
     document.body.appendChild(overlay);
     document.getElementById('authOverlay').style.display = 'flex';
 }
-    
-    // ===================== НАСТРОЙКИ =====================
-   function syncThemeToggles() {
+ 
+// ===================== НАСТРОЙКИ =====================
+function syncThemeToggles() {
     const isDark = document.body.classList.contains('dark-theme');
     const toggle1 = document.getElementById('settingsThemeToggle');
     const toggle2 = document.getElementById('settingsThemeToggleInline');
     if (toggle1) toggle1.checked = isDark;
     if (toggle2) toggle2.checked = isDark;
 }
-     function toggleTheme() {
-    var isDark = document.body.classList.toggle('dark-theme');
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
     localStorage.setItem('darkTheme', isDark ? '1' : '0');
-    var mapEl = document.getElementById('map');
+    const mapEl = document.getElementById('map');
     if (mapEl && map) {
-        var currentType = map.getType ? map.getType() : 'yandex#map';
-        if (isDark && currentType === 'yandex#map') {
-            mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
-        } else {
-            mapEl.style.filter = 'none';
-        }
-    }
-    var tabBar = document.querySelector('.tabBar');
-    if (tabBar) {
-        tabBar.style.background = '';
-    }
-    syncThemeToggles();
-}
-function updateMapTheme() {
-        const mapEl = document.getElementById('map');
-        if (!mapEl || !map) return;
-        const isDark = document.body.classList.contains('dark-theme');
         const currentType = map.getType ? map.getType() : 'yandex#map';
         if (isDark && currentType === 'yandex#map') {
             mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
@@ -3994,6 +3977,21 @@ function updateMapTheme() {
             mapEl.style.filter = 'none';
         }
     }
+    const tabBar = document.querySelector('.tabBar');
+    if (tabBar) tabBar.style.background = '';
+    syncThemeToggles();
+}
+function updateMapTheme() {
+    const mapEl = document.getElementById('map');
+    if (!mapEl || !map) return;
+    const isDark = document.body.classList.contains('dark-theme');
+    const currentType = map.getType ? map.getType() : 'yandex#map';
+    if (isDark && currentType === 'yandex#map') {
+        mapEl.style.filter = 'invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85)';
+    } else {
+        mapEl.style.filter = 'none';
+    }
+}
     function showToast(message, duration = 3000) {
         const toast = document.getElementById('toast');
         if (!toast) return;
