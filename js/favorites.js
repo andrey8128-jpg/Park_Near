@@ -284,23 +284,37 @@ async function loadFavoritesInline(force = false) {
 }
 async function openFavoriteParking(parkingId) {
     if (!parkingId) return;
+    const id = String(parkingId);
     try {
-        let data = parkingDataCache?.[parkingId];
-        if (!data) {
+        let data = parkingDataCache?.[id] || null;
+        if (!data && window.ParkNearOffline) {
+            const cachedParkings = await ParkNearOffline.getParkings();
+            data = cachedParkings?.[id] || null;
+        }
+        if (!data && navigator.onLine) {
             const response = await fetch(
-                `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
+                `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(id)}`,
                 { cache: 'no-store' }
             );
             const result = await response.json();
             if (!response.ok || !result.success) {
-                throw new Error(
-                    result.error || 'Парковка не найдена'
-                );
+                throw new Error(result.error || 'Парковка не найдена');
             }
             data = result.parking;
+            if (data && window.ParkNearOffline) {
+                const cachedParkings = await ParkNearOffline.getParkings();
+                cachedParkings[id] = data;
+                await ParkNearOffline.saveParkings(cachedParkings);
+            }
         }
-        if (!data) return;
-        currentParkingId = parkingId;
+        if (!data) {
+            throw new Error(
+                navigator.onLine
+                    ? 'Парковка не найдена'
+                    : 'Эта парковка не сохранена на устройстве'
+            );
+        }
+        currentParkingId = id;
         currentParkingData = data;
         if (data.lat != null && data.lng != null && map) {
             map.setCenter(
@@ -310,7 +324,7 @@ async function openFavoriteParking(parkingId) {
             );
         }
         if (typeof openCenterSheet === 'function') {
-            openCenterSheet(parkingId, data);
+            openCenterSheet(id, data);
         }
     } catch (error) {
         console.error('Ошибка открытия избранной парковки:', error);
