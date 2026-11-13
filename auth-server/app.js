@@ -44,6 +44,17 @@ async function initializeDatabase() {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
         `,
+         `
+        CREATE TABLE IF NOT EXISTS processed_operations (
+            user_id TEXT NOT NULL
+                REFERENCES users(id) ON DELETE CASCADE,
+            operation_id TEXT NOT NULL,
+            operation_type TEXT NOT NULL,
+            response JSONB,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (user_id, operation_id)
+        )
+        `,
         `
         CREATE TABLE IF NOT EXISTS parking_sessions (
             id TEXT PRIMARY KEY,
@@ -153,9 +164,10 @@ app.use(cors({
         'OPTIONS'
     ],
     allowedHeaders: [
-        'Content-Type',
-        'Authorization'
-    ]
+    'Content-Type',
+    'Authorization',
+    'Idempotency-Key'
+]
 }));
 app.use(express.json({
     limit: '100kb'
@@ -2107,7 +2119,16 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
     const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
     const now = Date.now();
     const user = req.authUser;
+        const operationId = String(
+        req.get('Idempotency-Key') || ''
+    ).trim();
 
+    if (operationId.length > 128) {
+        return res.status(400).json({
+            success: false,
+            error: 'Некорректный идентификатор операции'
+        });
+    }
     const parkingData = {
         lat,
         lng,
@@ -2146,7 +2167,38 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
 
     try {
         await client.query('BEGIN');
+        // Защита от одновременного повторного запроса
+        if (operationId) {
+            await client.query(
+                'SELECT pg_advisory_xact_lock(hashtext($1))',
+                [`${user.id}:${operationId}`]
+            );
+            const previousOperation = await client.query(
+                `SELECT operation_type, response
+                 FROM processed_operations
+                 WHERE user_id = $1 AND operation_id = $2`,
+                [user.id, operationId]
+            );
+            if (previousOperation.rowCount > 0) {
+                const previous = previousOperation.rows[0];
 
+                if (previous.operation_type !== 'create_parking') {
+                    await client.query('COMMIT');
+
+                    return res.status(409).json({
+                        success: false,
+                        error: 'Идентификатор уже использован для другой операции'
+                    });
+                }
+                const savedResponse = previous.response;
+
+                await client.query('COMMIT');
+
+                return res
+                    .status(savedResponse.statusCode || 201)
+                    .json(savedResponse.body);
+            }
+        }
         let parkingId = null;
 
         for (let number = 1; number <= 50; number++) {
@@ -2165,7 +2217,6 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
                 break;
             }
         }
-
         if (!parkingId) {
             await client.query('ROLLBACK');
 
@@ -2174,7 +2225,6 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
                 error: 'Не удалось подобрать свободный идентификатор парковки'
             });
         }
-
         await client.query(
             `UPDATE users
              SET data = jsonb_set(
@@ -2191,17 +2241,34 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
              WHERE id = $1`,
             [user.id]
         );
-
-        await client.query('COMMIT');
-
-        return res.status(201).json({
+                const responseBody = {
             success: true,
             id: parkingId,
             parking: {
                 ...parkingData,
                 id: parkingId
             }
-        });
+        };
+        // Запоминаем результат в той же транзакции,
+        // что и создание парковки
+        if (operationId) {
+            await client.query(
+                `INSERT INTO processed_operations
+                 (user_id, operation_id, operation_type, response)
+                 VALUES ($1, $2, $3, $4::jsonb)`,
+                [
+                    user.id,
+                    operationId,
+                    'create_parking',
+                    JSON.stringify({
+                        statusCode: 201,
+                        body: responseBody
+                    })
+                ]
+            );
+        }
+        await client.query('COMMIT');
+        return res.status(201).json(responseBody);
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Ошибка создания парковки:', error.message);
