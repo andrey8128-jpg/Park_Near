@@ -2376,3 +2376,138 @@ body.dark-theme .donate-popup-close {
 body.dark-theme .donate-popup-close:hover {
     background: rgba(255, 255, 255, 0.08);
 }
+
+/* =========================================================
+   PARK NEAR — АДАПТАЦИЯ ОСНОВНЫХ ЭЛЕМЕНТОВ УПРАВЛЕНИЯ
+   Этап 2: размеры иконок, зоны нажатия и доступность.
+   Основная цветовая схема и визуальный стиль сохранены.
+   ========================================================= */
+
+:root {
+    /* Единая шкала размеров для SVG-иконок. */
+    --pn-icon-xs: 16px;
+    --pn-icon-sm: 20px;
+    --pn-icon-md: 24px;
+    --pn-icon-lg: 28px;
+    --pn-icon-xl: 32px;
+
+    /* Минимальная удобная область нажатия. */
+    --pn-touch-target: 44px;
+    --pn-touch-target-comfort: 48px;
+}
+
+/* SVG не должны растягиваться или сжиматься внутри кнопок. */
+#geoBtn svg,
+#addBtn svg,
+#donateBtn svg,
+.panel-close svg,
+.donate-popup-close svg {
+    display: block;
+    flex: 0 0 auto;
+    width: var(--pn-icon-md);
+    height: var(--pn-icon-md);
+    max-width: 100%;
+    max-height: 100%;
+    overflow: visible;
+}
+
+/* Увеличиваем только небольшие круглые кнопки карты,
+   не меняя размер большой кнопки добавления парковки. */
+#geoBtn,
+#donateBtn {
+    min-width: var(--pn-touch-target-comfort);
+    min-height: var(--pn-touch-target-comfort);
+    width: var(--pn-touch-target-comfort);
+    height: var(--pn-touch-target-comfort);
+    flex: 0 0 var(--pn-touch-target-comfort);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#addBtn {
+    min-width: var(--pn-touch-target-comfort);
+    min-height: var(--pn-touch-target-comfort);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Кнопка закрытия панели: видимый крестик остаётся прежнего размера,
+   но сама интерактивная область становится удобнее для пальца. */
+.panel-close {
+    box-sizing: border-box;
+    min-width: var(--pn-touch-target);
+    min-height: var(--pn-touch-target);
+    padding: 10px;
+    touch-action: manipulation;
+}
+/* Кнопка закрытия окна пожертвования. */
+.donate-popup-close {
+    box-sizing: border-box;
+    min-width: var(--pn-touch-target);
+    min-height: var(--pn-touch-target);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+}
+/* Убираем задержку/двойное распознавание жестов на основных контролах.
+   Не задаём touch-action:none: прокрутка панелей должна работать. */
+button,
+[role="button"],
+a[href] {
+    -webkit-tap-highlight-color: transparent;
+}
+#geoBtn,
+#addBtn,
+#donateBtn,
+.panel-close,
+.donate-popup-close {
+    touch-action: manipulation;
+}
+/* Единый заметный фокус для клавиатуры и внешних устройств ввода. */
+:where(button, [role="button"], a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+/* Не показываем дополнительную рамку при обычном касании,
+   если браузер корректно различает :focus-visible. */
+
+/* Узкие экраны: не уменьшаем интерактивные области,
+   а ограничиваем только визуальные размеры SVG при необходимости. */
+@media screen and (max-width: 360px) {
+    #geoBtn svg,
+    #donateBtn svg,
+    .panel-close svg,
+    .donate-popup-close svg {
+        width: 22px;
+        height: 22px;
+    }
+}
+/* Устройства с сенсорным управлением получают комфортную область
+   нажатия. Существующие размеры крупных кнопок не увеличиваются. */
+@media (hover: none) and (pointer: coarse) {
+    #geoBtn,
+    #donateBtn,
+    .panel-close,
+    .donate-popup-close {
+        min-width: var(--pn-touch-target-comfort);
+        min-height: var(--pn-touch-target-comfort);
+    }
+}
+/* Системная настройка уменьшения движения действует на основные
+   элементы управления, не отключая функциональность интерфейса. */
+@media (prefers-reduced-motion: reduce) {
+    #geoBtn,
+    #addBtn,
+    #donateBtn,
+    .panel-close,
+    .donate-popup-close,
+    .tab,
+    .tab .icon,
+    .tab .icon svg {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
