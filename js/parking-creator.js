@@ -533,7 +533,7 @@ async function deleteParking(parkingId) {
         }
         const sessionToken = localStorage.getItem('parkNearSessionToken');
         if (!sessionToken) {
-            throw new Error('Нет активной серверной сессии. Войдите через Telegram.');
+            throw new Error('Нет активной серверной сессии. Войдите в аккаунт.');
         }
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
@@ -728,7 +728,7 @@ if (pendingOperation) {
 }
     const sessionToken = localStorage.getItem('parkNearSessionToken');
     if (!sessionToken) {
-        alert('Нет активной серверной сессии. Войдите через Telegram.');
+        alert('Нет активной серверной сессии. Войдите в аккаунт.');
         return;
     }
 
