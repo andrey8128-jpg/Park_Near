@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
-const admin = require('firebase-admin');
+require('dotenv').config({
+    path: require('path').resolve(__dirname, '../.env')
+});
 const pool = require('./db');
 const webpush = require('web-push');
 // ============================================
@@ -173,30 +175,6 @@ app.use(express.json({
     limit: '100kb'
 }));
 // ============================================
-// СЕКРЕТНЫЕ ПЕРЕМЕННЫЕ
-// ============================================
-const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-if (!serviceAccountJson) {
-    throw new Error('Не задан FIREBASE_SERVICE_ACCOUNT_JSON');
-}
-// ============================================
-// FIREBASE ADMIN
-// ============================================
-let serviceAccount;
-try {
-    serviceAccount = JSON.parse(serviceAccountJson);
-} catch (error) {
-    throw new Error(
-        'FIREBASE_SERVICE_ACCOUNT_JSON содержит некорректный JSON'
-    );
-}
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL:
-        'https://parknear-bef41-default-rtdb.europe-west1.firebasedatabase.app'
-});
-const auth = admin.auth();
-// ============================================
 // YANDEX ID — СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ И СЕССИИ
 // ============================================
 async function createYandexPostgresSession(yandexProfile) {
@@ -338,9 +316,10 @@ app.get('/auth/yandex', async (req, res) => {
 // YANDEX ID — CALLBACK
 // ============================================
 app.get('/auth/yandex/callback', async (req, res) => {
-    const frontendUrl =
-        process.env.FRONTEND_URL ||
-        'https://andrey8128-jpg.github.io';
+    const frontendUrl = (
+    process.env.FRONTEND_URL ||
+    'https://andrey8128-jpg.github.io/Park_Near'
+).replace(/\/+$/, '');
 
     try {
         const { code, state, error } = req.query;
@@ -1173,143 +1152,6 @@ app.post('/auth/guest', async (req, res) => {
     }
 });
 // ============================================
-// ОБМЕН ОДНОРАЗОВОГО TELEGRAM-ТОКЕНА НА СЕССИЮ
-// ============================================
-app.post('/auth/telegram-token-login', async (req, res) => {
-    const { token } = req.body || {};
-
-    if (
-        typeof token !== 'string' ||
-        token.length < 16 ||
-        token.length > 256
-    ) {
-        return res.status(400).json({
-            success: false,
-            error: 'Некорректный токен авторизации'
-        });
-    }
-
-    const client = await pool.connect();
-
-    try {
-        await client.query('BEGIN');
-
-        // Блокируем запись, чтобы один токен нельзя было
-        // одновременно использовать в нескольких запросах.
-        const tokenResult = await client.query(
-            `SELECT data
-             FROM login_tokens
-             WHERE token = $1
-             FOR UPDATE`,
-            [token]
-        );
-
-        if (tokenResult.rows.length === 0) {
-            await client.query('ROLLBACK');
-
-            return res.status(401).json({
-                success: false,
-                error: 'Токен не найден или уже использован'
-            });
-        }
-
-        const tokenData = tokenResult.rows[0].data;
-        const expires = Number(tokenData.expires);
-        const userId = String(tokenData.userId || '');
-
-        if (
-            !Number.isFinite(expires) ||
-            expires <= Date.now() ||
-            !/^tg_\d+$/.test(userId)
-        ) {
-            await client.query(
-                'DELETE FROM login_tokens WHERE token = $1',
-                [token]
-            );
-
-            await client.query('COMMIT');
-
-            return res.status(401).json({
-                success: false,
-                error: 'Токен истёк или содержит некорректные данные'
-            });
-        }
-
-        // Получаем существующего пользователя из PostgreSQL.
-        const userResult = await client.query(
-            `SELECT id, data
-             FROM users
-             WHERE id = $1`,
-            [userId]
-        );
-
-        if (userResult.rows.length === 0) {
-            await client.query('ROLLBACK');
-
-            return res.status(401).json({
-                success: false,
-                error: 'Пользователь не найден'
-            });
-        }
-
-        const sessionToken = crypto.randomBytes(32).toString('hex');
-
-        const tokenHash = crypto
-            .createHash('sha256')
-            .update(sessionToken)
-            .digest('hex');
-
-        const sessionId = crypto.randomBytes(16).toString('hex');
-
-        const expiresAt = new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000
-        );
-
-        await client.query(
-            `INSERT INTO auth_sessions
-                (id, user_id, token_hash, expires_at)
-             VALUES ($1, $2, $3, $4)`,
-            [sessionId, userId, tokenHash, expiresAt]
-        );
-
-        // Удаляем временный токен после успешного обмена.
-        await client.query(
-            'DELETE FROM login_tokens WHERE token = $1',
-            [token]
-        );
-
-        await client.query('COMMIT');
-
-        const userData = userResult.rows[0].data;
-
-        return res.json({
-            success: true,
-            sessionToken,
-            uid: userId,
-            user: {
-                ...userData,
-                id: userId
-            },
-            expiresAt: expiresAt.toISOString()
-        });
-    } catch (error) {
-        await client.query('ROLLBACK');
-
-        console.error(
-            'Ошибка обмена Telegram-токена:',
-            error.message
-        );
-
-        return res.status(500).json({
-            success: false,
-            error: 'Не удалось выполнить авторизацию'
-        });
-    } finally {
-        client.release();
-    }
-});
-
-// ============================================
 // ПРОВЕРКА РАБОТОСПОСОБНОСТИ
 // ============================================
 app.get('/health', (req, res) => {
@@ -1317,203 +1159,6 @@ app.get('/health', (req, res) => {
         status: 'ok',
         service: 'Park Near Auth Server'
     });
-});
-
-// ============================================
-// АВТОРИЗАЦИЯ TELEGRAM LOGIN WIDGET
-// ============================================
-app.post('/auth/telegram-widget', async (req, res) => {
-    try {
-        const userData = req.body?.user;
-
-        if (!verifyTelegramWidget(userData)) {
-            return res.status(401).json({
-                success: false,
-                error: 'Не удалось подтвердить данные Telegram'
-            });
-        }
-
-        const result = await createPostgresSession(userData);
-        return res.json({
-            success: true,
-            sessionToken: result.sessionToken,
-            uid: result.uid,
-            user: result.user,
-            expiresAt: result.expiresAt
-        });
-    } catch (error) {
-        console.error(
-            'Ошибка Telegram Widget:',
-            error.message
-        );
-        return res.status(500).json({
-            success: false,
-            error: 'Ошибка авторизации'
-        });
-    }
-});
-// ============================================
-// АВТОРИЗАЦИЯ TELEGRAM MINI APP
-// ============================================
-app.post('/auth/telegram-webapp', async (req, res) => {
-    try {
-        const telegramUser = verifyTelegramWebApp(
-            req.body?.initData
-        );
-        if (!telegramUser) {
-            return res.status(401).json({
-                success: false,
-                error: 'Не удалось подтвердить данные Telegram'
-            });
-        }
-        const result = await createPostgresSession(telegramUser);
-        return res.json({
-            success: true,
-            sessionToken: result.sessionToken,
-            uid: result.uid,
-            user: result.user,
-            expiresAt: result.expiresAt
-        });
-    } catch (error) {
-        console.error(
-            'Ошибка Telegram Mini App:',
-            error.message
-        );
-        return res.status(500).json({
-            success: false,
-            error: 'Ошибка авторизации'
-        });
-    }
-});
-// ============================================
-// СОХРАНЕНИЕ TELEGRAM LOGIN TOKEN ОТ БОТА
-// ============================================
-app.post('/api/bot/login-token', async (req, res) => {
-    try {
-        const receivedSecret = req.headers['x-bot-api-secret'];
-        if (
-            typeof receivedSecret !== 'string' ||
-            receivedSecret.length !== BOT_API_SECRET.length ||
-            !crypto.timingSafeEqual(
-                Buffer.from(receivedSecret),
-                Buffer.from(BOT_API_SECRET)
-            )
-        ) {
-            return res.status(401).json({
-                success: false,
-                error: 'Доступ запрещён'
-            });
-        }
-        const { token, userData } = req.body || {};
-        if (
-            typeof token !== 'string' ||
-            !/^[a-f0-9]{32,128}$/i.test(token) ||
-            !userData ||
-            !/^\d+$/.test(String(userData.userId || ''))
-        ) {
-            return res.status(400).json({
-                success: false,
-                error: 'Некорректные данные'
-            });
-        }
-        const telegramId = String(userData.userId);
-        const userId = `tg_${telegramId}`;
-        const now = Date.now();
-        const user = {
-            id: userId,
-            telegramId,
-            username: userData.username || 'tg_user',
-            firstName: userData.firstName || 'Пользователь',
-            lastName: userData.lastName || '',
-            photoUrl: userData.photoUrl || '',
-            isGuest: false,
-            lastActive: now
-        };
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
-            await client.query(
-                `INSERT INTO users (id, data)
-                 VALUES ($1, $2::jsonb)
-                 ON CONFLICT (id)
-                 DO UPDATE SET data =
-                    COALESCE(users.data, '{}'::jsonb)
-                    || EXCLUDED.data
-                    || jsonb_build_object(
-                        'stats',
-                        COALESCE(
-                            users.data->'stats',
-                            EXCLUDED.data->'stats'
-                        )
-                    )`,
-                [
-                    userId,
-                    JSON.stringify({
-                        ...user,
-                        stats: {
-                            registeredAt: now,
-                            lastActive: now,
-                            parkingsCreated: 0,
-                            parkingsUpdated: 0,
-                            confirmations: 0,
-                            views: 0,
-                            favorites: 0,
-                            activeDates: [
-                                new Date().toISOString().split('T')[0]
-                            ]
-                        }
-                    })
-                ]
-            );
-            await client.query(
-                `INSERT INTO login_tokens (token, data)
-                 VALUES ($1, $2::jsonb)`,
-                [
-                    token,
-                    JSON.stringify({
-                        userId,
-                        expires: now + 5 * 60 * 1000,
-                        userData: user
-                    })
-                ]
-            );
-            await client.query('COMMIT');
-            return res.json({
-                success: true
-            });
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
-    } catch (error) {
-        console.error(
-            'Ошибка сохранения Telegram-токена:',
-            error.message
-        );
-        return res.status(500).json({
-            success: false,
-            error: 'Не удалось сохранить токен'
-        });
-    }
-});
-// ПРОВЕРКА ПОДКЛЮЧЕНИЯ POSTGRESQL
-app.get('/health/db', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT NOW()');
-        res.json({
-            status: 'ok',
-            database: 'connected',
-            time: result.rows[0].now
-        });
-    } catch (error) {
-        console.error('Ошибка PostgreSQL:', error.message);
-        res.status(500).json({
-            status: 'error',
-            database: 'disconnected'
-        });
-    }
 });
 // ============================================
 // АКТИВНАЯ ПАРКОВОЧНАЯ СЕССИЯ: ПОЛУЧЕНИЕ
@@ -2603,7 +2248,7 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, async (req, res) => {
             newOccupied
         };
 
-        // История из Firebase могла быть объектом, новая история — массивом.
+        // Поддерживаем историю в формате массива или старого объекта.
         const previousHistory = Array.isArray(parking.history)
             ? parking.history
             : Object.values(parking.history || {});
