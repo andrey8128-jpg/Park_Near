@@ -1,8 +1,9 @@
 // ===================== РИСОВАНИЕ ЗОНЫ =====================
 function startDrawingMode(skipPendingRecovery = false) {
-    // Проверяем, есть ли незавершённая парковка
+    // Восстанавливаем незавершённую парковку
     if (!skipPendingRecovery && currentUser?.id) {
-        const pendingKey = `parkNearPendingCreate:${currentUser.id}`;
+        const pendingKey =
+            `parkNearPendingCreate:${currentUser.id}`;
         try {
             const pending = JSON.parse(
                 localStorage.getItem(pendingKey) || 'null'
@@ -14,7 +15,8 @@ function startDrawingMode(skipPendingRecovery = false) {
                 pendingCoords.length >= 3
             ) {
                 _parkingFormCoords = pendingCoords;
-                _parkingFormSizeCheck = checkPolygonSize(pendingCoords);
+                _parkingFormSizeCheck =
+                    checkPolygonSize(pendingCoords);
 
                 openAddPanelWithPolygon(
                     pendingCoords,
@@ -25,18 +27,126 @@ function startDrawingMode(skipPendingRecovery = false) {
             }
         } catch (error) {
             console.warn(
-                'Не удалось прочитать незавершённую парковку:',
+                'Ошибка восстановления парковки:',
                 error
             );
-            showToast('Не удалось прочитать сохранённую парковку', 2500);
+            showToast(
+                'Не удалось восстановить парковку',
+                2500
+            );
         }
     }
+    // Проверяем готовность карты
+    if (typeof ymaps === 'undefined' || !map) {
+        showToast(
+            'Карта ещё не готова. Попробуйте позже.',
+            2500
+        );
+        return;
+    }
+    if (isDrawingMode) return;
+    try {
+        // Удаляем старый полигон
+        if (drawingPolygon) {
+            map.geoObjects.remove(drawingPolygon);
+            drawingPolygon = null;
+        }
+        // Создаём новую зону
+        drawingPolygon = new ymaps.Polygon(
+            [],
+            {},
+            {
+                fillColor: '#2B757433',
+                strokeColor: '#2B7574',
+                strokeWidth: 3
+            }
+        );
+        map.geoObjects.add(drawingPolygon);
+        // Включаем рисование
+        drawingPolygon.editor.startDrawing();
+        isDrawingMode = true;
+        // Меняем кнопку добавления
+        const addBtn = document.getElementById('addBtn');
+        if (addBtn) {
+            addBtn.classList.add('drawing');
+            addBtn.textContent = '×';
+        }
+        // Панель управления рисованием
+        let controls =
+            document.getElementById('drawingControls');
+
+        if (!controls) {
+            controls = document.createElement('div');
+
+            controls.id = 'drawingControls';
+            controls.className = 'drawing-controls';
+
+            controls.innerHTML = `
+                <button
+                    type="button"
+                    class="btn-cancel"
+                    onclick="cancelDrawing()"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-finish"
+                    onclick="finishDrawing()"
+                >
+                    Готово
+                </button>
+            `;
+            document.body.appendChild(controls);
+        }
+        showMapHint(
+            'Отметьте точки парковочной зоны на карте'
+        );
+    } catch (error) {
+        console.error(
+            'Ошибка включения рисования:',
+            error
+        );
+        if (drawingPolygon) {
+            try {
+                map.geoObjects.remove(drawingPolygon);
+            } catch (removeError) {}
+            drawingPolygon = null;
+        }
+        isDrawingMode = false;
+        const controls =
+            document.getElementById('drawingControls');
+        if (controls) controls.remove();
+        const addBtn = document.getElementById('addBtn');
+        if (addBtn) {
+            addBtn.classList.remove('drawing');
+            addBtn.textContent = '+';
+        }
+        showToast(
+            'Не удалось включить рисование парковки',
+            3000
+        );
+    }
+}
 function finishDrawing() {
     console.log('finishDrawing() вызвана');
     if (!drawingPolygon) return;
     drawingPolygon.editor.stopDrawing();
-    const coordinates = drawingPolygon.geometry.getCoordinates()[0];
-    newParkingCoords = coordinates.map(c => [parseFloat(c[0]), parseFloat(c[1])]);
+const polygonCoordinates =
+    drawingPolygon.geometry.getCoordinates();
+const coordinates = polygonCoordinates?.[0];
+if (!Array.isArray(coordinates) || coordinates.length < 3) {
+    showToast(
+        'Нарисуйте парковочную зону минимум по трём точкам',
+        2500
+    );
+    return;
+}
+newParkingCoords = coordinates.map(c => [
+    Number(c[0]),
+    Number(c[1])
+]);
     const sizeCheck = checkPolygonSize(newParkingCoords);
     if (!sizeCheck.valid) {
         alert(sizeCheck.error);
