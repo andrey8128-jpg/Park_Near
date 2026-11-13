@@ -19,7 +19,6 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--card-shadow);
 }
-
 .edit-parking-title {
     display: flex;
     flex-direction: column;
@@ -30,7 +29,6 @@
     font-weight: 700;
     color: var(--text-primary);
 }
-
 .edit-parking-title h3 {
     margin: 0;
     font-size: 19px;
@@ -41,7 +39,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
 .edit-parking-street {
     margin: 0;
     font-size: 13px;
@@ -54,20 +51,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
 .edit-parking-street::before {
     content: '📍';
     font-size: 12px;
     flex-shrink: 0;
 }
-
 /* ===== КНОПКИ ДЕЙСТВИЙ ===== */
 .edit-parking-actions {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
-
 .edit-parking-actions .btn-secondary {
     margin: 0;
     padding: 14px;
@@ -80,12 +74,10 @@
     box-shadow: var(--card-shadow);
     transition: transform 0.15s, background 0.15s;
 }
-
 .edit-parking-actions .btn-secondary:active {
     background: var(--bg-primary);
     transform: scale(0.98);
 }
-
 /* ===== ФОРМА РЕДАКТИРОВАНИЯ ===== */
 .edit-parking-form {
     padding: 16px;
@@ -95,19 +87,16 @@
     box-shadow: var(--card-shadow);
     animation: editFormIn 0.2s ease;
 }
-
 @keyframes editFormIn {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-
 .edit-parking-form h4 {
     margin: 0 0 14px;
     font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
 }
-
 .edit-parking-form label {
     display: block;
     margin: 12px 0 6px;
@@ -117,11 +106,9 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
-
 .edit-parking-form label:first-of-type {
     margin-top: 0;
 }
-
 .edit-parking-form input,
 .edit-parking-form textarea {
     width: 100%;
@@ -136,19 +123,16 @@
     outline: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-
 .edit-parking-form textarea {
     min-height: 80px;
     resize: vertical;
     line-height: 1.4;
 }
-
 .edit-parking-form input:focus,
 .edit-parking-form textarea:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
-
 /* ===== КНОПКИ ФОРМЫ ===== */
 .edit-parking-form-actions {
     display: flex;
@@ -156,7 +140,6 @@
     gap: 8px;
     margin-top: 16px;
 }
-
 .edit-parking-form-actions .btn-primary,
 .edit-parking-form-actions .btn-secondary {
     width: 100%;
@@ -164,7 +147,6 @@
     padding: 14px;
     font-size: 15px;
 }
-
 /* ===== ИСТОРИЯ ИЗМЕНЕНИЙ ===== */
 #parkingHistoryPreview {
     display: flex;
@@ -176,11 +158,9 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--card-shadow);
 }
-
 #parkingHistoryPreview:empty {
     display: none;
 }
-
 #historyList,
 #historyFullList {
     display: flex;
@@ -191,11 +171,9 @@
     padding-right: 4px;
     -webkit-overflow-scrolling: touch;
 }
-
 #parkingHistoryAll {
     margin-top: 4px;
 }
-
 /* ===== КНОПКА «ПОКАЗАТЬ ИСТОРИЮ» ===== */
 .edit-parking .parking-secondary-btn {
     width: 100%;
@@ -211,12 +189,10 @@
     cursor: pointer;
     transition: background 0.15s, transform 0.15s;
 }
-
 .edit-parking .parking-secondary-btn:active {
     background: var(--bg-primary);
     transform: scale(0.98);
 }
-
 /* ===== СТАРЫЕ КЛАССЫ (оставлены для совместимости) ===== */
 .edit-parking-stats {
     display: grid;
@@ -224,7 +200,6 @@
     gap: 6px;
     margin-bottom: 12px;
 }
-
 .edit-stat {
     padding: 10px 6px;
     border-radius: var(--radius-md);
@@ -233,21 +208,18 @@
     text-align: center;
     box-shadow: var(--card-shadow);
 }
-
 .edit-stat strong {
     display: block;
     font-size: 18px;
     line-height: 1.1;
     color: var(--text-primary);
 }
-
 .edit-stat span {
     display: block;
     margin-top: 3px;
     font-size: 10px;
     color: var(--text-secondary);
 }
-
 .edit-section {
     padding: 12px 14px;
     margin-bottom: 9px;
@@ -256,21 +228,18 @@
     border: 1px solid var(--card-border);
     box-shadow: var(--card-shadow);
 }
-
 .edit-section-title {
     margin-bottom: 10px;
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
-
 .edit-counter {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 16px;
 }
-
 .edit-counter-btn {
     width: 42px;
     height: 42px;
@@ -283,11 +252,9 @@
     cursor: pointer;
     transition: transform 0.15s;
 }
-
 .edit-counter-btn:active {
     transform: scale(0.94);
 }
-
 .edit-counter-value {
     min-width: 48px;
     text-align: center;
@@ -295,7 +262,6 @@
     font-weight: 700;
     color: var(--text-primary);
 }
-
 .edit-history-btn {
     border: 0;
     padding: 6px 0;
@@ -305,7 +271,6 @@
     font-weight: 600;
     cursor: pointer;
 }
-
 .edit-form {
     margin-top: 10px;
     padding: 16px;
@@ -314,14 +279,12 @@
     background: var(--bg-secondary);
     box-shadow: var(--card-shadow);
 }
-
 .edit-form-title {
     margin-bottom: 12px;
     font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
 }
-
 .edit-form label {
     display: block;
     margin: 9px 0 5px;
@@ -329,22 +292,18 @@
     font-weight: 600;
     color: var(--text-secondary);
 }
-
 .edit-form .input-field {
     width: 100%;
     margin: 0;
 }
-
 .edit-form .btn-primary {
     width: 100%;
     margin-top: 12px;
 }
-
 .edit-form .btn-secondary {
     width: 100%;
     margin-top: 7px;
 }
-
 .edit-no-access {
     margin-top: 12px;
     padding: 12px;
@@ -355,57 +314,48 @@
     font-size: 12px;
     color: var(--text-secondary);
 }
-
 /* ===== АДАПТАЦИЯ ДЛЯ УЗКИХ ЭКРАНОВ ===== */
 @media (max-width: 420px) {
     .edit-parking-header {
         padding: 14px;
     }
-
     .edit-parking-title h3 {
         font-size: 17px;
     }
-
     .edit-parking-form {
         padding: 14px;
     }
-
     .edit-parking-form input,
     .edit-parking-form textarea {
         padding: 11px 12px;
-        font-size: 14px;
+        /* 16px предотвращает автоматическое увеличение страницы в iOS Safari */
+        font-size: 16px;
     }
-
     .edit-parking-stats {
         gap: 5px;
     }
-
     .edit-stat {
         padding: 8px 4px;
     }
-
     .edit-stat strong {
         font-size: 16px;
     }
-
     .edit-stat span {
         font-size: 9px;
     }
-
     .edit-section {
         padding: 10px;
     }
-
     .edit-counter-btn {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
     }
 }
-
 /* ==========================================
    ОБЩАЯ ВМЕСТИМОСТЬ ПАРКОВКИ
    ========================================== */
-
 .edit-parking-capacity {
     margin-top: 16px;
     padding: 16px;
@@ -413,21 +363,18 @@
     border: 1px solid var(--card-border);
     border-radius: var(--radius-lg);
 }
-
 .edit-parking-capacity-title {
     margin: 0 0 6px;
     color: var(--text-primary);
     font-size: 15px;
     font-weight: 700;
 }
-
 .edit-parking-capacity-description {
     margin: 0 0 14px;
     color: var(--text-secondary);
     font-size: 12px;
     line-height: 1.5;
 }
-
 .edit-parking-capacity label {
     display: block;
     margin: 0 0 7px;
@@ -435,7 +382,6 @@
     font-size: 12px;
     font-weight: 600;
 }
-
 .edit-parking-form .edit-parking-capacity input {
     width: 100%;
     min-height: 50px;
@@ -451,12 +397,10 @@
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
-
 .edit-parking-form .edit-parking-capacity input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
-
 .edit-parking-capacity-hint {
     display: block;
     margin-top: 8px;
@@ -464,16 +408,115 @@
     font-size: 11px;
     line-height: 1.4;
 }
-
 /* Мобильная адаптация */
 @media (max-width: 420px) {
     .edit-parking-capacity {
         padding: 13px;
         margin-top: 12px;
     }
-
     .edit-parking-form .edit-parking-capacity input {
         min-height: 46px;
         font-size: 16px;
+    }
+}
+/* ==========================================================
+   ДОСТУПНОСТЬ И АДАПТАЦИЯ УПРАВЛЕНИЯ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ
+   Визуальная стилистика Park Near не меняется.
+   ========================================================== */
+/* Поля ввода не должны сжиматься внутри flex/grid-контейнеров. */
+.edit-parking-form input,
+.edit-parking-form textarea,
+.edit-form .input-field {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+/* Удобная область нажатия для основных кнопок редактора. */
+.edit-parking-actions .btn-secondary,
+.edit-parking-form-actions .btn-primary,
+.edit-parking-form-actions .btn-secondary,
+.edit-parking .parking-secondary-btn,
+.edit-form .btn-primary,
+.edit-form .btn-secondary {
+    min-height: 44px;
+    box-sizing: border-box;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+/* Кнопки счётчика и истории остаются удобными для касания. */
+.edit-counter-btn {
+    min-width: 44px;
+    min-height: 44px;
+    flex: 0 0 auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.edit-history-btn {
+    min-height: 44px;
+    padding: 10px 4px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+/* SVG внутри элементов управления не деформируются. */
+.edit-parking button svg,
+.edit-form button svg {
+    display: block;
+    flex: 0 0 auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+/* Видимый фокус при навигации клавиатурой. */
+.edit-parking button:focus-visible,
+.edit-parking a:focus-visible,
+.edit-form button:focus-visible,
+.edit-form a:focus-visible,
+.edit-parking-form input:focus-visible,
+.edit-parking-form textarea:focus-visible,
+.edit-form .input-field:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+/* На очень узких экранах сохраняем читаемость и не допускаем переполнения. */
+@media (max-width: 360px) {
+    .edit-parking {
+        gap: 10px;
+    }
+    .edit-parking-header,
+    .edit-parking-form,
+    .edit-form {
+        padding: 12px;
+    }
+    .edit-parking-title h3 {
+        font-size: 16px;
+    }
+    .edit-parking-street {
+        min-width: 0;
+        font-size: 12px;
+    }
+    .edit-parking-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+    }
+    .edit-stat {
+        min-width: 0;
+        padding: 8px 3px;
+    }
+    .edit-stat span {
+        overflow-wrap: anywhere;
+    }
+    .edit-counter {
+        gap: 12px;
+    }
+}
+/* Пользовательская настройка уменьшения движения. */
+@media (prefers-reduced-motion: reduce) {
+    .edit-parking-form,
+    .edit-parking-actions .btn-secondary,
+    .edit-parking-form-actions .btn-primary,
+    .edit-parking-form-actions .btn-secondary,
+    .edit-parking .parking-secondary-btn,
+    .edit-counter-btn {
+        animation: none !important;
+        transition: none !important;
     }
 }
