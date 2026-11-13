@@ -1,21 +1,28 @@
-
-/*==== ЗАГРУЗОЧНЫЙ ЭКРАН ==== */
+/* =========================================================
+   PARK NEAR — SPLASH SCREEN
+   Адаптивная версия для iOS, Android и PWA
+   Сохраняет исходную визуальную концепцию и палитру.
+   ========================================================= */
 #splashScreen {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
+    height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 0;
     z-index: 10000;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    overflow: clip;
     background: #07191E;
     opacity: 1;
+    visibility: visible;
     transition: opacity .7s ease, visibility .7s ease;
+    isolation: isolate;
 }
 #splashScreen.splash-hidden {
     opacity: 0;
@@ -26,8 +33,9 @@
     position: absolute;
     inset: 0;
     overflow: hidden;
+    pointer-events: none;
 }
-.splash-bg:after {
+.splash-bg::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -44,25 +52,27 @@
     filter: blur(65px);
     opacity: .65;
     animation: splashFloat 12s ease-in-out infinite;
+    will-change: transform;
+    pointer-events: none;
 }
 .splash-orb-1 {
-    width: 280px;
-    height: 280px;
+    width: clamp(190px, 48vw, 280px);
+    height: clamp(190px, 48vw, 280px);
     background: #2B7574;
     top: 8%;
     left: -70px;
 }
 .splash-orb-2 {
-    width: 340px;
-    height: 340px;
+    width: clamp(230px, 58vw, 340px);
+    height: clamp(230px, 58vw, 340px);
     background: #12464C;
     right: -100px;
     bottom: 5%;
     animation-delay: -4s;
 }
 .splash-orb-3 {
-    width: 220px;
-    height: 220px;
+    width: clamp(160px, 38vw, 220px);
+    height: clamp(160px, 38vw, 220px);
     background: #2B7574;
     left: 45%;
     top: 42%;
@@ -75,22 +85,31 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    width: min(100% - 32px, 420px);
+    max-height: 100%;
+    box-sizing: border-box;
+    padding:
+        max(20px, env(safe-area-inset-top, 0px))
+        0
+        max(20px, env(safe-area-inset-bottom, 0px));
     text-align: center;
     animation: splashContentIn 1s cubic-bezier(.22, 1, .36, 1) both;
 }
 .splash-logo-wrap {
     position: relative;
-    width: 130px;
-    height: 130px;
+    width: clamp(104px, 32vw, 130px);
+    height: clamp(104px, 32vw, 130px);
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 22px;
+    margin-bottom: clamp(14px, 4vh, 22px);
 }
 .splash-logo-glow {
     position: absolute;
-    width: 95px;
-    height: 95px;
+    width: 73%;
+    height: 73%;
     border-radius: 50%;
     background: #2B7574;
     filter: blur(35px);
@@ -99,31 +118,37 @@
 }
 .splash-logo {
     position: relative;
-    width: 108px;
-    height: 108px;
+    display: block;
+    width: min(84%, 108px);
+    height: min(84%, 108px);
     object-fit: contain;
     filter: drop-shadow(0 12px 30px rgba(0, 0, 0, .35));
     animation: splashLogo 3s ease-in-out infinite;
 }
 .splash-title {
+    max-width: 100%;
     color: #F4F7F7;
-    font-size: 34px;
+    font-size: clamp(29px, 8vw, 34px);
     font-weight: 800;
     letter-spacing: -1.2px;
-    line-height: 1;
+    line-height: 1.08;
+    overflow-wrap: anywhere;
 }
 .splash-title span {
     color: #4DA3A1;
 }
 .splash-subtitle {
+    max-width: 100%;
     margin-top: 12px;
+    padding: 0 8px;
     color: rgba(244, 247, 247, .65);
-    font-size: 14px;
+    font-size: clamp(12px, 3.6vw, 14px);
     font-weight: 500;
+    line-height: 1.4;
 }
 .splash-loader {
-    width: 120px;
-    margin-top: 34px;
+    width: clamp(100px, 32vw, 120px);
+    margin-top: clamp(24px, 5vh, 34px);
 }
 .splash-loader-line {
     width: 100%;
@@ -139,15 +164,63 @@
     background: #4DA3A1;
     box-shadow: 0 0 12px rgba(77, 163, 161, .7);
     animation: splashLoading 1.5s ease-in-out infinite;
+    will-change: transform;
 }
 .splash-version {
     position: absolute;
     z-index: 2;
-    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: max(12px, env(safe-area-inset-left, 0px));
     color: rgba(255, 255, 255, .28);
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 2px;
+    text-align: center;
+    pointer-events: none;
+}
+/* Узкие экраны: компактнее, но без изменения дизайна */
+@media (max-width: 360px) {
+    .splash-content {
+        width: calc(100% - 24px);
+    }
+    .splash-logo-wrap {
+        margin-bottom: 14px;
+    }
+    .splash-subtitle {
+        margin-top: 9px;
+    }
+    .splash-loader {
+        margin-top: 24px;
+    }
+}
+/* Низкие экраны и альбомная ориентация */
+@media (max-height: 560px) {
+    .splash-content {
+        padding-top: max(8px, env(safe-area-inset-top, 0px));
+        padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+    }
+    .splash-logo-wrap {
+        width: 76px;
+        height: 76px;
+        margin-bottom: 8px;
+    }
+    .splash-logo {
+        width: 66px;
+        height: 66px;
+    }
+    .splash-title {
+        font-size: clamp(25px, 6vh, 30px);
+    }
+    .splash-subtitle {
+        margin-top: 6px;
+    }
+    .splash-loader {
+        margin-top: 14px;
+    }
+    .splash-version {
+        bottom: calc(5px + env(safe-area-inset-bottom, 0px));
+    }
 }
 @keyframes splashFloat {
     0%, 100% {
@@ -196,12 +269,23 @@
         transform: translateX(300%);
     }
 }
+/* Настройка доступности: уменьшаем движение и переходы */
 @media (prefers-reduced-motion: reduce) {
+    #splashScreen,
     .splash-orb,
     .splash-logo-glow,
     .splash-logo,
     .splash-content,
     .splash-loader-progress {
-        animation: none;
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+    .splash-content {
+        opacity: 1;
+        transform: none;
+    }
+    .splash-loader-progress {
+        transform: none;
     }
 }
