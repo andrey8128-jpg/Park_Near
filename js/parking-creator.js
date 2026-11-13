@@ -300,21 +300,66 @@ function cleanParkingPathPart(value, fallback) {
 
     return cleaned || fallback;
 }
-
 async function submitParkingWithPolygon() {
     const streetType = document.getElementById('parkStreetType')?.value?.trim() || '';
     const streetName = document.getElementById('parkStreetName')?.value?.trim() || '';
     const houseNumber = document.getElementById('parkHouseNumber')?.value?.trim() || '';
 
-    const spotsValue = document.getElementById('parkSpots')?.value;
-    const totalSpots = Number(spotsValue);
+    const btn = document.getElementById('saveParkBtn');
+    const originalText = btn?.textContent || 'Сохранить парковку';
 
     if (!currentUser || !currentUser.id) {
         alert('Необходимо авторизоваться');
         return;
     }
 
-    // Проверяем количество парковочных мест
+    const pendingStorageKey = `parkNearPendingCreate:${currentUser.id}`;
+
+    let pendingOperation = null;
+
+    // 1. СНАЧАЛА проверяем сохранённую операцию — до геокодирования.
+    try {
+        const savedPending = localStorage.getItem(pendingStorageKey);
+
+        if (savedPending) {
+            pendingOperation = JSON.parse(savedPending);
+        }
+    } catch (storageError) {
+        alert('Не удалось прочитать сохранённую операцию. Повторите попытку.');
+        return;
+    }
+
+    // Проверяем структуру сохранённой операции.
+    if (pendingOperation) {
+        if (
+            !pendingOperation.operationId ||
+            !pendingOperation.fingerprint ||
+            !pendingOperation.payload ||
+            !Array.isArray(pendingOperation.payload.coordinates)
+        ) {
+            alert('Сохранённая операция повреждена. Необходимо разобраться с ней перед новой отправкой.');
+            return;
+        }
+    }
+
+    // 2. Получаем данные формы или восстанавливаем их из сохранённой операции.
+    const spotsValue = document.getElementById('parkSpots')?.value;
+
+const totalSpots = pendingOperation
+    ? Number(pendingOperation.payload.totalSpots)
+    : Number(spotsValue);
+
+let coordsToSave = pendingOperation
+    ? pendingOperation.payload.coordinates
+    : (window.newParkingCoords || newParkingCoords);
+
+    if (
+        (!Array.isArray(coordsToSave) || coordsToSave.length < 3) &&
+        pendingOperation?.payload?.coordinates
+    ) {
+        coordsToSave = pendingOperation.payload.coordinates;
+    }
+
     if (
         !Number.isInteger(totalSpots) ||
         totalSpots < 1 ||
@@ -324,20 +369,11 @@ async function submitParkingWithPolygon() {
         return;
     }
 
-    // Получаем координаты парковки
-    let coordsToSave = window.newParkingCoords || newParkingCoords;
-
-    if (!coordsToSave && drawingPolygon?.geometry) {
-        const raw = drawingPolygon.geometry.getCoordinates()[0];
-        coordsToSave = raw.map(c => [Number(c[0]), Number(c[1])]);
-    }
-
     if (!Array.isArray(coordsToSave) || coordsToSave.length < 3) {
         alert('Не найдены координаты парковочной зоны');
         return;
     }
 
-    // Проверяем корректность координат
     const validCoordinates = coordsToSave.every(point =>
         Array.isArray(point) &&
         point.length >= 2 &&
@@ -354,173 +390,147 @@ async function submitParkingWithPolygon() {
         return;
     }
 
-    const btn = document.getElementById('saveParkBtn');
-    const originalText = btn?.textContent || 'Сохранить парковку';
+    const fingerprint = JSON.stringify({
+        userId: currentUser.id,
+        coordinates: coordsToSave,
+        totalSpots,
+        streetType,
+        streetName,
+        houseNumber
+    });
+    const sessionToken = localStorage.getItem('parkNearSessionToken');
+    if (!sessionToken) {
+        alert('Нет активной серверной сессии. Войдите через Telegram.');
+        return;
+    }
 
     if (btn) {
         btn.disabled = true;
-        btn.textContent = 'Определяем адрес...';
+        btn.textContent = pendingOperation
+            ? 'Повторно сохраняем...'
+            : 'Определяем адрес...';
     }
 
     try {
-        // Вычисляем центр парковочной зоны
-        const centerLat = coordsToSave.reduce(
-            (sum, c) => sum + Number(c[0]), 0
-        ) / coordsToSave.length;
-        const centerLng = coordsToSave.reduce(
-            (sum, c) => sum + Number(c[1]), 0
-        ) / coordsToSave.length;
-        if (btn) btn.textContent = 'Определяем город...';
-        const geoData = await getAddressByCoordinates(centerLat, centerLng);
-        let detectedCity = String(
-            geoData?.city ||
-            currentCity ||
-            mapCity?.city ||
-            userCityPrefs?.city ||
-            ''
-        ).trim();
-        const detectedRegion = String(
-            geoData?.region ||
-            mapCity?.region ||
-            userCityPrefs?.region ||
-            ''
-        ).trim();
-        const detectedAddress = String(geoData?.address || '').trim();
-        const detectedStreet = String(geoData?.street || '').trim();
-        const detectedHouseNumber = String(geoData?.houseNumber || '').trim();
-        if (!detectedCity) {
+        let operationId;
+        let requestParkingData;
+        let centerLat;
+        let centerLng;
+        let detectedCity;
+
+        // 3. Если операция уже существует — используем её без геокодирования.
+        if (pendingOperation) {
+            operationId = pendingOperation.operationId;
+            requestParkingData = pendingOperation.payload;
+
+            centerLat = Number(requestParkingData.lat);
+            centerLng = Number(requestParkingData.lng);
+            detectedCity = String(requestParkingData.city || '').trim();
+
+            if (
+                !Number.isFinite(centerLat) ||
+                !Number.isFinite(centerLng)
+            ) {
+                throw new Error('В сохранённой операции некорректные координаты.');
+            }
+        } else {
+            // 4. Геокодирование выполняется только для новой операции.
+            centerLat = coordsToSave.reduce(
+                (sum, c) => sum + Number(c[0]), 0
+            ) / coordsToSave.length;
+
+            centerLng = coordsToSave.reduce(
+                (sum, c) => sum + Number(c[1]), 0
+            ) / coordsToSave.length;
+
+            if (btn) btn.textContent = 'Определяем адрес...';
+
+            const geoData = await getAddressByCoordinates(centerLat, centerLng);
+
             detectedCity = String(
+                geoData?.city ||
                 currentCity ||
                 mapCity?.city ||
                 userCityPrefs?.city ||
                 ''
             ).trim();
-        }
-        const fullStreet =
-            streetType && streetName
-                ? `${streetType} ${streetName}`
-                : streetName;
-        const finalStreet = fullStreet || detectedStreet;
-        const finalHouseNumber = houseNumber || detectedHouseNumber;
-        const finalAddress = detectedAddress ||
-            [
-                detectedCity,
-                finalStreet,
-                finalHouseNumber
-            ].filter(Boolean).join(', ');
-        const name =
-            fullStreet && houseNumber
-                ? `${fullStreet}, ${houseNumber}`
-                : finalAddress ||
-                  `Парковка ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
-        const now = Date.now();
-        // Очищаем значения для ключей Firebase
-        const cleanKeyPart = value =>
-            String(value || '')
-                .trim()
-                .replace(/[.#$\/\[\]]/g, '')
-                .replace(/\s+/g, '_')
-                .replace(/_+/g, '_')
-                .replace(/^_|_$/g, '');
-        // Формируем путь: город / улица / дом
-        const cityKey =
-            cleanKeyPart(detectedCity) || 'Неизвестный_город';
-        const streetKey =
-            cleanKeyPart(finalStreet) || 'Неизвестная_улица';
-        const houseKey =
-            cleanKeyPart(finalHouseNumber) || 'Без_дома';
-        const baseKey = `${cityKey}_${streetKey}_${houseKey}`;
-        // Данные парковки
-        const parkingData = {
-            lat: centerLat,
-            lng: centerLng,
-            coordinates: coordsToSave,
-            totalSpots,
-            occupiedSpots: 0,
-            name,
-            groupId: cityKey,
-            isPaid: false,
-            address: finalAddress,
-            city: detectedCity,
-            region: detectedRegion,
-            street: finalStreet,
-            houseNumber: finalHouseNumber,
-            authorId: currentUser.id,
-            authorName: currentUser.firstName || currentUser.username || '',
-            authorUsername: currentUser.username || '',
-            lastUpdatedAt: now,
-            lastUpdatedBy:
-                currentUser.nickname ||
-                currentUser.firstName ||
-                currentUser.username ||
-                'Пользователь',
-            timestamp: now,
-            status: 'unknown',
-            statusConfirmations: 0
-        };
-        // Сохраняем парковку через PostgreSQL API
-        if (btn) btn.textContent = 'Сохраняем...';
-        const sessionToken = localStorage.getItem('parkNearSessionToken');
-        if (!sessionToken) {
-            throw new Error(
-                'Нет активной серверной сессии. Войдите через Telegram.'
-            );
-        }
-        
-        // Создаём устойчивый идентификатор операции.
-        // При потере ответа повторно используем прежний ключ.
-        const pendingStorageKey =
-            `parkNearPendingCreate:${currentUser.id}`;
-        const fingerprint = JSON.stringify({
-            userId: currentUser.id,
-            coordinates: coordsToSave,
-            totalSpots,
-            streetType,
-            streetName,
-            houseNumber
-        });
-        let pendingOperation = null;
-        try {
-            const savedPending = localStorage.getItem(pendingStorageKey);
-            if (savedPending) {
-                pendingOperation = JSON.parse(savedPending);
-            }
-        } catch (storageError) {
-            throw new Error(
-                'Не удалось прочитать сохранённую операцию. Повторите попытку.'
-            );
-        }
 
-        // Не разрешаем создать новую парковку, пока предыдущая
-        // попытка не получила подтверждение сервера.
-        if (
-            pendingOperation &&
-            pendingOperation.fingerprint !== fingerprint
-        ) {
-            throw new Error(
-                'Предыдущая попытка создания парковки ещё не подтверждена. ' +
-                'Повторите сохранение с прежними данными.'
-            );
-        }
+            const detectedRegion = String(
+                geoData?.region ||
+                mapCity?.region ||
+                userCityPrefs?.region ||
+                ''
+            ).trim();
 
-        let operationId;
-        let requestParkingData;
+            const detectedAddress = String(geoData?.address || '').trim();
+            const detectedStreet = String(geoData?.street || '').trim();
+            const detectedHouseNumber = String(geoData?.houseNumber || '').trim();
 
-        if (
-            pendingOperation &&
-            pendingOperation.operationId &&
-            pendingOperation.payload
-        ) {
-            operationId = pendingOperation.operationId;
-            requestParkingData = pendingOperation.payload;
-        } else {
-            if (pendingOperation) {
-                throw new Error(
-                    'Сохранённая операция повреждена. Необходимо разобраться с ней перед новой отправкой.'
-                );
-            }
+            const fullStreet =
+                streetType && streetName
+                    ? `${streetType} ${streetName}`
+                    : streetName;
 
-            if (typeof crypto.randomUUID !== 'function') {
+            const finalStreet = fullStreet || detectedStreet;
+            const finalHouseNumber = houseNumber || detectedHouseNumber;
+
+            const finalAddress = detectedAddress ||
+                [
+                    detectedCity,
+                    finalStreet,
+                    finalHouseNumber
+                ].filter(Boolean).join(', ');
+
+            const name =
+                fullStreet && houseNumber
+                    ? `${fullStreet}, ${houseNumber}`
+                    : finalAddress ||
+                      `Парковка ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`;
+
+            const now = Date.now();
+
+            const cleanKeyPart = value =>
+                String(value || '')
+                    .trim()
+                    .replace(/[.#$\/\[\]]/g, '')
+                    .replace(/\s+/g, '_')
+                    .replace(/_+/g, '_')
+                    .replace(/^_|_$/g, '');
+
+            const cityKey =
+                cleanKeyPart(detectedCity) || 'Неизвестный_город';
+
+            const parkingData = {
+                lat: centerLat,
+                lng: centerLng,
+                coordinates: coordsToSave,
+                totalSpots,
+                occupiedSpots: 0,
+                name,
+                groupId: cityKey,
+                isPaid: false,
+                address: finalAddress,
+                city: detectedCity,
+                region: detectedRegion,
+                street: finalStreet,
+                houseNumber: finalHouseNumber,
+                authorId: currentUser.id,
+                authorName: currentUser.firstName || currentUser.username || '',
+                authorUsername: currentUser.username || '',
+                lastUpdatedAt: now,
+                lastUpdatedBy:
+                    currentUser.nickname ||
+                    currentUser.firstName ||
+                    currentUser.username ||
+                    'Пользователь',
+                timestamp: now,
+                status: 'unknown',
+                statusConfirmations: 0
+            };
+
+            if (btn) btn.textContent = 'Подготавливаем сохранение...';
+
+            if (typeof crypto?.randomUUID !== 'function') {
                 throw new Error(
                     'Браузер не поддерживает создание безопасного идентификатора операции.'
                 );
@@ -529,6 +539,7 @@ async function submitParkingWithPolygon() {
             operationId = crypto.randomUUID();
             requestParkingData = parkingData;
 
+            // Сначала сохраняем операцию локально, только потом отправляем серверу.
             localStorage.setItem(
                 pendingStorageKey,
                 JSON.stringify({
@@ -538,7 +549,10 @@ async function submitParkingWithPolygon() {
                 })
             );
         }
-        
+
+        // 5. Отправляем запрос. При повторе operationId и payload не меняются.
+        if (btn) btn.textContent = 'Сохраняем парковку...';
+
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings`,
             {
@@ -551,33 +565,40 @@ async function submitParkingWithPolygon() {
                 body: JSON.stringify(requestParkingData)
             }
         );
+
         const result = await response.json();
+
         if (!response.ok || !result.success || !result.id) {
             throw new Error(
                 result.error || 'Не удалось сохранить парковку'
             );
         }
-                // Сервер подтвердил создание — незавершённую операцию удаляем.
+
+        // 6. Удаляем незавершённую операцию только после подтверждения сервера.
         localStorage.removeItem(pendingStorageKey);
+
         const parkingKey = result.id;
         const savedParkingData = result.parking || {
-            ...parkingData,
+            ...requestParkingData,
             id: parkingKey
         };
+
         console.log('Парковка сохранена в PostgreSQL:', parkingKey);
-       // Обновляем локальный кэш
-    parkingDataCache[parkingKey] = {
-        ...savedParkingData,
-        id: parkingKey
-    };
-        // Добавляем маркер на карту
+
+        // Обновляем локальный кэш.
+        parkingDataCache[parkingKey] = {
+            ...savedParkingData,
+            id: parkingKey
+        };
+
+        // Добавляем маркер на карту.
         try {
             addMarkerToMap(parkingKey, savedParkingData);
         } catch (error) {
             console.warn('Маркер не добавлен:', error);
         }
 
-        // Удаляем нарисованный полигон
+        // Удаляем нарисованный полигон.
         if (drawingPolygon) {
             try {
                 map.geoObjects.remove(drawingPolygon);
@@ -588,7 +609,7 @@ async function submitParkingWithPolygon() {
             drawingPolygon = null;
         }
 
-        // Очищаем временные координаты
+        // Очищаем временные координаты.
         window.newParkingCoords = null;
         newParkingCoords = null;
 
@@ -600,7 +621,7 @@ async function submitParkingWithPolygon() {
             );
         }
 
-        // Обновляем кластер карты
+        // Обновляем кластер карты.
         try {
             if (clusterer) {
                 clusterer.removeAll();
@@ -621,7 +642,7 @@ async function submitParkingWithPolygon() {
             console.warn('Ошибка обновления кластера:', error);
         }
 
-        // Обновляем результаты поиска
+        // Обновляем результаты поиска.
         try {
             if (
                 typeof filterParkings === 'function' &&
@@ -644,7 +665,6 @@ async function submitParkingWithPolygon() {
         alert(
             `Не удалось сохранить парковку.\n${error.message || 'Неизвестная ошибка'}`
         );
-
     } finally {
         if (btn) {
             btn.textContent = originalText;
