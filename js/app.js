@@ -2286,33 +2286,25 @@ async function saveParkingDetails() {
         if (percentText) percentText.textContent = `Загруженность: ${percent}%`;
         currentParkingData.occupiedSpots = newOccupied;
     }
-
-  
 async function changeOccupancy(delta, parkingId) {
     if (!currentUser) {
         showToast('Необходимо авторизоваться');
         return;
     }
-
     const id = parkingId || currentParkingId;
-
     if (!id) {
         showToast('ID парковки не найден');
         return;
     }
-
     const token = localStorage.getItem('parkNearSessionToken');
-
     if (!token) {
         showToast('Нет активной серверной сессии. Войдите заново.');
         return;
     }
-
     if (delta !== 1 && delta !== -1) {
         showToast('Недопустимое изменение занятости');
         return;
     }
-
     try {
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(id)}/occupancy`,
@@ -2325,33 +2317,25 @@ async function changeOccupancy(delta, parkingId) {
                 body: JSON.stringify({ delta })
             }
         );
-
         const result = await response.json();
-
         if (!response.ok || !result.success) {
             throw new Error(
                 result.error || 'Не удалось изменить занятость'
             );
         }
-
         const updatedParking = result.parking;
-
         parkingDataCache[id] = {
             ...parkingDataCache[id],
             ...updatedParking,
             id
         };
-
         if (id === currentParkingId) {
             currentParkingData = parkingDataCache[id];
         }
-
         updateOccupancyDisplay(result.occupiedSpots);
-
         if (typeof refreshParkingMarker === 'function') {
             refreshParkingMarker(id);
         }
-
         if (typeof refreshParkingClusters === 'function') {
             refreshParkingClusters();
         }
@@ -2492,16 +2476,12 @@ async function centerMapOnAddress(lat, lng) {
         alert('Необходимо войти');
         return;
     }
-
     isAddressPickerOpen = true;
     const overlay = document.getElementById('addressPickerOverlay');
     if (!overlay) return;
-
     overlay.style.display = 'block';
-
     setTimeout(() => {
         const center = map?.getCenter?.() || [55.7558, 37.6173];
-
         if (!addressPickerMap) {
             addressPickerMap = new ymaps.Map('addressPickerMap', {
                 center,
