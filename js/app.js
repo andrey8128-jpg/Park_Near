@@ -4581,7 +4581,7 @@ async function completeYandexLogin() {
         }
         currentUser = profile;
         window.currentUser = profile;
-        localStorage.setItem('tgUser', JSON.stringify(profile));
+        localStorage.setItem('parkNearUser', JSON.stringify(profile));
         if (typeof hideAuthScreen === 'function') {
             hideAuthScreen();
         }
