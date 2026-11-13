@@ -3982,7 +3982,8 @@ function createAuthScreenFallback() {
         tabBar.style.background = '';
     }
     syncThemeToggles();
-    function updateMapTheme() {
+}
+function updateMapTheme() {
         const mapEl = document.getElementById('map');
         if (!mapEl || !map) return;
         const isDark = document.body.classList.contains('dark-theme');
