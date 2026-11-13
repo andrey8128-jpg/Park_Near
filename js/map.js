@@ -266,9 +266,6 @@ if (addBtn) {
                     myLocationPlacemark.properties.set('caption', 'Вы здесь');
                     map.geoObjects.add(myLocationPlacemark);
                     map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
                 })
                 .catch(function(err) {
                     btn.innerHTML = originalContent;
@@ -276,11 +273,7 @@ if (addBtn) {
                     console.error('Ошибка геолокации:', err);
                     let message = 'Не удалось определить ваше местоположение.';
                     if (err.message) message += ' ' + err.message;
-                    if (window.Telegram?.WebApp?.showAlert) {
-                        window.Telegram.WebApp.showAlert(message);
-                    } else {
-                        alert(message);
-                    }
+                    alert(message);
                 });
         };
         // ===== Автогеолокация через 1 секунду =====
