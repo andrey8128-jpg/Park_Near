@@ -60,37 +60,112 @@ async function toggleFavorite(parkingId, parkingData) {
         return;
     }
 
-    try {
-        const favorite = await isFavorite(parkingId);
+    const cacheKey = `favorites_${String(currentUser.id)}`;
+    const id = String(parkingId);
 
+    try {
+        // Получаем локальное избранное
+        let cachedFavorites = [];
+        if (window.ParkNearOffline) {
+            const cached = await ParkNearOffline.getUserData(cacheKey);
+            if (Array.isArray(cached)) {
+                cachedFavorites = cached;
+            }
+        }
+        const localIndex = cachedFavorites.findIndex(
+            item => String(item.parkingId) === id
+        );
+
+        // Офлайн-режим
+        if (!navigator.onLine) {
+            if (!window.ParkNearOffline) {
+                throw new Error('Локальное хранилище недоступно');
+            }
+
+            if (localIndex !== -1) {
+                cachedFavorites.splice(localIndex, 1);
+
+                await ParkNearOffline.addToQueue({
+                    type: 'favorite_remove',
+                    payload: { parkingId: id }
+                });
+            } else {
+                cachedFavorites.push({
+                    parkingId: id,
+                    parking: parkingData || {},
+                    savedAt: Date.now()
+                });
+
+                await ParkNearOffline.addToQueue({
+                    type: 'favorite_add',
+                    payload: {
+                        parkingId: id,
+                        parking: parkingData || {}
+                    }
+                });
+            }
+            await ParkNearOffline.saveUserData(
+                cacheKey,
+                cachedFavorites
+            );
+
+            const isNowFavorite = localIndex === -1;
+            const btn = document.querySelector(
+                '#centerSheetContent .parking-favorite-btn'
+            );
+
+            if (btn) {
+                btn.innerHTML = isNowFavorite
+                    ? '<span>♥</span><span>Сохранено</span>'
+                    : '<span>♡</span><span>Сохранить</span>';
+
+                btn.classList.toggle('is-favorite', isNowFavorite);
+            }
+            await loadFavoritesInline(true);
+            await refreshProfileFavoritesCount(cachedFavorites.length);
+            showToast(
+                isNowFavorite
+                    ? 'Сохранено офлайн. Синхронизация ожидает подключения'
+                    : 'Удалено офлайн. Синхронизация ожидает подключения'
+            );
+            return;
+        }
+        // Онлайн-режим
+        const favorite = await isFavorite(id);
         if (favorite) {
             await favoritesRequest(
-                `/${encodeURIComponent(parkingId)}`,
+                `/${encodeURIComponent(id)}`,
                 'DELETE'
             );
         } else {
             await favoritesRequest(
-                `/${encodeURIComponent(parkingId)}`,
+                `/${encodeURIComponent(id)}`,
                 'POST'
             );
         }
-
+        // Обновляем локальный кеш после успешного ответа сервера
+        if (window.ParkNearOffline) {
+            const result = await favoritesRequest();
+            await ParkNearOffline.saveUserData(
+                cacheKey,
+                Array.isArray(result.favorites)
+                    ? result.favorites
+                    : []
+            );
+        }
         await updateFavoriteCenterButton();
         await loadFavoritesInline(true);
         await refreshProfileFavoritesCount();
-
         showToast(
             favorite
                 ? 'Удалено из избранного'
                 : 'Добавлено в избранное'
         );
-
     } catch (error) {
         console.error('Ошибка изменения избранного:', error);
         alert(error.message || 'Не удалось изменить избранное');
     }
 }
-
 async function toggleFavoriteCenter() {
     if (!currentParkingId || !currentParkingData) return;
 
@@ -99,26 +174,49 @@ async function toggleFavoriteCenter() {
         currentParkingData
     );
 }
-
 async function loadFavoritesInline(force = false) {
     const container = document.getElementById(
         'favoritesListContainer'
     );
-
     if (!container || !currentUser?.id) return;
-
     if (!force && window._favoritesLoading) return;
-
     window._favoritesLoading = true;
-
     container.innerHTML =
         '<div style="text-align:center;padding:20px;color:var(--text-secondary);">Загрузка...</div>';
 
+    const cacheKey = `favorites_${String(currentUser.id)}`;
     try {
-        const result = await favoritesRequest();
+        let favorites = [];
+        try {
+            // Пробуем получить избранное с сервера
+            const result = await favoritesRequest();
 
-        const favorites = result.favorites || [];
-
+            favorites = Array.isArray(result.favorites)
+                ? result.favorites
+                : [];
+            // Сохраняем данные в IndexedDB
+            if (window.ParkNearOffline) {
+                await ParkNearOffline.saveUserData(
+                    cacheKey,
+                    favorites
+                );
+            }
+        } catch (serverError) {
+            console.warn(
+                'Не удалось загрузить избранное с сервера:',
+                serverError
+            );
+            // Пробуем получить избранное из локального кеша
+            if (!window.ParkNearOffline) {
+                throw serverError;
+            }
+            const cachedFavorites =
+                await ParkNearOffline.getUserData(cacheKey);
+            if (!Array.isArray(cachedFavorites)) {
+                throw serverError;
+            }
+            favorites = cachedFavorites;
+        }
         if (!favorites.length) {
             container.innerHTML =
                 '<div style="text-align:center;padding:25px;color:var(--text-secondary);"><div style="font-size:32px;">♡</div><div>Нет сохранённых парковок</div></div>';
@@ -126,7 +224,6 @@ async function loadFavoritesInline(force = false) {
             await refreshProfileFavoritesCount(0);
             return;
         }
-
         container.innerHTML = favorites.map(item => {
             const data = item.parking || {};
             const id = String(item.parkingId);
@@ -150,7 +247,6 @@ async function loadFavoritesInline(force = false) {
                     cls = 'status-free';
                 }
             }
-
             return `
                 <div class="favorite-parking-item"
                      data-parking-id="${escapeHtml(id)}">
@@ -175,9 +271,7 @@ async function loadFavoritesInline(force = false) {
                 </div>
             `;
         }).join('');
-
         await refreshProfileFavoritesCount(favorites.length);
-
     } catch (error) {
         console.error('Ошибка загрузки избранного:', error);
 
@@ -225,16 +319,48 @@ async function openFavoriteParking(parkingId) {
 }
 async function removeFromFavorites(parkingId) {
     if (!currentUser?.id || !parkingId) return;
+    const id = String(parkingId);
+    const cacheKey = `favorites_${String(currentUser.id)}`;
     try {
-        await favoritesRequest(
-            `/${encodeURIComponent(parkingId)}`,
-            'DELETE'
-        );
-        if (currentParkingId === parkingId) {
+        if (!window.ParkNearOffline) {
+            throw new Error('Локальное хранилище недоступно');
+        }
+        let cachedFavorites = await ParkNearOffline.getUserData(cacheKey);
+        if (!Array.isArray(cachedFavorites)) cachedFavorites = [];
+        if (!navigator.onLine) {
+            cachedFavorites = cachedFavorites.filter(
+                item => String(item.parkingId) !== id
+            );
+            await ParkNearOffline.saveUserData(cacheKey, cachedFavorites);
+            await ParkNearOffline.addToQueue({
+                type: 'favorite_remove',
+                payload: { parkingId: id }
+            });
+            if (currentParkingId === id) {
+                const btn = document.querySelector(
+                    '#centerSheetContent .parking-favorite-btn'
+                );
+                if (btn) {
+                    btn.innerHTML = '<span>♡</span><span>Сохранить</span>';
+                    btn.classList.remove('is-favorite');
+                }
+            }
+            await loadFavoritesInline(true);
+            await refreshProfileFavoritesCount(cachedFavorites.length);
+            showToast('Удалено офлайн. Синхронизация ожидает подключения');
+            return;
+        }
+        await favoritesRequest(`/${encodeURIComponent(id)}`, 'DELETE');
+        const result = await favoritesRequest();
+        cachedFavorites = Array.isArray(result.favorites)
+            ? result.favorites
+            : [];
+        await ParkNearOffline.saveUserData(cacheKey, cachedFavorites);
+        if (currentParkingId === id) {
             await updateFavoriteCenterButton();
         }
         await loadFavoritesInline(true);
-        await refreshProfileFavoritesCount();
+        await refreshProfileFavoritesCount(cachedFavorites.length);
         showToast('Удалено из избранного');
     } catch (error) {
         console.error('Ошибка удаления избранного:', error);
