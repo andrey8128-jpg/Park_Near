@@ -2219,7 +2219,7 @@ async function saveParkingDetails() {
     }
     const sessionToken = localStorage.getItem('parkNearSessionToken');
     if (!sessionToken) {
-        alert('Нет активной серверной сессии. Войдите через Telegram.');
+        alert('Нет активной серверной сессии. Войдите в аккаунт через Яндекс или продолжите как гость.');
         return;
     }
     const updates = {
