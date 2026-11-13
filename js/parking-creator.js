@@ -1,38 +1,36 @@
 // ===================== РИСОВАНИЕ ЗОНЫ =====================
-function startDrawingMode() {
-    const oldControls = document.getElementById('drawingControls');
-    if (oldControls) oldControls.remove();
-    if (!map || !currentUser) return;
-    if (drawingPolygon) {
-        map.geoObjects.remove(drawingPolygon);
-        drawingPolygon = null;
-    }
-    isDrawingMode = true;
-    document.getElementById('addBtn').classList.add('drawing');
-    document.getElementById('addBtn').textContent = '✕';
-    drawingPolygon = new ymaps.Polygon([[]], {}, {
-        editorDrawingCursor: "crosshair",
-        fillColor: '#2B757433',
-        strokeColor: '#2B7574',
-        strokeWidth: 3,
-        draggable: false
-    });
-    map.geoObjects.add(drawingPolygon);
-    drawingPolygon.editor.startDrawing();
-    showMapHint('Нажимайте на карту для рисования зоны');
-    const controls = document.createElement('div');
-    controls.className = 'drawing-controls';
-    controls.id = 'drawingControls';
-    controls.innerHTML = `
-        <button class="btn-finish" onclick="finishDrawing()">✅ Готово</button>
-        <button class="btn-cancel" onclick="cancelDrawing()">✕ Отменить</button>
-    `;
-    document.body.appendChild(controls);
+function startDrawingMode(skipPendingRecovery = false) {
+    // Проверяем, есть ли незавершённая парковка
+    if (!skipPendingRecovery && currentUser?.id) {
+        const pendingKey = `parkNearPendingCreate:${currentUser.id}`;
+        try {
+            const pending = JSON.parse(
+                localStorage.getItem(pendingKey) || 'null'
+            );
+            const pendingCoords = pending?.payload?.coordinates;
+            if (
+                pending?.operationId &&
+                Array.isArray(pendingCoords) &&
+                pendingCoords.length >= 3
+            ) {
+                _parkingFormCoords = pendingCoords;
+                _parkingFormSizeCheck = checkPolygonSize(pendingCoords);
 
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                openAddPanelWithPolygon(
+                    pendingCoords,
+                    _parkingFormSizeCheck,
+                    pending
+                );
+                return;
+            }
+        } catch (error) {
+            console.warn(
+                'Не удалось прочитать незавершённую парковку:',
+                error
+            );
+            showToast('Не удалось прочитать сохранённую парковку', 2500);
+        }
     }
-}
 function finishDrawing() {
     console.log('finishDrawing() вызвана');
     if (!drawingPolygon) return;
@@ -177,11 +175,38 @@ function openAddPanelWithPolygon(coordinates, sizeCheck, restoreData = null) {
                     Автоматически рассчитано по площади зоны (можно изменить)
                 </small>
             </div>
+            ${pendingOperation ? `
+    <div class="form-group" style="padding:12px; border-radius:10px; background:var(--card-bg);">
+        <strong>Найдена незавершённая парковка</strong>
+
+        <p style="font-size:13px; color:var(--text-secondary); margin:6px 0 10px;">
+            Можно восстановить сохранённую зону и данные, а затем повторить отправку.
+        </p>
+
+        <button
+            class="btn-secondary"
+            type="button"
+            onclick="restorePendingParkingCreate()"
+        >
+            Восстановить сохранённую парковку
+        </button>
+
+        <button
+            class="btn-secondary"
+            type="button"
+            style="margin-top:8px;"
+            onclick="discardPendingParkingCreate()"
+        >
+            Отказаться и нарисовать новую
+        </button>
+    </div>
+` : ''}
             <button class="btn-primary" id="saveParkBtn" onclick="submitParkingWithPolygon()">Сохранить парковку</button>
             <button class="btn-secondary" onclick="cancelDrawing(); closePanel();">Отмена</button>
         `;
         setTimeout(() => {
     initMiniMap(coordinates);
+    if (pendingOperation) return;
 
     // Восстанавливаем сохранённые значения формы.
     if (restoreData) {
@@ -224,6 +249,134 @@ function openAddPanelWithPolygon(coordinates, sizeCheck, restoreData = null) {
         console.error('Ошибка в openAddPanelWithPolygon:', e);
         showToast('Ошибка при открытии формы', 2000);
     }
+}
+function restorePendingParkingCreate() {
+    if (!currentUser?.id) return;
+
+    const storageKey = `parkNearPendingCreate:${currentUser.id}`;
+
+    let pending;
+
+    try {
+        pending = JSON.parse(
+            localStorage.getItem(storageKey) || 'null'
+        );
+    } catch (error) {
+        showToast('Не удалось прочитать сохранённую парковку', 2500);
+        return;
+    }
+
+    const payload = pending?.payload;
+
+    if (
+        !pending?.operationId ||
+        !Array.isArray(payload?.coordinates) ||
+        payload.coordinates.length < 3
+    ) {
+        showToast('Сохранённые данные парковки повреждены', 3000);
+        return;
+    }
+
+    const formData = pending.formData || {};
+
+    const savedStreet = String(
+        formData.streetName ?? payload.street ?? ''
+    ).trim();
+
+    const streetPrefixes = [
+        'ул.', 'пер.', 'бульв.', 'просп.',
+        'пр-д', 'ш.', 'наб.', 'алл.', 'тракт'
+    ];
+
+    let streetType = String(formData.streetType || '').trim();
+    let streetName = savedStreet;
+
+    if (!streetType) {
+        const matchedPrefix = streetPrefixes.find(
+            prefix => savedStreet.startsWith(prefix + ' ')
+        );
+
+        if (matchedPrefix) {
+            streetType = matchedPrefix;
+            streetName = savedStreet.slice(matchedPrefix.length).trim();
+        }
+    }
+
+    newParkingCoords = payload.coordinates.map(point => [
+        Number(point[0]),
+        Number(point[1])
+    ]);
+
+    window.newParkingCoords = newParkingCoords;
+
+    _parkingFormCoords = newParkingCoords;
+    _parkingFormSizeCheck = checkPolygonSize(newParkingCoords);
+
+    // Показываем восстановленную зону на основной карте
+    if (map) {
+        if (drawingPolygon) {
+            map.geoObjects.remove(drawingPolygon);
+        }
+
+        drawingPolygon = new ymaps.Polygon(
+            [newParkingCoords],
+            {},
+            {
+                fillColor: '#2B757433',
+                strokeColor: '#2B7574',
+                strokeWidth: 3
+            }
+        );
+
+        map.geoObjects.add(drawingPolygon);
+
+        map.setBounds(
+            drawingPolygon.geometry.getBounds(),
+            { checkZoomRange: true, zoomMargin: 30 }
+        );
+    }
+
+    const typeInput = document.getElementById('parkStreetType');
+    const streetInput = document.getElementById('parkStreetName');
+    const houseInput = document.getElementById('parkHouseNumber');
+    const spotsInput = document.getElementById('parkSpots');
+
+    if (typeInput) typeInput.value = streetType;
+
+    if (streetInput) streetInput.value = streetName;
+
+    if (houseInput) {
+        houseInput.value = String(
+            formData.houseNumber ?? payload.houseNumber ?? ''
+        ).trim();
+    }
+
+    if (spotsInput) {
+        spotsInput.value = String(
+            formData.totalSpots ?? payload.totalSpots ?? ''
+        );
+    }
+
+    showToast('Данные незавершённой парковки восстановлены', 2500);
+}
+
+
+function discardPendingParkingCreate() {
+    if (!currentUser?.id) return;
+
+    if (!confirm(
+        'Удалить сохранённую незавершённую парковку и начать новую?'
+    )) {
+        return;
+    }
+
+    localStorage.removeItem(
+        `parkNearPendingCreate:${currentUser.id}`
+    );
+
+    closePanel();
+
+    startDrawingMode(true);
 }
 // ФИКС: держим ссылку на мини-карту и уничтожаем предыдущий инстанс
 let _miniMapInstance = null;
@@ -424,6 +577,18 @@ let coordsToSave = pendingOperation
         streetName,
         houseNumber
     });
+    if (
+    pendingOperation?.formData &&
+    pendingOperation.fingerprint !== fingerprint
+) {
+    alert(
+        'Данные формы отличаются от сохранённой парковки. ' +
+        'Нажмите «Восстановить сохранённую парковку» ' +
+        'или откажитесь от неё, чтобы нарисовать новую.'
+    );
+
+    return;
+}
     // Не позволяем новой парковке подменить незавершённую операцию.
 if (pendingOperation) {
     const currentDraftCoords = window.newParkingCoords || newParkingCoords;
@@ -598,14 +763,16 @@ if (pendingOperation) {
     JSON.stringify({
         operationId,
         fingerprint,
-        payload: requestParkingData,
+
         formData: {
             streetType,
             streetName,
             houseNumber,
             totalSpots,
             coordinates: coordsToSave
-        }
+        },
+
+        payload: requestParkingData
     })
 );
         }
