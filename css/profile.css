@@ -1,25 +1,90 @@
+/* =========================================================
+   PARK NEAR — PROFILE ACTIONS
+   Адаптация кнопок профиля для iOS, Android и PWA.
+   Основной визуальный стиль профиля остаётся в style.css.
+   ========================================================= */
 .pn-profile-auth-actions {
     display: flex;
-    border-radius: 12px;
     flex-direction: column;
-    gap: 4px;
-    margin-top: 7px;
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
+    border-radius: 12px;
+    box-sizing: border-box;
 }
 .logout-button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     width: 100%;
-    min-height: 46px;
+    min-width: 44px;
+    min-height: 48px;
     box-sizing: border-box;
     padding: 12px 16px;
-    border: none;
+    border: 0;
     border-radius: 12px;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-.logout-button {
     background: #8d8d8d;
     color: var(--text-primary, #222222);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: filter .18s ease, transform .18s ease, opacity .18s ease;
+}
+.logout-button:active {
+    transform: scale(.98);
+    filter: brightness(.94);
+}
+.logout-button:focus-visible {
+    outline: 2px solid var(--accent, #2B7574);
+    outline-offset: 3px;
+}
+.logout-button:disabled,
+.logout-button[aria-disabled="true"] {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
+}
+/* SVG внутри кнопки не должен сжиматься */
+.logout-button svg {
+    display: block;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+}
+/* Компактные экраны */
+@media (max-width: 360px) {
+    .pn-profile-auth-actions {
+        gap: 7px;
+    }
+    .logout-button {
+        min-height: 46px;
+        padding: 11px 12px;
+        font-size: 14px;
+    }
+}
+/* Устройства с сенсорным управлением */
+@media (hover: none) and (pointer: coarse) {
+    .logout-button {
+        min-height: 48px;
+    }
+}
+/* Уважать системную настройку уменьшения движения */
+@media (prefers-reduced-motion: reduce) {
+    .logout-button {
+        transition: none;
+    }
+
+    .logout-button:active {
+        transform: none;
+    }
 }
