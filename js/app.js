@@ -40,14 +40,8 @@ async function patchParkingInPostgres(parkingId, updates) {
             `;
             document.head.appendChild(mapStyle);
         }
-        if (window.Telegram?.WebApp) {
-            try {
-                window.Telegram.WebApp.setHeaderColor('#1C1C1E');
-                window.Telegram.WebApp.setBackgroundColor('#000000');
-            } catch (e) {
-                console.warn('Не удалось изменить цвета Telegram:', e);
-            }
-        }
+         }
+     }
     }
     const toggle1 = document.getElementById('settingsThemeToggle');
     const toggle2 = document.getElementById('settingsThemeToggleInline');
@@ -834,29 +828,28 @@ async function initAuth() {
     // ===================== ГЕОЛОКАЦИЯ =====================
     function getUserLocation() {
     return new Promise((resolve, reject) => {
-        // Если запущено внутри Telegram WebApp
-        if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.getLocation === 'function') {
-            window.Telegram.WebApp.getLocation(function(position) {
-                if (position && position.latitude && position.longitude) {
-                    resolve({ lat: position.latitude, lng: position.longitude });
-                } else {
-                    reject(new Error('Telegram геолокация не удалась'));
-                }
-            });
-            return;
-        }
-        // Стандартный браузерный метод
         if (!navigator.geolocation) {
-            return reject(new Error('Геолокация не поддерживается вашим устройством'));
+            return reject(
+                new Error(
+                    'Геолокация не поддерживается вашим устройством'
+                )
+            );
         }
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                resolve({ lat: position.coords.latitude, lng: position.coords.longitude });
+            position => {
+                resolve({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
             },
-            (error) => {
+            error => {
                 reject(error);
             },
-            { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
+            {
+                enableHighAccuracy: true,
+                timeout: 7000,
+                maximumAge: 60000
+            }
         );
     });
 }
