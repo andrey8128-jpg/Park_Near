@@ -398,6 +398,33 @@ let coordsToSave = pendingOperation
         streetName,
         houseNumber
     });
+    // Не позволяем новой парковке подменить незавершённую операцию.
+if (pendingOperation) {
+    const currentDraftCoords = window.newParkingCoords || newParkingCoords;
+    const currentDraftSpots = Number(spotsValue);
+
+    // Если пользователь нарисовал новую зону — сравниваем её с ожидающей операцией.
+    if (
+        Array.isArray(currentDraftCoords) &&
+        currentDraftCoords.length >= 3
+    ) {
+        const currentDraftFingerprint = JSON.stringify({
+            userId: currentUser.id,
+            coordinates: currentDraftCoords,
+            totalSpots: currentDraftSpots,
+            streetType,
+            streetName,
+            houseNumber
+        });
+        if (currentDraftFingerprint !== pendingOperation.fingerprint) {
+            alert(
+                'У вас уже есть незавершённое сохранение парковки. ' +
+                'Сначала завершите его отправку, затем создавайте новую парковку.'
+            );
+            return;
+        }
+    }
+}
     const sessionToken = localStorage.getItem('parkNearSessionToken');
     if (!sessionToken) {
         alert('Нет активной серверной сессии. Войдите через Telegram.');
