@@ -242,9 +242,6 @@ async function saveCityFromSettings() {
         if (typeof window.loadAllParkings === 'function') {
             await window.loadAllParkings(city, true);
         }
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.selectionChanged();
-        }
         console.log('Город сохранён в PostgreSQL:', city);
     } catch (error) {
         console.error('Ошибка сохранения города:', error);
@@ -276,10 +273,6 @@ async function saveNickname(newNickname) {
                 ?.style?.display === 'flex'
         ) {
             renderSettings();
-        }
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback
-                .notificationOccurred('success');
         }
         showToast('Никнейм сохранён');
     } catch (error) {
@@ -324,10 +317,6 @@ async function saveCarData() {
         ) {
             renderSettings();
         }
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback
-                .notificationOccurred('success');
-        }
         showToast('Автомобиль сохранён');
     } catch (error) {
         console.error('Ошибка сохранения автомобиля:', error);
@@ -353,10 +342,6 @@ async function removeCar() {
             renderProfile(document.getElementById('panelContent'));
         }
         showToast('Автомобиль удалён');
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback
-                .notificationOccurred('success');
-        }
     } catch (error) {
         console.error('Ошибка удаления автомобиля:', error);
         alert('Не удалось удалить автомобиль: ' + error.message);
