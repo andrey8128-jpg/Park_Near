@@ -409,55 +409,87 @@ function renderList() {
         currentSort = this.dataset.sort || 'recent';
         renderList();
     }));
-        favoritesRequest().then(result => {
-        if (!content.isConnected || !content.querySelector('#pnFavList')) return;
-        favorites = (result.favorites || [])
-            .filter(item => item?.parkingId)
-            .map(item => {
-                const parking = item.parking || {};
-                return {
-                    ...parking,
-                    parkingId: String(item.parkingId),
-                    savedAt: Number(item.savedAt) || 0,
-                    parking: {
+           // Загрузка избранного с поддержкой offline
+    async function loadFavorites() {
+        const cacheKey = `favorites_${String(currentUser.id)}`;
+        try {
+            const result = await favoritesRequest();
+            const serverFavorites = Array.isArray(result.favorites)
+                ? result.favorites
+                : [];
+            favorites = serverFavorites
+                .filter(item => item?.parkingId)
+                .map(item => {
+                    const parking = item.parking || {};
+                    return {
                         ...parking,
-                        id: String(item.parkingId)
+                        parkingId: String(item.parkingId),
+                        savedAt: Number(item.savedAt) || 0,
+                        parking: {
+                            ...parking,
+                            id: String(item.parkingId)
+                        }
+                    };
+                });
+            if (window.ParkNearOffline) {
+                await ParkNearOffline.saveUserData(
+                    cacheKey,
+                    serverFavorites
+                );
+            }
+            if (!content.isConnected || !content.querySelector('#pnFavList')) {
+                return;
+            }
+            renderList();
+        } catch (error) {
+            console.warn('Не удалось загрузить избранное с сервера:', error);
+            if (window.ParkNearOffline) {
+                try {
+                    const cachedFavorites =
+                        await ParkNearOffline.getUserData(cacheKey);
+                    if (Array.isArray(cachedFavorites)) {
+                        favorites = cachedFavorites
+                            .filter(item => item?.parkingId)
+                            .map(item => {
+                                const parking = item.parking || {};
+                                return {
+                                    ...parking,
+                                    parkingId: String(item.parkingId),
+                                    savedAt: Number(item.savedAt) || 0,
+                                    parking: {
+                                        ...parking,
+                                        id: String(item.parkingId)
+                                    }
+                                };
+                            });
+
+                        if (
+                            content.isConnected &&
+                            content.querySelector('#pnFavList')
+                        ) {
+                            renderList();
+                            return;
+                        }
                     }
-                };
-            });
-        renderList();
-    }).catch(err => {
-        console.error('Ошибка загрузки избранного:', err);
-        if (list) {
-            list.innerHTML = '<div class="pn-fav-empty"><div class="pn-fav-empty-icon">⚠️</div><h3>Ошибка</h3><button id="pnFavRetry">Повторить</button></div>';
+                } catch (cacheError) {
+                    console.error('Ошибка чтения локального избранного:', cacheError);
+                }
+            }
+            if (list) {
+                list.innerHTML = `
+                    <div class="pn-fav-empty">
+                        <div class="pn-fav-empty-icon">⚠️</div>
+                        <h3>Не удалось загрузить избранное</h3>
+                        <p>Проверьте подключение к интернету.</p>
+                        <button id="pnFavRetry">Повторить</button>
+                    </div>
+                `;
+            }
+            list?.querySelector('#pnFavRetry')?.addEventListener(
+                'click',
+                () => renderFavorites(content)
+            );
         }
-        list?.querySelector('#pnFavRetry')?.addEventListener('click', () => renderFavorites(content));
-    });
-          favoritesRequest().then(result => {
-        if (!content.isConnected || !content.querySelector('#pnFavList')) return;
-        favorites = (result.favorites || [])
-            .filter(item => item?.parkingId)
-            .map(item => {
-                const parking = item.parking || {};
-                return {
-                    ...parking,
-                    parkingId: String(item.parkingId),
-                    savedAt: Number(item.savedAt) || 0,
-                    parking: {
-                        ...parking,
-                        id: String(item.parkingId)
-                    }
-                };
-            });
-        renderList();
-    }).catch(err => {
-        console.error('Ошибка загрузки избранного:', err);
-        if (list) {
-            list.innerHTML = '<div class="pn-fav-empty"><div class="pn-fav-empty-icon">⚠️</div><h3>Ошибка</h3><button id="pnFavRetry">Повторить</button></div>';
-        }
-        list?.querySelector('#pnFavRetry')?.addEventListener(
-            'click',
-            () => renderFavorites(content)
-        );
-    });
-}
+    }
+    loadFavorites();
+} 
