@@ -1,4 +1,4 @@
-const CACHE_NAME = 'parknear-shell-v5';
+const CACHE_NAME = 'parknear-shell-v6';
 const BASE_PATH = new URL('.', self.location.href).pathname;
 const DEFAULT_ICON = `${BASE_PATH}assets/images/logo.png`;
 
@@ -84,7 +84,7 @@ self.addEventListener('fetch', event => {
     const isAppFile = /\.(css|js|png|jpg|jpeg|svg|webp|woff2?|json)$/i.test(url.pathname);
     if (isAppFile) {
         event.respondWith(
-            caches.match(request, { ignoreSearch: true }).then(cached => {
+            caches.match(request).then(cached => {
                 if (cached) return cached;
 
                 return fetch(request).then(response => {
