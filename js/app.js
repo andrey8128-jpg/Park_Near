@@ -1143,9 +1143,6 @@ async function saveEditedPolygon(newCoords) {
             _dbPath: parkingDataCache[currentParkingId]?._dbPath
         };
         refreshParkingMarker(currentParkingId);
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        }
         alert('Границы обновлены');
     } catch (err) {
         console.error('Ошибка обновления полигона:', err);
@@ -1531,175 +1528,88 @@ async function startParkingSession(parkingId) {
     isStartingParkingSession = true;
 
     try {
-
         const token = localStorage.getItem('parkNearSessionToken');
-
         if (!token) {
-
             throw new Error('Сессия пользователя не найдена. Войдите заново.');
-
         }
-
         const parking = parkingDataCache[parkingId];
-
         if (!parking) {
-
             throw new Error('Парковка не найдена в загруженных данных.');
-
         }
-
         const parkingLat = Number(parking.lat ?? parking.latitude);
-
         const parkingLng = Number(parking.lng ?? parking.longitude);
-
         if (
-
             !Number.isFinite(parkingLat) ||
-
             !Number.isFinite(parkingLng) ||
-
             Math.abs(parkingLat) > 90 ||
-
             Math.abs(parkingLng) > 180
-
         ) {
-
             throw new Error('Не удалось определить координаты парковки.');
-
         }
-
         const position = await getCurrentUserLocation();
-
         const distance = getDistanceInMeters(
-
             position.latitude,
-
             position.longitude,
-
             parkingLat,
-
             parkingLng
-
         );
-
         const radius = 170;
-
         const accuracy = Number(position.accuracy) || 0;
-
         if (distance > radius + accuracy) {
-
             alert(
-
                 `Вы находитесь примерно в ${Math.round(distance)} м от парковки. ` +
-
                 'Подойдите ближе, чтобы отметить парковку.'
-
             );
-
             return;
-
         }
-
         const response = await fetch(
-
             `${window.PARKNEAR_API_URL}/api/parking-sessions`,
-
             {
-
                 method: 'POST',
-
                 headers: {
-
                     'Content-Type': 'application/json',
-
                     'Authorization': `Bearer ${token}`
 
                 },
-
                 body: JSON.stringify({
-
                     parkingId: String(parkingId)
 
                 })
-
             }
-
         );
-
         const result = await response.json();
-
         if (!response.ok || !result.success) {
-
             throw new Error(
-
                 result.error || 'Не удалось начать парковочную сессию'
-
             );
-
         }
-
         const session = result.session;
-
         const updatedParking = result.parking || parking;
-
         if (typeof window.setLocalActiveParking === 'function') {
-
             window.setLocalActiveParking(
-
                 parkingId,
-
                 updatedParking.name || parking.name || 'Парковка',
-
                 session.startedAt
-
             );
-
         }
-
         parkingDataCache[parkingId] = {
-
             ...parking,
-
             ...updatedParking,
-
             id: String(parkingId),
-
             _dbPath: null
-
         };
-
         currentParkingData = parkingDataCache[parkingId];
-
         await openCenterSheet(
-
             parkingId,
-
             parkingDataCache[parkingId]
-
         );
-
         if (typeof refreshParkingMarker === 'function') {
-
             refreshParkingMarker(parkingId);
-
         }
-
         if (typeof refreshParkingClusters === 'function') {
-
             refreshParkingClusters();
-
         }
-
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-
-            window.Telegram.WebApp.HapticFeedback
-
-                .notificationOccurred('success');
-
-        }
-
         console.log('Парковочная сессия создана в PostgreSQL:', session);
-
     } catch (error) {
         console.error('Ошибка начала парковки:', error);
         alert(
@@ -1756,10 +1666,6 @@ async function endParkingSession(parkingId) {
         }
         if (typeof refreshParkingClusters === 'function') {
             refreshParkingClusters();
-        }
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback
-                .notificationOccurred('success');
         }
         console.log('Парковочная сессия завершена в PostgreSQL.');
         return true;
@@ -2031,51 +1937,41 @@ function renderEditPanel(data, isFavorite, content) {
                 <label for="editParkingName">
                     Название парковки
                 </label>
-
                 <input
                     type="text"
                     id="editParkingName"
                     value="${safeVal(data.name || '')}"
                     placeholder="Название парковки"
                 >
-
                 <label for="editParkingStreet">
                     Улица
                 </label>
-
                 <input
                     type="text"
                     id="editParkingStreet"
                     value="${safeVal(street)}"
                     placeholder="ул. Ленина"
                 >
-
                 <label for="editHouseNumber">
                     Номер дома
                 </label>
-
                 <input
                     type="text"
                     id="editHouseNumber"
                     value="${safeVal(house)}"
                     placeholder="15"
                 >
-
                 <!-- Общая вместимость -->
                 <div class="edit-parking-capacity">
-
                     <h4 class="edit-parking-capacity-title">
                         Вместимость парковки
                     </h4>
-
                     <p class="edit-parking-capacity-description">
                         Укажи общее количество парковочных мест.
                     </p>
-
                     <label for="editParkingTotalSpots">
                         Всего парковочных мест
                     </label>
-
                     <input
                         type="number"
                         id="editParkingTotalSpots"
@@ -2086,25 +1982,19 @@ function renderEditPanel(data, isFavorite, content) {
                         value="${totalSpots}"
                         placeholder="Например, 120"
                     >
-
                     <small class="edit-parking-capacity-hint">
                         Общее количество мест, включая занятые.
                     </small>
-
                 </div>
-
                 <label for="editParkingDescription">
                     Описание
                 </label>
-
                 <textarea
                     id="editParkingDescription"
                     placeholder="Описание парковки"
                 >${safeVal(data.description || '')}</textarea>
-
                 <!-- Кнопки формы -->
                 <div class="edit-parking-form-actions">
-
                     <button
                         type="button"
                         class="btn-primary"
@@ -2112,7 +2002,6 @@ function renderEditPanel(data, isFavorite, content) {
                     >
                         Сохранить изменения
                     </button>
-
                     <button
                         type="button"
                         class="btn-secondary"
@@ -2120,18 +2009,14 @@ function renderEditPanel(data, isFavorite, content) {
                     >
                         Отмена
                     </button>
-
                 </div>
             </div>
-
             <!-- История изменений -->
             <div id="parkingHistoryPreview"></div>
-
             <div
                 id="parkingHistoryAll"
                 style="display: none;"
             ></div>
-
             <button
                 type="button"
                 class="parking-secondary-btn"
@@ -2139,7 +2024,6 @@ function renderEditPanel(data, isFavorite, content) {
             >
                 Показать историю
             </button>
-
         </div>
     `;
     // Открытие и закрытие формы редактирования
@@ -2174,59 +2058,46 @@ function renderEditPanel(data, isFavorite, content) {
         loadHistoryPreview(currentParkingId);
     }
 }
-
 async function loadHistoryPreview(parkingId) {
     const previewBox = document.getElementById('parkingHistoryPreview');
-
     if (!previewBox || !parkingId) return;
-
     if (!document.getElementById('historyList')) {
         previewBox.innerHTML = `
             <div id="historyList"></div>
             <div id="historyFullList" style="display:none;"></div>
         `;
     }
-
     const list = document.getElementById('historyList');
     if (!list) return;
-
     try {
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}/history?limit=100`,
             { cache: 'no-store' }
         );
-
         const result = await response.json();
-
         if (!response.ok || !result.success) {
             throw new Error(result.error || 'Не удалось загрузить историю');
         }
-
         const entries = result.history || [];
-
         if (!entries.length) {
             list.innerHTML =
                 '<div style="color:var(--text-secondary);font-size:13px;">История пуста</div>';
             return;
         }
-
         list.innerHTML = entries.slice(0, 5).map(entry => {
             const date = new Date(Number(entry.timestamp) || 0);
-
             const time = date.toLocaleString('ru-RU', {
                 day: '2-digit',
                 month: '2-digit',
                 hour: '2-digit',
                 minute: '2-digit'
             });
-
             const action =
                 entry.action === 'occupied'
                     ? 'Занял'
                     : entry.action === 'freed'
                         ? 'Освободил'
                         : 'Изменил';
-
             return `
                 <div style="padding:6px 10px;background:var(--bg-primary);border-radius:8px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between;gap:6px;">
                     <span>${action}</span>
@@ -2235,54 +2106,41 @@ async function loadHistoryPreview(parkingId) {
                 </div>
             `;
         }).join('');
-
     } catch (error) {
         console.error('Ошибка загрузки истории:', error);
         list.textContent = 'Не удалось загрузить историю';
     }
 }
-
 async function loadHistory(parkingId, limit = 10, days = 3) {
     const container = document.getElementById('historyList');
     const countEl = document.getElementById('historyCount');
     const loadMoreBtn = document.getElementById('loadMoreHistory');
-
     if (!container || !parkingId) return;
-
     try {
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}/history?limit=100`,
             { cache: 'no-store' }
         );
-
         const result = await response.json();
-
         if (!response.ok || !result.success) {
             throw new Error(result.error || 'Не удалось загрузить историю');
         }
-
         const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-
         const entries = (result.history || [])
             .filter(entry =>
                 Number(entry.timestamp) >= cutoff
             );
-
         if (countEl) {
             countEl.textContent = `(${entries.length})`;
         }
-
         if (!entries.length) {
             container.innerHTML =
                 `<div style="color:var(--text-secondary);font-size:13px;">Нет изменений за последние ${days} дней</div>`;
-
             if (loadMoreBtn) loadMoreBtn.style.display = 'none';
             return;
         }
-
         container.innerHTML = entries.slice(0, limit).map(entry => {
             const date = new Date(Number(entry.timestamp) || 0);
-
             const time = date.toLocaleString('ru-RU', {
                 day: '2-digit',
                 month: '2-digit',
@@ -2290,19 +2148,16 @@ async function loadHistory(parkingId, limit = 10, days = 3) {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-
             const action =
                 entry.action === 'occupied'
                     ? 'Занял'
                     : entry.action === 'freed'
                         ? 'Освободил'
                         : 'Изменил';
-
             const car = entry.car || {};
             const carName = [car.brand, car.model]
                 .filter(Boolean)
                 .join(' ') || 'машина не указана';
-
             return `
                 <div style="padding:8px 12px;background:var(--bg-primary);border-radius:8px;margin-bottom:4px;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;">
                     <div>${action} (${entry.previousOccupied ?? '—'} → ${entry.newOccupied ?? '—'})</div>
@@ -2408,9 +2263,6 @@ async function saveParkingDetails() {
         closePanel();
         showMap();
         showToast('Парковка обновлена', 2000);
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        }
     } catch (error) {
         console.error('Ошибка сохранения:', error);
         alert('Ошибка: ' + (error.message || 'неизвестная'));
@@ -2503,32 +2355,24 @@ async function changeOccupancy(delta, parkingId) {
         if (typeof refreshParkingClusters === 'function') {
             refreshParkingClusters();
         }
-
         if (document.getElementById('historyList')) {
             loadHistoryPreview(id);
-        }
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.selectionChanged();
         }
     } catch (error) {
         console.error('Ошибка обновления занятости:', error);
         showToast(error.message || 'Не удалось изменить количество мест');
     }
 }
-    
 async function confirmParking(parkingId) {
     if (!currentUser) {
         showToast('Необходимо авторизоваться');
         return;
     }
-
     const token = localStorage.getItem('parkNearSessionToken');
-
     if (!token) {
         showToast('Нет активной серверной сессии');
         return;
     }
-
     try {
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}/confirm`,
@@ -2539,9 +2383,7 @@ async function confirmParking(parkingId) {
                 }
             }
         );
-
         const result = await response.json();
-
         if (!response.ok || !result.success) {
             throw new Error(
                 result.error || 'Не удалось подтвердить парковку'
@@ -2553,7 +2395,6 @@ async function confirmParking(parkingId) {
         showToast(error.message || 'Ошибка подтверждения');
     }
 }
-    // ===================== АДРЕСА =====================
 // ============================================
 // ДОМАШНИЕ АДРЕСА — POSTGRESQL
 // ============================================
@@ -2879,9 +2720,6 @@ function setAddressPickerCoords(coords) {
         if (document.getElementById('panel')?.classList.contains('active')) {
             const content = document.getElementById('panelContent');
             loadUserData('favorites', content);
-        }
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
     } catch (error) {
         console.error('Ошибка обновления адреса:', error);
@@ -3707,13 +3545,6 @@ async function saveCityFromSettingsInline() {
         }
         updateCityDisplay();
         loadAllParkings(city);
-        if (
-            window.Telegram &&
-            window.Telegram.WebApp &&
-            window.Telegram.WebApp.HapticFeedback
-        ) {
-            window.Telegram.WebApp.HapticFeedback.selectionChanged();
-        }
     } catch (err) {
         alert('Ошибка сохранения города: ' + err.message);
     }
@@ -4171,22 +4002,6 @@ function createAuthScreenFallback() {
         tabBar.style.background = '';
     }
     syncThemeToggles();
-    if (window.Telegram && window.Telegram.WebApp) {
-        try {
-            var tg = window.Telegram.WebApp;
-            if (isDark) {
-                tg.setHeaderColor('#1C1C1E');
-                tg.setBackgroundColor('#000000');
-            } else {
-                tg.setHeaderColor('#F2F2F7');
-                tg.setBackgroundColor('#FFFFFF');
-            }
-        } catch (e) {}
-    }
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.selectionChanged();
-    }
-}
     function updateMapTheme() {
         const mapEl = document.getElementById('map');
         if (!mapEl || !map) return;
@@ -4766,9 +4581,6 @@ function closeAuthScreen() {
     function resetOnboarding() {
         localStorage.removeItem('onboardingSeen');
         showOnboarding();
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-        }
     }
     // Заполняем цвета для редактора автомобиля
     (function initCarColors() {
