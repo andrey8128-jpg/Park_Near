@@ -466,15 +466,89 @@ async function submitParkingWithPolygon() {
                 'Нет активной серверной сессии. Войдите через Telegram.'
             );
         }
+        
+        // Создаём устойчивый идентификатор операции.
+        // При потере ответа повторно используем прежний ключ.
+        const pendingStorageKey =
+            `parkNearPendingCreate:${currentUser.id}`;
+        const fingerprint = JSON.stringify({
+            userId: currentUser.id,
+            coordinates: coordsToSave,
+            totalSpots,
+            streetType,
+            streetName,
+            houseNumber
+        });
+        let pendingOperation = null;
+        try {
+            const savedPending = localStorage.getItem(pendingStorageKey);
+            if (savedPending) {
+                pendingOperation = JSON.parse(savedPending);
+            }
+        } catch (storageError) {
+            throw new Error(
+                'Не удалось прочитать сохранённую операцию. Повторите попытку.'
+            );
+        }
+
+        // Не разрешаем создать новую парковку, пока предыдущая
+        // попытка не получила подтверждение сервера.
+        if (
+            pendingOperation &&
+            pendingOperation.fingerprint !== fingerprint
+        ) {
+            throw new Error(
+                'Предыдущая попытка создания парковки ещё не подтверждена. ' +
+                'Повторите сохранение с прежними данными.'
+            );
+        }
+
+        let operationId;
+        let requestParkingData;
+
+        if (
+            pendingOperation &&
+            pendingOperation.operationId &&
+            pendingOperation.payload
+        ) {
+            operationId = pendingOperation.operationId;
+            requestParkingData = pendingOperation.payload;
+        } else {
+            if (pendingOperation) {
+                throw new Error(
+                    'Сохранённая операция повреждена. Необходимо разобраться с ней перед новой отправкой.'
+                );
+            }
+
+            if (typeof crypto.randomUUID !== 'function') {
+                throw new Error(
+                    'Браузер не поддерживает создание безопасного идентификатора операции.'
+                );
+            }
+
+            operationId = crypto.randomUUID();
+            requestParkingData = parkingData;
+
+            localStorage.setItem(
+                pendingStorageKey,
+                JSON.stringify({
+                    operationId,
+                    fingerprint,
+                    payload: requestParkingData
+                })
+            );
+        }
+        
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings`,
             {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionToken}`
+                    'Authorization': `Bearer ${sessionToken}`,
+                    'Idempotency-Key': operationId
                 },
-                body: JSON.stringify(parkingData)
+                body: JSON.stringify(requestParkingData)
             }
         );
         const result = await response.json();
@@ -483,6 +557,8 @@ async function submitParkingWithPolygon() {
                 result.error || 'Не удалось сохранить парковку'
             );
         }
+                // Сервер подтвердил создание — незавершённую операцию удаляем.
+        localStorage.removeItem(pendingStorageKey);
         const parkingKey = result.id;
         const savedParkingData = result.parking || {
             ...parkingData,
