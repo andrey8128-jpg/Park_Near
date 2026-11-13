@@ -455,9 +455,13 @@ function forceHideSplash() {
     setTimeout(() => splash.remove(), 450);
 }
 
+let parkNearStarted = false;
+let parkNearStarting = false;
+
 async function startParkNear() {
-    if (parkNearStarted) return;
-    parkNearStarted = true;
+    if (parkNearStarted || parkNearStarting) return;
+
+    parkNearStarting = true;
 
     try {
         if (typeof initApp !== 'function') {
@@ -465,7 +469,10 @@ async function startParkNear() {
         }
 
         await initApp();
+
+        parkNearStarted = true;
         console.log('Park Near успешно запущен');
+
     } catch (error) {
         console.error('Ошибка запуска Park Near:', error);
 
@@ -474,20 +481,20 @@ async function startParkNear() {
         if (!message) {
             message = document.createElement('div');
             message.id = 'parkNearInitError';
-            message.style.cssText = 'position:fixed;left:15px;right:15px;top:70px;padding:12px;background:#b91c1c;color:white;border-radius:10px;text-align:center;font-size:13px;z-index:999999;';
+            message.style.cssText =
+                'position:fixed;left:15px;right:15px;top:70px;' +
+                'padding:12px;background:#b91c1c;color:white;' +
+                'border-radius:10px;text-align:center;' +
+                'font-size:13px;z-index:999999;';
             document.body.appendChild(message);
         }
-
-        message.textContent = 'Не удалось запустить приложение. Проверьте подключение и обновите страницу.';
+        message.textContent =
+            'Не удалось запустить приложение. Проверьте подключение и обновите страницу.';
     } finally {
+        parkNearStarting = false;
         forceHideSplash();
     }
 }
-
-window.clearParkNearInitError = function() {
-    const message = document.getElementById('parkNearInitError');
-    if (message) message.remove();
-};
 function tryInitializeMap() {
     if (typeof ymaps === 'undefined') {
         console.log('API Яндекс.Карт пока недоступен');
