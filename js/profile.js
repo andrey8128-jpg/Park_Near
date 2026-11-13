@@ -1,61 +1,87 @@
  // ===================== ПРОФИЛЬ И ИСТРОРИЯ =====================
 function renderProfile(content) {
     if (!content) return;
-if (!currentUser) {
-    content.innerHTML = `
-        <div class="pn-profile-login">
-            <div class="pn-profile-login-icon">👤</div>
-            <h2>Добро пожаловать</h2>
-            <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
-                        <button
-                type="button"
-                onclick="startYandexLogin()"
-                style="
-                    width:100%;
-                    padding:14px;
-                    border:0;
-                    border-radius:12px;
-                    background:#FCE000;
-                    color:#111;
-                    font-weight:600;
-                    cursor:pointer;
-                "
-            >
-                Я  Войти через Яндекс
-            </button>
-            <button
-                type="button"
-                class="guest-btn"
-                onclick="continueAsGuest()"
-            >
-                Продолжить как гость
-            </button>
-           <button
-    type="button"
-    class="pn-logout-btn"
-    onclick="logoutUser()"
->
-    Выйти из аккаунта
-</button>
-        </div>`;
-    return;
-}
-const isGuest = currentUser.id.startsWith('guest_');
-Promise.all([
-    isGuest ? Promise.resolve({}) : requestUserProfile('GET'),
-    isGuest ? Promise.resolve({ favorites: [] }) : favoritesRequest()
-]).then(([profileData, favoritesResult]) => {
-    const stats = profileData.stats || {};
-    const car = profileData.car || {};
-    const prefs = profileData.cityPreferences || userCityPrefs || {};
-    const favorites = Array.isArray(favoritesResult.favorites)
-        ? favoritesResult.favorites
-        : [];
+
+    if (!currentUser) {
+        content.innerHTML = `
+            <div class="pn-profile-login">
+                <div class="pn-profile-login-icon">👤</div>
+                <h2>Добро пожаловать</h2>
+                <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
+                <button type="button" onclick="startYandexLogin()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#FCE000;color:#111;font-weight:600;cursor:pointer;">
+                    Я Войти через Яндекс
+                </button>
+                <button type="button" class="guest-btn" onclick="continueAsGuest()">
+                    Продолжить как гость
+                </button>
+                <button type="button" class="pn-logout-btn" onclick="logoutUser()">
+                    Выйти из аккаунта
+                </button>
+            </div>`;
+        return;
+    }
+
+    const profileUserId = String(currentUser.id);
+    const profileCacheKey = `profile_${profileUserId}`;
+    const favoritesCacheKey = `favorites_${profileUserId}`;
+    const isGuest = profileUserId.startsWith('guest_');
+
+    const loadProfileData = async () => {
+        if (isGuest) {
+            return { profileData: {}, favorites: [] };
+        }
+
+        try {
+            const [profileData, favoritesResult] = await Promise.all([
+                requestUserProfile('GET'),
+                favoritesRequest()
+            ]);
+
+            const safeProfile = profileData || {};
+            const safeFavorites = Array.isArray(favoritesResult?.favorites)
+                ? favoritesResult.favorites
+                : [];
+
+            if (window.ParkNearOffline) {
+                await Promise.all([
+                    ParkNearOffline.saveUserData(profileCacheKey, safeProfile),
+                    ParkNearOffline.saveUserData(favoritesCacheKey, safeFavorites)
+                ]);
+            }
+
+            return {
+                profileData: safeProfile,
+                favorites: safeFavorites
+            };
+        } catch (error) {
+            console.warn('Не удалось загрузить профиль с сервера:', error);
+
+            if (!window.ParkNearOffline) throw error;
+
+            const [cachedProfile, cachedFavorites] = await Promise.all([
+                ParkNearOffline.getUserData(profileCacheKey),
+                ParkNearOffline.getUserData(favoritesCacheKey)
+            ]);
+
+            if (!cachedProfile) throw error;
+
+            return {
+                profileData: cachedProfile,
+                favorites: Array.isArray(cachedFavorites) ? cachedFavorites : []
+            };
+        }
+    };
+
+    loadProfileData().then(({ profileData, favorites }) => {
+        const stats = profileData.stats || {};
+        const car = profileData.car || {};
+        const prefs = profileData.cityPreferences || userCityPrefs || {};
 
         userCityPrefs = prefs;
         currentUser.car = car;
         currentUser.nickname = profileData.nickname || currentUser.nickname || '';
         currentUser.parkingSettings = profileData.parkingSettings || {};
+
         const created = Number(stats.parkingsCreated || 0);
         const updated = Number(stats.parkingsUpdated || 0);
         const confirmations = Number(stats.confirmations || 0);
@@ -259,8 +285,8 @@ ${isGuest ? `
 renderSettingsInline();
 window._historyLoaded = false;
 window._favoritesLoaded = false;
-    }).catch(error => {
-        console.error('Ошибка загрузки профиля:', error);
+   }).catch(error => {
+    console.error('Ошибка загрузки профиля:', error);
         content.innerHTML = `
             <div class="pn-profile-error">
                 <div>⚠️</div>
