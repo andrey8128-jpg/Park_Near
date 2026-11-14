@@ -1040,8 +1040,8 @@
     border-radius: 12px;
     background: linear-gradient(135deg, #27b6a2, #087e79);
     color: #fff;
-    font-size: 12px;
-    font-weight: 750;
+    font-size: 14px;
+    font-weight: 800;
     white-space: nowrap;
 }
 
@@ -1083,9 +1083,7 @@
     transform: scale(.94);
     opacity: .85;
 }
-
 /* Компактность на телефонах */
-
 @media (max-width: 420px) {
     .pn-card-bottom-actions {
         gap: 7px;
