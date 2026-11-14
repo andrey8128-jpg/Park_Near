@@ -1319,12 +1319,59 @@ async function openCenterSheet(parkingId, data) {
             ? 'Бесплатная'
             : 'Не указан';
 
-    const lastCheckText = ageMinutes === null
-        ? 'Нет данных'
-        : ageMinutes === 0
-            ? 'Меньше минуты назад'
-            : `${ageMinutes} мин. назад`;
+    
+function getLastCheckText(minutes) {
+    if (minutes === null || !Number.isFinite(minutes) || minutes < 0) {
+        return 'Нет данных';
+    }
 
+    if (minutes < 1) {
+        return 'Меньше минуты назад';
+    }
+
+    // До одного часа показываем минуты
+    if (minutes < 60) {
+        return `${minutes} ${getRussianPlural(
+            minutes,
+            'минута',
+            'минуты',
+            'минут'
+        )} назад`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+
+    // До 24 часов показываем часы
+    if (minutes < 1440) {
+        return `${hours} ${getRussianPlural(
+            hours,
+            'час',
+            'часа',
+            'часов'
+        )} назад`;
+    }
+    const days = Math.floor(minutes / 1440);
+    // Один полный день
+    if (days === 1) {
+        return 'Около 1 дня ';
+    }
+    // Два дня и больше
+    return `${days} ${getRussianPlural(
+        days,
+        'день',
+        'дня',
+        'дней'
+    )} назад`;
+}
+function getRussianPlural(number, one, two, five) {
+    const n = Math.abs(number) % 100;
+    const lastDigit = n % 10;
+    if (n > 10 && n < 20) return five;
+    if (lastDigit > 1 && lastDigit < 5) return two;
+    if (lastDigit === 1) return one;
+    return five;
+}
+const lastCheckText = getLastCheckText(ageMinutes);
     const confirmations = Math.max(
         0,
         Number(data.statusConfirmations) || 0
@@ -1363,24 +1410,22 @@ async function openCenterSheet(parkingId, data) {
 
     if (isParked) {
         parkingSessionButton = `
-            <button
-                class="pn-card-session-btn is-leaving"
-                onclick="endParkingSession('${safeId}')"
-            >
-                🚗 Я уехал
-            </button>
-        `;
+    <button
+        class="pn-card-session-btn pn-card-park-btn is-leaving"
+        onclick="endParkingSession('${safeId}')"
+    >
+        🚗 Я уехал
+    </button>
+`;
     } else if (currentUser?.id) {
         parkingSessionButton = `
-            <button
-                class="pn-card-session-btn"
-                onclick="startParkingSession('${safeId}')"
-            >
-                🅿️ Припарковаться
-            </button>
-        `;
-    }
-
+    <button
+        class="pn-card-session-btn pn-card-park-btn"
+        onclick="startParkingSession('${safeId}')"
+    >
+        🅿️ Припарковаться
+    </button>
+`;
     const placesHtml = totalSpots > 0
         ? `
             <div class="pn-card-stat pn-card-stat-primary">
@@ -1402,49 +1447,47 @@ async function openCenterSheet(parkingId, data) {
                 <span>Всего мест</span>
             </div>
         `;
-
     content.innerHTML = `
         <div class="parking-card-compact pn-card">
-
-            <div class="parking-card-handle"></div>
-
-            <div class="pn-card-header">
-                <div class="pn-card-heading">
-                    <div class="parking-card-title">
-                        <span class="parking-icon">🅿️</span>
-                        <span>${safeName}</span>
-                    </div>
-
-                    <div class="parking-card-street">
-                        ${address}
-                    </div>
-                </div>
-
-                <button
-                    class="pn-card-favorite"
-                    onclick="toggleFavoriteCenter()"
-                    aria-label="Добавить в избранное"
-                    title="Избранное"
-                >
-                    ♡
-                </button>
-            </div>
-
+            <div class="parking-card-handle"></div>  
+<div class="pn-card-header">
+    <div class="pn-card-heading">
+        <div class="pn-card-title-row">
+            <span class="parking-icon">🅿️</span>
+            <span class="pn-card-name">${safeName}</span>
+            <button
+                class="parking-favorite-btn pn-card-favorite"
+                onclick="toggleFavoriteCenter()"
+                aria-label="Добавить в избранное"
+                title="Избранное"
+            >
+                ♡
+            </button>
+            <button
+                class="pn-card-edit-icon"
+                onclick="editFromCenter()"
+                aria-label="Редактировать парковку"
+                title="Редактировать парковку"
+            >
+                ✎
+            </button>
+        </div>
+        <div class="parking-card-street">
+            ${address}
+        </div>
+    </div>
+</div>
             <div class="pn-card-status ${status}">
                 <span class="pn-card-status-icon">${statusIcon}</span>
-
                 <div class="pn-card-status-text">
                     <strong>${statusTitle}</strong>
                     <span>${statusDescription}</span>
                 </div>
             </div>
-
             <div class="pn-card-stats">
                 ${placesHtml}
             </div>
-
             <div class="pn-card-details">
-
                 <div class="pn-card-detail-row">
                     <span class="pn-card-detail-label">
                         <span class="pn-card-detail-icon">Ⓟ</span>
@@ -1452,7 +1495,6 @@ async function openCenterSheet(parkingId, data) {
                     </span>
                     <strong>${parkingType}</strong>
                 </div>
-
                 <div class="pn-card-detail-row">
                     <span class="pn-card-detail-label">
                         <span class="pn-card-detail-icon">◷</span>
@@ -1460,7 +1502,6 @@ async function openCenterSheet(parkingId, data) {
                     </span>
                     <strong>${lastCheckText}</strong>
                 </div>
-
                 <div class="pn-card-detail-row">
                     <span class="pn-card-detail-label">
                         <span class="pn-card-detail-icon">♙</span>
@@ -1468,7 +1509,6 @@ async function openCenterSheet(parkingId, data) {
                     </span>
                     <strong>${confirmations}</strong>
                 </div>
-
                 <div class="pn-card-detail-row">
                     <span class="pn-card-detail-label">
                         <span class="pn-card-detail-icon">◇</span>
@@ -1478,28 +1518,26 @@ async function openCenterSheet(parkingId, data) {
                         ${reliability}
                     </strong>
                 </div>
-
             </div>
-
-            <div class="pn-card-actions-title">
-                Действия с парковкой
-            </div>
-
-            <div class="pn-card-action-buttons">
-                <button
-                    class="pn-card-update-btn"
-                    onclick="editFromCenter()"
-                >
-                    ✎ Обновить данные
-                </button>
-                <button
-                    class="pn-card-route-btn"
-                    onclick="buildRouteToParking('${safeId}')"
-                >
-                    ➤ Маршрут
-                </button>
-            </div>
-            ${parkingSessionButton}
+<div class="pn-card-bottom-actions">
+    ${parkingSessionButton}
+    <button
+        class="pn-card-icon-btn pn-card-route-icon"
+        onclick="buildRouteToParking('${safeId}')"
+        aria-label="Построить маршрут"
+        title="Маршрут"
+    >
+        ➤
+    </button>
+    <button
+        class="pn-card-icon-btn pn-card-refresh-icon"
+        onclick="editFromCenter()"
+        aria-label="Обновить статус парковки"
+        title="Обновить статус парковки"
+    >
+        ↻
+    </button>
+</div>
         </div>
     `;
     sheet.classList.add('active');
