@@ -1246,32 +1246,24 @@ async function openCenterSheet(parkingId, data) {
         console.error('Не удалось открыть карточку парковки');
         return;
     }
-
     currentParkingId = parkingId;
     currentParkingData = data;
     parkingDataCache[parkingId] = data;
-
     const totalSpots = Math.max(0, Number(data.totalSpots) || 0);
-
     let occupiedSpots = Math.max(0, Number(data.occupiedSpots) || 0);
-
     try {
         occupiedSpots = await getParkingOccupancy(parkingId);
     } catch (error) {
         console.warn('Не удалось получить занятость парковки:', error);
     }
-
     occupiedSpots = Math.min(totalSpots, Math.max(0, occupiedSpots));
-
     const freeSpots = Math.max(0, totalSpots - occupiedSpots);
-
     // Актуальность данных
     const updatedAt = Number(data.lastUpdatedAt || data.timestamp || 0);
     const now = Date.now();
     const ageMinutes = updatedAt > 0
         ? Math.max(0, Math.floor((now - updatedAt) / 60000))
         : null;
-
     let status = 'unknown';
     let statusTitle = 'Неизвестно';
     let statusDescription = 'Состояние ещё не определено';
@@ -1302,33 +1294,26 @@ async function openCenterSheet(parkingId, data) {
         statusDescription = 'Информация устарела';
         statusIcon = '◷';
     }
-
     const address = escapeHtml(
         data.address ||
         [data.street, data.houseNumber].filter(Boolean).join(', ') ||
         data.name ||
         'Адрес не указан'
     );
-
     const safeName = escapeHtml(data.name || 'Парковка');
     const safeId = escapeHtml(String(parkingId));
-
     const parkingType = data.isPaid === true
         ? 'Платная'
         : data.isPaid === false
             ? 'Бесплатная'
             : 'Не указан';
-
-    
 function getLastCheckText(minutes) {
     if (minutes === null || !Number.isFinite(minutes) || minutes < 0) {
         return 'Нет данных';
     }
-
     if (minutes < 1) {
         return 'Меньше минуты назад';
     }
-
     // До одного часа показываем минуты
     if (minutes < 60) {
         return `${minutes} ${getRussianPlural(
@@ -1338,9 +1323,7 @@ function getLastCheckText(minutes) {
             'минут'
         )} назад`;
     }
-
     const hours = Math.floor(minutes / 60);
-
     // До 24 часов показываем часы
     if (minutes < 1440) {
         return `${hours} ${getRussianPlural(
@@ -1376,10 +1359,8 @@ const lastCheckText = getLastCheckText(ageMinutes);
         0,
         Number(data.statusConfirmations) || 0
     );
-
     let reliability = '—';
     let reliabilityClass = 'unknown';
-
     if (ageMinutes !== null && ageMinutes <= 5 && confirmations >= 3) {
         reliability = 'Высокая';
         reliabilityClass = 'high';
@@ -1390,9 +1371,7 @@ const lastCheckText = getLastCheckText(ageMinutes);
         reliability = 'Низкая';
         reliabilityClass = 'low';
     }
-
     let userSession = null;
-
     if (currentUser?.id) {
         try {
             userSession = await getUserActiveParkingSession();
@@ -1400,44 +1379,52 @@ const lastCheckText = getLastCheckText(ageMinutes);
             console.warn('Ошибка проверки парковочной сессии:', error);
         }
     }
-
     const isParked = Boolean(
         userSession &&
         String(userSession.parkingId) === String(parkingId)
     );
+let parkingSessionButton = '';
 
-    let parkingSessionButton = '';
-
-    if (isParked) {
-        parkingSessionButton = `
-    <button
-        class="pn-card-session-btn pn-card-park-btn is-leaving"
-        onclick="endParkingSession('${safeId}')"
-    >
-        🚗 Я уехал
-    </button>
-`;
-    } else if (currentUser?.id) {
-        parkingSessionButton = `
-    <button
-        class="pn-card-session-btn pn-card-park-btn"
-        onclick="startParkingSession('${safeId}')"
-    >
-        🅿️ Припарковаться
-    </button>
-`;
-    const placesHtml = totalSpots > 0
-        ? `
-            <div class="pn-card-stat pn-card-stat-primary">
-                <strong>${freeSpots}</strong>
-                <span>Свободно</span>
-            </div>
-            <div class="pn-card-stat">
-                <strong>${totalSpots}</strong>
-                <span>Всего мест</span>
-            </div>
-        `
-        : `
+if (isParked) {
+    parkingSessionButton = `
+        <button
+            class="pn-card-session-btn pn-card-park-btn is-leaving"
+            onclick="endParkingSession('${safeId}')"
+        >
+            🚗 Я уехал
+        </button>
+    `;
+} else if (currentUser?.id) {
+    parkingSessionButton = `
+        <button
+            class="pn-card-session-btn pn-card-park-btn"
+            onclick="startParkingSession('${safeId}')"
+        >
+            🅿️ Припарковаться
+        </button>
+    `;
+}
+const placesHtml = totalSpots > 0
+    ? `
+        <div class="pn-card-stat pn-card-stat-primary">
+            <strong>${freeSpots}</strong>
+            <span>Свободно</span>
+        </div>
+        <div class="pn-card-stat">
+            <strong>${totalSpots}</strong>
+            <span>Всего мест</span>
+        </div>
+    `
+    : `
+        <div class="pn-card-stat">
+            <strong>—</strong>
+            <span>Свободно</span>
+        </div>
+        <div class="pn-card-stat">
+            <strong>—</strong>
+            <span>Всего мест</span>
+        </div>
+    `;
             <div class="pn-card-stat">
                 <strong>—</strong>
                 <span>Свободно</span>
