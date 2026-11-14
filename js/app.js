@@ -1425,16 +1425,10 @@ const placesHtml = totalSpots > 0
             <span>Всего мест</span>
         </div>
     `;
-            <div class="pn-card-stat">
-                <strong>—</strong>
-                <span>Свободно</span>
-            </div>
-            <div class="pn-card-stat">
-                <strong>—</strong>
-                <span>Всего мест</span>
-            </div>
-        `;
-    content.innerHTML = `
+content.innerHTML = `
+    <div class="parking-card-compact pn-card">
+        <div class="parking-card-handle"></div>
+
         <div class="parking-card-compact pn-card">
             <div class="parking-card-handle"></div>  
 <div class="pn-card-header">
