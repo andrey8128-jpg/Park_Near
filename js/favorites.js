@@ -48,8 +48,8 @@ async function updateFavoriteCenterButton() {
     const favorite = await isFavorite(currentParkingId);
 
     btn.innerHTML = favorite
-        ? '<span>♥</span><span>Сохранено</span>'
-        : '<span>♡</span><span>Сохранить</span>';
+    ? '<span>♥</span>'
+    : '<span>♡</span>';
 
     btn.classList.toggle('is-favorite', favorite);
 }
@@ -115,9 +115,9 @@ async function toggleFavorite(parkingId, parkingData) {
             );
 
             if (btn) {
-                btn.innerHTML = isNowFavorite
-                    ? '<span>♥</span><span>Сохранено</span>'
-                    : '<span>♡</span><span>Сохранить</span>';
+               btn.innerHTML = isNowFavorite
+                    ? '<span>♥</span>'
+                    : '<span>♡</span>';
 
                 btn.classList.toggle('is-favorite', isNowFavorite);
             }
@@ -355,7 +355,7 @@ async function removeFromFavorites(parkingId) {
                     '#centerSheetContent .parking-favorite-btn'
                 );
                 if (btn) {
-                    btn.innerHTML = '<span>♡</span><span>Сохранить</span>';
+                    btn.innerHTML = '<span>♡</span>';
                     btn.classList.remove('is-favorite');
                 }
             }
