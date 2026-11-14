@@ -1237,11 +1237,11 @@ function checkPolygonSize(coordinates) {
         renderContent();
     });
 } 
+
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
 async function openCenterSheet(parkingId, data) {
     const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
-
     if (!sheet || !content || !data) {
         console.error('Не удалось открыть карточку парковки');
         return;
@@ -1249,6 +1249,7 @@ async function openCenterSheet(parkingId, data) {
     currentParkingId = parkingId;
     currentParkingData = data;
     parkingDataCache[parkingId] = data;
+    // ===================== КОЛИЧЕСТВО МЕСТ =====================
     const totalSpots = Math.max(0, Number(data.totalSpots) || 0);
     let occupiedSpots = Math.max(0, Number(data.occupiedSpots) || 0);
     try {
@@ -1258,18 +1259,25 @@ async function openCenterSheet(parkingId, data) {
     }
     occupiedSpots = Math.min(totalSpots, Math.max(0, occupiedSpots));
     const freeSpots = Math.max(0, totalSpots - occupiedSpots);
-    // Актуальность данных
+    // ===================== АКТУАЛЬНОСТЬ ДАННЫХ =====================
     const updatedAt = Number(data.lastUpdatedAt || data.timestamp || 0);
     const now = Date.now();
+
     const ageMinutes = updatedAt > 0
         ? Math.max(0, Math.floor((now - updatedAt) / 60000))
         : null;
+
+    const hasFreshOccupancy =
+        totalSpots > 0 &&
+        ageMinutes !== null &&
+        ageMinutes <= 30;
+
     let status = 'unknown';
     let statusTitle = 'Неизвестно';
     let statusDescription = 'Состояние ещё не определено';
     let statusIcon = '❔';
 
-    if (totalSpots > 0 && ageMinutes !== null && ageMinutes <= 30) {
+    if (hasFreshOccupancy) {
         const occupancy = occupiedSpots / totalSpots;
 
         if (freeSpots === 0 || occupancy >= 0.9) {
@@ -1294,6 +1302,7 @@ async function openCenterSheet(parkingId, data) {
         statusDescription = 'Информация устарела';
         statusIcon = '◷';
     }
+    // ===================== АДРЕС И НАЗВАНИЕ =====================
     const address = escapeHtml(
         data.address ||
         [data.street, data.houseNumber].filter(Boolean).join(', ') ||
@@ -1306,72 +1315,45 @@ async function openCenterSheet(parkingId, data) {
         ? 'Платная'
         : data.isPaid === false
             ? 'Бесплатная'
-            : 'Не указан';
-function getLastCheckText(minutes) {
-    if (minutes === null || !Number.isFinite(minutes) || minutes < 0) {
-        return 'Нет данных';
+            : 'Не указана';
+    // ===================== ВРЕМЯ ПОСЛЕДНЕЙ ПРОВЕРКИ =====================
+    function getRussianPlural(number, one, two, five) {
+        const n = Math.abs(number) % 100;
+        const lastDigit = n % 10;
+        if (n > 10 && n < 20) return five;
+        if (lastDigit > 1 && lastDigit < 5) return two;
+        if (lastDigit === 1) return one;
+        return five;
     }
-    if (minutes < 1) {
-        return 'Меньше минуты назад';
-    }
-    // До одного часа показываем минуты
-    if (minutes < 60) {
-        return `${minutes} ${getRussianPlural(
-            minutes,
-            'минута',
-            'минуты',
-            'минут'
+    function getLastCheckText(minutes) {
+        if (minutes === null || !Number.isFinite(minutes) || minutes < 0) {
+            return 'Нет данных';
+        }
+        if (minutes < 1) {
+            return 'Меньше минуты назад';
+        }
+        if (minutes < 60) {
+            return `${minutes} ${getRussianPlural(
+                minutes, 'минута', 'минуты', 'минут'
+            )} назад`;
+        }
+        const hours = Math.floor(minutes / 60);
+        if (minutes < 1440) {
+            return `${hours} ${getRussianPlural(
+                hours, 'час', 'часа', 'часов'
+            )} назад`;
+        }
+        const days = Math.floor(minutes / 1440);
+        if (days === 1) {
+            return 'Больше 1 дня';
+        }
+        return `${days} ${getRussianPlural(
+            days, 'день', 'дня', 'дней'
         )} назад`;
     }
-    const hours = Math.floor(minutes / 60);
-    // До 24 часов показываем часы
-    if (minutes < 1440) {
-        return `${hours} ${getRussianPlural(
-            hours,
-            'час',
-            'часа',
-            'часов'
-        )} назад`;
-    }
-    const days = Math.floor(minutes / 1440);
-    // Один полный день
-    if (days === 1) {
-        return 'Около 1 дня ';
-    }
-    // Два дня и больше
-    return `${days} ${getRussianPlural(
-        days,
-        'день',
-        'дня',
-        'дней'
-    )} назад`;
-}
-function getRussianPlural(number, one, two, five) {
-    const n = Math.abs(number) % 100;
-    const lastDigit = n % 10;
-    if (n > 10 && n < 20) return five;
-    if (lastDigit > 1 && lastDigit < 5) return two;
-    if (lastDigit === 1) return one;
-    return five;
-}
-const lastCheckText = getLastCheckText(ageMinutes);
-    const confirmations = Math.max(
-        0,
-        Number(data.statusConfirmations) || 0
-    );
-    let reliability = '—';
-    let reliabilityClass = 'unknown';
-    if (ageMinutes !== null && ageMinutes <= 5 && confirmations >= 3) {
-        reliability = 'Высокая';
-        reliabilityClass = 'high';
-    } else if (ageMinutes !== null && ageMinutes <= 15 && confirmations >= 1) {
-        reliability = 'Средняя';
-        reliabilityClass = 'medium';
-    } else if (ageMinutes !== null) {
-        reliability = 'Низкая';
-        reliabilityClass = 'low';
-    }
-    let userSession = null;
+    const lastCheckText = getLastCheckText(ageMinutes);
+    // ===================== ПАРКОВОЧНАЯ СЕССИЯ =====================
+        let userSession = null;
     if (currentUser?.id) {
         try {
             userSession = await getUserActiveParkingSession();
@@ -1383,91 +1365,94 @@ const lastCheckText = getLastCheckText(ageMinutes);
         userSession &&
         String(userSession.parkingId) === String(parkingId)
     );
-let parkingSessionButton = '';
-
-if (isParked) {
-    parkingSessionButton = `
-        <button
-            class="pn-card-session-btn pn-card-park-btn is-leaving"
-            onclick="endParkingSession('${safeId}')"
-        >
-            🚗 Я уехал
-        </button>
-    `;
-} else if (currentUser?.id) {
-    parkingSessionButton = `
-        <button
-            class="pn-card-session-btn pn-card-park-btn"
-            onclick="startParkingSession('${safeId}')"
-        >
-            🅿️ Припарковаться
-        </button>
-    `;
-}
-const placesHtml = totalSpots > 0
-    ? `
+        let parkingSessionButton = '';
+    if (isParked) {
+        parkingSessionButton = `
+            <button
+                class="pn-card-session-btn pn-card-park-btn is-leaving"
+                onclick="endParkingSession('${safeId}')"
+                title="Завершить парковочную сессию"
+            >
+                🚗 Я уехал
+            </button>
+        `;
+    } else if (currentUser?.id) {
+        parkingSessionButton = `
+            <button
+                class="pn-card-session-btn pn-card-park-btn"
+                onclick="startParkingSession('${safeId}')"
+                title="Начать парковочную сессию"
+            >
+                🅿️ Припарковаться
+            </button>
+        `;
+    }
+    // ===================== КОЛИЧЕСТВО СВОБОДНЫХ МЕСТ =====================
+    const placesHtml = `
         <div class="pn-card-stat pn-card-stat-primary">
-            <strong>${freeSpots}</strong>
+            <strong>${hasFreshOccupancy ? freeSpots : '—'}</strong>
             <span>Свободно</span>
         </div>
+
         <div class="pn-card-stat">
-            <strong>${totalSpots}</strong>
-            <span>Всего мест</span>
-        </div>
-    `
-    : `
-        <div class="pn-card-stat">
-            <strong>—</strong>
-            <span>Свободно</span>
-        </div>
-        <div class="pn-card-stat">
-            <strong>—</strong>
+            <strong>${totalSpots > 0 ? totalSpots : '—'}</strong>
             <span>Всего мест</span>
         </div>
     `;
-content.innerHTML = `
-    <div class="parking-card-compact pn-card">
-        <div class="parking-card-handle"></div>
-
+    // ===================== HTML КАРТОЧКИ =====================
+    content.innerHTML = `
         <div class="parking-card-compact pn-card">
-            <div class="parking-card-handle"></div>  
-<div class="pn-card-header">
-    <div class="pn-card-heading">
-        <div class="pn-card-title-row">
-            <span class="parking-icon">🅿️</span>
-            <span class="pn-card-name">${safeName}</span>
-            <button
-                class="parking-favorite-btn pn-card-favorite"
-                onclick="toggleFavoriteCenter()"
-                aria-label="Добавить в избранное"
-                title="Избранное"
-            >
-                ♡
-            </button>
-            <button
-                class="pn-card-edit-icon"
-                onclick="editFromCenter()"
-                aria-label="Редактировать парковку"
-                title="Редактировать парковку"
-            >
-                ✎
-            </button>
-        </div>
-        <div class="parking-card-street">
-            ${address}
-        </div>
-    </div>
-</div>
+            <div class="parking-card-handle"></div>
+
+            <!-- Название, избранное и редактирование -->
+            <div class="pn-card-header">
+                <div class="pn-card-heading">
+                    <div class="pn-card-title-row">
+                        <span class="parking-icon">🅿️</span>
+                        <span class="pn-card-name">
+                            ${safeName}
+                        </span>
+
+                        <button
+                            class="parking-favorite-btn pn-card-favorite"
+                            onclick="toggleFavoriteCenter()"
+                            aria-label="Добавить в избранное"
+                            title="Избранное"
+                        >
+                            ♡
+                        </button>
+
+                        <button
+                            class="pn-card-edit-icon"
+                            onclick="editFromCenter()"
+                            aria-label="Редактировать парковку"
+                            title="Редактировать парковку"
+                        >
+                            ✎
+                        </button>
+                    </div>
+                    <div class="parking-card-street">
+                        ${address}
+                    </div>
+                </div>
+            </div>
+            <!-- Статус парковки -->
             <div class="pn-card-status ${status}">
-                <span class="pn-card-status-icon">${statusIcon}</span>
+                <span class="pn-card-status-icon">
+                    ${statusIcon}
+                </span>
                 <div class="pn-card-status-text">
                     <strong>${statusTitle}</strong>
                     <span>${statusDescription}</span>
                 </div>
             </div>
+
+            <!-- Количество мест -->
             <div class="pn-card-stats">
                 ${placesHtml}
             </div>
+
+            <!-- Основная информация -->
             <div class="pn-card-details">
                 <div class="pn-card-detail-row">
                     <span class="pn-card-detail-label">
@@ -1483,45 +1468,40 @@ content.innerHTML = `
                     </span>
                     <strong>${lastCheckText}</strong>
                 </div>
-                <div class="pn-card-detail-row">
-                    <span class="pn-card-detail-label">
-                        <span class="pn-card-detail-icon">♙</span>
-                        Подтверждений
-                    </span>
-                    <strong>${confirmations}</strong>
-                </div>
-                <div class="pn-card-detail-row">
-                    <span class="pn-card-detail-label">
-                        <span class="pn-card-detail-icon">◇</span>
-                        Достоверность
-                    </span>
-                    <strong class="pn-card-reliability ${reliabilityClass}">
-                        ${reliability}
-                    </strong>
-                </div>
             </div>
-<div class="pn-card-bottom-actions">
-    ${parkingSessionButton}
-    <button
-        class="pn-card-icon-btn pn-card-route-icon"
-        onclick="buildRouteToParking('${safeId}')"
-        aria-label="Построить маршрут"
-        title="Маршрут"
-    >
-        ➤
-    </button>
-    <button
-        class="pn-card-icon-btn pn-card-refresh-icon"
-        onclick="editFromCenter()"
-        aria-label="Обновить статус парковки"
-        title="Обновить статус парковки"
-    >
-        ↻
-    </button>
-</div>
+
+            <!-- Нижний ряд кнопок -->
+            <div class="pn-card-bottom-actions">
+
+                ${parkingSessionButton}
+
+                <button
+                    class="pn-card-icon-btn pn-card-route-icon"
+                    onclick="buildRouteToParking('${safeId}')"
+                    aria-label="Построить маршрут"
+                    title="Маршрут"
+                >
+                    ➤
+                </button>
+
+                <button
+                    class="pn-card-icon-btn pn-card-refresh-icon"
+                    onclick="editFromCenter()"
+                    aria-label="Обновить статус парковки"
+                    title="Обновить статус парковки"
+                >
+                    ↻
+                </button>
+            </div>
         </div>
     `;
+    // ===================== ОТКРЫТИЕ КАРТОЧКИ =====================
     sheet.classList.add('active');
+    if (typeof updateFavoriteCenterButton === 'function') {
+        updateFavoriteCenterButton().catch(error => {
+            console.warn('Не удалось обновить избранное:', error);
+        });
+    }
 }
 async function getParkingOccupancy(parkingId) {
     if (!parkingId) {
