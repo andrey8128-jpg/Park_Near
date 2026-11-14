@@ -899,40 +899,6 @@
     overflow-wrap: anywhere;
     color: var(--text-primary);
 }
-
-.pn-card-reliability.high {
-    color: #16843a;
-}
-
-.pn-card-reliability.medium {
-    color: #d17a00;
-}
-
-.pn-card-reliability.low {
-    color: #d93025;
-}
-
-.pn-card-reliability.unknown {
-    color: var(--text-secondary);
-}
-
-/* Заголовок действий */
-
-.pn-card-actions-title {
-    margin: 12px 0 9px;
-    font-size: 14px;
-    font-weight: 750;
-    color: var(--text-primary);
-}
-
-/* Кнопки действий */
-
-.pn-card-action-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 9px;
-}
-
 .pn-card-update-btn,
 .pn-card-route-btn,
 .pn-card-session-btn {
@@ -950,18 +916,6 @@
     cursor: pointer;
     transition: transform .15s, opacity .15s;
 }
-
-.pn-card-update-btn {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    border: 1px solid var(--card-border);
-}
-
-.pn-card-route-btn {
-    background: linear-gradient(135deg, var(--accent), #0A282C);
-    color: #fff;
-}
-
 .pn-card-session-btn {
     width: 100%;
     margin-top: 9px;
@@ -969,7 +923,6 @@
     color: var(--text-primary);
     border: 1px solid var(--card-border);
 }
-
 .pn-card-session-btn.is-leaving {
     background: var(--red);
     color: #fff;
@@ -1015,27 +968,17 @@
     .pn-card-detail-row > strong {
         font-size: 11px;
     }
-
-    .pn-card-update-btn,
-    .pn-card-route-btn {
-        font-size: 12px;
-        padding: 8px 6px;
-    }
 }
-
 /* =====================================
    PARK NEAR — ЗАГОЛОВОК И НИЖНИЕ КНОПКИ
    ===================================== */
-
 /* Название, избранное и редактирование */
-
 .pn-card-title-row {
     display: flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
 }
-
 .pn-card-name {
     min-width: 0;
     font-size: 15px;
@@ -1043,7 +986,6 @@
     line-height: 1.25;
     overflow-wrap: anywhere;
 }
-
 .pn-card-favorite,
 .pn-card-edit-icon {
     display: inline-flex;
