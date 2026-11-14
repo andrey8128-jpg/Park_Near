@@ -18,6 +18,14 @@ async function initializeDatabase() {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
         `,
+                `
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS role TEXT
+        NOT NULL DEFAULT 'user'
+        CHECK (
+            role IN ('guest', 'user', 'moderator', 'admin')
+        )
+        `,
         `
         CREATE TABLE IF NOT EXISTS auth_sessions (
             id TEXT PRIMARY KEY,
@@ -45,6 +53,32 @@ async function initializeDatabase() {
             data JSONB NOT NULL DEFAULT '{}'::jsonb,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
+        `,
+        `
+        CREATE TABLE IF NOT EXISTS parking_moderation (
+            id TEXT PRIMARY KEY,
+            parking_id TEXT,
+            user_id TEXT NOT NULL
+                REFERENCES users(id) ON DELETE CASCADE,
+            action TEXT NOT NULL
+                CHECK (action IN ('create', 'update', 'delete')),
+            proposed_data JSONB NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'approved', 'rejected')),
+            reviewed_by TEXT
+                REFERENCES users(id) ON DELETE SET NULL,
+            review_comment TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            reviewed_at TIMESTAMPTZ
+        )
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_parking_moderation_queue
+        ON parking_moderation (status, created_at)
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_parking_moderation_user
+        ON parking_moderation (user_id, created_at)
         `,
          `
         CREATE TABLE IF NOT EXISTS processed_operations (
@@ -505,18 +539,19 @@ async function requireAuth(req, res, next) {
             .update(match[1])
             .digest('hex');
 
-        const result = await pool.query(
+       const result = await pool.query(
             `SELECT
                 s.id AS session_id,
                 u.id AS user_id,
-                u.data AS user_data
+                u.data AS user_data,
+                u.role AS user_role
              FROM auth_sessions s
              JOIN users u ON u.id = s.user_id
              WHERE s.token_hash = $1
-               AND s.expires_at > NOW()
-             LIMIT 1`,
-            [tokenHash]
-        );
+           AND s.expires_at > NOW()
+         LIMIT 1`,
+        [tokenHash]
+);
         if (result.rows.length === 0) {
             return res.status(401).json({
                 success: false,
@@ -525,7 +560,8 @@ async function requireAuth(req, res, next) {
         }
 req.authUser = {
     ...result.rows[0].user_data,
-    id: result.rows[0].user_id
+    id: result.rows[0].user_id,
+    role: result.rows[0].user_role
 };
         req.authSessionId = result.rows[0].session_id;
         next();
@@ -552,6 +588,23 @@ function requireRegisteredUser(req, res, next) {
         });
     }
     next();
+}
+// ============================================
+// ПРОВЕРКА РОЛЕЙ ПОЛЬЗОВАТЕЛЕЙ
+// ============================================
+function requireRole(...allowedRoles) {
+    return (req, res, next) => {
+        const userRole = req.authUser?.role;
+
+        if (!userRole || !allowedRoles.includes(userRole)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Недостаточно прав для выполнения операции'
+            });
+        }
+
+        next();
+    };
 }
 // ============================================
 // WEB PUSH: ПОЛУЧЕНИЕ ПУБЛИЧНОГО VAPID-КЛЮЧА
