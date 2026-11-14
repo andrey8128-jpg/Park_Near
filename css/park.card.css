@@ -652,3 +652,373 @@
         scroll-behavior: auto !important;
     }
 }
+
+/* ==========================================
+   PARK NEAR — ОБНОВЛЁННАЯ КАРТОЧКА ПАРКОВКИ
+   ========================================== */
+
+.pn-card {
+    padding: 10px 16px 18px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.10);
+    overflow-y: auto;
+    max-height: 85vh;
+    box-sizing: border-box;
+}
+
+.pn-card .parking-card-handle {
+    margin-bottom: 15px;
+}
+
+/* Верхняя часть */
+
+.pn-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.pn-card-heading {
+    min-width: 0;
+    flex: 1;
+}
+
+.pn-card .parking-card-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 18px;
+    line-height: 1.3;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+.pn-card .parking-icon {
+    flex-shrink: 0;
+}
+
+.pn-card .parking-card-street {
+    padding-left: 0;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.pn-card .parking-card-street::before {
+    content: "📍";
+    margin-right: 2px;
+}
+
+/* Избранное */
+
+.pn-card-favorite {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--card-border);
+    border-radius: 50%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.pn-card-favorite:active {
+    transform: scale(.92);
+}
+
+/* Статус */
+
+.pn-card-status {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 15px;
+    border: 1px solid transparent;
+}
+
+.pn-card-status-icon {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,.7);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.pn-card-status-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.pn-card-status-text strong {
+    font-size: 15px;
+    line-height: 1.2;
+    font-weight: 750;
+}
+
+.pn-card-status-text span {
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+/* Цвета состояний */
+
+.pn-card-status.free {
+    background: rgba(48, 209, 88, .13);
+    border-color: rgba(48, 209, 88, .18);
+    color: #16843a;
+}
+
+.pn-card-status.limited {
+    background: rgba(255, 159, 10, .13);
+    border-color: rgba(255, 159, 10, .2);
+    color: #b86600;
+}
+
+.pn-card-status.occupied {
+    background: rgba(255, 69, 58, .13);
+    border-color: rgba(255, 69, 58, .2);
+    color: #c62828;
+}
+
+.pn-card-status.stale,
+.pn-card-status.unknown {
+    background: var(--bg-primary);
+    border-color: var(--card-border);
+    color: var(--text-secondary);
+}
+
+/* Количество мест */
+
+.pn-card-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.pn-card-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 62px;
+    padding: 8px;
+    box-sizing: border-box;
+    border-radius: 14px;
+    background: var(--bg-primary);
+    text-align: center;
+}
+
+.pn-card-stat strong {
+    font-size: 23px;
+    line-height: 1.1;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.pn-card-stat span {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.pn-card-stat-primary {
+    background: rgba(48, 209, 88, .10);
+}
+
+.pn-card-stat-primary strong {
+    color: #16843a;
+}
+
+/* Дополнительная информация */
+
+.pn-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 2px 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.pn-card-detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 38px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.pn-card-detail-row:last-child {
+    border-bottom: none;
+}
+
+.pn-card-detail-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.pn-card-detail-icon {
+    width: 18px;
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.pn-card-detail-row > strong {
+    flex-shrink: 0;
+    max-width: 52%;
+    font-size: 12px;
+    font-weight: 650;
+    text-align: right;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+}
+
+.pn-card-reliability.high {
+    color: #16843a;
+}
+
+.pn-card-reliability.medium {
+    color: #d17a00;
+}
+
+.pn-card-reliability.low {
+    color: #d93025;
+}
+
+.pn-card-reliability.unknown {
+    color: var(--text-secondary);
+}
+
+/* Заголовок действий */
+
+.pn-card-actions-title {
+    margin: 12px 0 9px;
+    font-size: 14px;
+    font-weight: 750;
+    color: var(--text-primary);
+}
+
+/* Кнопки действий */
+
+.pn-card-action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.pn-card-update-btn,
+.pn-card-route-btn,
+.pn-card-session-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 9px 10px;
+    border: none;
+    border-radius: 13px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, opacity .15s;
+}
+
+.pn-card-update-btn {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--card-border);
+}
+
+.pn-card-route-btn {
+    background: linear-gradient(135deg, var(--accent), #0A282C);
+    color: #fff;
+}
+
+.pn-card-session-btn {
+    width: 100%;
+    margin-top: 9px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--card-border);
+}
+
+.pn-card-session-btn.is-leaving {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+}
+
+.pn-card-update-btn:active,
+.pn-card-route-btn:active,
+.pn-card-session-btn:active {
+    transform: scale(.97);
+    opacity: .9;
+}
+
+/* Маленькие экраны */
+
+@media (max-width: 420px) {
+    .pn-card {
+        padding: 9px 14px 16px;
+        max-height: 85vh;
+    }
+
+    .pn-card .parking-card-title {
+        font-size: 17px;
+    }
+
+    .pn-card-status {
+        padding: 10px;
+    }
+
+    .pn-card-stat {
+        min-height: 58px;
+    }
+
+    .pn-card-stat strong {
+        font-size: 21px;
+    }
+
+    .pn-card-detail-row {
+        min-height: 36px;
+    }
+
+    .pn-card-detail-label,
+    .pn-card-detail-row > strong {
+        font-size: 11px;
+    }
+
+    .pn-card-update-btn,
+    .pn-card-route-btn {
+        font-size: 12px;
+        padding: 8px 6px;
+    }
+}
