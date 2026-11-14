@@ -517,19 +517,16 @@ async function requireAuth(req, res, next) {
              LIMIT 1`,
             [tokenHash]
         );
-
         if (result.rows.length === 0) {
             return res.status(401).json({
                 success: false,
                 error: 'Сессия истекла или недействительна'
             });
         }
-
-        req.authUser = {
-            id: result.rows[0].user_id,
-            ...result.rows[0].user_data
-        };
-
+req.authUser = {
+    ...result.rows[0].user_data,
+    id: result.rows[0].user_id
+};
         req.authSessionId = result.rows[0].session_id;
         next();
     } catch (error) {
