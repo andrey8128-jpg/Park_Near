@@ -520,3 +520,187 @@
         transition: none !important;
     }
 }
+/* Панель управления парковкой */
+.pn-manage {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    color: var(--text-primary);
+}
+.pn-manage-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+}
+.pn-manage-heading-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 13px;
+    background: var(--bg-primary);
+    font-size: 22px;
+}
+.pn-manage-heading-text {
+    min-width: 0;
+}
+.pn-manage-heading-text h2 {
+    margin: 0 0 5px;
+    font-size: 17px;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+.pn-manage-heading-text p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.pn-manage-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.pn-manage-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+}
+.pn-manage-summary-item span,
+.pn-manage-summary-item small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.pn-manage-summary-item strong {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+}
+.pn-manage-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: 17px;
+}
+.pn-manage-section-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+.pn-manage-section-title > span {
+    font-size: 21px;
+}
+.pn-manage-section-title div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.pn-manage-section-title strong {
+    font-size: 14px;
+}
+.pn-manage-section-title small {
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+.pn-manage-action,
+.pn-manage-favorite {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 45px;
+    padding: 0 13px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+}
+.pn-manage-favorite {
+    justify-content: center;
+}
+.pn-manage-form {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding-top: 8px;
+}
+.pn-manage-form label {
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--text-secondary);
+}
+.pn-manage-form input,
+.pn-manage-form textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 12px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--card-border);
+    border-radius: 11px;
+    outline: none;
+    font: inherit;
+    font-size: 14px;
+}
+.pn-manage-form textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+.pn-manage-form input:focus,
+.pn-manage-form textarea:focus {
+    border-color: var(--accent);
+}
+.pn-manage-hint,
+.pn-manage-info {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.5;
+}
+.pn-manage-form-actions {
+    display: flex;
+    gap: 9px;
+    margin-top: 8px;
+}
+.pn-manage-save,
+.pn-manage-cancel {
+    flex: 1;
+    min-height: 44px;
+    border: 0;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.pn-manage-save {
+    color: #fff;
+    background: var(--accent);
+}
+.pn-manage-cancel {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--card-border);
+}
+.pn-manage-history {
+    padding: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-primary);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    font-size: 12px;
+}
