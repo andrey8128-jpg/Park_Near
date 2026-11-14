@@ -1022,3 +1022,146 @@
         padding: 8px 6px;
     }
 }
+
+/* =====================================
+   PARK NEAR — ЗАГОЛОВОК И НИЖНИЕ КНОПКИ
+   ===================================== */
+
+/* Название, избранное и редактирование */
+
+.pn-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.pn-card-name {
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 750;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.pn-card-favorite,
+.pn-card-edit-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.pn-card-favorite.is-favorite {
+    color: #ef4444;
+}
+
+.pn-card-edit-icon {
+    font-size: 18px;
+    color: var(--text-secondary);
+}
+
+.pn-card-favorite:active,
+.pn-card-edit-icon:active {
+    transform: scale(.9);
+}
+
+/* Нижний горизонтальный ряд */
+
+.pn-card-bottom-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 9px;
+}
+
+/* Большая кнопка парковочной сессии */
+
+.pn-card-bottom-actions .pn-card-park-btn {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    min-height: 42px;
+    margin: 0;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #27b6a2, #087e79);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.pn-card-bottom-actions .pn-card-park-btn.is-leaving {
+    background: #d93636;
+    color: #fff;
+}
+
+/* Маленькие квадратные кнопки */
+
+.pn-card-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 21px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, opacity .15s;
+}
+
+.pn-card-route-icon {
+    background: var(--bg-primary);
+}
+
+.pn-card-refresh-icon {
+    background: var(--bg-primary);
+}
+
+.pn-card-icon-btn:active,
+.pn-card-park-btn:active {
+    transform: scale(.94);
+    opacity: .85;
+}
+
+/* Компактность на телефонах */
+
+@media (max-width: 420px) {
+    .pn-card-bottom-actions {
+        gap: 7px;
+    }
+
+    .pn-card-bottom-actions .pn-card-park-btn {
+        min-height: 40px;
+        font-size: 11px;
+    }
+
+    .pn-card-icon-btn {
+        flex-basis: 40px;
+        width: 40px;
+        height: 40px;
+        font-size: 19px;
+    }
+
+    .pn-card-name {
+        font-size: 14px;
+    }
+}
