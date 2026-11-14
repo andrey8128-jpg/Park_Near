@@ -542,6 +542,21 @@ async function requireAuth(req, res, next) {
     }
 }
 // ============================================
+// ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
+// ============================================
+function requireRegisteredUser(req, res, next) {
+    if (
+        req.authUser?.isGuest === true ||
+        String(req.authUser?.id || '').startsWith('guest_')
+    ) {
+        return res.status(403).json({
+            success: false,
+            error: 'Для этой операции необходимо зарегистрироваться'
+        });
+    }
+    next();
+}
+// ============================================
 // WEB PUSH: ПОЛУЧЕНИЕ ПУБЛИЧНОГО VAPID-КЛЮЧА
 // ============================================
 app.get('/api/push/vapid-public-key', (req, res) => {
@@ -816,7 +831,7 @@ app.patch('/api/users/me/profile', requireAuth, async (req, res) => {
 // ============================================
 // ПОЛУЧЕНИЕ ИЗБРАННЫХ ПАРКОВОК
 // ============================================
-app.get('/api/users/me/favorites', requireAuth, async (req, res) => {
+app.get('/api/users/me/favorites', requireAuth, requireRegisteredUser, async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT
@@ -856,7 +871,7 @@ app.get('/api/users/me/favorites', requireAuth, async (req, res) => {
 // ============================================
 // ДОБАВЛЕНИЕ ПАРКОВКИ В ИЗБРАННОЕ
 // ============================================
-app.post('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => {
+app.post('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, async (req, res) => {
     const client = await pool.connect();
 
     try {
@@ -924,7 +939,7 @@ app.post('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => 
 // ============================================
 // УДАЛЕНИЕ ПАРКОВКИ ИЗ ИЗБРАННОГО
 // ============================================
-app.delete('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => {
+app.delete('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, async (req, res) => {
     const client = await pool.connect();
     try {
         const userId = String(req.authUser.id);
@@ -974,7 +989,7 @@ app.delete('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) =
 // ============================================
 // ПРОВЕРКА, ЕСТЬ ЛИ ПАРКОВКА В ИЗБРАННОМ
 // ============================================
-app.get('/api/users/me/favorites/:parkingId', requireAuth, async (req, res) => {
+app.get('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT 1
@@ -1308,6 +1323,7 @@ app.post('/api/parking-sessions', requireAuth, async (req, res) => {
 app.delete(
     '/api/parking-sessions/active/:parkingId',
     requireAuth,
+    requireRegisteredUser,
     async (req, res) => {
         const client = await pool.connect();
         try {
@@ -1697,7 +1713,11 @@ app.get('/api/parkings', async (req, res) => {
 // ============================================
 // СОЗДАНИЕ ПАРКОВКИ В POSTGRESQL
 // ============================================
-app.post('/api/parkings', requireAuth, async (req, res) => {
+app.post(
+    '/api/parkings',
+    requireAuth,
+    requireRegisteredUser,
+    async (req, res) => {
     const parking = req.body || {};
     const city = String(parking.city || '').trim();
     const street = String(parking.street || '').trim();
@@ -1929,7 +1949,7 @@ app.post('/api/parkings', requireAuth, async (req, res) => {
 // ============================================
 // РЕДАКТИРОВАНИЕ ПАРКОВКИ
 // ============================================
-app.put('/api/parkings/:id', requireAuth, async (req, res) => {
+app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
     const client = await pool.connect();
     try {
         const { name, street, houseNumber, totalSpots, description } = req.body;
@@ -2025,7 +2045,7 @@ app.put('/api/parkings/:id', requireAuth, async (req, res) => {
     }
 });
 // Частичное редактирование города и границ парковки
-app.patch('/api/parkings/:id', requireAuth, async (req, res) => {
+app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
     try {
         const { city, region, coordinates, lat, lng, lastUpdatedAt, lastUpdatedBy } = req.body;
         const result = await pool.query(
@@ -2128,7 +2148,7 @@ app.patch('/api/parkings/:id', requireAuth, async (req, res) => {
 // ============================================
 // УДАЛЕНИЕ ПАРКОВКИ В POSTGRESQL
 // ============================================
-app.delete('/api/parkings/:id', requireAuth, async (req, res) => {
+app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
     const client = await pool.connect();
 
     try {
@@ -2183,7 +2203,7 @@ app.delete('/api/parkings/:id', requireAuth, async (req, res) => {
 // ============================================
 // ИЗМЕНЕНИЕ ЗАНЯТОСТИ ПАРКОВКИ В POSTGRESQL
 // ============================================
-app.patch('/api/parkings/:id/occupancy', requireAuth, async (req, res) => {
+app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, async (req, res) => {
     const delta = Number(req.body?.delta);
 
     if (delta !== 1 && delta !== -1) {
