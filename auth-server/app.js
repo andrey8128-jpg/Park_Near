@@ -602,10 +602,90 @@ function requireRole(...allowedRoles) {
                 error: 'Недостаточно прав для выполнения операции'
             });
         }
-
         next();
     };
 }
+ // ============================================
+ // ПОЛУЧЕНИЕ ОЧЕРЕДИ РУЧНОЙ МОДЕРАЦИИ
+ // ============================================
+app.get(
+    '/api/moderation/queue',
+    requireAuth,
+    requireRole('moderator', 'admin'),
+    async (req, res) => {
+        try {
+            const requestedLimit = Number.parseInt(
+                req.query.limit,
+                10
+            );
+            const requestedOffset = Number.parseInt(
+                req.query.offset,
+                10
+            );
+            const limit =
+                Number.isInteger(requestedLimit) &&
+                requestedLimit > 0
+                    ? Math.min(requestedLimit, 100)
+                    : 30;
+            const offset =
+                Number.isInteger(requestedOffset) &&
+                requestedOffset >= 0
+                    ? requestedOffset
+                    : 0;
+            const result = await pool.query(
+                `SELECT
+                    m.id,
+                    m.parking_id,
+                    m.user_id,
+                    m.action,
+                    m.proposed_data,
+                    m.status,
+                    m.review_comment,
+                    m.created_at,
+                    u.data AS user_data
+                 FROM parking_moderation m
+                 LEFT JOIN users u ON u.id = m.user_id
+                 WHERE m.status = 'pending'
+                 ORDER BY m.created_at ASC
+                 LIMIT $1 OFFSET $2`,
+                [limit, offset]
+            );
+            const items = result.rows.map(row => {
+                const userData = row.user_data || {};
+                return {
+                    id: row.id,
+                    parkingId: row.parking_id,
+                    userId: row.user_id,
+                    action: row.action,
+                    proposedData: row.proposed_data,
+                    status: row.status,
+                    reviewComment: row.review_comment,
+                    createdAt: row.created_at,
+                    author: {
+                        firstName: userData.firstName || '',
+                        username: userData.username || ''
+                    }
+                };
+            });
+            return res.json({
+                success: true,
+                count: items.length,
+                limit,
+                offset,
+                items
+            });
+        } catch (error) {
+            console.error(
+                'Ошибка получения очереди модерации:',
+                error
+            );
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось получить очередь модерации'
+            });
+        }
+    }
+);
 // ============================================
 // WEB PUSH: ПОЛУЧЕНИЕ ПУБЛИЧНОГО VAPID-КЛЮЧА
 // ============================================
