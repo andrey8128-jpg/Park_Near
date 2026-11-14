@@ -1833,7 +1833,6 @@ function closeCenterSheet() {
         map.setZoom(16, { duration: 300 });
     }
 }
-
 function buildRouteFromCenter() {
     if (!currentParkingData) {
         console.error('Маршрут: данные выбранной парковки отсутствуют');
@@ -1885,10 +1884,8 @@ function editFromCenter() {
     openOccupancyPanel(parkingId);
 }
     // ===================== РЕДАКТИРОВАНИЕ ПАРКОВКИ =====================
-
 async function openOccupancyPanel(parkingId) {
     if (!parkingId) return;
-
     const panel = document.getElementById('panel');
     const content = document.getElementById('panelContent');
 
@@ -1896,38 +1893,28 @@ async function openOccupancyPanel(parkingId) {
         console.error('Нет #panel или #panelContent');
         return;
     }
-
     document.getElementById('panelTitle').textContent = 'Парковка';
     panel.classList.add('active');
-
     const donateBtn = document.getElementById('donateBtn');
     if (donateBtn) donateBtn.style.display = 'none';
-
     content.innerHTML =
         '<div class="loading-state"><div class="spinner"></div><p>Загрузка...</p></div>';
-
     try {
         const response = await fetch(
             `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
             { cache: 'no-store' }
         );
-
         const result = await response.json();
-
         if (!response.ok || !result.success || !result.parking) {
             throw new Error(
                 result.error || 'Парковка не найдена'
             );
         }
-
         const data = result.parking;
-
         currentParkingId = parkingId;
         currentParkingData = data;
         parkingDataCache[parkingId] = data;
-
         const token = localStorage.getItem('parkNearSessionToken');
-
         // Учитываем просмотр только для авторизованного
         // пользователя, который не является автором парковки.
         if (
@@ -2016,10 +2003,8 @@ function renderEditPanel(data, isFavorite, content) {
                     }
                 </div>
             </div>
-
             <!-- Действия -->
             <div class="edit-parking-actions">
-
                 ${
                     isAuthor
                         ? `
@@ -2033,7 +2018,6 @@ function renderEditPanel(data, isFavorite, content) {
                         `
                         : ''
                 }
-
                 <button
                     type="button"
                     class="btn-secondary"
@@ -2045,9 +2029,7 @@ function renderEditPanel(data, isFavorite, content) {
                             : '☆ В избранное'
                     }
                 </button>
-
             </div>
-
             <!-- Форма редактирования -->
             <div
                 id="parkingEditorForm"
