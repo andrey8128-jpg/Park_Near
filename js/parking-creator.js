@@ -236,9 +236,14 @@ function showMapHint(text) {
     document.body.appendChild(hint);
     setTimeout(() => hint.remove(), 3000);
 }
+
 function openAddPanelWithPolygon(coordinates, sizeCheck, restoreData = null) {
     try {
         console.log('openAddPanelWithPolygon вызвана');
+        // Получаем незавершённую операцию восстановления,
+        // если форма открывается после прерванного сохранения.
+        const pendingOperation =
+            restoreData?.operationId ? restoreData : null;
         const panel = document.getElementById('panel');
         const panelContent = document.getElementById('panelContent');
         if (!panel || !panelContent) {
