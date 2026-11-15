@@ -363,6 +363,29 @@ function formatDateTime(timestamp) {
     if (Number.isNaN(d.getTime())) return 'Неизвестно';
     return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth() + 1).toString().padStart(2,'0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
+function parseHistoryTimestamp(timestamp) {
+    if (timestamp === null || timestamp === undefined || timestamp === '') {
+        return null;
+    }
+    let value;
+    if (typeof timestamp === 'number') {
+        value = timestamp;
+    } else {
+        const numericValue = Number(timestamp);
+        value = Number.isFinite(numericValue)
+            ? numericValue
+            : Date.parse(timestamp);
+    }
+    if (!Number.isFinite(value) || value <= 0) {
+        return null;
+    }
+    // Unix timestamp в секундах переводим в миллисекунды.
+    if (value < 1e12) {
+        value *= 1000;
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
    // ===================== ТОЧНЫЙ РАСЧЁТ ПАРКОВОЧНЫХ МЕСТ =====================
 function calculatePolygonArea(coordinates) {
     if (!Array.isArray(coordinates) || coordinates.length < 3) return 0;
@@ -2155,13 +2178,15 @@ async function loadHistoryPreview(parkingId) {
             return;
         }
         list.innerHTML = entries.slice(0, 5).map(entry => {
-            const date = new Date(Number(entry.timestamp) || 0);
-            const time = date.toLocaleString('ru-RU', {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+    const date = parseHistoryTimestamp(entry.timestamp);
+    const time = date
+        ? date.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+    : 'Дата неизвестна';
             const action =
                 entry.action === 'occupied'
                     ? 'Занял'
@@ -2197,9 +2222,10 @@ async function loadHistory(parkingId, limit = 10, days = 3) {
         }
         const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
         const entries = (result.history || [])
-            .filter(entry =>
-                Number(entry.timestamp) >= cutoff
-            );
+    .filter(entry => {
+        const date = parseHistoryTimestamp(entry.timestamp);
+        return date && date.getTime() >= cutoff;
+    });
         if (countEl) {
             countEl.textContent = `(${entries.length})`;
         }
@@ -2210,14 +2236,16 @@ async function loadHistory(parkingId, limit = 10, days = 3) {
             return;
         }
         container.innerHTML = entries.slice(0, limit).map(entry => {
-            const date = new Date(Number(entry.timestamp) || 0);
-            const time = date.toLocaleString('ru-RU', {
+           const date = parseHistoryTimestamp(entry.timestamp);
+            const time = date
+            ? date.toLocaleString('ru-RU', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
-            });
+            })
+            : 'Дата неизвестна';
             const action =
                 entry.action === 'occupied'
                     ? 'Занял'
