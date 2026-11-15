@@ -1393,53 +1393,69 @@ app.post(
                 error: 'Парковка не найдена'
             });
         }
+
+
 const parking = parkingResult.rows[0].data;
+
+const startedAt = new Date().toISOString();
+
 const username =
     req.authUser.username ||
     req.authUser.firstName ||
     'Пользователь';
+
 const previousOccupied = Math.max(
     0,
     Number(parking.occupiedSpots) || 0
 );
-const newOccupied = Math.max(
-    0,
-    previousOccupied - 1
-);
+
+const newOccupied = previousOccupied + 1;
+
 const previousHistory = Array.isArray(parking.history)
     ? parking.history
     : Object.values(parking.history || {});
+
 const historyEntry = {
-    action: 'freed',
-    timestamp: endedAt,
+    action: 'occupied',
+    timestamp: startedAt,
     userId,
     username,
     previousOccupied,
     newOccupied,
     car: {}
 };
+
 const updatedParking = {
     ...parking,
     occupiedSpots: newOccupied,
-    lastUpdatedAt: endedAt,
+    lastUpdatedAt: startedAt,
     lastUpdatedBy: username,
     history: [...previousHistory, historyEntry]
 };
-            await client.query(
-                `UPDATE parking_sessions
-                 SET data = $2::jsonb
-                 WHERE id = $1`,
-                [
-                    sessionRow.id,
-                    JSON.stringify(updatedSession)
-                ]
-            );
-            await client.query(
-                `UPDATE parkings
-                 SET data = $2::jsonb
-                 WHERE id = $1`,
-                [parkingId, JSON.stringify(updatedParking)]
-            );
+
+// Создаём парковочную сессию
+const sessionId = require('crypto').randomUUID();
+
+const updatedSession = {
+    userId,
+    parkingId,
+    active: true,
+    startedAt
+};
+
+const sessionRow = await client.query(
+    `INSERT INTO parking_sessions (id, data)
+     VALUES ($1, $2::jsonb)
+     RETURNING id`,
+    [sessionId, JSON.stringify(updatedSession)]
+);
+
+await client.query(
+    `UPDATE parkings
+     SET data = $2::jsonb
+     WHERE id = $1`,
+    [parkingId, JSON.stringify(updatedParking)]
+);
             await client.query('COMMIT');
             return res.json({
                 success: true,
