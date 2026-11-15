@@ -1459,10 +1459,10 @@ await client.query(
             await client.query('COMMIT');
             return res.json({
                 success: true,
-                session: {
-                    id: sessionRow.id,
-                    ...updatedSession
-                },
+               session: {
+                id: sessionRow.rows[0].id,
+                ...updatedSession
+            },
                 parking: {
                     ...updatedParking,
                     id: parkingId
@@ -1480,7 +1480,153 @@ await client.query(
         }
     }
 );
+// ============================================
+// ЗАВЕРШЕНИЕ ПАРКОВОЧНОЙ СЕССИИ
+// ============================================
+app.delete(
+    '/api/parking-sessions/active/:parkingId',
+    requireAuth,
+    requireRegisteredUser,
+    async (req, res) => {
+        const client = await pool.connect();
+        try {
+            const parkingId = String(req.params.parkingId || '');
+            const userId = String(req.authUser.id);
 
+            if (!parkingId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Не указан идентификатор парковки'
+                });
+            }
+            await client.query('BEGIN');
+            // Блокируем параллельные операции пользователя.
+            await client.query(
+                'SELECT pg_advisory_xact_lock(hashtext($1))',
+                [userId]
+            );
+            // Находим активную сессию именно этой парковки.
+            const sessionResult = await client.query(
+                `SELECT id, data
+                 FROM parking_sessions
+                 WHERE data->>'userId' = $1
+                   AND data->>'parkingId' = $2
+                   AND data->>'active' = 'true'
+                 ORDER BY created_at DESC
+                 LIMIT 1
+                 FOR UPDATE`,
+                [userId, parkingId]
+            );
+            if (sessionResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    error: 'Активная парковочная сессия не найдена'
+                });
+            }
+            const sessionRow = sessionResult.rows[0];
+            const session = sessionRow.data;
+            const endedAt = new Date().toISOString();
+            // Блокируем парковку от параллельного изменения.
+            const parkingResult = await client.query(
+                `SELECT id, data
+                 FROM parkings
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [parkingId]
+            );
+            if (parkingResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+
+                return res.status(404).json({
+                    success: false,
+                    error: 'Парковка не найдена'
+                });
+            }
+            const parking = parkingResult.rows[0].data;
+            const username =
+                req.authUser.username ||
+                req.authUser.firstName ||
+                'Пользователь';
+            const previousOccupied = Math.max(
+                0,
+                Number(parking.occupiedSpots) || 0
+            );
+            const newOccupied = Math.max(
+                0,
+                previousOccupied - 1
+            );
+            const previousHistory = Array.isArray(parking.history)
+                ? parking.history
+                : Object.values(parking.history || {});
+            const historyEntry = {
+                action: 'freed',
+                timestamp: endedAt,
+                userId,
+                username,
+                previousOccupied,
+                newOccupied,
+                car: {}
+            };
+            const updatedParking = {
+                ...parking,
+                occupiedSpots: newOccupied,
+                lastUpdatedAt: endedAt,
+                lastUpdatedBy: username,
+                history: [...previousHistory, historyEntry]
+            };
+            const updatedSession = {
+                ...session,
+                active: false,
+                endedAt
+            };
+            // Обновляем сессию.
+            await client.query(
+                `UPDATE parking_sessions
+                 SET data = $2::jsonb
+                 WHERE id = $1`,
+                [
+                    sessionRow.id,
+                    JSON.stringify(updatedSession)
+                ]
+            );
+            // Обновляем количество занятых мест и историю.
+            await client.query(
+                `UPDATE parkings
+                 SET data = $2::jsonb
+                 WHERE id = $1`,
+                [
+                    parkingId,
+                    JSON.stringify(updatedParking)
+                ]
+            );
+            await client.query('COMMIT');
+            return res.json({
+                success: true,
+                session: {
+                    id: sessionRow.id,
+                    ...updatedSession
+                },
+                parking: {
+                    ...updatedParking,
+                    id: parkingId
+                }
+            });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error(
+                'Ошибка завершения парковочной сессии:',
+                error
+            );
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось завершить парковочную сессию'
+            });
+        } finally {
+            client.release();
+        }
+    }
+);
 // ============================================
 // ПОЛУЧЕНИЕ ОДНОЙ ПАРКОВКИ
 // ============================================
