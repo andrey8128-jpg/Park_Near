@@ -1409,10 +1409,11 @@ app.post('/api/parking-sessions', requireAuth, async (req, res) => {
             endedAt: null,
             active: true
         };
-       const updatedParking = {
+      const updatedParking = {
     ...parking,
     occupiedSpots: occupied + 1,
-    lastUpdatedAt: Date.now()
+    lastUpdatedAt: startedAt,
+    lastUpdatedBy: req.authUser.username || req.authUser.id
 };
         await client.query(
             `UPDATE parkings
@@ -1505,13 +1506,15 @@ app.delete(
                 });
             }
             const parking = parkingResult.rows[0].data;
-            const updatedParking = {
-                ...parking,
-                occupiedSpots: Math.max(
-                    0,
-                    (Number(parking.occupiedSpots) || 0) - 1
-                )
-            };
+           const updatedParking = {
+            ...parking,
+            occupiedSpots: Math.max(
+                0,
+            (Number(parking.occupiedSpots) || 0) - 1
+        ),
+            lastUpdatedAt: endedAt,
+            lastUpdatedBy: req.authUser.username || req.authUser.id
+    };
             await client.query(
                 `UPDATE parking_sessions
                  SET data = $2::jsonb
