@@ -766,54 +766,59 @@
     gap: 3px;
     min-width: 0;
 }
-
+/* Кнопка редактирования внутри статуса */
+.pn-card-status-edit {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    margin-left: auto;
+    border-radius: 10px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 19px;
+    transition: background .2s, transform .15s;
+}
+.pn-card-status-edit:active {
+    transform: scale(.9);
+}
 .pn-card-status-text strong {
     font-size: 15px;
     line-height: 1.2;
     font-weight: 750;
 }
-
 .pn-card-status-text span {
     font-size: 12px;
     line-height: 1.35;
 }
-
 /* Цвета состояний */
-
 .pn-card-status.free {
     background: rgba(48, 209, 88, .13);
     border-color: rgba(48, 209, 88, .18);
     color: #16843a;
 }
-
 .pn-card-status.limited {
     background: rgba(255, 159, 10, .13);
     border-color: rgba(255, 159, 10, .2);
     color: #b86600;
 }
-
 .pn-card-status.occupied {
     background: rgba(255, 69, 58, .13);
     border-color: rgba(255, 69, 58, .2);
     color: #c62828;
 }
-
 .pn-card-status.stale,
 .pn-card-status.unknown {
     background: var(--bg-primary);
     border-color: var(--card-border);
     color: var(--text-secondary);
 }
-
 /* Количество мест */
-
 .pn-card-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-bottom: 14px;
 }
-
 .pn-card-stat {
     display: flex;
     flex-direction: column;
@@ -826,30 +831,24 @@
     background: var(--bg-primary);
     text-align: center;
 }
-
 .pn-card-stat strong {
     font-size: 23px;
     line-height: 1.1;
     font-weight: 800;
     color: var(--text-primary);
 }
-
 .pn-card-stat span {
     margin-top: 4px;
     font-size: 11px;
     color: var(--text-secondary);
 }
-
 .pn-card-stat-primary {
     background: rgba(48, 209, 88, .10);
 }
-
 .pn-card-stat-primary strong {
     color: #16843a;
 }
-
 /* Дополнительная информация */
-
 .pn-card-details {
     display: flex;
     flex-direction: column;
@@ -858,7 +857,6 @@
     margin-bottom: 12px;
     border-bottom: 1px solid var(--card-border);
 }
-
 .pn-card-detail-row {
     display: flex;
     align-items: center;
@@ -868,11 +866,9 @@
     padding: 6px 0;
     border-bottom: 1px solid var(--card-border);
 }
-
 .pn-card-detail-row:last-child {
     border-bottom: none;
 }
-
 .pn-card-detail-label {
     display: flex;
     align-items: center;
@@ -881,7 +877,6 @@
     font-size: 12px;
     color: var(--text-secondary);
 }
-
 .pn-card-detail-icon {
     width: 18px;
     flex-shrink: 0;
@@ -889,7 +884,6 @@
     font-size: 16px;
     color: var(--text-primary);
 }
-
 .pn-card-detail-row > strong {
     flex-shrink: 0;
     max-width: 52%;
@@ -937,33 +931,26 @@
 }
 
 /* Маленькие экраны */
-
 @media (max-width: 420px) {
     .pn-card {
         padding: 9px 14px 16px;
         max-height: 85vh;
     }
-
     .pn-card .parking-card-title {
         font-size: 17px;
     }
-
     .pn-card-status {
         padding: 10px;
     }
-
     .pn-card-stat {
         min-height: 58px;
     }
-
     .pn-card-stat strong {
         font-size: 21px;
     }
-
     .pn-card-detail-row {
         min-height: 36px;
     }
-
     .pn-card-detail-label,
     .pn-card-detail-row > strong {
         font-size: 11px;
