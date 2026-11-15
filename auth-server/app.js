@@ -1409,10 +1409,11 @@ app.post('/api/parking-sessions', requireAuth, async (req, res) => {
             endedAt: null,
             active: true
         };
-        const updatedParking = {
-            ...parking,
-            occupiedSpots: occupied + 1
-        };
+       const updatedParking = {
+    ...parking,
+    occupiedSpots: occupied + 1,
+    lastUpdatedAt: Date.now()
+};
         await client.query(
             `UPDATE parkings
              SET data = $2::jsonb
