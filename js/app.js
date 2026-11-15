@@ -1436,17 +1436,24 @@ async function openCenterSheet(parkingId, data) {
                     </div>
                 </div>
             </div>
-            <!-- Статус парковки -->
+        <!-- Статус парковки -->
             <div class="pn-card-status ${status}">
                 <span class="pn-card-status-icon">
-                    ${statusIcon}
-                </span>
-                <div class="pn-card-status-text">
-                    <strong>${statusTitle}</strong>
+                ${statusIcon}
+             </span>
+            <div class="pn-card-status-text">
+                <strong>${statusTitle}</strong>
                     <span>${statusDescription}</span>
-                </div>
             </div>
 
+                <button
+            type="button"
+                class="pn-card-edit-icon pn-card-status-edit"
+                onclick="editFromCenter()"
+                aria-label="Изменить статус парковки"
+                title="Изменить статус парковки"
+            >✎</button>
+        </div>
             <!-- Количество мест -->
             <div class="pn-card-stats">
                 ${placesHtml}
