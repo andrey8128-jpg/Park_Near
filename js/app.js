@@ -1988,12 +1988,23 @@ const occupiedSpots = Math.min(
     Math.max(0, Math.floor(Number(data.occupiedSpots) || 0))
 );
 const freeSpots = Math.max(0, totalSpots - occupiedSpots);
-const lastUpdatedAt = Number(
-    data.lastUpdatedAt || data.timestamp || 0
-);
-const ageMinutes = lastUpdatedAt > 0
-    ? Math.max(0, (Date.now() - lastUpdatedAt) / 60000)
-    : null;
+const rawUpdatedAt = data.lastUpdatedAt ?? data.timestamp ?? null;
+let lastUpdatedAt = 0;
+if (typeof rawUpdatedAt === 'number') {
+    lastUpdatedAt = rawUpdatedAt;
+} else if (typeof rawUpdatedAt === 'string') {
+    const numericDate = Number(rawUpdatedAt);
+    lastUpdatedAt = Number.isFinite(numericDate)
+        ? numericDate
+        : Date.parse(rawUpdatedAt);
+}
+if (lastUpdatedAt > 0 && lastUpdatedAt < 1e12) {
+    lastUpdatedAt *= 1000;
+}
+const ageMinutes =
+    Number.isFinite(lastUpdatedAt) && lastUpdatedAt > 0
+        ? Math.max(0, (Date.now() - lastUpdatedAt) / 60000)
+        : null;
 const hasFreshOccupancy =
     totalSpots > 0 &&
     ageMinutes !== null &&
