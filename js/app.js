@@ -1971,6 +1971,36 @@ function renderEditPanel(data, isFavorite, content) {
         return;
     }
     const totalSpots = Math.max(0, Math.floor(Number(data.totalSpots) || 0));
+    // Рассчитываем текущую занятость и статус парковки
+const occupiedSpots = Math.min(
+    totalSpots,
+    Math.max(0, Math.floor(Number(data.occupiedSpots) || 0))
+);
+const freeSpots = Math.max(0, totalSpots - occupiedSpots);
+const lastUpdatedAt = Number(
+    data.lastUpdatedAt || data.timestamp || 0
+);
+const ageMinutes = lastUpdatedAt > 0
+    ? Math.max(0, (Date.now() - lastUpdatedAt) / 60000)
+    : null;
+const hasFreshOccupancy =
+    totalSpots > 0 &&
+    ageMinutes !== null &&
+    ageMinutes <= 30;
+    let currentStatus = 'Нет актуальных данных';
+if (hasFreshOccupancy) {
+    const occupancy = occupiedSpots / totalSpots;
+
+    if (freeSpots === 0 || occupancy >= 0.9) {
+        currentStatus = 'Занято';
+    } else if (occupancy >= 0.6) {
+        currentStatus = 'Частично занято';
+    } else {
+        currentStatus = 'Свободно';
+    }
+} else if (totalSpots <= 0) {
+    currentStatus = 'Неизвестно';
+}
     const isAuthor = !!currentUser && currentUser.id != null && data.authorId != null && String(currentUser.id) === String(data.authorId);
     const safeVal = value => String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const street = data.street || '';
@@ -1993,10 +2023,14 @@ function renderEditPanel(data, isFavorite, content) {
                     <small>Всего мест</small>
                 </div>
                 <div class="pn-manage-summary-item">
-                    <span>Статус</span>
-                    <strong>${safeVal(data.status || 'Не указан')}</strong>
-                    <small>Текущая информация</small>
-                </div>
+        <span>Статус</span>
+        <strong>${safeVal(currentStatus)}</strong>
+        <small>
+           ${hasFreshOccupancy
+            ? `Свободно ${freeSpots} из ${totalSpots} мест`
+            : 'Информация устарела или отсутствует'}
+    </small>
+</div>
             </div>
             <div class="pn-manage-section">
                 <div class="pn-manage-section-title">
