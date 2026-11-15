@@ -1343,7 +1343,11 @@ app.get('/api/parking-sessions/active', requireAuth, async (req, res) => {
 // ============================================
 // НАЧАЛО ПАРКОВОЧНОЙ СЕССИИ
 // ============================================
-app.post('/api/parking-sessions', requireAuth, async (req, res) => {
+app.post(
+    '/api/parking-sessions',
+    requireAuth,
+    requireRegisteredUser,
+    async (req, res) => {
     const client = await pool.connect();
     try {
         const parkingId = String(req.body?.parkingId || '');
@@ -1409,11 +1413,30 @@ app.post('/api/parking-sessions', requireAuth, async (req, res) => {
             endedAt: null,
             active: true
         };
-      const updatedParking = {
+    const username =
+    req.authUser.username ||
+    req.authUser.firstName ||
+    'Пользователь';
+const previousOccupied = occupied;
+const newOccupied = occupied + 1;
+const previousHistory = Array.isArray(parking.history)
+    ? parking.history
+    : Object.values(parking.history || {});
+const historyEntry = {
+    action: 'occupied',
+    timestamp: startedAt,
+    userId,
+    username,
+    previousOccupied,
+    newOccupied,
+    car: {}
+};
+const updatedParking = {
     ...parking,
-    occupiedSpots: occupied + 1,
+    occupiedSpots: newOccupied,
     lastUpdatedAt: startedAt,
-    lastUpdatedBy: req.authUser.username || req.authUser.id
+    lastUpdatedBy: username,
+    history: [...previousHistory, historyEntry]
 };
         await client.query(
             `UPDATE parkings
@@ -1515,6 +1538,30 @@ app.delete(
             lastUpdatedAt: endedAt,
             lastUpdatedBy: req.authUser.username || req.authUser.id
     };
+            const username =
+    req.authUser.username ||
+    req.authUser.firstName ||
+    'Пользователь';
+const previousOccupied = Math.max(
+    0,
+    Number(parking.occupiedSpots) || 0
+);
+const newOccupied = Math.max(
+    0,
+    previousOccupied - 1
+);
+const previousHistory = Array.isArray(parking.history)
+    ? parking.history
+    : Object.values(parking.history || {});
+const historyEntry = {
+    action: 'freed',
+    timestamp: endedAt,
+    userId,
+    username,
+    previousOccupied,
+    newOccupied,
+    car: {}
+};
             await client.query(
                 `UPDATE parking_sessions
                  SET data = $2::jsonb
