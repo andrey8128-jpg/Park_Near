@@ -1260,13 +1260,25 @@ async function openCenterSheet(parkingId, data) {
     occupiedSpots = Math.min(totalSpots, Math.max(0, occupiedSpots));
     const freeSpots = Math.max(0, totalSpots - occupiedSpots);
     // ===================== АКТУАЛЬНОСТЬ ДАННЫХ =====================
-    const updatedAt = Number(data.lastUpdatedAt || data.timestamp || 0);
+    const rawUpdatedAt = data.lastUpdatedAt ?? data.timestamp ?? null;
+     let updatedAt = 0;
+        if (typeof rawUpdatedAt === 'number') {
+      updatedAt = rawUpdatedAt;
+    } else if (typeof rawUpdatedAt === 'string') {
+        const numericDate = Number(rawUpdatedAt);
+    updatedAt = Number.isFinite(numericDate)
+        ? numericDate
+        : Date.parse(rawUpdatedAt);
+    }
+    // Поддерживаем Unix timestamp в секундах и миллисекундах.
+    if (updatedAt > 0 && updatedAt < 1e12) {
+        updatedAt *= 1000;
+    }
     const now = Date.now();
-
-    const ageMinutes = updatedAt > 0
-        ? Math.max(0, Math.floor((now - updatedAt) / 60000))
-        : null;
-
+    const ageMinutes =
+        Number.isFinite(updatedAt) && updatedAt > 0
+            ? Math.max(0, Math.floor((now - updatedAt) / 60000))
+            : null;
     const hasFreshOccupancy =
         totalSpots > 0 &&
         ageMinutes !== null &&
@@ -1278,8 +1290,7 @@ async function openCenterSheet(parkingId, data) {
     let statusIcon = '❔';
 
     if (hasFreshOccupancy) {
-        const occupancy = occupiedSpots / totalSpots;
-
+     const occupancy = occupiedSpots / totalSpots;
         if (freeSpots === 0 || occupancy >= 0.9) {
             status = 'occupied';
             statusTitle = 'Занято';
