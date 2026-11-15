@@ -1374,7 +1374,6 @@ app.post(
         );
         if (existing.rows.length > 0) {
             await client.query('ROLLBACK');
-
             return res.status(409).json({
                 success: false,
                 error: 'У вас уже есть активная парковка'
@@ -1394,151 +1393,8 @@ app.post(
                 error: 'Парковка не найдена'
             });
         }
-        const parking = parkingResult.rows[0].data;
-        const total = Math.max(0, Number(parking.totalSpots) || 0);
-        const occupied = Math.max(0, Number(parking.occupiedSpots) || 0);
-        if (total > 0 && occupied >= total) {
-            await client.query('ROLLBACK');
-            return res.status(409).json({
-                success: false,
-                error: 'Свободных мест больше нет'
-            });
-        }
-        const startedAt = Date.now();
-        const sessionId = crypto.randomUUID();
-        const session = {
-            parkingId,
-            userId,
-            startedAt,
-            endedAt: null,
-            active: true
-        };
-    const username =
-    req.authUser.username ||
-    req.authUser.firstName ||
-    'Пользователь';
-const previousOccupied = occupied;
-const newOccupied = occupied + 1;
-const previousHistory = Array.isArray(parking.history)
-    ? parking.history
-    : Object.values(parking.history || {});
-const historyEntry = {
-    action: 'occupied',
-    timestamp: startedAt,
-    userId,
-    username,
-    previousOccupied,
-    newOccupied,
-    car: {}
-};
-const updatedParking = {
-    ...parking,
-    occupiedSpots: newOccupied,
-    lastUpdatedAt: startedAt,
-    lastUpdatedBy: username,
-    history: [...previousHistory, historyEntry]
-};
-        await client.query(
-            `UPDATE parkings
-             SET data = $2::jsonb
-             WHERE id = $1`,
-            [parkingId, JSON.stringify(updatedParking)]
-        );
-        await client.query(
-            `INSERT INTO parking_sessions (id, data)
-             VALUES ($1, $2::jsonb)`,
-            [sessionId, JSON.stringify(session)]
-        );
-        await client.query('COMMIT');
-        return res.status(201).json({
-            success: true,
-            session: {
-                id: sessionId,
-                ...session
-            },
-            parking: {
-                ...updatedParking,
-                id: parkingId
-            }
-        });
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('Ошибка начала парковки:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Не удалось начать парковочную сессию'
-        });
-    } finally {
-        client.release();
-    }
-});
-// ============================================
-// ЗАВЕРШЕНИЕ АКТИВНОЙ ПАРКОВОЧНОЙ СЕССИИ
-// ============================================
-app.delete(
-    '/api/parking-sessions/active/:parkingId',
-    requireAuth,
-    requireRegisteredUser,
-    async (req, res) => {
-        const client = await pool.connect();
-        try {
-            const parkingId = String(req.params.parkingId);
-            const userId = String(req.authUser.id);
-            await client.query('BEGIN');
-            await client.query(
-                'SELECT pg_advisory_xact_lock(hashtext($1))',
-                [userId]
-            );
-            const sessionResult = await client.query(
-                `SELECT id, data
-                 FROM parking_sessions
-                 WHERE data->>'userId' = $1
-                   AND data->>'parkingId' = $2
-                   AND data->>'active' = 'true'
-                 ORDER BY created_at DESC
-                 LIMIT 1
-                 FOR UPDATE`,
-                [userId, parkingId]
-            );
-            if (sessionResult.rows.length === 0) {
-                await client.query('ROLLBACK');
-                return res.status(404).json({
-                    success: false,
-                    error: 'Активная парковочная сессия не найдена'
-                });
-            }
-            const sessionRow = sessionResult.rows[0];
-            const endedAt = Date.now();
-            const updatedSession = {
-                ...sessionRow.data,
-                active: false,
-                endedAt
-            };
-            const parkingResult = await client.query(
-                `SELECT id, data
-                 FROM parkings
-                 WHERE id = $1
-                 FOR UPDATE`,
-                [parkingId]
-            );
-            if (parkingResult.rows.length === 0) {
-                await client.query('ROLLBACK');
-                return res.status(404).json({
-                    success: false,
-                    error: 'Парковка не найдена'
-                });
-            }
-            const parking = parkingResult.rows[0].data;
-           const updatedParking = {
-            ...parking,
-            occupiedSpots: Math.max(
-                0,
-            (Number(parking.occupiedSpots) || 0) - 1
-        ),
-            lastUpdatedAt: endedAt,
-            lastUpdatedBy: req.authUser.username || req.authUser.id
-    };
-            const username =
+const parking = parkingResult.rows[0].data;
+const username =
     req.authUser.username ||
     req.authUser.firstName ||
     'Пользователь';
@@ -1561,6 +1417,13 @@ const historyEntry = {
     previousOccupied,
     newOccupied,
     car: {}
+};
+const updatedParking = {
+    ...parking,
+    occupiedSpots: newOccupied,
+    lastUpdatedAt: endedAt,
+    lastUpdatedBy: username,
+    history: [...previousHistory, historyEntry]
 };
             await client.query(
                 `UPDATE parking_sessions
