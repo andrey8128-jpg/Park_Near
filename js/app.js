@@ -4246,7 +4246,7 @@ function renderHomeContent(content, coords) {
     `;
     content.innerHTML = html;
     // Получаем список парковок из кеша
-    var allParkings = Object.values(parkingDataCache).filter(function(p) { return p.lat && p.lng; });
+    var allParkings = filterParkingsByCurrentCity(Object.values(parkingDataCache)).filter(function(p) { return Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)) && p.lat !== null && p.lng !== null && p.lat !== '' && p.lng !== ''; });
     console.log('📊 Всего парковок в кеше:', allParkings.length);
     // Если данных нет – показываем сообщение
     if (allParkings.length === 0) {
@@ -4277,21 +4277,27 @@ function renderHomeContent(content, coords) {
 function showNearbyParkings(coords, limit) {
     const container = document.getElementById('homeParkingList');
     if (!container) return;
-    const radius = 1000;
-    const parkings = Object.entries(parkingDataCache)
-        .map(([id, data]) => ({ id, ...data, distance: getDistanceInMeters(coords.lat, coords.lng, data.lat, data.lng) }))
-        .filter(p => p.lat && p.lng && p.distance <= radius)
-        .sort((a,b) => a.distance - b.distance);
-    if (parkings.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости</p></div>';
+    if (!coords || !Number.isFinite(Number(coords.lat)) || !Number.isFinite(Number(coords.lng))) {
+        container.innerHTML = '<div class="empty-state"><p>Не удалось определить ваше местоположение</p></div>';
         return;
     }
-    const show = parkings.slice(0, limit);
-renderGroupedParkingList(
-    container,
-    show,
-    coords
-);
+    const radius = 1000;
+    const allParkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
+    const cityParkings = filterParkingsByCurrentCity(allParkings);
+    const parkings = cityParkings
+        .filter(p => p.lat !== null && p.lng !== null && p.lat !== '' && p.lng !== '' && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+        .map(p => ({
+            ...p,
+            distance: getDistanceInMeters(Number(coords.lat), Number(coords.lng), Number(p.lat), Number(p.lng))
+        }))
+        .filter(p => Number.isFinite(p.distance) && p.distance <= radius)
+        .sort((a, b) => a.distance - b.distance);
+    if (parkings.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Нет парковок поблизости в городе ' + escapeHtml(currentCity || 'не выбран') + '</p></div>';
+        return;
+    }
+    const show = parkings.slice(0, Number(limit) > 0 ? Number(limit) : 5);
+    renderGroupedParkingList(container, show, coords);
 }
 function showAllNearby() {
     var coords = userLocationForSearch;
@@ -4314,34 +4320,35 @@ function showAllNearby() {
     }
 }
 function filterHomeParkings() {
-    const query = document.getElementById('homeSearchInput').value.trim().toLowerCase();
+    const input = document.getElementById('homeSearchInput');
+    const query = input ? input.value.trim().toLowerCase().replace(/ё/g, 'е') : '';
     const container = document.getElementById('homeParkingList');
     if (!container) return;
+    const allParkings = Object.entries(parkingDataCache).map(([id, data]) => ({ id, ...data }));
+    const cityParkings = filterParkingsByCurrentCity(allParkings);
     if (!query) {
         if (userLocationForSearch) {
             showNearbyParkings(userLocationForSearch, 5);
         } else {
-            const all = Object.values(parkingDataCache).filter(p => p.lat && p.lng);
+            const all = cityParkings.filter(p => p.lat !== null && p.lng !== null && p.lat !== '' && p.lng !== '' && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)));
+            if (all.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>В городе ' + escapeHtml(currentCity || 'не выбран') + ' пока нет парковок</p></div>';
+                return;
+            }
             renderParkingList(container, all);
         }
         return;
     }
-    const filtered = Object.entries(parkingDataCache)
-        .map(([id, data]) => ({ id, ...data }))
-        .filter(p => {
-            const name = (p.name || '').toLowerCase();
-            const addr = (p.address || '').toLowerCase();
-            return name.includes(query) || addr.includes(query);
-        });
+    const filtered = cityParkings.filter(p => {
+        const name = String(p.name || '').toLowerCase().replace(/ё/g, 'е');
+        const address = String(p.address || '').toLowerCase().replace(/ё/g, 'е');
+        return name.includes(query) || address.includes(query);
+    });
     if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Ничего не найдено</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>В городе ' + escapeHtml(currentCity || 'не выбран') + ' ничего не найдено</p></div>';
         return;
     }
-   renderGroupedParkingList(
-    container,
-    filtered,
-    userLocationForSearch
-);
+    renderGroupedParkingList(container, filtered, userLocationForSearch);
 }
 async function goHome() {
     if (!currentUser) {
