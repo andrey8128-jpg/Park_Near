@@ -131,7 +131,7 @@ window.setLocalActiveParking = function (parkingId, parkingName, startedAt) {
     function updateParkingButtonHighlight() {
         const session = getSavedParking();
         document
-            .querySelectorAll('.parking-park-btn')
+            .querySelectorAll('.pn-card-park-btn')
             .forEach(button => {
                 const onclick = button.getAttribute('onclick') || '';
                 const match = onclick.match(
