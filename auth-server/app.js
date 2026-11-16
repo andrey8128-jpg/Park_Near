@@ -912,20 +912,17 @@ app.patch('/api/users/me/profile', requireAuth, async (req, res) => {
                 error: 'Некорректные настройки парковки'
             });
         }
-        if (
-            updates.homeAddresses !== undefined &&
-            (
-                !updates.homeAddresses ||
-                typeof updates.homeAddresses !== 'object' ||
-                Array.isArray(updates.homeAddresses) ||
-                Object.keys(updates.homeAddresses).length > 3
-            )
-        ) {
-            return res.status(400).json({
-                success: false,
-                error: 'Некорректный список домашних адресов'
-            });
-        }
+       if (updates.homeAddresses !== undefined) {
+    const addresses = updates.homeAddresses;
+    const isArray = Array.isArray(addresses);
+    const isObject = addresses !== null && typeof addresses === 'object' && !isArray;
+    const count = isArray ? addresses.length : isObject ? Object.keys(addresses).length : -1;
+    if (count < 0 || count > 3) {
+        return res.status(400).json({
+            success: false,
+            error: 'Некорректный список домашних адресов. Разрешено не более 3 адресов.'
+        });
+    }
         if (updates.nickname !== undefined) {
             updates.nickname = updates.nickname.trim();
         }
