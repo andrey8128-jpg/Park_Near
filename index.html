@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="css/active-parking.css">
 <link rel="stylesheet" href="css/tab-bar.css">
 <link rel="stylesheet" href="css/favorites.css">
-<link rel="stylesheet" href="css/profile.css?v=20261116-1">
+<link rel="stylesheet" href="css/profile.css?v=20261116-2">
 </head>
 <body>
 <!-- Toast -->
@@ -128,6 +128,25 @@
         <span>Обновление...</span>
     </div>
     <div class="panel-content" id="panelContent"></div>
+</div>
+<div class="pn-address-picker-overlay" id="pnAddressPickerOverlay" aria-hidden="true">
+    <div class="pn-address-picker-dialog">
+        <div class="pn-address-picker-header">
+            <strong>Выберите место на карте</strong>
+            <button type="button" id="pnAddressPickerClose">✕</button>
+        </div>
+        <label for="pnAddressName">Название места</label>
+        <input id="pnAddressName" type="text" maxlength="40" placeholder="Например: Дом, Работа">
+        <div id="pnAddressPickerMap"></div>
+        <div class="pn-address-picker-info">
+            <strong id="pnAddressResolved">Выберите точку на карте</strong>
+            <small id="pnAddressCoords">Нажмите на нужное место</small>
+        </div>
+        <div class="pn-address-picker-actions">
+            <button type="button" id="pnAddressPickerCancel">Отмена</button>
+            <button type="button" id="pnAddressPickerSave" disabled>Сохранить адрес</button>
+        </div>
+    </div>
 </div>
     <!-- Address Picker -->
 <div id="addressPickerOverlay">
@@ -441,7 +460,7 @@
 <script src="js/active-parking.js?v=20261116-4"></script>
 <script src="js/parking-creator.js?v=20261115-2"></script>
 <script src="js/profile.js?v=20261116-1"></script>
-<script src="js/my-addresses.js?v=20261116-3"></script>
+<script src="js/my-addresses.js?v=20261116-4"></script>
 <script src="js/favorites.js?v=20261114-3"></script>
 <script src="js/settings.js"></script>
 <script src="js/onboarding.js"></script>
