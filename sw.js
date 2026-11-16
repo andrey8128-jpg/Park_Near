@@ -24,7 +24,7 @@ const APP_FILES = [
     './js/car-selector.js',
     './js/active-parking.js?v=20261116-1',
     './js/parking-creator.js',
-    './js/profile.js',
+    './js/profile.js?v=20261116-1',
     './js/my-addresses.js?v=20261116-1',
     './js/favorites.js?v=20261114-3',
     './js/settings.js',
