@@ -155,12 +155,19 @@ function getVisibleParkings() {
 }
 // ===================== ОБНОВЛЕНИЕ КРУЖКА С ОБЩИМ КОЛИЧЕСТВОМ =====================
 function updateTotalFreeCircle() {
-    const allParkings = Object.values(parkingDataCache);
-    const totalFree = allParkings.reduce((sum, p) => {
-        const total = Number(p.totalSpots) || 0;
-        const occupied = Number(p.occupiedSpots) || 0;
-        const free = Math.max(0, total - occupied);
-        return sum + free;
+    const allParkings = filterParkingsByCurrentCity(Object.values(parkingDataCache));
+    const totalFree = allParkings.reduce((sum, parking) => {
+        if (!parking || typeof parking !== 'object') return sum;
+        if (parking.totalSpots == null || parking.totalSpots === '') return sum;
+        const total = Number(parking.totalSpots);
+        if (!Number.isFinite(total) || total <= 0) return sum;
+        let occupied = 0;
+        if (parking.occupiedSpots != null && parking.occupiedSpots !== '') {
+            occupied = Number(parking.occupiedSpots);
+            if (!Number.isFinite(occupied)) return sum;
+        }
+        occupied = Math.min(Math.max(occupied, 0), total);
+        return sum + Math.max(0, total - occupied);
     }, 0);
     const countEl = document.getElementById('totalFreeCount');
     if (countEl) countEl.textContent = totalFree;
