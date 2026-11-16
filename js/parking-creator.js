@@ -918,27 +918,30 @@ if (pendingOperation) {
         // 6. Удаляем незавершённую операцию только после подтверждения сервера.
         localStorage.removeItem(pendingStorageKey);
 
-        const parkingKey = result.id;
+               const parkingKey = result.id;
         const savedParkingData = result.parking || {
             ...requestParkingData,
             id: parkingKey
         };
-
-        console.log('Парковка сохранена в PostgreSQL:', parkingKey);
-
-        // Обновляем локальный кэш.
-        parkingDataCache[parkingKey] = {
-            ...savedParkingData,
-            id: parkingKey
-        };
-
-        // Добавляем маркер на карту.
-        try {
-            addMarkerToMap(parkingKey, savedParkingData);
-        } catch (error) {
-            console.warn('Маркер не добавлен:', error);
+        if (result.status === 'pending') {
+            console.log('Заявка на создание парковки отправлена на модерацию:', parkingKey);
+            if (typeof showToast === 'function') {
+                showToast('Парковка отправлена на проверку модератору');
+            } else {
+                alert('Парковка отправлена на проверку модератору');
+            }
+        } else {
+            console.log('Парковка сохранена в PostgreSQL:', parkingKey);
+            parkingDataCache[parkingKey] = {
+                ...savedParkingData,
+                id: parkingKey
+            };
+            try {
+                addMarkerToMap(parkingKey, savedParkingData);
+            } catch (error) {
+                console.warn('Маркер не добавлен:', error);
+            }
         }
-
         // Удаляем нарисованный полигон.
         if (drawingPolygon) {
             try {
