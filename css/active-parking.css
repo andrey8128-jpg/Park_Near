@@ -122,7 +122,7 @@
     outline-offset: 3px;
 }
 /* ===== СИНЯЯ АКТИВНАЯ ПАРКОВКА В КАРТОЧКЕ ===== */
-.parking-park-btn.is-active-parking {
+.pn-card-park-btn.is-active-parking {
     background: #1677FF !important;
     color: #FFFFFF !important;
     border-color: #1677FF !important;
