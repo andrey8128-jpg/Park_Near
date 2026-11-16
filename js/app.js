@@ -3256,67 +3256,64 @@ if (document.readyState === 'loading') {
         }
         filterParkings();
     }
-
     function filterParkings() {
     var searchInput = document.getElementById('searchInput');
     var query = searchInput ? searchInput.value.trim().toLowerCase() : '';
     var resultsContainer = document.getElementById('searchResults');
     if (!resultsContainer) return;
-
-    var filterRegion = (nearbySearchFilter ? nearbySearchFilter.region : '') || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
-    var filterCity = (nearbySearchFilter ? nearbySearchFilter.city : '') || (mapCity ? mapCity.city : '') || userCityPrefs.city || '';
-    var parkings = Object.entries(parkingDataCache).map(function(entry) {
-        return { id: entry[0], ...entry[1] };
+        var filterRegion = (nearbySearchFilter ? nearbySearchFilter.region : '') || (mapCity ? mapCity.region : '') || userCityPrefs.region || '';
+        var filterCity = (nearbySearchFilter ? nearbySearchFilter.city : '') || (mapCity ? mapCity.city : '') || userCityPrefs.city || currentCity || '';
+        var parkings = Object.entries(parkingDataCache).map(function(entry) {
+    return { id: entry[0], ...entry[1] };
+});
+        var hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat != null && nearbySearchFilter.lng != null;
+if (filterCity) {
+    var normalizedFilterCity = normalizeCity(filterCity);
+    parkings = parkings.filter(function(p) {
+        return normalizeCity(getParkingCity(p)) === normalizedFilterCity;
     });
-    var hasNearbyFilter = nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng;
-
-    if (!hasNearbyFilter) {
-        var cityFilter = mapCity ? mapCity.city.toLowerCase() : (userCityPrefs.city ? userCityPrefs.city.toLowerCase() : '');
-        if (cityFilter) {
-            parkings = parkings.filter(function(p) {
-                var pCity = (p.city || '').toLowerCase();
-                var pAddr = (p.address || '').toLowerCase();
-                var pName = (p.name || '').toLowerCase();
-                return pCity.indexOf(cityFilter) !== -1 || pAddr.indexOf(cityFilter) !== -1 || pName.indexOf(cityFilter) !== -1;
-            });
-        }
-    }
-
-    if (filterRegion) {
+}
+if (filterRegion) {
+    var normalizedFilterRegion = normalizeCity(filterRegion);
+    parkings = parkings.filter(function(p) {
+        return normalizeCity(p.region) === normalizedFilterRegion;
+    });
+}
+   if (query) {
+    var normalizedQuery = normalizeStreet(query);
+    parkings = parkings.filter(function(p) {
+        var searchable = [
+            p.name,
+            p.address,
+            p.street,
+            p.addressStreet,
+            p.houseNumber,
+            p.house
+        ].map(function(value) {
+            return normalizeStreet(value);
+        });
+        return searchable.some(function(value) {
+            return value.includes(normalizedQuery);
+        });
+    });
+}
+   if (hasNearbyFilter) {
+    var lat = Number(nearbySearchFilter.lat);
+    var lng = Number(nearbySearchFilter.lng);
+    var radius = Number(nearbySearchFilter.radius);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius) || radius <= 0) {
+        parkings = [];
+    } else {
         parkings = parkings.filter(function(p) {
-            return (p.region && p.region.toLowerCase().indexOf(filterRegion.toLowerCase()) !== -1) ||
-                   (p.address && p.address.toLowerCase().indexOf(filterRegion.toLowerCase()) !== -1) ||
-                   (p.name && p.name.toLowerCase().indexOf(filterRegion.toLowerCase()) !== -1);
+            if (p.lat == null || p.lng == null || p.lat === '' || p.lng === '') return false;
+            var parkingLat = Number(p.lat);
+            var parkingLng = Number(p.lng);
+            if (!Number.isFinite(parkingLat) || !Number.isFinite(parkingLng)) return false;
+            var dist = getDistanceInMeters(lat, lng, parkingLat, parkingLng);
+            return Number.isFinite(dist) && dist <= radius;
         });
     }
-
-    if (filterCity) {
-        parkings = parkings.filter(function(p) {
-            return (p.city && p.city.toLowerCase().indexOf(filterCity.toLowerCase()) !== -1) ||
-                   (p.address && p.address.toLowerCase().indexOf(filterCity.toLowerCase()) !== -1) ||
-                   (p.name && p.name.toLowerCase().indexOf(filterCity.toLowerCase()) !== -1);
-        });
-    }
-
-    if (query) {
-        parkings = parkings.filter(function(p) {
-            return (p.name && p.name.toLowerCase().indexOf(query) !== -1) ||
-                   (p.address && p.address.toLowerCase().indexOf(query) !== -1) ||
-                   (p.street && p.street.toLowerCase().indexOf(query) !== -1) ||
-                   (p.houseNumber && p.houseNumber.toLowerCase().indexOf(query) !== -1);
-        });
-    }
-
-    if (nearbySearchFilter && nearbySearchFilter.lat && nearbySearchFilter.lng) {
-        var lat = nearbySearchFilter.lat;
-        var lng = nearbySearchFilter.lng;
-        var radius = nearbySearchFilter.radius;
-        parkings = parkings.filter(function(p) {
-            var dist = getDistanceInMeters(lat, lng, p.lat, p.lng);
-            return dist <= radius;
-        });
-    }
-
+}
     var freeOnlyCheck = document.getElementById('showWithFreeOnly');
     var showFreeOnly = freeOnlyCheck ? freeOnlyCheck.checked : false;
     if (showFreeOnly) {
@@ -3324,7 +3321,6 @@ if (document.readyState === 'loading') {
             return (p.totalSpots - (p.occupiedSpots || 0)) > 0;
         });
     }
-
     var sortSelect = document.getElementById('sortSelect');
     var sortBy = sortSelect ? sortSelect.value : 'name';
     switch (sortBy) {
@@ -3347,7 +3343,6 @@ if (document.readyState === 'loading') {
                 return (a.name || '').localeCompare(b.name || '');
             });
     }
-
     var html = '';
     if (parkings.length === 0) {
         html = '<div class="empty-state"><p>Ничего не найдено' + (filterCity ? ' в ' + filterCity : '') + '</p>' +
