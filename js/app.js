@@ -1262,7 +1262,7 @@ function checkPolygonSize(coordinates) {
 } 
 
 // ===================== ЦЕНТРАЛЬНОЕ МОДАЛЬНОЕ ОКНО =====================
-async function openCenterSheet(parkingId, data) {
+window.openCenterSheet = async function(parkingId, data) {
     const sheet = document.getElementById('centerSheet');
     const content = document.getElementById('centerSheetContent');
     if (!sheet || !content || !data) {
