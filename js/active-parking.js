@@ -214,6 +214,15 @@ function init() {
             }
         });
     }
-    renderBanner();
+        renderBanner();
     updateParkingButtonHighlight();
 }
+
+// Запускаем восстановление активной парковки после загрузки страницы.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+    init();
+}
+
+})();
