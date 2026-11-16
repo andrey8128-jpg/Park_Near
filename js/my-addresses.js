@@ -1,4 +1,3 @@
-
 (function () {
     const API = () => `${window.PARKNEAR_API_URL}/api`;
     const token = () => localStorage.getItem('parkNearSessionToken');
@@ -76,6 +75,12 @@
         await renderAddresses();
     };
     async function addAddress() {
+    try {
+        const addresses = await getAddresses();
+        if (addresses.length >= 3) {
+            alert('Можно сохранить не более 3 адресов.');
+            return;
+        }
         const name = prompt('Название адреса, например: Дом или Работа');
         if (!name || !name.trim()) return;
         const addressText = prompt('Введите полный адрес');
@@ -84,30 +89,41 @@
             alert('Карты ещё загружаются. Попробуйте немного позже.');
             return;
         }
+        let result;
         try {
-            const result = await ymaps.geocode(addressText.trim(), { results: 1 });
-            const geoObject = result.geoObjects.get(0);
-            if (!geoObject) {
-                alert('Адрес не найден. Проверьте правильность написания.');
-                return;
-            }
-            const coords = geoObject.geometry.getCoordinates();
-            const addresses = await getAddresses();
-            addresses.push({
-                id: `address_${Date.now()}`,
-                name: name.trim(),
-                address: geoObject.getAddressLine(),
-                lat: Number(coords[0]),
-                lng: Number(coords[1]),
-                createdAt: new Date().toISOString()
-            });
-            await saveAddresses(addresses);
-            await renderAddresses();
+            result = await ymaps.geocode(addressText.trim(), { results: 1 });
         } catch (error) {
-            console.error('Ошибка добавления адреса:', error);
-            alert(error.message || 'Не удалось сохранить адрес');
+            console.error('Ошибка поиска адреса в Яндекс.Картах:', error);
+            alert('Не удалось найти адрес через Яндекс.Карты. Проверьте подключение и попробуйте ещё раз.');
+            return;
         }
+        const geoObject = result.geoObjects.get(0);
+        if (!geoObject) {
+            alert('Адрес не найден. Проверьте правильность написания.');
+            return;
+        }
+        const coords = geoObject.geometry.getCoordinates();
+        const newAddress = {
+            id: `address_${Date.now()}`,
+            name: name.trim(),
+            address: geoObject.getAddressLine(),
+            lat: Number(coords[0]),
+            lng: Number(coords[1]),
+            createdAt: new Date().toISOString()
+        };
+        if (!Number.isFinite(newAddress.lat) || !Number.isFinite(newAddress.lng)) {
+            alert('Не удалось определить координаты адреса.');
+            return;
+        }
+        addresses.push(newAddress);
+        await saveAddresses(addresses);
+        await renderAddresses();
+        alert('Адрес успешно сохранён!');
+    } catch (error) {
+        console.error('Ошибка добавления адреса:', error);
+        alert(error.message || 'Не удалось сохранить адрес');
     }
+}
     async function deleteAddress(id) {
         if (!confirm('Удалить этот адрес?')) return;
         try {
