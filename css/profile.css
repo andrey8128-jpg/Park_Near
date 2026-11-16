@@ -88,3 +88,122 @@
         transform: none;
     }
 }
+
+.pn-address-entry {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 15px;
+    margin: 18px 0;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    text-align: left;
+    cursor: pointer;
+}
+.pn-address-entry-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: var(--bg-primary);
+    font-size: 23px;
+}
+.pn-address-entry-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+}
+.pn-address-entry-info strong {
+    font-size: 16px;
+}
+.pn-address-entry-info small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.pn-address-entry-arrow {
+    color: var(--text-secondary);
+    font-size: 25px;
+}
+.pn-addresses {
+    padding: 16px;
+    color: var(--text-primary);
+}
+.pn-addresses-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+.pn-addresses-header h2 {
+    margin: 0;
+}
+.pn-addresses-header button,
+.pn-address-delete {
+    color: var(--accent);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+.pn-address-add,
+.pn-address-nearby {
+    width: 100%;
+    padding: 14px;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    cursor: pointer;
+}
+.pn-address-add {
+    margin-bottom: 18px;
+    color: var(--accent);
+    font-weight: 600;
+}
+.pn-address-card {
+    padding: 16px;
+    margin-bottom: 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+}
+.pn-address-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.pn-address-card-head p,
+.pn-address-parking small {
+    display: block;
+    margin: 5px 0 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+.pn-address-parking {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 12px 4px;
+    color: var(--text-primary);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    cursor: pointer;
+}
+.pn-address-empty {
+    padding: 20px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+.pn-address-results {
+    margin-top: 12px;
+}
