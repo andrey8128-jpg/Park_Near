@@ -929,8 +929,12 @@ app.patch('/api/users/me/profile', requireAuth, async (req, res) => {
             typeof address !== 'object' ||
             typeof address.name !== 'string' ||
             typeof address.address !== 'string' ||
-            !Number.isFinite(Number(address.lat)) ||
-            !Number.isFinite(Number(address.lng))
+           !Number.isFinite(Number(address.lat)) ||
+            !Number.isFinite(Number(address.lng)) ||
+            Number(address.lat) < -90 ||
+            Number(address.lat) > 90 ||
+            Number(address.lng) < -180 ||
+            Number(address.lng) > 180
         ) {
             return res.status(400).json({
                 success: false,
