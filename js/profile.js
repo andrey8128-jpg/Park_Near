@@ -176,6 +176,14 @@ function renderProfile(content) {
                         </span>
                         <span class="pn-profile-row-arrow">›</span>
                     </button>
+                    <button class="pn-profile-row" onclick="openMyAddresses()">
+    <span class="pn-profile-row-icon">📍</span>
+    <span class="pn-profile-row-content">
+        <strong>Мои адреса</strong>
+        <small>Сохранённые места и парковки поблизости</small>
+    </span>
+    <span class="pn-profile-row-arrow">›</span>
+</button>
                     <button class="pn-profile-row" onclick="toggleProfileSection('history')">
                         <span class="pn-profile-row-icon">🕘</span>
                         <span class="pn-profile-row-content">
