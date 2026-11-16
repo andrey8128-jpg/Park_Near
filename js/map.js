@@ -730,12 +730,13 @@ function loadAllParkings(city = '', force = false) {
             })
             : entries;
         const visibleEntries = matching;
-if (selectedCity && matching.length === 0) {
-    console.warn('Для выбранного города парковки не найдены:', {
+        if (selectedCity && matching.length === 0) {
+           console.warn('Для выбранного города парковки не найдены:', {
         selectedCity,
         parkingCities: [...new Set(entries.map(([, parking]) => parking.city).filter(Boolean))]
     });
-        let markerCount = 0;
+}
+let markerCount = 0;
         visibleEntries.forEach(([id, parking]) => {
             try {
                 addMarkerToMap(id, parking);
