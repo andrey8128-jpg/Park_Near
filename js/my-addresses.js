@@ -75,53 +75,55 @@
         await renderAddresses();
     };
     async function addAddress() {
+    const name = prompt('Название адреса, например: Дом или Работа');
+    if (!name || !name.trim()) return;
+    const addressText = prompt('Введите полный адрес');
+    if (!addressText || !addressText.trim()) return;
     try {
-        const addresses = await getAddresses();
-        if (addresses.length >= 3) {
-            alert('Можно сохранить не более 3 адресов.');
-            return;
+        if (!window.ymaps) {
+            throw new Error('API Яндекс.Карт не загружен. Обновите страницу.');
         }
-        const name = prompt('Название адреса, например: Дом или Работа');
-        if (!name || !name.trim()) return;
-        const addressText = prompt('Введите полный адрес');
-        if (!addressText || !addressText.trim()) return;
-        if (!window.ymaps || !ymaps.geocode) {
-            alert('Карты ещё загружаются. Попробуйте немного позже.');
-            return;
+        await new Promise((resolve, reject) => {
+            try {
+                ymaps.ready(resolve);
+            } catch (error) {
+                reject(error);
+            }
+        });
+        if (typeof ymaps.geocode !== 'function') {
+            throw new Error('Геокодер Яндекс.Карт недоступен.');
         }
-        let result;
-        try {
-            result = await ymaps.geocode(addressText.trim(), { results: 1 });
-        } catch (error) {
-            console.error('Ошибка поиска адреса в Яндекс.Картах:', error);
-            alert('Не удалось найти адрес через Яндекс.Карты. Проверьте подключение и попробуйте ещё раз.');
-            return;
-        }
+        const result = await ymaps.geocode(addressText.trim(), { results: 1 });
         const geoObject = result.geoObjects.get(0);
         if (!geoObject) {
             alert('Адрес не найден. Проверьте правильность написания.');
             return;
         }
         const coords = geoObject.geometry.getCoordinates();
-        const newAddress = {
+        const lat = Number(coords[0]);
+        const lng = Number(coords[1]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            throw new Error('Яндекс.Карты не вернули координаты адреса.');
+        }
+        const addresses = await getAddresses();
+        if (addresses.length >= 3) {
+            alert('Можно сохранить не более 3 адресов.');
+            return;
+        }
+        addresses.push({
             id: `address_${Date.now()}`,
             name: name.trim(),
             address: geoObject.getAddressLine(),
-            lat: Number(coords[0]),
-            lng: Number(coords[1]),
+            lat,
+            lng,
             createdAt: new Date().toISOString()
-        };
-        if (!Number.isFinite(newAddress.lat) || !Number.isFinite(newAddress.lng)) {
-            alert('Не удалось определить координаты адреса.');
-            return;
-        }
-        addresses.push(newAddress);
+        });
         await saveAddresses(addresses);
         await renderAddresses();
         alert('Адрес успешно сохранён!');
     } catch (error) {
         console.error('Ошибка добавления адреса:', error);
-        alert(error.message || 'Не удалось сохранить адрес');
+        alert(`Не удалось добавить адрес: ${error.message || 'Неизвестная ошибка'}`);
     }
 }
     async function deleteAddress(id) {
