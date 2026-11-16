@@ -23,6 +23,33 @@ async function favoritesRequest(path = '', method = 'GET') {
     }
     return result;
 }
+async function syncOfflineFavoritesQueue() {
+    if (!navigator.onLine || !currentUser?.id || !window.ParkNearOffline || window._favoritesSyncing) return;
+    window._favoritesSyncing = true;
+    try {
+        const queue = await ParkNearOffline.getQueue();
+        for (const item of queue) {
+            if (!['favorite_add','favorite_remove'].includes(item.type)) continue;
+            const parkingId = item.payload?.parkingId;
+            if (!parkingId) continue;
+            try {
+                await favoritesRequest(
+                    `/${encodeURIComponent(parkingId)}`,
+                    item.type === 'favorite_add' ? 'POST' : 'DELETE'
+                );
+                await ParkNearOffline.removeFromQueue(item.id);
+            } catch (error) {
+                console.warn('Ошибка синхронизации избранного:', error);
+                break;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка обработки очереди избранного:', error);
+    } finally {
+        window._favoritesSyncing = false;
+    }
+}
+window.addEventListener('online', syncOfflineFavoritesQueue);
 async function isFavorite(parkingId) {
     if (!currentUser?.id || !parkingId) return false;
 
@@ -561,6 +588,7 @@ function renderList() {
     async function loadFavorites() {
         const cacheKey = `favorites_${String(currentUser.id)}`;
         try {
+            await syncOfflineFavoritesQueue();
             const result = await favoritesRequest();
             const serverFavorites = Array.isArray(result.favorites)
                 ? result.favorites
