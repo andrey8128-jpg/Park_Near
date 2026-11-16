@@ -476,14 +476,15 @@ function addMarkerToMap(id, data) {
     // Создаём маркер.
     const placemark = new ymaps.Placemark(
         [centerLat, centerLng],
-        {
+    {
             hintContent: data.name || 'Парковка',
             name: data.name || 'Парковка',
             freeSpots: freeSpots,
             totalSpots: totalSpots,
             occupiedSpots: occupiedSpots,
             parkingId: id,
-            polygon: polygon
+            polygon: polygon,
+            iconContent: String(freeSpots)
         },
         {
             preset: 'islands#blueIcon',
