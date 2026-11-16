@@ -703,11 +703,6 @@ function loadAllParkings(city = '', force = false) {
     const selectedCity = String(
         city || currentCity || ''
     ).trim();
-    const normalize = value => String(value || '')
-        .trim()
-        .toLowerCase()
-        .replace(/ё/g, 'е')
-        .replace(/\s+/g, ' ');
     function renderMarkers(data) {
         // Если карта ещё не готова, сохраняем данные.
         // Маркеры будут добавлены после повторного вызова функции.
@@ -720,15 +715,10 @@ function loadAllParkings(city = '', force = false) {
         clearAllMarkers();
         const entries = Object.entries(data || {});
         const matching = selectedCity
-            ? entries.filter(([id, parking]) => {
-                const parkingCity = normalize(
-                    parking.city ||
-                    parking.addressCity ||
-                    parking.regionCity
-                );
-                return parkingCity === normalize(selectedCity);
-            })
-            : entries;
+    ? entries.filter(([, parking]) => {
+        return normalizeCity(getParkingCity(parking)) === normalizeCity(selectedCity);
+    })
+    : entries;
         const visibleEntries = matching;
         if (selectedCity && matching.length === 0) {
            console.warn('Для выбранного города парковки не найдены:', {
@@ -932,15 +922,19 @@ let markerCount = 0;
   function showParkingsForCity(city) {
     if (!map || !city) return;
     clearAllMarkers();
-    const normalizedCity = city.trim().toLowerCase();
+    const normalizedCity = normalizeCity(city);
+    let markerCount = 0;
     Object.entries(parkingDataCache).forEach(([id, parking]) => {
-        const parkingCity = normalizeCity(getParkingCity(parking))
-        if (parkingCity === normalizedCity) {
+        if (normalizeCity(getParkingCity(parking)) === normalizedCity) {
             addMarkerToMap(id, parking);
+            markerCount++;
         }
     });
     updateTotalFreeCircle();
-    console.log(`🏙️ Показаны парковки города "${city}":`, Object.values(parkingDataCache).filter(p => String(p.city || '').trim().toLowerCase() === normalizedCity).length);
+    console.log('Показаны парковки выбранного города:', {
+        city,
+        markers: markerCount
+    });
 }
  function loadAllParkingsNoFilter() {
     return loadAllParkings('', true);
