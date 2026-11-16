@@ -872,11 +872,11 @@ async function initAuth() {
             error => {
                 reject(error);
             },
-            {
-                enableHighAccuracy: true,
-                timeout: 7000,
-                maximumAge: 60000
-            }
+              {
+                 enableHighAccuracy: true,
+                 timeout: 15000,
+                 maximumAge: 0
+             }
         );
     });
 }
