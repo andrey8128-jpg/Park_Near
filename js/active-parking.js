@@ -4,16 +4,40 @@
     const STORAGE_KEY = 'parknear_active_parking';
     let timerInterval = null;
     let leaving = false;
+function normalizeStartedAt(value) {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+     let timestamp;
+    if (typeof value === 'number') {
+        timestamp = value;
+    } else {
+        const numericValue = Number(value);
+        timestamp = Number.isFinite(numericValue)
+            ? numericValue
+            : Date.parse(value);
+    }
+    if (!Number.isFinite(timestamp) || timestamp <= 0) {
+        return null;
+    }
+    // Переводим Unix timestamp из секунд в миллисекунды.
+    if (timestamp < 1e12) {
+        timestamp *= 1000;
+    }
+    return Number.isFinite(new Date(timestamp).getTime())
+        ? timestamp
+        : null;
+}
     function getSavedParking() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (!raw) return null;
             const session = JSON.parse(raw);
             if (
-                !session ||
-                !session.parkingId ||
-                !Number.isFinite(Number(session.startedAt))
-            ) {
+               !session ||
+               !session.parkingId ||
+               !normalizeStartedAt(session.startedAt)
+)            {
                 localStorage.removeItem(STORAGE_KEY);
                 return null;
             }
@@ -30,18 +54,22 @@
             console.error('Не удалось сохранить активную стоянку:', error);
         }
     }
-    function formatDuration(startedAt) {
-        const elapsed = Math.max(
-            0,
-            Math.floor((Date.now() - Number(startedAt)) / 1000)
-        );
-        const hours = Math.floor(elapsed / 3600);
-        const minutes = Math.floor((elapsed % 3600) / 60);
-        const seconds = elapsed % 60;
-        return [hours, minutes, seconds]
-            .map(value => String(value).padStart(2, '0'))
-            .join(':');
+function formatDuration(startedAt) {
+    const normalizedStartedAt = normalizeStartedAt(startedAt);
+    if (!normalizedStartedAt) {
+        return '00:00:00';
     }
+    const elapsed = Math.max(
+        0,
+        Math.floor((Date.now() - normalizedStartedAt) / 1000)
+    );
+    const hours = Math.floor(elapsed / 3600);
+    const minutes = Math.floor((elapsed % 3600) / 60);
+    const seconds = elapsed % 60;
+    return [hours, minutes, seconds]
+        .map(value => String(value).padStart(2, '0'))
+        .join(':');
+}
     function renderBanner() {
         const banner = document.getElementById('activeParkingBanner');
         const nameEl = document.getElementById('activeParkingName');
@@ -71,15 +99,23 @@
         }
     }
     // Вызывается после успешного создания парковочной сессии.
-    window.setLocalActiveParking = function (parkingId, parkingName, startedAt) {
-        saveParking({
-            parkingId: String(parkingId),
-            parkingName: parkingName || 'Парковка',
-            startedAt: Number(startedAt) || Date.now()
-        });
-        renderBanner();
-        updateParkingButtonHighlight();
-    };
+window.setLocalActiveParking = function (parkingId, parkingName, startedAt) {
+    const normalizedStartedAt = normalizeStartedAt(startedAt);
+    if (!normalizedStartedAt) {
+        console.error(
+            'Не удалось определить время начала парковки:',
+            startedAt
+        );
+        return;
+    }
+    saveParking({
+        parkingId: String(parkingId),
+        parkingName: parkingName || 'Парковка',
+        startedAt: normalizedStartedAt
+    });
+    renderBanner();
+    updateParkingButtonHighlight();
+};
     // Вызывается после успешного завершения парковочной сессии.
     window.clearLocalActiveParking = function () {
         try {
