@@ -156,26 +156,32 @@ function getVisibleParkings() {
 // ===================== ОБНОВЛЕНИЕ КРУЖКА С ОБЩИМ КОЛИЧЕСТВОМ =====================
 function updateTotalFreeCircle() {
     const allParkings = filterParkingsByCurrentCity(Object.values(parkingDataCache));
-    const totalFree = allParkings.reduce((sum, parking) => {
-        if (!parking || typeof parking !== 'object') return sum;
-        if (parking.totalSpots == null || parking.totalSpots === '') return sum;
+    let totalSpots = 0;
+    let totalOccupied = 0;
+    let totalFree = 0;
+    allParkings.forEach(parking => {
+        if (!parking || typeof parking !== 'object') return;
+        if (parking.totalSpots == null || parking.totalSpots === '') return;
         const total = Number(parking.totalSpots);
-        if (!Number.isFinite(total) || total <= 0) return sum;
+        if (!Number.isFinite(total) || total <= 0) return;
         let occupied = 0;
         if (parking.occupiedSpots != null && parking.occupiedSpots !== '') {
             occupied = Number(parking.occupiedSpots);
-            if (!Number.isFinite(occupied)) return sum;
+            if (!Number.isFinite(occupied)) return;
         }
         occupied = Math.min(Math.max(occupied, 0), total);
-        return sum + Math.max(0, total - occupied);
-    }, 0);
+        totalSpots += total;
+        totalOccupied += occupied;
+        totalFree += total - occupied;
+    });
     const countEl = document.getElementById('totalFreeCount');
     if (countEl) countEl.textContent = totalFree;
     const circle = document.getElementById('totalFreeCircle');
     if (circle) {
-        if (totalFree === 0) {
+        const occupancyRate = totalSpots > 0 ? totalOccupied / totalSpots : 0;
+        if (totalSpots === 0 || occupancyRate >= 0.8) {
             circle.style.backgroundColor = 'var(--red)';
-        } else if (totalFree < 10) {
+        } else if (occupancyRate >= 0.5) {
             circle.style.backgroundColor = 'var(--orange)';
         } else {
             circle.style.backgroundColor = 'var(--accent)';
