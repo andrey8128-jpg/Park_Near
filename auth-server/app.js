@@ -2087,56 +2087,50 @@ app.post(
                     .json(savedResponse.body);
             }
         }
+               // Резервируем последовательность ID, чтобы параллельные заявки
+        // на одну улицу не получили одинаковый номер.
+        await client.query(
+            'SELECT pg_advisory_xact_lock(hashtext($1))',
+            [`parking-id:${baseKey}`]
+        );
         let parkingId = null;
-
         for (let number = 1; number <= 50; number++) {
             const candidate = `${baseKey}(${number})`;
-
-            const result = await client.query(
-                `INSERT INTO parkings (id, data)
-                 VALUES ($1, $2::jsonb)
-                 ON CONFLICT (id) DO NOTHING
-                 RETURNING id`,
-                [candidate, JSON.stringify(parkingData)]
+            const existing = await client.query(
+                `SELECT 1
+                 FROM parkings
+                 WHERE id = $1
+                 UNION ALL
+                 SELECT 1
+                 FROM parking_moderation
+                 WHERE parking_id = $1
+                   AND status = 'pending'
+                 LIMIT 1`,
+                [candidate]
             );
-
-            if (result.rowCount > 0) {
-                parkingId = candidate;
-                break;
-            }
+            if (existing.rowCount > 0) continue;
+            const moderationId = crypto.randomUUID();
+            await client.query(
+                `INSERT INTO parking_moderation
+                    (id, parking_id, user_id, action, proposed_data, status)
+                 VALUES ($1, $2, $3, 'create', $4::jsonb, 'pending')`,
+                [
+                    moderationId,
+                    candidate,
+                    user.id,
+                    JSON.stringify(parkingData)
+                ]
+            );
+            parkingId = candidate;
+            break;
         }
         if (!parkingId) {
             await client.query('ROLLBACK');
-
             return res.status(409).json({
                 success: false,
                 error: 'Не удалось подобрать свободный идентификатор парковки'
             });
         }
-        await client.query(
-            `UPDATE users
-             SET data = jsonb_set(
-                 COALESCE(data, '{}'::jsonb),
-                 '{stats,parkingsCreated}',
-                 to_jsonb(
-                     COALESCE(
-                         (data->'stats'->>'parkingsCreated')::integer,
-                         0
-                     ) + 1
-                 ),
-                 true
-             )
-             WHERE id = $1`,
-            [user.id]
-        );
-                const responseBody = {
-            success: true,
-            id: parkingId,
-            parking: {
-                ...parkingData,
-                id: parkingId
-            }
-        };
         // Запоминаем результат в той же транзакции,
         // что и создание парковки
         if (operationId) {
