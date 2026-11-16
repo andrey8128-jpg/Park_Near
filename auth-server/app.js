@@ -916,13 +916,29 @@ app.patch('/api/users/me/profile', requireAuth, async (req, res) => {
     const addresses = updates.homeAddresses;
     const isArray = Array.isArray(addresses);
     const isObject = addresses !== null && typeof addresses === 'object' && !isArray;
-    const count = isArray ? addresses.length : isObject ? Object.keys(addresses).length : -1;
-    if (count < 0 || count > 3) {
+    const addressList = isArray ? addresses : isObject ? Object.values(addresses) : null;
+    if (!addressList || addressList.length > 3) {
         return res.status(400).json({
             success: false,
-            error: 'Некорректный список домашних адресов. Разрешено не более 3 адресов.'
+            error: 'Некорректный список адресов. Разрешено не более 3 адресов.'
         });
     }
+    for (const address of addressList) {
+        if (
+            !address ||
+            typeof address !== 'object' ||
+            typeof address.name !== 'string' ||
+            typeof address.address !== 'string' ||
+            !Number.isFinite(Number(address.lat)) ||
+            !Number.isFinite(Number(address.lng))
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Некорректные данные адреса.'
+            });
+        }
+    }
+}
         if (updates.nickname !== undefined) {
             updates.nickname = updates.nickname.trim();
         }
