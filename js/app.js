@@ -3509,14 +3509,15 @@ function normalizeStreet(value) {
         .replace(/ё/g, 'е')
         .replace(/\s+/g, ' ');
 }
-
 function getParkingCity(parking) {
-    return parking?.city ||
-           parking?.addressCity ||
-           parking?.regionCity ||
-           '';
+    if (!parking || typeof parking !== 'object') return '';
+    const candidates = [parking.city, parking.addressCity, parking.regionCity];
+    for (const value of candidates) {
+        const city = String(value || '').trim();
+        if (city) return city;
+    }
+    return '';
 }
-
 function getParkingStreet(parking) {
     return parking?.street ||
            parking?.addressStreet ||
