@@ -170,18 +170,50 @@ window.setLocalActiveParking = function (parkingId, parkingName, startedAt) {
             }
         }
     }
-    function init() {
-        const button = document.getElementById('activeParkingLeaveBtn');
-
-        if (button) {
-            button.addEventListener('click', handleLeave);
-        }
-        renderBanner();
-        updateParkingButtonHighlight();
+    
+function init() {
+    const button = document.getElementById('activeParkingLeaveBtn');
+    const bannerInfo = document.querySelector('#activeParkingBanner .active-parking-info');
+    if (button) {
+        button.addEventListener('click', handleLeave);
     }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init, { once: true });
-    } else {
-        init();
+    if (bannerInfo) {
+        bannerInfo.style.cursor = 'pointer';
+        bannerInfo.setAttribute('role', 'button');
+        bannerInfo.setAttribute('tabindex', '0');
+        bannerInfo.setAttribute('aria-label', 'Открыть активную парковку');
+        const openActiveParking = async function () {
+            const session = getSavedParking();
+            if (!session) {
+                alert('Активная парковка не найдена');
+                return;
+            }
+            try {
+                const response = await fetch(
+                    `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(session.parkingId)}`,
+                    { cache: 'no-store' }
+                );
+                const result = await response.json();
+                if (!response.ok || !result.success || !result.parking) {
+                    throw new Error(result.error || 'Не удалось загрузить парковку');
+                }
+                if (typeof window.openCenterSheet !== 'function') {
+                    throw new Error('Не найдена функция открытия карточки парковки');
+                }
+                window.openCenterSheet(session.parkingId, result.parking);
+            } catch (error) {
+                console.error('Ошибка открытия активной парковки:', error);
+                alert(error.message || 'Не удалось открыть активную парковку');
+            }
+        };
+        bannerInfo.addEventListener('click', openActiveParking);
+        bannerInfo.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openActiveParking();
+            }
+        });
     }
-})();
+    renderBanner();
+    updateParkingButtonHighlight();
+}
