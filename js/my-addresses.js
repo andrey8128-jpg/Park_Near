@@ -16,7 +16,12 @@ let addressGeocodeRequest = 0;
             },
             cache: 'no-store'
         });
-        const result = await response.json();
+        let result;
+          try {
+         result = await response.json();
+       } catch (error) {
+          throw new Error(`Сервер вернул некорректный ответ (HTTP ${response.status})`);
+        }
         if (!response.ok || !result.success) {
             throw new Error(result.error || `Ошибка HTTP ${response.status}`);
         }
@@ -83,10 +88,10 @@ let addressGeocodeRequest = 0;
                 <button type="button" class="pn-address-add" id="pnAddressAdd">＋ Добавить адрес</button>
                 <div id="pnAddressesList">Загрузка адресов...</div>
             </div>`;
-        document.getElementById('pnAddressAdd').addEventListener('click', openAddressPicker);
-document.getElementById('pnAddressPickerClose').addEventListener('click', closeAddressPicker);
-document.getElementById('pnAddressPickerCancel').addEventListener('click', closeAddressPicker);
-document.getElementById('pnAddressPickerSave').addEventListener('click', saveSelectedAddress);
+        document.getElementById('pnAddressAdd').onclick = openAddressPicker;
+        document.getElementById('pnAddressPickerClose').onclick = closeAddressPicker;
+        document.getElementById('pnAddressPickerCancel').onclick = closeAddressPicker;
+        document.getElementById('pnAddressPickerSave').onclick = saveSelectedAddress;
         await renderAddresses();
     };
     async function openAddressPicker() {
