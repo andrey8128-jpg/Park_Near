@@ -1,6 +1,11 @@
 (function () {
     const API = () => `${window.PARKNEAR_API_URL}/api`;
     const token = () => localStorage.getItem('parkNearSessionToken');
+    let addressSelectionMap = null;
+let addressSelectionMarker = null;
+let addressSelectionCoords = null;
+let addressSelectionResolvedAddress = '';
+let addressGeocodeRequest = 0;
     async function request(path, options = {}) {
         const response = await fetch(`${API()}${path}`, {
             ...options,
@@ -32,11 +37,18 @@
         return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
     async function getAddresses() {
-        const result = await request('/users/me/profile');
-        return Array.isArray(result.profile?.homeAddresses)
-            ? result.profile.homeAddresses
-            : [];
+    const result = await request('/users/me/profile');
+    const saved = result.profile?.homeAddresses;
+    if (Array.isArray(saved)) return saved;
+    if (saved && typeof saved === 'object') {
+        return Object.entries(saved).map(([id, item]) => ({
+            ...item,
+            id: item.id || id,
+            name: item.name || item.label || 'Место'
+        }));
     }
+    return [];
+}
     async function saveAddresses(addresses) {
         await request('/users/me/profile', {
             method: 'PATCH',
@@ -71,60 +83,160 @@
                 <button type="button" class="pn-address-add" id="pnAddressAdd">＋ Добавить адрес</button>
                 <div id="pnAddressesList">Загрузка адресов...</div>
             </div>`;
-        document.getElementById('pnAddressAdd').addEventListener('click', addAddress);
+        document.getElementById('pnAddressAdd').addEventListener('click', openAddressPicker);
+document.getElementById('pnAddressPickerClose').addEventListener('click', closeAddressPicker);
+document.getElementById('pnAddressPickerCancel').addEventListener('click', closeAddressPicker);
+document.getElementById('pnAddressPickerSave').addEventListener('click', saveSelectedAddress);
         await renderAddresses();
     };
-    async function addAddress() {
-    const name = prompt('Название адреса, например: Дом или Работа');
-    if (!name || !name.trim()) return;
-    const addressText = prompt('Введите полный адрес');
-    if (!addressText || !addressText.trim()) return;
+    async function openAddressPicker() {
     try {
-        if (!window.ymaps) {
-            throw new Error('API Яндекс.Карт не загружен. Обновите страницу.');
-        }
-        await new Promise((resolve, reject) => {
-            try {
-                ymaps.ready(resolve);
-            } catch (error) {
-                reject(error);
-            }
-        });
-        if (typeof ymaps.geocode !== 'function') {
-            throw new Error('Геокодер Яндекс.Карт недоступен.');
-        }
-        const result = await ymaps.geocode(addressText.trim(), { results: 1 });
-        const geoObject = result.geoObjects.get(0);
-        if (!geoObject) {
-            alert('Адрес не найден. Проверьте правильность написания.');
-            return;
-        }
-        const coords = geoObject.geometry.getCoordinates();
-        const lat = Number(coords[0]);
-        const lng = Number(coords[1]);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-            throw new Error('Яндекс.Карты не вернули координаты адреса.');
-        }
         const addresses = await getAddresses();
         if (addresses.length >= 3) {
             alert('Можно сохранить не более 3 адресов.');
             return;
         }
-        addresses.push({
+        if (!window.ymaps) {
+            throw new Error('Яндекс.Карты не загружены.');
+        }
+        await new Promise(resolve => ymaps.ready(resolve));
+        const overlay = document.getElementById('pnAddressPickerOverlay');
+        const nameInput = document.getElementById('pnAddressName');
+        const saveButton = document.getElementById('pnAddressPickerSave');
+        if (!overlay || !nameInput || !saveButton) {
+            throw new Error('Не найдено окно выбора адреса.');
+        }
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+        nameInput.value = '';
+        saveButton.disabled = true;
+        addressSelectionCoords = null;
+        addressSelectionResolvedAddress = '';
+        document.getElementById('pnAddressResolved').textContent = 'Выберите точку на карте';
+        document.getElementById('pnAddressCoords').textContent = 'Нажмите на нужное место';
+        let center = [55.7558, 37.6173];
+        if (typeof map !== 'undefined' && map) {
+            center = map.getCenter();
+        }
+        setTimeout(() => {
+            const mapElement = document.getElementById('pnAddressPickerMap');
+            if (!mapElement) return;
+            if (!addressSelectionMap) {
+                addressSelectionMap = new ymaps.Map('pnAddressPickerMap', {
+                    center,
+                    zoom: 16,
+                    controls: ['zoomControl']
+                });
+                addressSelectionMap.events.add('click', event => {
+                    selectAddressPoint(event.get('coords'));
+                });
+            } else {
+                addressSelectionMap.container.fitToViewport();
+                addressSelectionMap.setCenter(center, 16);
+            }
+            if (addressSelectionMarker) {
+                addressSelectionMap.geoObjects.remove(addressSelectionMarker);
+                addressSelectionMarker = null;
+            }
+            addressSelectionMap.container.fitToViewport();
+        }, 150);
+    } catch (error) {
+        console.error('Ошибка открытия выбора адреса:', error);
+        alert(error.message || 'Не удалось открыть карту.');
+    }
+}
+function selectAddressPoint(coords) {
+    if (!Array.isArray(coords) || coords.length < 2) return;
+    const lat = Number(coords[0]);
+    const lng = Number(coords[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    addressSelectionCoords = [lat, lng];
+    addressSelectionResolvedAddress = `Точка (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+    const saveButton = document.getElementById('pnAddressPickerSave');
+    saveButton.disabled = false;
+    document.getElementById('pnAddressResolved').textContent = 'Определяем адрес...';
+    document.getElementById('pnAddressCoords').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    if (addressSelectionMarker) {
+        addressSelectionMarker.geometry.setCoordinates(addressSelectionCoords);
+    } else {
+        addressSelectionMarker = new ymaps.Placemark(addressSelectionCoords, {
+            hintContent: 'Выбранное место',
+            balloonContent: 'Перетащите метку, чтобы изменить место'
+        }, {
+            preset: 'islands#redHomeIcon',
+            draggable: true
+        });
+        addressSelectionMap.geoObjects.add(addressSelectionMarker);
+        addressSelectionMarker.events.add('dragend', () => {
+            selectAddressPoint(addressSelectionMarker.geometry.getCoordinates());
+        });
+    }
+    const requestNumber = ++addressGeocodeRequest;
+    ymaps.geocode(addressSelectionCoords, { results: 1 })
+        .then(result => {
+            if (requestNumber !== addressGeocodeRequest) return;
+            const geoObject = result.geoObjects.get(0);
+            if (geoObject) {
+                addressSelectionResolvedAddress = geoObject.getAddressLine() || addressSelectionResolvedAddress;
+            }
+            document.getElementById('pnAddressResolved').textContent = addressSelectionResolvedAddress;
+        })
+        .catch(error => {
+            console.warn('Не удалось определить адрес по координатам:', error);
+            if (requestNumber === addressGeocodeRequest) {
+                document.getElementById('pnAddressResolved').textContent = 'Адрес не определён. Сохраним координаты.';
+            }
+        });
+}
+async function saveSelectedAddress() {
+    const name = document.getElementById('pnAddressName').value.trim();
+    if (!name) {
+        alert('Укажи название места, например Дом или Работа.');
+        return;
+    }
+    if (!addressSelectionCoords) {
+        alert('Сначала выбери точку на карте.');
+        return;
+    }
+    const button = document.getElementById('pnAddressPickerSave');
+    button.disabled = true;
+    button.textContent = 'Сохранение...';
+    try {
+        const addresses = await getAddresses();
+        if (addresses.length >= 3) {
+            alert('Можно сохранить не более 3 адресов.');
+            return;
+        }
+        const [lat, lng] = addressSelectionCoords;
+        const address = {
             id: `address_${Date.now()}`,
-            name: name.trim(),
-            address: geoObject.getAddressLine(),
+            name,
+            address: addressSelectionResolvedAddress || `Точка (${lat.toFixed(6)}, ${lng.toFixed(6)})`,
             lat,
             lng,
             createdAt: new Date().toISOString()
-        });
-        await saveAddresses(addresses);
+        };
+        await saveAddresses([...addresses, address]);
+        closeAddressPicker();
         await renderAddresses();
         alert('Адрес успешно сохранён!');
     } catch (error) {
-        console.error('Ошибка добавления адреса:', error);
-        alert(`Не удалось добавить адрес: ${error.message || 'Неизвестная ошибка'}`);
+        console.error('Ошибка сохранения адреса:', error);
+        alert(error.message || 'Не удалось сохранить адрес.');
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Сохранить адрес';
     }
+}
+function closeAddressPicker() {
+    const overlay = document.getElementById('pnAddressPickerOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+    addressSelectionCoords = null;
+    addressSelectionResolvedAddress = '';
+    addressGeocodeRequest++;
 }
     async function deleteAddress(id) {
         if (!confirm('Удалить этот адрес?')) return;
