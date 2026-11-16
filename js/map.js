@@ -729,24 +729,12 @@ function loadAllParkings(city = '', force = false) {
                 return parkingCity === normalize(selectedCity);
             })
             : entries;
-        // Если совпадений нет, временно показываем все парковки.
-        const visibleEntries =
-            selectedCity && matching.length === 0
-                ? entries
-                : matching;
-        if (selectedCity && matching.length === 0 && entries.length) {
-            console.warn(
-                'Не найдено совпадение города. Показываем все парковки.',
-                {
-                    selectedCity,
-                    parkingCities: [
-                        ...new Set(
-                            entries.map(([, parking]) => parking.city)
-                        )
-                    ]
-                }
-            );
-        }
+        const visibleEntries = matching;
+if (selectedCity && matching.length === 0) {
+    console.warn('Для выбранного города парковки не найдены:', {
+        selectedCity,
+        parkingCities: [...new Set(entries.map(([, parking]) => parking.city).filter(Boolean))]
+    });
         let markerCount = 0;
         visibleEntries.forEach(([id, parking]) => {
             try {
