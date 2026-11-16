@@ -49,6 +49,39 @@ clearMapInitError();
 if (typeof window.clearParkNearInitError === 'function') {
     window.clearParkNearInitError();
 }
+// Автоматическое определение местоположения при запуске приложения
+setTimeout(() => {
+    if (typeof getUserLocation !== 'function') {
+        console.error('Функция getUserLocation не найдена');
+        return;
+    }
+    getUserLocation()
+        .then(coords => {
+            if (!map) return;
+
+            if (myLocationPlacemark) {
+                map.geoObjects.remove(myLocationPlacemark);
+            }
+            myLocationPlacemark = new ymaps.Placemark(
+                [coords.lat, coords.lng],
+                {
+                    hintContent: 'Вы здесь'
+                },
+                {
+                    preset: 'islands#blueCircleDotIcon'
+                }
+            );
+            map.geoObjects.add(myLocationPlacemark);
+            map.setCenter(
+                [coords.lat, coords.lng],
+                16,
+                { duration: 500 }
+            );
+        })
+        .catch(error => {
+            console.warn('Не удалось определить геолокацию:', error);
+        });
+}, 500);
         // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 16 =====
 map.events.add('zoomchange', function() {
     if (!map) return;
