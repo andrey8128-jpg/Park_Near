@@ -22,16 +22,16 @@
     color:var(--text-secondary);
     font-size:13px;
 }
-.pn-fav-header-icon{
-    width:46px;
-    height:46px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:15px;
-    background:rgba(43,117,116,.12);
-    color:var(--accent);
-    font-size:23px;
+.pn-fav-header-icon {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 23px;
 }
 .pn-fav-city{
     display:flex;
@@ -83,9 +83,9 @@
     border-radius:15px;
     transition:border-color .2s,box-shadow .2s;
 }
-.pn-fav-search:focus-within{
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px rgba(43,117,116,.14);
+.pn-fav-search:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139, 181, 245, .14);
 }
 .pn-fav-search>span{
     width:42px;
@@ -164,7 +164,7 @@
 .pn-fav-filter.active {
     background: var(--btn-primary-bg);
     border-color: var(--btn-primary-bg);
-    color: #FFFFFF;
+    color: var(--btn-primary-text);
 }
 /* === НАЖАТИЕ === */
 .pn-fav-filter:active {
@@ -344,17 +344,17 @@
     text-align:center;
     padding:45px 20px;
 }
-.pn-fav-empty-icon{
-    width:68px;
-    height:68px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin-bottom:14px;
-    border-radius:22px;
-    background:var(--bg-secondary);
-    color:var(--accent);
-    font-size:31px;
+.pn-fav-empty-icon {
+    width: 68px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    border-radius: 22px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 31px;
 }
 .pn-fav-empty h3{
     margin:0;
@@ -369,18 +369,18 @@
     font-size:13px;
     line-height:1.45;
 }
-.pn-fav-empty button{
-    padding:11px 18px;
-    border:0;
-    border-radius:12px;
-    background:var(--accent);
-    color:#fff;
-    font-size:13px;
-    font-weight:650;
-    cursor:pointer;
+.pn-fav-empty button {
+    min-height: 44px;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
 }
 /* ===================== АДАПТАЦИЯ И ДОСТУПНОСТЬ ===================== */
-
 /* Иконки не должны сжиматься внутри гибких карточек и кнопок. */
 .pn-fav-header-icon,
 .pn-fav-city-icon,
@@ -388,14 +388,12 @@
 .pn-fav-empty-icon {
     flex: 0 0 auto;
 }
-
 .pn-favorites svg {
     display: block;
     flex: 0 0 auto;
     max-width: 100%;
     max-height: 100%;
 }
-
 /* Удобная зона нажатия, не увеличивая визуально сами значки. */
 .pn-fav-search button {
     width: 44px;
@@ -407,29 +405,23 @@
     align-items: center;
     justify-content: center;
 }
-
 .pn-fav-search button.visible {
     display: inline-flex;
 }
-
 .pn-fav-filter {
     min-height: 44px;
 }
-
 .pn-fav-card-main {
     min-height: 68px;
 }
-
 .pn-fav-remove {
     width: 48px;
     min-width: 48px;
     min-height: 48px;
 }
-
 .pn-fav-empty button {
     min-height: 44px;
 }
-
 .pn-fav-sort {
     display: flex;
     flex-direction: row;
@@ -440,7 +432,6 @@
     box-sizing: border-box;
     margin: 12px 0;
 }
-
 .pn-fav-sort button {
     flex: 1 1 0;
     min-width: 0;
@@ -462,18 +453,15 @@
     -webkit-tap-highlight-color: transparent;
     transition: background .2s ease, color .2s ease, border-color .2s ease, transform .15s ease;
 }
-
 .pn-fav-sort button.active {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border-color: var(--btn-primary-bg);
     font-weight: 600;
 }
-
 .pn-fav-sort button:active {
     transform: scale(.97);
 }
-
 .pn-fav-filter:focus-visible,
 .pn-fav-sort button:focus-visible,
 .pn-fav-remove:focus-visible,
