@@ -3,99 +3,188 @@
     margin: 0;
     padding: 0;
 }
+
 :root {
-    --bg-primary: #F5F7F7; /* основной фон приложения */
-    --bg-secondary: #FFFFFF; /* фон карточек, списков и элементов */
-    --bg-elevated: #FFFFFF; /* фон элементов, которые визуально находятся выше основного фона */
-    --text-primary: #111516; /* основной текст: заголовки, названия */
-    --text-secondary: #6B7375; /* вторичный текст: адреса, описания */
-    --text-tertiary: #9AA1A3; /* менее важный текст: подсказки, placeholder */
-    --accent: #20A895; /* главный фирменный цвет ParkNear */
-    --accent-rgb: 32,168,149; /* RGB акцентного цвета для rgba() */
-    --accent-hover: #178F7E; /* акцентный цвет при наведении/нажатии */
-    --green: #30D158; /* много свободных мест */
-    --orange: #FF9F0A; /* мало свободных мест */
-    --red: #FF453A; /* парковка занята/нет свободных мест */
-    --gray: #8E8E93; /* неизвестное состояние */
-    --status-free-bg: rgba(48,209,88,0.12); /* светло-зелёный фон статуса */
-    --status-occupied-bg: rgba(255,69,58,0.12); /* светло-красный фон статуса */
-    --status-unknown-bg: rgba(142,142,147,0.12); /* фон неизвестного статуса */
-    --card-border: rgba(0,0,0,0.08); /* граница карточек */
-    --border-color: rgba(0,0,0,0.08); /* общая граница элементов профиля/настроек — переменная использовалась в коде, но нигде не была объявлена */
-    --input-border: rgba(0,0,0,0.10); /* граница полей ввода */
-    --input-bg: #F8FAFA; /* фон полей ввода */
-    --card-shadow: 0 8px 30px rgba(0,0,0,0.08); /* тень карточек */
-    --shadow-floating: 0 8px 30px rgba(0,0,0,0.08); /* тень плавающих кнопок (geoBtn/addBtn) — переменная использовалась в коде, но не была объявлена; значение взято по аналогии с --card-shadow, уточните дизайн-референс при необходимости */
-    --overlay-bg: rgba(0,0,0,0.15); /* затемнение экрана под модальным окном */
-    --toast-bg: rgba(17,21,22,0.94); /* фон уведомлений Toast */
-    --history-occupied: #FF453A; /* цвет события "занял место" */
-    --history-freed: #30D158; /* цвет события "освободил место" */
-    --radius-sm: 12px; /* маленькое скругление */
-    --radius-md: 16px; /* стандартное скругление */
-    --radius-lg: 22px; /* крупное скругление карточек */
-    --radius-xl: 28px; /* очень крупное скругление панелей */
-    --tab-bar-height: 64px; /* высота нижнего меню */
-    --tab-bar-bottom: 20px; /* расстояние меню от нижнего края */
-    --button-offset-from-tab: 20px; /* расстояние кнопки от Tab Bar */
-    --button-gap: 72px; /* дополнительный промежуток над Tab Bar */
-    --tab-bg: rgba(255,255,255,0.82); /* фон нижнего меню */
-    --tab-icon: #6B7375; /* цвет неактивных иконок */
-    --tab-label: #6B7375; /* цвет текста неактивных вкладок */
-    --tab-active-bg: rgba(32,168,149,0.12); /* фон активной вкладки */
-    --btn-primary-bg: #20A895; /* фон основной кнопки */
-    --btn-primary-active: #178F7E; /* цвет основной кнопки при нажатии */
-    --btn-secondary-border: rgba(0,0,0,0.10); /* граница вторичной кнопки */
-    --btn-secondary-color: #20A895; /* текст/иконка вторичной кнопки */
-    --btn-danger-color: #FF453A; /* цвет удаления/опасного действия */
-    --btn-danger-border: rgba(255,69,58,0.25); /* граница опасной кнопки */
-    --drawing-controls-bg: rgba(255,255,255,0.92); /* фон панели рисования */
-    --drawing-border: rgba(0,0,0,0.10); /* граница элементов рисования */
-    --sheet-bg: #FFFFFF; /* фон Bottom Sheet */
-    --splash-bg: #F5F7F7; /* фон экрана загрузки */
-    --spinner-color: #20A895; /* цвет индикатора загрузки */
+    color-scheme: light;
+
+    /* Основные поверхности */
+    --bg-primary: #F4F6F7;
+    --bg-secondary: #FFFFFF;
+    --bg-elevated: #FFFFFF;
+    --surface-soft: #E9EEF0;
+
+    /* Текст */
+    --text-primary: #243440;
+    --text-secondary: #647987;
+    --text-tertiary: #82939B;
+
+    /* Фирменный Arctic Blue */
+    --accent: #6299B3;
+    --accent-rgb: 98, 153, 179;
+    --accent-hover: #477F99;
+    --brand: #456F80;
+    --brand-soft: #E4EEF1;
+
+    /* Кнопки */
+    --btn-primary-bg: #477F99;
+    --btn-primary-active: #386B82;
+    --btn-primary-text: #FFFFFF;
+    --btn-secondary-bg: transparent;
+    --btn-secondary-border: #D8E1E5;
+    --btn-secondary-color: #456F80;
+
+    /* Статусы парковок */
+    --green: #238A68;
+    --orange: #B77B2D;
+    --red: #C64F52;
+    --gray: #82939B;
+
+    --status-free-bg: rgba(35, 138, 104, .12);
+    --status-limited-bg: rgba(183, 123, 45, .12);
+    --status-occupied-bg: rgba(198, 79, 82, .12);
+    --status-unknown-bg: rgba(130, 147, 155, .12);
+
+    /* Границы и поля */
+    --card-border: #D8E1E5;
+    --border-color: #D8E1E5;
+    --input-border: #D1DDE2;
+    --input-bg: #F0F4F6;
+
+    /* Тени */
+    --card-shadow: 0 8px 28px rgba(31, 52, 64, .07);
+    --shadow-floating: 0 8px 28px rgba(31, 52, 64, .12);
+
+    /* Системные поверхности */
+    --overlay-bg: rgba(13, 23, 32, .42);
+    --toast-bg: rgba(29, 43, 56, .96);
+
+    /* История парковки */
+    --history-occupied: #C64F52;
+    --history-freed: #238A68;
+
+    /* Скругления */
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 22px;
+    --radius-xl: 28px;
+
+    /* Нижняя навигация */
+    --tab-bar-height: 64px;
+    --tab-bar-bottom: 20px;
+    --button-offset-from-tab: 20px;
+    --button-gap: 72px;
+
+    --tab-bg: rgba(255, 255, 255, .86);
+    --tab-icon: #647987;
+    --tab-label: #647987;
+    --tab-active-bg: rgba(98, 153, 179, .14);
+
+    /* Опасные действия */
+    --btn-danger-color: #C64F52;
+    --btn-danger-border: rgba(198, 79, 82, .25);
+
+    /* Панели рисования */
+    --drawing-controls-bg: rgba(255, 255, 255, .94);
+    --drawing-border: #D8E1E5;
+
+    /* Splash */
+    --sheet-bg: #FFFFFF;
+    --splash-bg: #0D1720;
+    --splash-accent: #6FA9BC;
+    --splash-text: #EDF3F5;
+    --spinner-color: #6299B3;
+
+    /* Дополнительные цвета интерфейса */
+    --glass-light: rgba(255, 255, 255, .84);
+    --glass-border-light: rgba(255, 255, 255, .75);
+    --glass-dark: rgba(29, 43, 56, .88);
+    --glass-border-dark: rgba(139, 181, 197, .16);
 }
+
 body.dark-theme {
-    --bg-primary: #0B0F10; /* основной тёмный фон */
-    --bg-secondary: #151A1B; /* фон тёмных карточек */
-    --bg-elevated: #1C2223; /* приподнятые элементы в тёмной теме */
-    --text-primary: #F5F5F7; /* основной светлый текст */
-    --text-secondary: #A1A1A6; /* вторичный светлый текст */
-    --text-tertiary: #6E7476; /* менее важный текст */
-    --accent: #30B8A5; /* акцентный цвет в тёмной теме */
-    --accent-rgb: 48,184,165; /* RGB акцента для rgba() */
-    --accent-hover: #269C8D; /* акцент при нажатии */
-    --green: #30D158; /* свободные места */
-    --orange: #FF9F0A; /* мало свободных мест */
-    --red: #FF453A; /* занято */
-    --gray: #8E8E93; /* неизвестный статус */
-    --status-free-bg: rgba(48,209,88,0.12); /* фон свободных мест */
-    --status-occupied-bg: rgba(255,69,58,0.12); /* фон занятых мест */
-    --status-unknown-bg: rgba(142,142,147,0.12); /* неизвестный статус */
-    --card-border: rgba(255,255,255,0.08); /* граница тёмных карточек */
-    --border-color: rgba(255,255,255,0.08); /* общая граница элементов профиля/настроек в тёмной теме */
-    --input-border: rgba(255,255,255,0.10); /* граница полей */
-    --input-bg: #151A1B; /* фон поля ввода */
-    --card-shadow: 0 8px 30px rgba(0,0,0,0.30); /* тень карточек */
-    --shadow-floating: 0 8px 30px rgba(0,0,0,0.30); /* тень плавающих кнопок в тёмной теме */
-    --overlay-bg: rgba(0,0,0,0.15); /* затемнение */
-    --toast-bg: rgba(28,34,35,0.96); /* уведомления */
-    --tab-bg: rgba(21,26,27,0.82); /* фон нижнего меню */
-    --tab-icon: #A1A1A6; /* неактивные иконки */
-    --tab-label: #A1A1A6; /* неактивные подписи */
-    --tab-active-bg: rgba(48,184,165,0.12); /* активная вкладка */
-    --btn-primary-bg: #30B8A5; /* основная кнопка */
-    --btn-primary-active: #269C8D; /* основная кнопка при нажатии */
-    --btn-secondary-border: rgba(255,255,255,0.12); /* граница вторичной кнопки */
-    --btn-secondary-color: #30B8A5; /* цвет вторичной кнопки */
-    --btn-danger-color: #FF453A; /* цвет опасной кнопки */
-    --btn-danger-border: rgba(255,69,58,0.35); /* граница опасной кнопки */
-    --drawing-controls-bg: rgba(21,26,27,0.92); /* панель рисования */
-    --drawing-border: rgba(255,255,255,0.10); /* граница рисования */
-    --sheet-bg: #151A1B; /* нижняя панель */
-    --splash-bg: #0B0F10; /* фон Splash Screen */
-    --spinner-color: #30B8A5; /* спиннер */
-    --history-occupied: #FF453A; /* история занятия места */
-    --history-freed: #30D158; /* история освобождения места */
+    color-scheme: dark;
+
+    /* Основные поверхности */
+    --bg-primary: #0D1720;
+    --bg-secondary: #1D2B38;
+    --bg-elevated: #223746;
+    --surface-soft: #2A3B4A;
+
+    /* Текст */
+    --text-primary: #EDF3F5;
+    --text-secondary: #A8BAC5;
+    --text-tertiary: #8296A3;
+
+    /* Фирменный Arctic Blue */
+    --accent: #8BB5F5;
+    --accent-rgb: 139, 181, 245;
+    --accent-hover: #A4C4FA;
+    --brand: #6FA9BC;
+    --brand-soft: #263F4C;
+
+    /* Кнопки */
+    --btn-primary-bg: #8BB5F5;
+    --btn-primary-active: #A4C4FA;
+    --btn-primary-text: #102235;
+    --btn-secondary-bg: transparent;
+    --btn-secondary-border: #405565;
+    --btn-secondary-color: #8BB5F5;
+
+    /* Статусы парковок */
+    --green: #45C69A;
+    --orange: #E9B45F;
+    --red: #F0787C;
+    --gray: #A5B4BC;
+
+    --status-free-bg: rgba(69, 198, 154, .14);
+    --status-limited-bg: rgba(233, 181, 95, .14);
+    --status-occupied-bg: rgba(240, 120, 124, .14);
+    --status-unknown-bg: rgba(165, 180, 188, .14);
+
+    /* Границы и поля */
+    --card-border: #344957;
+    --border-color: #344957;
+    --input-border: #405565;
+    --input-bg: #172532;
+
+    /* Тени */
+    --card-shadow: 0 8px 28px rgba(0, 0, 0, .20);
+    --shadow-floating: 0 8px 28px rgba(0, 0, 0, .28);
+
+    /* Системные поверхности */
+    --overlay-bg: rgba(0, 0, 0, .58);
+    --toast-bg: rgba(29, 43, 56, .97);
+
+    /* История парковки */
+    --history-occupied: #F0787C;
+    --history-freed: #45C69A;
+
+    /* Нижняя навигация */
+    --tab-bg: rgba(29, 43, 56, .90);
+    --tab-icon: #A8BAC5;
+    --tab-label: #A8BAC5;
+    --tab-active-bg: rgba(139, 181, 245, .16);
+
+    /* Опасные действия */
+    --btn-danger-color: #F0787C;
+    --btn-danger-border: rgba(240, 120, 124, .35);
+
+    /* Панели рисования */
+    --drawing-controls-bg: rgba(29, 43, 56, .94);
+    --drawing-border: #405565;
+
+    /* Splash остаётся фирменным тёмным */
+    --sheet-bg: #1D2B38;
+    --splash-bg: #0D1720;
+    --splash-accent: #6FA9BC;
+    --splash-text: #EDF3F5;
+    --spinner-color: #8BB5F5;
+
+    /* Стеклянные поверхности */
+    --glass-light: rgba(29, 43, 56, .88);
+    --glass-border-light: rgba(139, 181, 197, .16);
+    --glass-dark: rgba(13, 23, 32, .88);
+    --glass-border-dark: rgba(139, 181, 197, .16);
 }
 /* ===== ОСНОВНОЕ ТЕЛО ПРИЛОЖЕНИЯ ===== */
 
@@ -379,13 +468,13 @@ body.dark-theme #geoBtn {
     border-radius: 14px;
     border: none;
     background: var(--btn-primary-bg);
-    color: #E2E2E0;
+    color: var(--btn-primary-text);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     margin-top: 8px;
     transition: background 0.2s;
-    box-shadow: 0 2px 8px rgba(43, 117, 116, 0.3);
+    box-shadow: 0 4px 14px rgba(var(--accent-rgb), .20);
 }
 .btn-primary:active { background: var(--btn-primary-active); }
 .btn-primary:disabled { opacity: 0.6; }
@@ -417,6 +506,59 @@ body.dark-theme #geoBtn {
 }
 .btn-secondary:active { background: rgba(43, 117, 116, 0.1); }
 /* === ОБЩИЙ СТИЛЬ КНОПОК АВТОРИЗАЦИИ === */
+.telegram-btn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background 0.2s ease,
+                transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+/* === ВХОД ЧЕРЕЗ TELEGRAM === */
+.telegram-btn {
+    background: #0088cc;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+.telegram-btn:hover {
+    background: #0077b5;
+}
+.telegram-btn:active {
+    background: #006699;
+    transform: scale(0.98);
+}
+/* === ВХОД ЧЕРЕЗ ЯНДЕКС === */
+/*
+.yandex-auth-button{
+    background: #FC3F1D;
+    width: 100%;
+    min-height: 44px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+}
+.yandex-auth-btn:hover {
+    background: #E53618;
+}
+.yandex-auth-btn:active {
+    background: #CC2F15;
+    transform: scale(0.98);
+}
+*/
 /* === ВЫХОД ИЗ АККАУНТА === */
 .pn-logout-btn{
     display: flex;
@@ -435,16 +577,21 @@ body.dark-theme #geoBtn {
     font-weight: 700;
 }
 .pn-logout-btn {
-    background: #0088cc;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--card-border);
 }
+
 .pn-logout-btn:hover {
-    background: #0077b5;
+    background: var(--bg-elevated);
 }
+
 .pn-logout-btn:active {
-    background: #006699;
-    transform: scale(0.98);
+    background: var(--brand-soft);
+    transform: scale(.98);
 }
 /* === ДОСТУПНОСТЬ === */
+.telegram-btn:focus-visible,
 .yandex-btn:focus-visible,
 .pn-logout-btn:focus-visible {
     outline: 2px solid var(--accent);
@@ -1987,78 +2134,6 @@ body.dark-theme .theme-slider:before {
     justify-content: space-between;
     gap: 10px;
 }
-.parking-address-group {
-    margin-bottom: 10px;
-    overflow: hidden;
-    border: 1px solid var(--card-border);
-    border-radius: 14px;
-    background: var(--bg-secondary);
-}
-.parking-address-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    padding: 13px 14px;
-    border: 0;
-    background: transparent;
-    color: var(--text-primary);
-    text-align: left;
-    cursor: pointer;
-}
-.parking-address-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-.parking-address-title {
-    font-size: 14px;
-    font-weight: 600;
-}
-.parking-address-meta {
-    color: var(--text-secondary);
-    font-size: 12px;
-}
-.parking-address-arrow {
-    flex-shrink: 0;
-    font-size: 20px;
-}
-.parking-address-group .parking-item {
-    margin: 0;
-    border: 0;
-    border-top: 1px solid var(--card-border);
-    border-radius: 0;
-}
-.parking-status-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    max-width: 140px;
-    padding: 5px 9px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-}
-.parking-status-badge.free {
-    background: rgba(34, 164, 71, 0.14);
-    color: #16833a;
-}
-.parking-status-badge.limited {
-    background: rgba(245, 158, 11, 0.16);
-    color: #b96c00;
-}
-.parking-status-badge.occupied {
-    background: rgba(220, 38, 38, 0.14);
-    color: #c62828;
-}
-.parking-status-badge.unknown {
-    background: rgba(128, 128, 128, 0.14);
-    color: var(--text-secondary);
-}
 .profile-section {
     margin-bottom: 10px;
     border-radius: 14px;
@@ -2207,13 +2282,6 @@ body.dark-theme .pn-profile-hero,
 body.dark-theme .pn-profile-menu,
 body.dark-theme .pn-profile-expand,
 body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
-/* ==== КАРТОЧКА ПАРКОВКИ ====*/
-@import url("./park.card.css");
-/* ===== СТИЛИ РЕДАКТОРА ПАРКОВКИ ===== */
-@import url("./css/edit.park.css");
-/* ===== СТИЛЬ ЗАГРУЗОЧНОГО ЭКРАНА ==== */
-@import url("./css/splash.css");
-
 
 /* ===== КНОПКА ДОНАТА НА КАРТЕ ===== */
 #donateBtn {
@@ -2260,254 +2328,4 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
 body.dark-theme #donateBtn {
     background: var(--btn-primary-bg, #12464c);
     color: #ffffff;
-}
-
-/* ===== ВСПЛЫВАЮЩЕЕ ОКНО ДОНАТА ===== */
-.donate-popup {
-    position: fixed;
-    /* Окно раскрывается в сторону центра карты */
-    right: 76px;
-    bottom: calc(
-        var(--tab-bar-height) +
-        var(--tab-bar-bottom) +
-        var(--button-offset-from-tab) +
-        var(--button-gap) +
-        58px
-    );
-    width: min(300px, calc(100vw - 100px));
-    box-sizing: border-box;
-    padding: 22px 18px 18px;
-    color: #202b2c;
-    background: #ffffff;
-    border: 1px solid rgba(43, 117, 116, 0.16);
-    border-radius: 18px;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
-    z-index: 1100;
-    opacity: 1;
-    transform: translateX(0) scale(1);
-    transform-origin: right center;
-    transition:
-        opacity 0.18s ease,
-        transform 0.18s ease;
-}
-.donate-popup[hidden] {
-    display: none !important;
-}
-.donate-popup-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    margin-bottom: 12px;
-    color: #ffffff;
-    background: #2b7574;
-    border-radius: 14px;
-    font-size: 24px;
-}
-.donate-popup h3 {
-    margin: 0 24px 10px 0;
-    font-size: 18px;
-    line-height: 1.3;
-    font-weight: 700;
-}
-.donate-popup p {
-    margin: 0 0 17px;
-    color: #596667;
-    font-size: 14px;
-    line-height: 1.55;
-}
-.donate-popup-close {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: #667273;
-    font-size: 25px;
-    line-height: 1;
-    cursor: pointer;
-}
-.donate-popup-close:hover {
-    background: rgba(0, 0, 0, 0.06);
-}
-.donate-popup-help {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 44px;
-    box-sizing: border-box;
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: #2b7574;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
-    text-align: center;
-    text-decoration: none;
-    transition:
-        background 0.2s ease,
-        transform 0.15s ease;
-}
-.donate-popup-help:hover {
-    background: #205e5d;
-}
-.donate-popup-help:active {
-    transform: scale(0.98);
-}
-/* Тёмная тема */
-body.dark-theme .donate-popup {
-    color: #edf4f4;
-    background: #202b2c;
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
-}
-body.dark-theme .donate-popup p {
-    color: #bdcaca;
-}
-body.dark-theme .donate-popup-close {
-    color: #d0dddd;
-}
-body.dark-theme .donate-popup-close:hover {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-/* =========================================================
-   PARK NEAR — АДАПТАЦИЯ ОСНОВНЫХ ЭЛЕМЕНТОВ УПРАВЛЕНИЯ
-   Этап 2: размеры иконок, зоны нажатия и доступность.
-   Основная цветовая схема и визуальный стиль сохранены.
-   ========================================================= */
-
-:root {
-    /* Единая шкала размеров для SVG-иконок. */
-    --pn-icon-xs: 16px;
-    --pn-icon-sm: 20px;
-    --pn-icon-md: 24px;
-    --pn-icon-lg: 28px;
-    --pn-icon-xl: 32px;
-
-    /* Минимальная удобная область нажатия. */
-    --pn-touch-target: 44px;
-    --pn-touch-target-comfort: 48px;
-}
-
-/* SVG не должны растягиваться или сжиматься внутри кнопок. */
-#geoBtn svg,
-#addBtn svg,
-#donateBtn svg,
-.panel-close svg,
-.donate-popup-close svg {
-    display: block;
-    flex: 0 0 auto;
-    width: var(--pn-icon-md);
-    height: var(--pn-icon-md);
-    max-width: 100%;
-    max-height: 100%;
-    overflow: visible;
-}
-
-/* Увеличиваем только небольшие круглые кнопки карты,
-   не меняя размер большой кнопки добавления парковки. */
-#geoBtn,
-#donateBtn {
-    min-width: var(--pn-touch-target-comfort);
-    min-height: var(--pn-touch-target-comfort);
-    width: var(--pn-touch-target-comfort);
-    height: var(--pn-touch-target-comfort);
-    flex: 0 0 var(--pn-touch-target-comfort);
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-}
-
-#addBtn {
-    min-width: var(--pn-touch-target-comfort);
-    min-height: var(--pn-touch-target-comfort);
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* Кнопка закрытия панели: видимый крестик остаётся прежнего размера,
-   но сама интерактивная область становится удобнее для пальца. */
-.panel-close {
-    box-sizing: border-box;
-    min-width: var(--pn-touch-target);
-    min-height: var(--pn-touch-target);
-    padding: 10px;
-    touch-action: manipulation;
-}
-/* Кнопка закрытия окна пожертвования. */
-.donate-popup-close {
-    box-sizing: border-box;
-    min-width: var(--pn-touch-target);
-    min-height: var(--pn-touch-target);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    touch-action: manipulation;
-}
-/* Убираем задержку/двойное распознавание жестов на основных контролах.
-   Не задаём touch-action:none: прокрутка панелей должна работать. */
-button,
-[role="button"],
-a[href] {
-    -webkit-tap-highlight-color: transparent;
-}
-#geoBtn,
-#addBtn,
-#donateBtn,
-.panel-close,
-.donate-popup-close {
-    touch-action: manipulation;
-}
-/* Единый заметный фокус для клавиатуры и внешних устройств ввода. */
-:where(button, [role="button"], a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-}
-/* Не показываем дополнительную рамку при обычном касании,
-   если браузер корректно различает :focus-visible. */
-
-/* Узкие экраны: не уменьшаем интерактивные области,
-   а ограничиваем только визуальные размеры SVG при необходимости. */
-@media screen and (max-width: 360px) {
-    #geoBtn svg,
-    #donateBtn svg,
-    .panel-close svg,
-    .donate-popup-close svg {
-        width: 22px;
-        height: 22px;
-    }
-}
-/* Устройства с сенсорным управлением получают комфортную область
-   нажатия. Существующие размеры крупных кнопок не увеличиваются. */
-@media (hover: none) and (pointer: coarse) {
-    #geoBtn,
-    #donateBtn,
-    .panel-close,
-    .donate-popup-close {
-        min-width: var(--pn-touch-target-comfort);
-        min-height: var(--pn-touch-target-comfort);
-    }
-}
-/* Системная настройка уменьшения движения действует на основные
-   элементы управления, не отключая функциональность интерфейса. */
-@media (prefers-reduced-motion: reduce) {
-    #geoBtn,
-    #addBtn,
-    #donateBtn,
-    .panel-close,
-    .donate-popup-close,
-    .tab,
-    .tab .icon,
-    .tab .icon svg {
-        scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-    }
 }
