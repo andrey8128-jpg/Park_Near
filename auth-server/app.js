@@ -1427,7 +1427,29 @@ const previousOccupied = Math.max(
 );
 
 const newOccupied = previousOccupied + 1;
+const totalSpots = Number(parking.totalSpots) || 0;
 
+if (totalSpots > 0 && newOccupied > totalSpots) {
+    await client.query('ROLLBACK');
+    return res.status(409).json({
+        success: false,
+        error: 'Свободных мест на парковке больше нет'
+    });
+}
+
+let status = 'unknown';
+
+if (totalSpots > 0 && newOccupied > 0) {
+    const occupancyRatio = newOccupied / totalSpots;
+
+    if (occupancyRatio >= 0.9) {
+        status = 'occupied';
+    } else if (occupancyRatio >= 0.6) {
+        status = 'limited';
+    } else {
+        status = 'free';
+    }
+}
 const previousHistory = Array.isArray(parking.history)
     ? parking.history
     : Object.values(parking.history || {});
@@ -1445,6 +1467,7 @@ const historyEntry = {
 const updatedParking = {
     ...parking,
     occupiedSpots: newOccupied,
+    status,
     lastUpdatedAt: startedAt,
     lastUpdatedBy: username,
     history: [...previousHistory, historyEntry]
@@ -1573,6 +1596,21 @@ app.delete(
                 0,
                 previousOccupied - 1
             );
+            const totalSpots = Number(parking.totalSpots) || 0;
+
+let status = 'unknown';
+
+if (totalSpots > 0 && newOccupied > 0) {
+    const occupancyRatio = newOccupied / totalSpots;
+
+    if (occupancyRatio >= 0.9) {
+        status = 'occupied';
+    } else if (occupancyRatio >= 0.6) {
+        status = 'limited';
+    } else {
+        status = 'free';
+    }
+}
             const previousHistory = Array.isArray(parking.history)
                 ? parking.history
                 : Object.values(parking.history || {});
@@ -1586,12 +1624,13 @@ app.delete(
                 car: {}
             };
             const updatedParking = {
-                ...parking,
-                occupiedSpots: newOccupied,
-                lastUpdatedAt: endedAt,
-                lastUpdatedBy: username,
-                history: [...previousHistory, historyEntry]
-            };
+    ...parking,
+    occupiedSpots: newOccupied,
+    status,
+    lastUpdatedAt: endedAt,
+    lastUpdatedBy: username,
+    history: [...previousHistory, historyEntry]
+};
             const updatedSession = {
                 ...session,
                 active: false,
