@@ -1,7 +1,6 @@
 /* =========================================================
    PARK NEAR — Нижняя панель навигации
-   Этап 1: адаптация иконок и области нажатия
-   Визуальный стиль и цвета проекта сохранены.
+   Dark Titanium Glass × Arctic Blue
    ========================================================= */
 .tabBar {
     position: fixed;
@@ -82,6 +81,7 @@
     position: relative;
     z-index: 2;
 }
+/* Активная вкладка */
 .tab.active::before {
     content: '';
     position: absolute;
@@ -90,7 +90,7 @@
     transform: translateX(-50%);
     width: 32px;
     height: 4px;
-    background: var(--tab-active-bg);
+    background: var(--accent);
     border-radius: 0 0 4px 4px;
     z-index: 3;
 }
@@ -102,17 +102,19 @@
     transform: translateX(-50%);
     width: 60px;
     height: 50px;
-    background: linear-gradient(180deg,
-        rgba(226, 226, 224, 0.35) 0%,
-        rgba(226, 226, 224, 0.15) 30%,
-        rgba(226, 226, 224, 0.05) 60%,
-        transparent 100%);
+    background: linear-gradient(
+        180deg,
+        rgba(98, 153, 179, .18) 0%,
+        rgba(98, 153, 179, .10) 30%,
+        rgba(98, 153, 179, .03) 65%,
+        transparent 100%
+    );
     clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
     z-index: 1;
     pointer-events: none;
 }
 .tab.active .icon {
-    color: #FFFFFF;
+    color: var(--accent);
     transform: scale(1.05);
 }
 .tab.active .icon svg {
@@ -120,23 +122,26 @@
     transform: scale(1.05);
 }
 .tab.active .label {
-    color: #FFFFFF;
-    font-weight: 600;
+    color: var(--accent);
+    font-weight: 700;
 }
 .tab:active {
     transform: scale(0.96);
 }
 .tab:active .icon {
-    color: #FFFFFF;
+    color: var(--accent);
 }
-/* На устройствах с точным указателем не навязываем hover на телефонах. */
+/* Наведение мышью */
 @media (hover: hover) and (pointer: fine) {
     .tab:not(.active):hover .icon,
     .tab:not(.active):hover .label {
-        color: #FFFFFF;
+        color: var(--accent);
+    }
+    .tab:not(.active):hover {
+        background: var(--brand-soft);
     }
 }
-/* Не отключаем масштабирование интерфейса: только учитываем узкие экраны. */
+/* Узкие экраны */
 @media (max-width: 360px) {
     .tabBar {
         width: calc(100% - 24px);
@@ -153,12 +158,12 @@
         height: 23px;
     }
 }
-/* Доступная индикация фокуса для элементов, которые будут сделаны фокусируемыми. */
+/* Фокус клавиатуры */
 .tab:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: -3px;
 }
-/* Учитываем системную настройку уменьшения анимации. */
+/* Уменьшение анимации */
 @media (prefers-reduced-motion: reduce) {
     .tab,
     .tab .icon,
