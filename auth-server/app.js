@@ -1322,25 +1322,6 @@ app.get('/health', (req, res) => {
         service: 'Park Near Auth Server'
     });
 });
-// Отдельная проверка соединения с PostgreSQL для диагностики production.
-// Не раскрывает параметры подключения и содержимое базы данных.
-app.get('/health/db', async (req, res) => {
-    try {
-        await pool.query('SELECT 1');
-        return res.json({
-            status: 'ok',
-            service: 'Park Near Auth Server',
-            database: 'connected'
-        });
-    } catch (error) {
-        console.error('Проверка PostgreSQL не пройдена:', error.message);
-        return res.status(503).json({
-            status: 'error',
-            service: 'Park Near Auth Server',
-            database: 'unavailable'
-        });
-    }
-});
 // ============================================
 // АКТИВНАЯ ПАРКОВОЧНАЯ СЕССИЯ: ПОЛУЧЕНИЕ
 // ============================================
