@@ -518,12 +518,15 @@ function addMarkerToMap(id, data) {
         polygon = new ymaps.Polygon(
             [data.coordinates],
             {},
-            {
-                fillColor: color + '33',
-                strokeColor: color,
-                strokeWidth: 2,
-                visible: false,
-                zIndex: 5
+           {
+               fillColor: color + '33',
+               strokeColor: color,
+               strokeWidth: 2,
+               visible: false,
+               zIndex: 5,
+               interactivityModel: 'default#transparent',
+               openBalloonOnClick: false,
+               openHintOnHover: false
             }
         );
         map.geoObjects.add(polygon);
@@ -673,7 +676,10 @@ function updateParkingMarker(id, data) {
                     strokeOpacity: 1,
                     fillOpacity: 0.6,
                     visible: false,
-                    zIndex: 5
+                     zIndex: 5,
+                     interactivityModel: 'default#transparent',
+                     openBalloonOnClick: false,
+                     openHintOnHover: false
                 }
             );
             polygon.__parkingId = id;
