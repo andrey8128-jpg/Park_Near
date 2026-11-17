@@ -82,24 +82,17 @@ setTimeout(() => {
             console.warn('Не удалось определить геолокацию:', error);
         });
 }, 500);
-        // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 16 =====
+        // ===== АВТОМАТИЧЕСКОЕ ОТОБРАЖЕНИЕ ПОЛИГОНОВ ПРИ ЗУМЕ >= 18 =====
 map.events.add('zoomchange', function() {
     if (!map) return;
-    const currentZoom = map.getZoom();
-    const showPolygons = currentZoom >= 18;
-    Object.keys(mapMarkers).forEach(function(id) {
+     Object.keys(mapMarkers).forEach(function(id) {
         const placemark = mapMarkers[id];
-        if (!placemark) return;
+    if (!placemark) return;
         const polygon = placemark.properties.get('polygon');
-        if (!polygon) return;
-        // Активная парковка должна оставаться видимой,
-        // даже если масштаб карты изменился.
-        const isActive =
-            activePolygon === polygon;
-        polygon.options.set(
-            'visible',
-            isActive || showPolygons
-        );
+     if (!polygon) return;
+        // Показываем только полигон выбранной парковки.
+        const isActive = activePolygon === polygon;
+        polygon.options.set('visible', isActive);
     });
 });
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
