@@ -398,6 +398,31 @@ function createParkingClusterer() {
     });
     map.geoObjects.add(clusterer);
 }
+function getParkingMarkerOccupancy(data) {
+    const result = typeof window.getParkingOccupancyStatus === 'function'
+        ? window.getParkingOccupancyStatus(data)
+        : {
+            status: 'unknown',
+            totalSpots: 0,
+            occupiedSpots: 0,
+            freeSpots: 0
+        };
+    const colors = {
+        free: '--green',
+        limited: '--orange',
+        occupied: '--red',
+        unknown: '--gray',
+        stale: '--gray'
+    };
+    const variable = colors[result.status] || '--gray';
+    const color = getComputedStyle(document.body)
+        .getPropertyValue(variable)
+        .trim() || '#8E8E93';
+    return {
+        ...result,
+        color
+    };
+}
 function addMarkerToMap(id, data) {
     if (!map || !data || typeof ymaps === 'undefined') {
         return;
@@ -416,14 +441,18 @@ function addMarkerToMap(id, data) {
         }
         delete mapMarkers[id];
     }
-    // Нормализуем данные парковки.
-    const totalSpots = Number(data.totalSpots) || 0;
-    const occupiedSpots = Math.max(
-        0,
-        Math.min(Number(data.occupiedSpots) || 0, totalSpots)
-    );
-    const freeSpots = Math.max(0, totalSpots - occupiedSpots);
-    const color = getOccupancyColor(occupiedSpots, totalSpots);
+    // Получаем занятость по общей логике приложения.
+      const occupancy = getParkingMarkerOccupancy(data);
+      const totalSpots = occupancy.totalSpots;
+      const occupiedSpots = occupancy.occupiedSpots;
+      const freeSpots = occupancy.freeSpots;
+      const status = occupancy.status;
+      const color = occupancy.color;
+
+      const markerContent =
+        status === 'unknown' || status === 'stale'
+        ? '–'
+        : String(freeSpots);
     // Определяем координаты центра парковки.
     let centerLat = Number(data.lat);
     let centerLng = Number(data.lng);
@@ -482,9 +511,10 @@ function addMarkerToMap(id, data) {
             freeSpots: freeSpots,
             totalSpots: totalSpots,
             occupiedSpots: occupiedSpots,
-            parkingId: id,
-            polygon: polygon,
-            iconContent: String(freeSpots)
+             occupancyStatus: status,
+             parkingId: id,
+             polygon: polygon,
+             iconContent: markerContent
         },
         {
             preset: 'islands#blueIcon',
@@ -551,16 +581,17 @@ function updateParkingMarker(id, data) {
         addMarkerToMap(id, data);
         return;
     }
-    const totalSpots = Number(data.totalSpots) || 0;
-    const occupiedSpots = Math.max(
-        0,
-        Math.min(Number(data.occupiedSpots) || 0, totalSpots)
-    );
-    const freeSpots = Math.max(0, totalSpots - occupiedSpots);
-    const color = getOccupancyColor(
-        occupiedSpots,
-        totalSpots
-    );
+    const occupancy = getParkingMarkerOccupancy(data);
+    const totalSpots = occupancy.totalSpots;
+    const occupiedSpots = occupancy.occupiedSpots;
+    const freeSpots = occupancy.freeSpots;
+    const status = occupancy.status;
+    const color = occupancy.color;
+
+    const markerContent =
+        status === 'unknown' || status === 'stale'
+          ? '–'
+          : String(freeSpots);
     // Обновляем свойства маркера.
     placemark.properties.set({
         name: data.name || 'Парковка',
@@ -568,8 +599,9 @@ function updateParkingMarker(id, data) {
         freeSpots: freeSpots,
         totalSpots: totalSpots,
         occupiedSpots: occupiedSpots,
+        occupancyStatus: status,
         parkingId: id,
-        iconContent: String(freeSpots)
+        iconContent: markerContent
     });
     placemark.options.set('iconColor', color);
     // Обновляем координаты маркера.
