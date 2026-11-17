@@ -194,6 +194,66 @@ function escapeHtml(text) {
     div.textContent = String(text);
     return div.innerHTML;
 }
+window.getParkingOccupancyStatus = function(parking) {
+    const total = Math.max(
+        0,
+        Math.floor(Number(parking?.totalSpots) || 0)
+    );
+    const occupied = Math.max(
+        0,
+        Math.min(
+            total,
+            Math.floor(Number(parking?.occupiedSpots) || 0)
+        )
+    );
+       const free = Math.max(0, total - occupied);
+    if (total <= 0 || occupied <= 0) {
+        return {
+            status: 'unknown',
+            totalSpots: total,
+            occupiedSpots: occupied,
+            freeSpots: free
+        };
+    }
+    const rawUpdatedAt =
+        parking.lastUpdatedAt ?? parking.timestamp ?? null;
+      let updatedAt = 0;
+    if (typeof rawUpdatedAt === 'number') {
+        updatedAt = rawUpdatedAt;
+    } else if (typeof rawUpdatedAt === 'string') {
+        const numericDate = Number(rawUpdatedAt);
+        updatedAt = Number.isFinite(numericDate)
+            ? numericDate
+            : Date.parse(rawUpdatedAt);
+    }
+    if (updatedAt > 0 && updatedAt < 1e12) {
+        updatedAt *= 1000;
+    }
+    const ageMinutes = updatedAt > 0
+        ? Math.max(0, (Date.now() - updatedAt) / 60000)
+        : null;
+    if (ageMinutes === null || ageMinutes > 30) {
+        return {
+            status: 'stale',
+            totalSpots: total,
+            occupiedSpots: occupied,
+            freeSpots: free
+        };
+    }
+    const ratio = occupied / total;
+      let status = 'free';
+    if (free === 0 || ratio >= 0.9) {
+        status = 'occupied';
+    } else if (ratio >= 0.6) {
+        status = 'limited';
+    }
+    return {
+        status,
+        totalSpots: total,
+        occupiedSpots: occupied,
+        freeSpots: free
+    };
+};
 function getOccupancyDotColor(free, total) {
     const freeCount = Number(free) || 0;
     const totalCount = Number(total) || 0;
