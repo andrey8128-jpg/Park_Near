@@ -86,7 +86,7 @@ setTimeout(() => {
 map.events.add('zoomchange', function() {
     if (!map) return;
     const currentZoom = map.getZoom();
-    const showPolygons = currentZoom >= 16;
+    const showPolygons = currentZoom >= 18;
     Object.keys(mapMarkers).forEach(function(id) {
         const placemark = mapMarkers[id];
         if (!placemark) return;
