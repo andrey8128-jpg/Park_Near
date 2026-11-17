@@ -278,7 +278,7 @@ const cls = statusClasses[occupancy.status]
 const showFreeCount =
     occupancy.status !== 'unknown' &&
     occupancy.status !== 'stale';
-                     data-parking-id="${escapeHtml(id)}">
+                     return `<div class="favorite-parking-item" data-parking-id="${escapeHtml(id)}">
                     <div class="favorite-parking-info"
                          onclick="openFavoriteParking('${escapeHtml(id)}')">
                         <div class="favorite-parking-title">
