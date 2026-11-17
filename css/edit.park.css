@@ -704,3 +704,64 @@
     border-radius: 12px;
     font-size: 12px;
 }
+/* =========================================================
+   PARK NEAR — EDIT PARK DESIGN OVERRIDES
+   Dark Titanium Glass × Arctic Blue
+   ========================================================= */
+
+.edit-parking {
+    color: var(--text-primary);
+}
+
+.edit-parking input,
+.edit-parking textarea,
+.edit-parking select {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+.edit-parking input::placeholder,
+.edit-parking textarea::placeholder {
+    color: var(--text-tertiary);
+    opacity: 1;
+}
+
+.edit-parking input:focus,
+.edit-parking textarea:focus,
+.edit-parking select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .16);
+    outline: none;
+}
+
+.edit-parking button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.edit-parking button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.edit-parking .primary-button,
+.edit-parking button[type="submit"] {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border-color: var(--btn-primary-bg);
+}
+
+.edit-parking .secondary-button {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.edit-parking .edit-parking-header {
+    color: var(--text-primary);
+}
+
+.edit-parking .edit-parking-header small,
+.edit-parking .edit-parking-header p {
+    color: var(--text-secondary);
+}
