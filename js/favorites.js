@@ -254,28 +254,30 @@ async function loadFavoritesInline(force = false) {
         container.innerHTML = favorites.map(item => {
             const data = item.parking || {};
             const id = String(item.parkingId);
-
-            const total = Number(data.totalSpots) || 0;
-            const occupied = Number(data.occupiedSpots) || 0;
-            const free = Math.max(0, total - occupied);
-
-            let status = 'Неизвестно';
-            let cls = 'status-unknown';
-
-            if (total > 0) {
-                if (free <= 0) {
-                    status = 'Занято';
-                    cls = 'status-occupied';
-                } else if (free <= Math.ceil(total * 0.3)) {
-                    status = 'Мало мест';
-                    cls = 'status-limited';
-                } else {
-                    status = 'Есть места';
-                    cls = 'status-free';
-                }
-            }
-            return `
-                <div class="favorite-parking-item"
+const occupancy = window.getParkingOccupancyStatus(data);
+const total = occupancy.totalSpots;
+const free = occupancy.freeSpots;
+const statusLabels = {
+    free: 'Есть места',
+    limited: 'Мало мест',
+    occupied: 'Мест нет',
+    unknown: 'Нет актуальных данных',
+    stale: 'Нет актуальных данных'
+};
+const statusClasses = {
+    free: 'status-free',
+    limited: 'status-limited',
+    occupied: 'status-occupied',
+    unknown: 'status-unknown',
+    stale: 'status-unknown'
+};
+const status = statusLabels[occupancy.status]
+    || 'Нет актуальных данных';
+const cls = statusClasses[occupancy.status]
+    || 'status-unknown';
+const showFreeCount =
+    occupancy.status !== 'unknown' &&
+    occupancy.status !== 'stale';
                      data-parking-id="${escapeHtml(id)}">
                     <div class="favorite-parking-info"
                          onclick="openFavoriteParking('${escapeHtml(id)}')">
@@ -288,9 +290,9 @@ async function loadFavoritesInline(force = false) {
                         <div class="favorite-parking-status ${cls}">
                             <span class="favorite-status-dot"></span>
                             <span>${status}</span>
-                            ${total > 0
-                                ? `<span class="favorite-free-count">${free} свободно</span>`
-                                : ''}
+                            ${showFreeCount
+                               ? `<span class="favorite-free-count">${free} свободно</span>`
+                               : ''}
                         </div>
                     </div>
                     <button class="favorite-remove-btn"
@@ -495,21 +497,26 @@ function getDistance(parking) {
     );
 }
 function getOccupancyClass(parking) {
-        const total = Number(parking?.totalSpots) || 0;
-    if (!total) return 'unknown';
-        const free = getFree(parking);
-        const ratio = free / total;
-    if (ratio <= 0.2) return 'critical';
-    if (ratio <= 0.5) return 'low';
-
-    return 'good';
+    const result = window.getParkingOccupancyStatus(parking);
+    const classes = {
+        free: 'good',
+        limited: 'low',
+        occupied: 'critical',
+        unknown: 'unknown',
+        stale: 'unknown'
+    };
+    return classes[result.status] || 'unknown';
 }
 function getOccupancyText(parking) {
-    const total = Number(parking?.totalSpots) || 0;
-
-    if (!total) return 'Мест нет в данных';
-
-    return `${getFree(parking)} свободно из ${total}`;
+    const result = window.getParkingOccupancyStatus(parking);
+    const labels = {
+        free: 'Есть места',
+        limited: 'Мало мест',
+        occupied: 'Мест нет',
+        unknown: 'Нет актуальных данных',
+        stale: 'Нет актуальных данных'
+    };
+    return labels[result.status] || 'Нет актуальных данных';
 }
 function formatDistance(distance) {
     if (!Number.isFinite(distance)) return '';
