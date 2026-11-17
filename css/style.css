@@ -99,6 +99,13 @@
     --glass-border-light: rgba(255, 255, 255, .75);
     --glass-dark: rgba(29, 43, 56, .88);
     --glass-border-dark: rgba(139, 181, 197, .16);
+    --surface: #E9EEF0;
+    --bg-surface: #E9EEF0;
+
+    --status-free: #238A68;
+    --status-limited: #B77B2D;
+    --status-full: #C64F52;
+    --status-unknown: #82939B;
 }
 
 body.dark-theme {
@@ -185,6 +192,14 @@ body.dark-theme {
     --glass-border-light: rgba(139, 181, 197, .16);
     --glass-dark: rgba(13, 23, 32, .88);
     --glass-border-dark: rgba(139, 181, 197, .16);
+    
+    --surface: #2A3B4A;
+    --bg-surface: #2A3B4A;
+
+    --status-free: #45C69A;
+    --status-limited: #E9B45F;
+    --status-full: #F0787C;
+    --status-unknown: #A5B4BC;
 }
 /* ===== ОСНОВНОЕ ТЕЛО ПРИЛОЖЕНИЯ ===== */
 
