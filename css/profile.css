@@ -1,7 +1,6 @@
 /* =========================================================
-   PARK NEAR — PROFILE ACTIONS
-   Адаптация кнопок профиля для iOS, Android и PWA.
-   Основной визуальный стиль профиля остаётся в style.css.
+   PARK NEAR — PROFILE
+   Dark Titanium Glass × Arctic Blue
    ========================================================= */
 .pn-profile-auth-actions {
     display: flex;
@@ -22,10 +21,10 @@
     min-height: 48px;
     box-sizing: border-box;
     padding: 12px 16px;
-    border: 0;
+    border: 1px solid var(--border-color);
     border-radius: 12px;
-    background: #8d8d8d;
-    color: var(--text-primary, #222222);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     font: inherit;
     font-size: 15px;
     font-weight: 600;
@@ -45,7 +44,7 @@
     filter: brightness(.94);
 }
 .logout-button:focus-visible {
-    outline: 2px solid var(--accent, #2B7574);
+    outline: 2px solid var(--accent);
     outline-offset: 3px;
 }
 .logout-button:disabled,
@@ -54,7 +53,7 @@
     cursor: not-allowed;
     transform: none;
 }
-/* SVG внутри кнопки не должен сжиматься */
+/* SVG внутри кнопки */
 .logout-button svg {
     display: block;
     flex: 0 0 auto;
@@ -72,23 +71,24 @@
         font-size: 14px;
     }
 }
-/* Устройства с сенсорным управлением */
+/* Сенсорные устройства */
 @media (hover: none) and (pointer: coarse) {
     .logout-button {
         min-height: 48px;
     }
 }
-/* Уважать системную настройку уменьшения движения */
+/* Уменьшение движения */
 @media (prefers-reduced-motion: reduce) {
     .logout-button {
         transition: none;
     }
-
     .logout-button:active {
         transform: none;
     }
 }
-
+/* =========================================================
+   СОХРАНЁННЫЕ АДРЕСА
+   ========================================================= */
 .pn-address-entry {
     display: flex;
     align-items: center;
@@ -111,7 +111,8 @@
     height: 46px;
     flex-shrink: 0;
     border-radius: 14px;
-    background: var(--bg-primary);
+    background: var(--brand-soft);
+    color: var(--brand);
     font-size: 23px;
 }
 .pn-address-entry-info {
@@ -121,6 +122,7 @@
     gap: 4px;
 }
 .pn-address-entry-info strong {
+    color: var(--text-primary);
     font-size: 16px;
 }
 .pn-address-entry-info small {
@@ -143,6 +145,7 @@
 }
 .pn-addresses-header h2 {
     margin: 0;
+    color: var(--text-primary);
 }
 .pn-addresses-header button,
 .pn-address-delete {
@@ -207,21 +210,126 @@
 .pn-address-results {
     margin-top: 12px;
 }
-.pn-address-picker-overlay{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.72);box-sizing:border-box}
-.pn-address-picker-overlay.active{display:flex}
-.pn-address-picker-dialog{display:flex;flex-direction:column;gap:12px;width:100%;max-width:520px;max-height:90dvh;padding:16px;overflow-y:auto;color:var(--text-primary);background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:22px;box-sizing:border-box}
-.pn-address-picker-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.pn-address-picker-header strong{font-size:18px}
-.pn-address-picker-header button{width:36px;height:36px;color:var(--text-primary);background:var(--bg-primary);border:0;border-radius:50%;font-size:20px}
-.pn-address-picker-dialog label{font-size:14px;font-weight:600}
-#pnAddressName{width:100%;box-sizing:border-box;padding:13px;color:var(--text-primary);background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px;font-size:16px}
-#pnAddressPickerMap{width:100%;height:42dvh;min-height:260px;overflow:hidden;border-radius:16px;background:var(--bg-primary)}
-.pn-address-picker-info{display:flex;flex-direction:column;gap:5px;padding:12px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:12px}
-.pn-address-picker-info strong{font-size:14px}
-.pn-address-picker-info small{color:var(--text-secondary);font-size:12px}
-.pn-address-picker-actions{display:flex;gap:10px}
-.pn-address-picker-actions button{flex:1;min-height:46px;padding:10px;border:0;border-radius:12px;font-size:15px;font-weight:600}
-#pnAddressPickerCancel{color:var(--text-primary);background:var(--bg-primary)}
-#pnAddressPickerSave{color:#fff;background:var(--accent)}
-#pnAddressPickerSave:disabled{opacity:.45}
-@media(max-height:650px){#pnAddressPickerMap{height:35dvh;min-height:210px}}
+/* =========================================================
+   ВЫБОР АДРЕСА НА КАРТЕ
+   ========================================================= */
+.pn-address-picker-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: rgba(0, 0, 0, .72);
+    box-sizing: border-box;
+}
+.pn-address-picker-overlay.active {
+    display: flex;
+}
+.pn-address-picker-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90dvh;
+    padding: 16px;
+    overflow-y: auto;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    box-sizing: border-box;
+    box-shadow: var(--card-shadow);
+}
+.pn-address-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.pn-address-picker-header strong {
+    color: var(--text-primary);
+    font-size: 18px;
+}
+.pn-address-picker-header button {
+    width: 36px;
+    height: 36px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 0;
+    border-radius: 50%;
+    font-size: 20px;
+}
+.pn-address-picker-dialog label {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+#pnAddressName {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 16px;
+}
+#pnAddressPickerMap {
+    width: 100%;
+    height: 42dvh;
+    min-height: 260px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: var(--bg-primary);
+}
+.pn-address-picker-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px;
+
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+.pn-address-picker-info strong {
+    color: var(--text-primary);
+    font-size: 14px;
+}
+.pn-address-picker-info small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.pn-address-picker-actions {
+    display: flex;
+    gap: 10px;
+}
+.pn-address-picker-actions button {
+    flex: 1;
+    min-height: 46px;
+    padding: 10px;
+    border: 0;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+}
+#pnAddressPickerCancel {
+    color: var(--text-primary);
+    background: var(--surface);
+}
+#pnAddressPickerSave {
+    color: var(--btn-primary-text);
+    background: var(--btn-primary-bg);
+}
+#pnAddressPickerSave:disabled {
+    opacity: .45;
+}
+@media (max-height: 650px) {
+    #pnAddressPickerMap {
+        height: 35dvh;
+        min-height: 210px;
+    }
+}
