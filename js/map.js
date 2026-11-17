@@ -164,42 +164,70 @@ map.events.add('zoomchange', function() {
                     )
             });
             // ===== СУММАРНАЯ ЗАГРУЖЕННОСТЬ И ЦВЕТ КЛАСТЕРА =====
-            clusterer.events.add('clusterize', function(e) {
-                const clusters = e.get('clusters');
-                if (!clusters) return;
-            clusters.forEach(function(cluster) {
-                    const geoObjects = cluster.getGeoObjects();
-                    let totalSpots = 0;
-                    let freeSpots = 0;
-             geoObjects.forEach(function(placemark) {
-                        const total = Math.max(
-                            0,
-                            Number(placemark.properties.get('totalSpots')) || 0
-                        );
-                        const free = Math.max(
-                            0,
-                            Number(placemark.properties.get('freeSpots')) || 0
-                        );
-                        totalSpots += total;
-                        freeSpots += Math.min(free, total);
-                    });
-                    cluster.properties.set('totalSpots', totalSpots);
-                    cluster.properties.set('freeSpots', freeSpots);
-                    cluster.properties.set('parkingCount', geoObjects.length);
-                        let clusterColor = '#808080';
-                    if (totalSpots > 0) {
-                        const freePercent = freeSpots / totalSpots * 100;
-                        if (freePercent >= 50) {
-                            clusterColor = '#22A447';
-                        } else if (freePercent >= 20) {
-                            clusterColor = '#F59E0B';
-                        } else {
-                            clusterColor = '#E53935';
-                        }
-                    }
-                    cluster.properties.set('clusterColor', clusterColor);
-                });
-            });
+clusterer.events.add('clusterize', function(e) {
+    const clusters = e.get('clusters');
+    if (!clusters) return;
+    clusters.forEach(function(cluster) {
+        const geoObjects = cluster.getGeoObjects();
+        let totalSpots = 0;
+        let freeSpots = 0;
+        let validParkingCount = 0;
+        geoObjects.forEach(function(placemark) {
+            const status = placemark.properties.get(
+                'occupancyStatus'
+            );
+            // Не учитываем парковки без актуальных данных.
+            if (
+                !['free', 'limited', 'occupied'].includes(status)
+            ) {
+                return;
+            }
+            const total = Math.max(
+                0,
+                Number(
+                    placemark.properties.get('totalSpots')
+                ) || 0
+            );
+            const free = Math.max(
+                0,
+                Number(
+                    placemark.properties.get('freeSpots')
+                ) || 0
+            );
+            if (total <= 0) return;
+            totalSpots += total;
+            freeSpots += Math.min(free, total);
+            validParkingCount++;
+        });
+        const unknownParkingCount =
+            geoObjects.length - validParkingCount;
+
+        cluster.properties.set('totalSpots', totalSpots);
+        cluster.properties.set('freeSpots', freeSpots);
+        cluster.properties.set('parkingCount', geoObjects.length);
+        cluster.properties.set(
+            'validParkingCount',
+            validParkingCount
+        );
+        cluster.properties.set(
+            'unknownParkingCount',
+            unknownParkingCount
+        );
+        let clusterColor = '#808080';
+        if (validParkingCount > 0 && totalSpots > 0) {
+            const occupiedPercent =
+                (totalSpots - freeSpots) / totalSpots * 100;
+            if (occupiedPercent >= 90) {
+                clusterColor = '#E53935';
+            } else if (occupiedPercent >= 60) {
+                clusterColor = '#F59E0B';
+            } else {
+                clusterColor = '#22A447';
+            }
+        }
+        cluster.properties.set('clusterColor', clusterColor);
+    });
+});
             // Добавляем кластеризатор на карту
             map.geoObjects.add(clusterer);
             // При нажатии на кластер приближаем карту
