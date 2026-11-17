@@ -327,25 +327,44 @@ function getParkingAddressParts(parking) {
         houseNumber: houseNumber || 'Дом не указан'
     };
 }
-
 function getParkingGroupStatus(parkings) {
+    if (!Array.isArray(parkings) || parkings.length === 0) {
+        return 'Нет актуальных данных';
+    }
     let total = 0;
     let occupied = 0;
-
-    parkings.forEach(function(parking) {
-        total += Number(parking.totalSpots) || 0;
-        occupied += Number(parking.occupiedSpots) || 0;
+    let validCount = 0;
+    let invalidCount = 0;
+      parkings.forEach(function(parking) {
+        const result = window.getParkingOccupancyStatus(parking);
+        if (
+            result.status === 'unknown' ||
+            result.status === 'stale'
+        ) {
+            invalidCount++;
+            return;
+        }
+        total += result.totalSpots;
+        occupied += result.occupiedSpots;
+        validCount++;
     });
-
-    if (total <= 0) return 'Нет данных';
+    if (validCount === 0 || total <= 0) {
+        return 'Нет актуальных данных';
+    }
+    // Часть парковок группы не имеет актуальных данных.
+    if (invalidCount > 0) {
+        return 'Часть данных неактуальна';
+    }
     const ratio = occupied / total;
-
-    if (ratio >= 0.9) return 'Мест нет';
-    if (ratio >= 0.6) return 'Мало мест';
-
+    const free = total - occupied;
+    if (free === 0 || ratio >= 0.9) {
+        return 'Мест нет';
+    }
+    if (ratio >= 0.6) {
+        return 'Мало мест';
+    }
     return 'Есть места';
 }
-
 function toggleParkingGroup(groupId) {
     const group = document.getElementById(groupId);
     const button = document.getElementById(groupId + '-button');
