@@ -1084,3 +1084,86 @@
         font-size: 16px;
     }
 }
+/* =========================================================
+   PARK NEAR — PARK CARD DESIGN OVERRIDES
+   Dark Titanium Glass × Arctic Blue
+   ========================================================= */
+
+.parking-card-compact {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+}
+
+.parking-card-compact button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.parking-card-compact input,
+.parking-card-compact select,
+.parking-card-compact textarea {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+.parking-card-compact input:focus,
+.parking-card-compact select:focus,
+.parking-card-compact textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .16);
+}
+
+.parking-card-compact .parking-card-close {
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+.parking-card-compact .parking-card-close:active {
+    background: var(--brand-soft);
+}
+.parking-card-compact .parking-card-button,
+.parking-card-compact .primary-button {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border-color: var(--btn-primary-bg);
+}
+/* Статусы */
+.parking-card-compact .status-free {
+    color: var(--status-free);
+}
+.parking-card-compact .status-limited {
+    color: var(--status-limited);
+}
+.parking-card-compact .status-full {
+    color: var(--status-full);
+}
+.parking-card-compact .status-unknown {
+    color: var(--status-unknown);
+}
+/* Информационные поверхности */
+.parking-card-compact .parking-info,
+.parking-card-compact .parking-details,
+.parking-card-compact .parking-card-section {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+/* Статусы и индикаторы */
+.parking-card-compact .status-dot {
+    box-shadow: none;
+}
+.parking-card-compact .parking-card-secondary {
+    color: var(--text-secondary);
+}
+/* Ссылки */
+.parking-card-compact a {
+    color: var(--accent);
+}
+.parking-card-compact a:focus-visible,
+.parking-card-compact button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
