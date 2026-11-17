@@ -2131,6 +2131,16 @@ app.post(
                 error: 'Не удалось подобрать свободный идентификатор парковки'
             });
         }
+        const responseBody = {
+    success: true,
+    id: parkingId,
+    status: 'pending',
+    message: 'Парковка отправлена на модерацию',
+    parking: {
+        ...parkingData,
+        id: parkingId
+    }
+};
         // Запоминаем результат в той же транзакции,
         // что и создание парковки
         if (operationId) {
