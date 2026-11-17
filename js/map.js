@@ -110,31 +110,37 @@ map.events.add('zoomchange', function() {
                 maxZoom: 18,
                 clusterDisableClickZoom: false,
                 clusterOpenBalloonOnClick: false,
-                
-              clusterIconLayout:
-                ymaps.templateLayoutFactory.createClass(
-                '<div style="' +
-                    'position:relative;' +
-                    'width:48px;' +
-                    'height:48px;' +
-                    'box-sizing:border-box;' +
-                    'border-radius:50%;' +
-                    'background-color:#22A447;' +
-                    'background-color:$[properties.clusterColor];' +
-                    'border:3px solid #ffffff;' +
-                    'display:flex;' +
-                    'align-items:center;' +
-                    'justify-content:center;' +
-                    'box-shadow:0 3px 10px rgba(0,0,0,0.35);' +
-                    'opacity:1;' +
-                    'color:#ffffff;' +
-                    'font-weight:700;' +
-                    'font-size:16px;' +
-                    'text-shadow:0 1px 2px rgba(0,0,0,0.25);' +
-                '">' +
-                    '$[properties.parkingCount]' +
-                '</div>'
-            ),
+            
+            clusterIconLayout:
+             ymaps.templateLayoutFactory.createClass(
+        '<div style="' +
+            'position:relative;' +
+            'width:68px;' +
+            'height:68px;' +
+            'box-sizing:border-box;' +
+            'border-radius:50%;' +
+            'background-color:$[properties.clusterColor];' +
+            'border:3px solid #ffffff;' +
+            'display:flex;' +
+            'flex-direction:column;' +
+            'align-items:center;' +
+            'justify-content:center;' +
+            'box-shadow:0 3px 10px rgba(0,0,0,0.35);' +
+            'color:#ffffff;' +
+            'font-weight:700;' +
+            'text-align:center;' +
+        '">' +
+            '<div style="font-size:19px;line-height:22px;">' +
+                '$[properties.parkingCount]' +
+            '</div>' +
+            '<div style="font-size:10px;line-height:13px;">' +
+                'Свободно: $[properties.freeSpots]' +
+            '</div>' +
+            '<div style="font-size:9px;line-height:12px;opacity:0.9;">' +
+                'Без данных: $[properties.unknownParkingCount]' +
+            '</div>' +
+        '</div>'
+    ),
                 clusterBalloonContentLayout:
                     ymaps.templateLayoutFactory.createClass(
                         '<div style="' +
