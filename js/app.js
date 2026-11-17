@@ -272,27 +272,17 @@ function getDistanceInMeters(lat1, lng1, lat2, lng2) {
     return R * c;
 }
 function renderParkingItem(parking, userCoords) {
-const total = Number(parking.totalSpots) || 0;
-const occupied = Number(parking.occupiedSpots) || 0;
-let status = 'unknown';
-if (total > 0) {
-    const ratio = occupied / total;
-    if (ratio >= 0.9) {
-        status = 'occupied';
-    } else if (ratio >= 0.6) {
-        status = 'limited';
-    } else {
-        status = 'free';
-    }
-}
+const occupancy = window.getParkingOccupancyStatus(parking);
+const status = occupancy.status;
 const statusLabels = {
     free: 'Есть места',
     limited: 'Мало мест',
     occupied: 'Мест нет',
-    unknown: 'Нет данных'
+    unknown: 'Нет актуальных данных',
+    stale: 'Нет актуальных данных'
 };
 const badgeClass = status;
-const badgeText = statusLabels[status];
+const badgeText = statusLabels[status] || 'Нет актуальных данных';
     let distanceHtml = '';
     const lat = Number(parking.lat);
     const lng = Number(parking.lng);
