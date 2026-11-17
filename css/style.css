@@ -2396,3 +2396,150 @@ body.dark-theme #donateBtn {
     background: var(--btn-primary-bg);
     color: var(--btn-primary-text);
 }
+
+/* ==========================================
+   ГРУППЫ ПАРКОВОК НА ГЛАВНОЙ
+   ========================================== */
+
+.parking-address-group {
+    width: 100%;
+    overflow: hidden;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+}
+
+.parking-address-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 72px;
+    padding: 14px 16px;
+    gap: 12px;
+    background: transparent;
+    border: 0;
+    color: var(--text-primary);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.parking-address-heading:active {
+    background: var(--bg-primary);
+}
+
+.parking-address-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    gap: 5px;
+}
+
+.parking-address-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.parking-address-meta {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+.parking-address-arrow {
+    flex-shrink: 0;
+    font-size: 20px;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.parking-address-heading[aria-expanded="true"]
+.parking-address-arrow {
+    transform: rotate(180deg);
+}
+
+.parking-address-group > div:not(.parking-address-info) {
+    padding: 0 12px 12px;
+}
+
+.parking-address-group .parking-item {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-primary);
+}
+
+.parking-address-group .parking-item:first-child {
+    margin-top: 0;
+}
+
+.parking-address-group .parking-item .name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.parking-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    max-width: 145px;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: var(--gray);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.parking-status-badge.free {
+    background: var(--green);
+}
+
+.parking-status-badge.limited {
+    background: var(--orange);
+    color: #171717;
+}
+
+.parking-status-badge.occupied {
+    background: var(--red);
+}
+
+.parking-status-badge.unknown,
+.parking-status-badge.stale {
+    background: var(--gray);
+}
+
+.parking-list {
+    gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .parking-address-heading {
+        min-height: 68px;
+        padding: 12px;
+    }
+
+    .parking-address-title {
+        font-size: 14px;
+    }
+
+    .parking-address-meta {
+        font-size: 11px;
+    }
+
+    .parking-status-badge {
+        max-width: 125px;
+        font-size: 10px;
+    }
+}
