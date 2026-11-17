@@ -2377,26 +2377,20 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, r
 // ============================================
 app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
     const client = await pool.connect();
-
     try {
         await client.query('BEGIN');
-
         const result = await client.query(
             'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
             [req.params.id]
         );
-
         if (result.rows.length === 0) {
             await client.query('ROLLBACK');
-
             return res.status(404).json({
                 success: false,
                 error: 'Парковка не найдена'
             });
         }
-
         const parking = result.rows[0].data;
-
         if (String(parking.authorId) !== String(req.authUser.id)) {
             await client.query('ROLLBACK');
 
@@ -2410,9 +2404,7 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, 
             'DELETE FROM parkings WHERE id = $1',
             [req.params.id]
         );
-
         await client.query('COMMIT');
-
         return res.json({ success: true });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -2426,7 +2418,6 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, 
         client.release();
     }
 });
-
 // ============================================
 // ИЗМЕНЕНИЕ ЗАНЯТОСТИ ПАРКОВКИ В POSTGRESQL
 // ============================================
@@ -2439,17 +2430,13 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, asy
             error: 'Допустимо изменить занятость только на одно место'
         });
     }
-
     const client = await pool.connect();
-
     try {
         await client.query('BEGIN');
-
         const result = await client.query(
             'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
             [req.params.id]
         );
-
         if (result.rows.length === 0) {
             await client.query('ROLLBACK');
 
@@ -2458,7 +2445,6 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, asy
                 error: 'Парковка не найдена'
             });
         }
-
         const parking = result.rows[0].data || {};
         const total = Number(parking.totalSpots || 0);
         const previousOccupied = Number(parking.occupiedSpots || 0);
@@ -2477,15 +2463,12 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, asy
                 error: 'Нельзя изменить занятость: достигнут предел мест'
             });
         }
-
         const now = Date.now();
-
         const username =
             req.authUser.nickname ||
             req.authUser.firstName ||
             req.authUser.username ||
             'Пользователь';
-
         const historyEntry = {
             action: delta < 0 ? 'freed' : 'occupied',
             timestamp: now,
@@ -2494,20 +2477,33 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, asy
             previousOccupied,
             newOccupied
         };
-
         // Поддерживаем историю в формате массива или старого объекта.
         const previousHistory = Array.isArray(parking.history)
             ? parking.history
             : Object.values(parking.history || {});
+// Рассчитываем статус на основании новой занятости.
+const occupancyRatio = newOccupied / total;
+const freeSpots = total - newOccupied;
 
-        const updatedParking = {
-            ...parking,
-            occupiedSpots: newOccupied,
-            lastUpdatedAt: now,
-            lastUpdatedBy: username,
-            history: [...previousHistory, historyEntry]
-        };
+let status = 'unknown';
 
+if (newOccupied > 0) {
+    if (freeSpots === 0 || occupancyRatio >= 0.9) {
+        status = 'occupied';
+    } else if (occupancyRatio >= 0.6) {
+        status = 'limited';
+    } else {
+        status = 'free';
+    }
+}
+const updatedParking = {
+    ...parking,
+    occupiedSpots: newOccupied,
+    status,
+    lastUpdatedAt: now,
+    lastUpdatedBy: username,
+    history: [...previousHistory, historyEntry]
+};
         await client.query(
             'UPDATE parkings SET data = $2::jsonb WHERE id = $1',
             [req.params.id, JSON.stringify(updatedParking)]
@@ -2536,7 +2532,6 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, asy
         client.release();
     }
 });
-
 // ============================================
 // ОБРАБОТКА НЕИЗВЕСТНЫХ МАРШРУТОВ
 // ============================================
@@ -2546,26 +2541,22 @@ app.use((req, res) => {
         error: 'Маршрут не найден'
     });
 });
-
 // ============================================
 // ОБРАБОТКА ОШИБОК JSON
 // ============================================
 app.use((error, req, res, next) => {
     console.error('Ошибка сервера:', error.message);
-
     if (error instanceof SyntaxError && error.status === 400) {
         return res.status(400).json({
             success: false,
             error: 'Некорректный JSON'
         });
     }
-
     return res.status(500).json({
         success: false,
         error: 'Внутренняя ошибка сервера'
     });
 });
-
 // ============================================
 // ЗАПУСК СЕРВЕРА ПОСЛЕ ПРОВЕРКИ POSTGRESQL
 // ============================================
@@ -2587,5 +2578,4 @@ async function startServer() {
         process.exit(1);
     }
 }
-
 startServer();
