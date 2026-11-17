@@ -1,6 +1,6 @@
 // API Park Near на Timeweb
 window.PARKNEAR_API_URL =
-    'https://andrey8128-jpg-park-near-3eb7.twc1.net';
+    'https://ominous-bassoon-vp674x5vrg4xfwvqg-3000.app.github.dev';
 async function patchParkingInPostgres(parkingId, updates) {
     const token = localStorage.getItem('parkNearSessionToken');
     if (!token) {
