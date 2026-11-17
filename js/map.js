@@ -15,6 +15,60 @@ function clearMapInitError() {
     const error = document.getElementById('parkNearMapError');
     if (error) error.remove();
 }
+function refreshParkingOccupancyStatuses() {
+    if (!map || !mapMarkers || !parkingDataCache) return;
+    let hasMarkers = false;
+    Object.keys(mapMarkers).forEach(function(id) {
+        const placemark = mapMarkers[id];
+        const parking = parkingDataCache[id];
+        if (!placemark || !parking) return;
+        const occupancy = getParkingMarkerOccupancy(parking);
+        const markerContent =
+            occupancy.status === 'unknown' ||
+            occupancy.status === 'stale'
+                ? '–'
+                : String(occupancy.freeSpots);
+        placemark.properties.set({
+            freeSpots: occupancy.freeSpots,
+            totalSpots: occupancy.totalSpots,
+            occupiedSpots: occupancy.occupiedSpots,
+            occupancyStatus: occupancy.status,
+            iconContent: markerContent
+        });
+        placemark.options.set('iconColor', occupancy.color);
+        // Обновляем цвет полигона, если он существует.
+        const polygon = placemark.properties.get('polygon');
+        if (polygon) {
+            polygon.options.set({
+                fillColor: occupancy.color + '33',
+                strokeColor: occupancy.color
+            });
+        }
+        hasMarkers = true;
+    });
+    // Пересчитываем цвета и показатели кластеров один раз.
+    if (hasMarkers && typeof refreshParkingClusters === 'function') {
+        refreshParkingClusters();
+    }
+}
+function startParkingOccupancyRefresh() {
+    if (window.parkNearOccupancyRefreshTimer) {
+        clearInterval(window.parkNearOccupancyRefreshTimer);
+    }
+    // Обновляем статусы каждую минуту.
+    window.parkNearOccupancyRefreshTimer = setInterval(function() {
+        refreshParkingOccupancyStatuses();
+    }, 60 * 1000);
+    // При возвращении в приложение сразу пересчитываем статусы.
+    if (!window.parkNearOccupancyVisibilityHandler) {
+        window.parkNearOccupancyVisibilityHandler = true;
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                refreshParkingOccupancyStatuses();
+            }
+        });
+    }
+}
 function initMap() {
     console.log('▶️ initMap вызвана');
     const mapContainer = document.getElementById('map');
@@ -377,6 +431,8 @@ loadAllParkings(
         error
     );
 });
+// Запускаем автоматическое обновление статусов парковок.
+startParkingOccupancyRefresh();
        // ===== Скрываем сплеш-экран =====
 setTimeout(function() {
     const splash = document.getElementById('splashScreen');
