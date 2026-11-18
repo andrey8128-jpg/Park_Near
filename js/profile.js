@@ -448,7 +448,6 @@ function renderHistoryEntry(entry) {
         </div>
     `;
 }
-function getHomeParkings() {
 // ============================================
 // МОДЕРАЦИЯ ПАРКОВОК В ПРОФИЛЕ
 // ============================================
@@ -584,6 +583,7 @@ async function moderateParkingRequest(moderationId, action) {
         alert(error.message || 'Ошибка обработки заявки.');
     }
 }
+function getHomeParkings() {
     const parkings = Object.values(parkingDataCache || {});
     const cityParkings =
         filterParkingsByCurrentCity(parkings);
