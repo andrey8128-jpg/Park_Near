@@ -4,7 +4,26 @@
     <meta charset="UTF-8">
     <title>ParkNear</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <link rel="manifest" href="manifest.json">
+   <script>
+(function () {
+    function updateAppHeight() {
+        const height = window.visualViewport
+            ? window.visualViewport.height
+            : window.innerHeight;
+        document.documentElement.style.setProperty(
+            '--app-height',
+            `${height}px`
+        );
+    }
+    updateAppHeight();
+    window.addEventListener('resize', updateAppHeight);
+    window.addEventListener('orientationchange', updateAppHeight);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateAppHeight);
+    }
+})();
+</script>
+     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#20A895">
     <!-- iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,8 +36,8 @@
     <!-- Yandex Maps -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=75eb2fa2-7ab4-4322-9fa3-d7581badafd2&lang=ru_RU"></script>
   <!-- Стили -->
-<link rel="stylesheet" href="css/style.css?v=20261117-4">
-<link rel="stylesheet" href="css/splash.css?v=20261117-3">
+<link rel="stylesheet" href="css/style.css?v=20261118-1">
+<link rel="stylesheet" href="css/splash.css?v=20261118-1">
 <link rel="stylesheet" href="css/edit.park.css?v=20261117-3">
 <link rel="stylesheet" href="css/park.card.css?v=20261117-3">
 <link rel="stylesheet" href="css/active-parking.css?v=20261117-3">
