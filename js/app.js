@@ -550,39 +550,37 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             });
         }
     }
-    // 3. Поиск города (с учётом границ слова)
+    // 3. Поиск города с корректной поддержкой кириллицы
+    function createAddressTermRegex(value) {
+        const escaped = escapeRegex(value);
+        return new RegExp(
+            `(^|[^\\p{L}\\p{N}])(${escaped})(?=$|[^\\p{L}\\p{N}])`,
+            'iu'
+        );
+    }
     let foundCity = '';
     let foundRegion = '';
-    // Сортируем города по длине (сначала самые длинные) для избежания частичных совпадений
-    const sortedCities = [...cityToRegion.keys()].sort((a, b) => b.length - a.length);
-    // Ищем город в адресе
+    const sortedCities = [...cityToRegion.keys()]
+        .sort((a, b) => b.length - a.length);
     for (const city of sortedCities) {
-        const escapedCity = escapeRegex(city);
-        const cityRegex = new RegExp(`\\b${escapedCity}\\b`, 'i');
+        const cityRegex = createAddressTermRegex(city);
         if (cityRegex.test(addr)) {
             foundCity = city;
             foundRegion = cityToRegion.get(city);
+            addr = addr.replace(cityRegex, '$1').trim();
+            addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
             break;
         }
     }
-    // Если город найден, удаляем его из адреса
-    if (foundCity) {
-        const escapedCity = escapeRegex(foundCity);
-        const cityRegex = new RegExp(`\\b${escapedCity}\\b`, 'i');
-        addr = addr.replace(cityRegex, '').trim();
-        addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
-    }
-    // 4. Поиск региона, если город не дал однозначного региона или регион не найден
+    // 4. Поиск региона, если город не найден
     if (!foundRegion) {
-        // Пытаемся найти регион напрямую (например, "Московская область")
-        const sortedRegions = Object.keys(regionsData).sort((a, b) => b.length - a.length);
+        const sortedRegions = Object.keys(regionsData)
+            .sort((a, b) => b.length - a.length);
         for (const region of sortedRegions) {
-            const escapedRegion = escapeRegex(region);
-            const regionRegex = new RegExp(`\\b${escapedRegion}\\b`, 'i');
+            const regionRegex = createAddressTermRegex(region);
             if (regionRegex.test(addr)) {
                 foundRegion = region;
-                // Удаляем регион из адреса
-                addr = addr.replace(regionRegex, '').trim();
+                addr = addr.replace(regionRegex, '$1').trim();
                 addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
                 break;
             }
