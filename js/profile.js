@@ -249,6 +249,30 @@ const canModerate =
                 <div id="profileSectionSettingsContent" class="pn-profile-expand">
                     <div id="settingsContentInline" class="pn-profile-settings"></div>
                 </div>
+                
+${canModerate ? `
+    <div class="pn-profile-section-title">Инструменты модератора</div>
+    <section class="pn-profile-menu">
+        <button
+            type="button"
+            class="pn-profile-row"
+            onclick="toggleProfileSection('moderation')"
+        >
+            <span class="pn-profile-row-icon">🛡️</span>
+            <span class="pn-profile-row-content">
+                <strong>Модерация парковок</strong>
+                <small>Проверка новых заявок пользователей</small>
+            </span>
+            <span class="pn-profile-row-arrow">›</span>
+        </button>
+    </section>
+
+    <div id="profileSectionModerationContent" class="pn-profile-expand">
+        <div id="moderationListContainer" class="pn-profile-loading">
+            Нажмите, чтобы загрузить заявки
+        </div>
+    </div>
+` : ''}
                 <section class="pn-profile-stats">
                     <div><strong>${created}</strong><span>Парковок создано</span></div>
                     <div><strong>${confirmations}</strong><span>Подтверждений</span></div>
@@ -311,19 +335,30 @@ window._favoritesLoaded = false;
 }
 // ---- Переключение секций профиля ----
 function toggleProfileSection(section) {
-    const content = document.getElementById(`profileSection${section.charAt(0).toUpperCase() + section.slice(1)}Content`);
+    const content = document.getElementById(
+        `profileSection${section.charAt(0).toUpperCase() + section.slice(1)}Content`
+    );
     if (!content) return;
     const isOpen = content.classList.contains('open');
     content.classList.toggle('open', !isOpen);
-    if (section === 'history' && !isOpen && !window._historyLoaded) {
+    // История парковок
+    if (
+        section === 'history' &&
+        !isOpen &&
+        !window._historyLoaded
+    ) {
         loadUserParkingHistory();
         window._historyLoaded = true;
     }
+    // Избранное
     if (section === 'favorites' && !isOpen) {
-    loadFavoritesInline(true);
-  }
+        loadFavoritesInline(true);
+    }
+    // Модерация парковок
+    if (section === 'moderation' && !isOpen) {
+        loadModerationQueue();
+    }
 }
-
 // ---- Загрузка истории парковок пользователя (только последние 10) ----
 async function loadUserParkingHistory() {
     const container = document.getElementById('historyListContainer');
