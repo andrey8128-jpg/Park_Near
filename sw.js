@@ -20,7 +20,7 @@ const APP_FILES = [
     './js/app.js?v=20261117-2',
     './js/push-notifications.js',
     './js/navigation.js',
-    './js/city-selector.js?v=20261118-1'
+    './js/city-selector.js?v=20261118-1',
     './js/icons.js?v=1',
     './js/car-selector.js',
     './js/active-parking.js?v=20261116-4',
