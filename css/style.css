@@ -201,23 +201,24 @@ body.dark-theme {
     --status-full: #F0787C;
     --status-unknown: #A5B4BC;
 }
-/* ===== ОСНОВНОЕ ТЕЛО ПРИЛОЖЕНИЯ ===== */
-
+/* ===== ЕДИНЫЙ VIEWPORT PARK NEAR ===== */
 html {
     width: 100%;
-    min-height: 100%;
+    height: var(--app-height, 100vh);
+    min-height: var(--app-height, 100vh);
     margin: 0;
     padding: 0;
+    overflow: hidden;
 }
 body {
     margin: 0;
     padding: 0;
     width: 100%;
-    min-height: 100%;
-    min-height: 100dvh;
+    height: var(--app-height, 100vh);
+    min-height: var(--app-height, 100vh);
     overflow: hidden;
     overscroll-behavior: none;
-    background: var(--bg-primary);
+    background: var(--bg-primary, #0D1720);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont,
         "SF Pro Display", "Helvetica Neue", sans-serif;
@@ -227,14 +228,12 @@ body {
     text-rendering: optimizeLegibility;
     transition: background 0.3s ease, color 0.3s ease;
 }
-/* ===== КАРТА ===== */
+/* ===== КАРТА НА ВЕСЬ ЭКРАН ===== */
 #map {
     position: fixed;
     inset: 0;
     width: 100%;
-    height: 100vh;
-    height: 100svh;
-    height: 100dvh;
+    height: auto;
     margin: 0;
     padding: 0;
     border: 0;
