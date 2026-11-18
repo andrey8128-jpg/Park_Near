@@ -71,7 +71,7 @@
     /* Нижняя навигация */
     --tab-bar-height: 64px;
     --tab-bar-bottom: 20px;
-    --button-offset-from-tab: 20px;
+    --button-offset-from-tab: 13px;
     --button-gap: 72px;
 
     --tab-bg: rgba(255, 255, 255, .86);
