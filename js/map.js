@@ -98,30 +98,51 @@ map = new ymaps.Map("map", {
     type: 'yandex#map'
 });
 console.log('✅ Карта инициализирована');
-// ===== ОБНОВЛЕНИЕ РАЗМЕРА КАРТЫ ПРИ ИЗМЕНЕНИИ VIEWPORT =====
+
+/* ===== СИНХРОНИЗАЦИЯ РАЗМЕРА ЯНДЕКС.КАРТЫ ===== */
 function resizeParkNearMap() {
     if (!map || !map.container) return;
+
     requestAnimationFrame(() => {
         try {
             map.container.fitToViewport();
         } catch (error) {
-            console.warn('Ошибка обновления размера карты:', error);
+            console.warn(
+                'Park Near: ошибка пересчёта карты',
+                error
+            );
         }
     });
 }
-// Первоначальное обновление после создания карты
+// После первичной отрисовки
 setTimeout(resizeParkNearMap, 100);
 setTimeout(resizeParkNearMap, 500);
-// Изменение размера окна
+setTimeout(resizeParkNearMap, 1000);
+
+// Изменение размеров окна
 window.addEventListener('resize', resizeParkNearMap);
 window.addEventListener('orientationchange', resizeParkNearMap);
-// Изменение видимой области iOS
+
+// Изменение viewport на iOS
 if (window.visualViewport) {
     window.visualViewport.addEventListener(
         'resize',
         resizeParkNearMap
     );
 }
+// Контроль фактического размера контейнера карты
+if (window.ResizeObserver) {
+    const mapResizeObserver = new ResizeObserver(() => {
+        resizeParkNearMap();
+    });
+    mapResizeObserver.observe(mapContainer);
+}
+// После возвращения приложения на экран
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        setTimeout(resizeParkNearMap, 100);
+    }
+});
 clearMapInitError();
 // Убираем сообщение об ошибке после успешного запуска карты.
 if (typeof window.clearParkNearInitError === 'function') {
