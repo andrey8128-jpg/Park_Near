@@ -686,6 +686,222 @@ app.get(
         }
     }
 );
+ // ============================================
+ // ОДОБРЕНИЕ ЗАЯВКИ НА СОЗДАНИЕ ПАРКОВКИ
+ // ============================================
+app.post(
+    '/api/moderation/:id/approve',
+    requireAuth,
+    requireRole('moderator', 'admin'),
+    async (req, res) => {
+        let client;
+        try {
+            const moderationId = String(req.params.id || '').trim();
+            const comment = String(req.body?.comment || '').trim();
+            if (!moderationId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Не указан идентификатор заявки'
+                });
+            }
+            if (comment.length > 1000) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Комментарий не должен превышать 1000 символов'
+                });
+            }
+            client = await pool.connect();
+            await client.query('BEGIN');
+            // Блокируем заявку от параллельной обработки
+            const moderationResult = await client.query(
+                `SELECT
+                    id,
+                    parking_id,
+                    user_id,
+                    action,
+                    proposed_data,
+                    status
+                 FROM parking_moderation
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [moderationId]
+            );
+            if (moderationResult.rowCount === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    error: 'Заявка не найдена'
+                });
+            }
+            const moderation = moderationResult.rows[0];
+            if (moderation.status !== 'pending') {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    success: false,
+                    error: 'Заявка уже была обработана'
+                });
+            }
+            // Пока реализуем публикацию новых парковок.
+            // Редактирование и удаление требуют отдельных сценариев.
+            if (moderation.action !== 'create') {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    success: false,
+                    error: 'Для этого типа заявки пока не реализована модерация'
+                });
+            }
+            if (
+                !moderation.parking_id ||
+                !moderation.proposed_data ||
+                typeof moderation.proposed_data !== 'object' ||
+                Array.isArray(moderation.proposed_data)
+            ) {
+                await client.query('ROLLBACK');
+                return res.status(422).json({
+                    success: false,
+                    error: 'Данные заявки некорректны'
+                });
+            }
+            // Публикуем парковку.
+            // Конфликт ID не должен перезаписывать существующую парковку.
+            const parkingResult = await client.query(
+                `INSERT INTO parkings (id, data)
+                 VALUES ($1, $2::jsonb)
+                 ON CONFLICT (id) DO NOTHING
+                 RETURNING id`,
+                [
+                    moderation.parking_id,
+                    JSON.stringify(moderation.proposed_data)
+                ]
+            );
+            if (parkingResult.rowCount === 0) {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    success: false,
+                    error: 'Парковка с таким идентификатором уже существует'
+                });
+            }
+            // Отмечаем заявку одобренной
+            await client.query(
+                `UPDATE parking_moderation
+                 SET status = 'approved',
+                     reviewed_by = $2,
+                     review_comment = $3,
+                     reviewed_at = NOW()
+                 WHERE id = $1`,
+                [
+                    moderationId,
+                    req.authUser.id,
+                    comment
+                ]
+            );
+            await client.query('COMMIT');
+            return res.json({
+                success: true,
+                message: 'Заявка одобрена, парковка опубликована',
+                parkingId: moderation.parking_id,
+                moderationId
+            });
+        } catch (error) {
+            if (client) {
+                await client.query('ROLLBACK').catch(() => {});
+            }
+            console.error('Ошибка одобрения заявки:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось одобрить заявку'
+            });
+        } finally {
+            if (client) client.release();
+        }
+    }
+);
+// ============================================
+// ОТКЛОНЕНИЕ ЗАЯВКИ НА СОЗДАНИЕ ПАРКОВКИ
+// ============================================
+app.post(
+    '/api/moderation/:id/reject',
+    requireAuth,
+    requireRole('moderator', 'admin'),
+    async (req, res) => {
+        let client;
+        try {
+            const moderationId = String(req.params.id || '').trim();
+            const comment = String(req.body?.comment || '').trim();
+            if (!moderationId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Не указан идентификатор заявки'
+                });
+            }
+            if (!comment) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Укажи причину отклонения заявки'
+                });
+            }
+            if (comment.length > 1000) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Комментарий не должен превышать 1000 символов'
+                });
+            }
+            client = await pool.connect();
+            await client.query('BEGIN');
+            const moderationResult = await client.query(
+                `SELECT id, status
+                 FROM parking_moderation
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [moderationId]
+            );
+            if (moderationResult.rowCount === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    error: 'Заявка не найдена'
+                });
+            }
+            if (moderationResult.rows[0].status !== 'pending') {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    success: false,
+                    error: 'Заявка уже была обработана'
+                });
+            }
+            await client.query(
+                `UPDATE parking_moderation
+                 SET status = 'rejected',
+                     reviewed_by = $2,
+                     review_comment = $3,
+                     reviewed_at = NOW()
+                 WHERE id = $1`,
+                [
+                    moderationId,
+                    req.authUser.id,
+                    comment
+                ]
+            );
+            await client.query('COMMIT');
+            return res.json({
+                success: true,
+                message: 'Заявка отклонена',
+                moderationId
+            });
+        } catch (error) {
+            if (client) {
+                await client.query('ROLLBACK').catch(() => {});
+            }
+            console.error('Ошибка отклонения заявки:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось отклонить заявку'
+            });
+        } finally {
+            if (client) client.release();
+        }
+    }
+);
 // ============================================
 // WEB PUSH: ПОЛУЧЕНИЕ ПУБЛИЧНОГО VAPID-КЛЮЧА
 // ============================================
