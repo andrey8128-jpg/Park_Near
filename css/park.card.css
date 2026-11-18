@@ -812,10 +812,6 @@
     border-color: var(--card-border);
     color: var(--text-secondary);
 }
-    background: var(--bg-primary);
-    border-color: var(--card-border);
-    color: var(--text-secondary);
-}
 /* Количество мест */
 .pn-card-stats {
     display: grid;
