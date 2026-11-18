@@ -449,6 +449,141 @@ function renderHistoryEntry(entry) {
     `;
 }
 function getHomeParkings() {
+// ============================================
+// МОДЕРАЦИЯ ПАРКОВОК В ПРОФИЛЕ
+// ============================================
+async function loadModerationQueue() {
+    const container = document.getElementById('moderationListContainer');
+    if (!container) return;
+    const token = localStorage.getItem('parkNearSessionToken');
+    if (!token || window.isOfflineSession) {
+        container.textContent = 'Для модерации необходимо войти в аккаунт онлайн.';
+        return;
+    }
+    container.textContent = 'Загрузка заявок...';
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/moderation/queue?limit=50`,
+            {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                cache: 'no-store'
+            }
+        );
+        const result = await response.json();
+        if (response.status === 403) {
+            container.textContent = 'У вашего аккаунта нет прав модератора.';
+            return;
+        }
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Не удалось загрузить заявки');
+        }
+        const items = Array.isArray(result.items) ? result.items : [];
+        if (!items.length) {
+            container.textContent = 'Новых заявок на модерацию нет.';
+            return;
+        }
+        container.innerHTML = items.map(item => {
+            const data = item.proposedData || {};
+            const address = [
+                data.city,
+                data.street,
+                data.houseNumber
+            ].filter(Boolean).join(', ');
+            const safeId = escapeHtml(item.id);
+            const safeName = escapeHtml(data.name || 'Новая парковка');
+            const safeAddress = escapeHtml(
+                address || data.address || 'Адрес не указан'
+            );
+            const safeAuthor = escapeHtml(
+                item.author?.firstName || item.author?.username || 'Пользователь'
+            );
+            return `
+                <div class="pn-address-card">
+                    <div class="pn-address-card-head">
+                        <strong>${safeName}</strong>
+                        <small>Новая заявка</small>
+                    </div>
+
+                    <p>${safeAddress}</p>
+
+                    <p>
+                        Мест: ${Number(data.totalSpots) || 0}
+                    </p>
+
+                    <small>Автор: ${safeAuthor}</small>
+
+                    <div class="pn-car-actions">
+                        <button
+                            type="button"
+                            onclick="moderateParkingRequest('${safeId}', 'approve')"
+                        >
+                            Одобрить
+                        </button>
+
+                        <button
+                            type="button"
+                            class="danger"
+                            onclick="moderateParkingRequest('${safeId}', 'reject')"
+                        >
+                            Отклонить
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Ошибка очереди модерации:', error);
+        container.textContent = error.message ||
+            'Не удалось загрузить заявки.';
+    }
+}
+// ============================================
+// ОБРАБОТКА ЗАЯВКИ МОДЕРАТОРОМ
+// ============================================
+async function moderateParkingRequest(moderationId, action) {
+    const token = localStorage.getItem('parkNearSessionToken');
+    if (!token || window.isOfflineSession) {
+        alert('Для этого действия необходима активная авторизация.');
+        return;
+    }
+    let comment = '';
+    if (action === 'reject') {
+        comment = prompt('Укажи причину отклонения парковки:')?.trim() || '';
+        if (!comment) {
+            alert('Для отклонения необходимо указать причину.');
+            return;
+        }
+    }
+    const actionText = action === 'approve' ? 'одобрить' : 'отклонить';
+    if (!confirm(`Вы действительно хотите ${actionText} эту заявку?`)) {
+        return;
+    }
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/moderation/${encodeURIComponent(moderationId)}/${action}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ comment })
+            }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Не удалось обработать заявку');
+        }
+        alert(result.message || 'Заявка обработана.');
+        await loadModerationQueue();
+    } catch (error) {
+        console.error('Ошибка обработки заявки:', error);
+        alert(error.message || 'Ошибка обработки заявки.');
+    }
+}
     const parkings = Object.values(parkingDataCache || {});
     const cityParkings =
         filterParkingsByCurrentCity(parkings);
