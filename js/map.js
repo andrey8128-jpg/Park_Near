@@ -1,4 +1,6 @@
 const ENABLE_PARKING_CLUSTERS = true;
+// Защита от повторных одновременных запросов парковок
+let parkingsLoadPromise = null;
 function showMapInitError(message) {
     const container = document.getElementById('map');
     if (!container) return;
@@ -460,7 +462,7 @@ if (addBtn) {
 console.log('Загружаем парковки после инициализации карты');
 loadAllParkings(
     currentCity || '',
-    true
+    false
 ).then(() => {
     console.log(
         'Парковки обработаны:',
@@ -915,6 +917,13 @@ let markerCount = 0;
         });
         return true;
     }
+    // Если загрузка уже выполняется, используем тот же запрос.
+if (parkingsLoadPromise) {
+    return parkingsLoadPromise.then(() => {
+        renderMarkers(parkingDataCache);
+        return true;
+    });
+}
     // Используем кэш, если он актуален.
     if (
         !force &&
@@ -933,7 +942,7 @@ let markerCount = 0;
         '/api/parkings',
         window.PARKNEAR_API_URL
     );
-    return fetch(url.toString(), {
+    const requestPromise = fetch(url.toString(), {
         method: 'GET',
         cache: 'no-store',
         headers: {
@@ -1085,8 +1094,12 @@ let markerCount = 0;
         throw error;
     }
 });
+    parkingsLoadPromise = requestPromise.finally(() => {
+        parkingsLoadPromise = null;
+    });
+    return parkingsLoadPromise;
 }
-  function showParkingsForCity(city) {
+function showParkingsForCity(city) {
     if (!map || !city) return;
     clearAllMarkers();
     const normalizedCity = normalizeCity(city);
