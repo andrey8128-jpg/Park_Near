@@ -30,53 +30,64 @@ const canModerate =
     !isGuest &&
     !window.isOfflineSession &&
     ['moderator', 'admin'].includes(currentUser.role);
-
-    const loadProfileData = async () => {
-        if (isGuest) {
-            return { profileData: {}, favorites: [] };
+ 
+const loadProfileData = async () => {
+    if (isGuest) {
+        return { profileData: {}, favorites: [] };
+    }
+    // Офлайн: сразу используем локальный кэш
+    if (!navigator.onLine || window.isOfflineSession) {
+        if (!window.ParkNearOffline) {
+            throw new Error('Локальное хранилище недоступно');
         }
-
-        try {
-            const [profileData, favoritesResult] = await Promise.all([
-                requestUserProfile('GET'),
-                favoritesRequest()
-            ]);
-
-            const safeProfile = profileData || {};
-            const safeFavorites = Array.isArray(favoritesResult?.favorites)
-                ? favoritesResult.favorites
-                : [];
-
-            if (window.ParkNearOffline) {
-                await Promise.all([
-                    ParkNearOffline.saveUserData(profileCacheKey, safeProfile),
-                    ParkNearOffline.saveUserData(favoritesCacheKey, safeFavorites)
-                ]);
-            }
-
-            return {
-                profileData: safeProfile,
-                favorites: safeFavorites
-            };
-        } catch (error) {
-            console.warn('Не удалось загрузить профиль с сервера:', error);
-
-            if (!window.ParkNearOffline) throw error;
-
-            const [cachedProfile, cachedFavorites] = await Promise.all([
-                ParkNearOffline.getUserData(profileCacheKey),
-                ParkNearOffline.getUserData(favoritesCacheKey)
-            ]);
-
-            if (!cachedProfile) throw error;
-
-            return {
-                profileData: cachedProfile,
-                favorites: Array.isArray(cachedFavorites) ? cachedFavorites : []
-            };
+        const [cachedProfile, cachedFavorites] = await Promise.all([
+            ParkNearOffline.getUserData(profileCacheKey),
+            ParkNearOffline.getUserData(favoritesCacheKey)
+        ]);
+        if (!cachedProfile) {
+            throw new Error('Нет сохранённых данных профиля для офлайн-режима');
         }
-    };
-
+        return {
+            profileData: cachedProfile,
+            favorites: Array.isArray(cachedFavorites)
+                ? cachedFavorites
+                : []
+        };
+    }
+    // Онлайн: загружаем данные с сервера
+    try {
+        const [profileData, favoritesResult] = await Promise.all([
+            requestUserProfile('GET'),
+            favoritesRequest()
+        ]);
+        const safeProfile = profileData || {};
+        const safeFavorites = Array.isArray(favoritesResult?.favorites)
+            ? favoritesResult.favorites
+            : [];
+        if (window.ParkNearOffline) {
+            await Promise.all([
+                ParkNearOffline.saveUserData(profileCacheKey, safeProfile),
+                ParkNearOffline.saveUserData(favoritesCacheKey, safeFavorites)
+            ]);
+        }
+        return {
+            profileData: safeProfile,
+            favorites: safeFavorites
+        };
+    } catch (error) {
+        console.warn('Не удалось загрузить профиль с сервера:', error);
+        if (!window.ParkNearOffline) throw error;
+        const [cachedProfile, cachedFavorites] = await Promise.all([
+            ParkNearOffline.getUserData(profileCacheKey),
+            ParkNearOffline.getUserData(favoritesCacheKey)
+        ]);
+        if (!cachedProfile) throw error;
+        return {
+            profileData: cachedProfile,
+            favorites: Array.isArray(cachedFavorites) ? cachedFavorites : []
+        };
+    }
+};
     loadProfileData().then(({ profileData, favorites }) => {
         const stats = profileData.stats || {};
         const car = profileData.car || {};
