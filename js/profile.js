@@ -25,6 +25,11 @@ function renderProfile(content) {
     const profileCacheKey = `profile_${profileUserId}`;
     const favoritesCacheKey = `favorites_${profileUserId}`;
     const isGuest = profileUserId.startsWith('guest_');
+ // Доступ к модерации только по серверной роли
+const canModerate =
+    !isGuest &&
+    !window.isOfflineSession &&
+    ['moderator', 'admin'].includes(currentUser.role);
 
     const loadProfileData = async () => {
         if (isGuest) {
@@ -318,6 +323,7 @@ function toggleProfileSection(section) {
     loadFavoritesInline(true);
   }
 }
+
 // ---- Загрузка истории парковок пользователя (только последние 10) ----
 async function loadUserParkingHistory() {
     const container = document.getElementById('historyListContainer');
