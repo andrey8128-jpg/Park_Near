@@ -17,7 +17,7 @@ const APP_FILES = [
     './css/profile.css?v=20261117-3',
     './js/offline-storage.js?v=1',
     './js/map.js?v=20261118-2',
-    './js/app.js?v=20261117-3',
+    './js/app.js?v=20261117-4',
     './js/push-notifications.js',
     './js/navigation.js',
     './js/city-selector.js?v=20261118-1',
