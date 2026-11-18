@@ -98,6 +98,30 @@ map = new ymaps.Map("map", {
     type: 'yandex#map'
 });
 console.log('✅ Карта инициализирована');
+// ===== ОБНОВЛЕНИЕ РАЗМЕРА КАРТЫ ПРИ ИЗМЕНЕНИИ VIEWPORT =====
+function resizeParkNearMap() {
+    if (!map || !map.container) return;
+    requestAnimationFrame(() => {
+        try {
+            map.container.fitToViewport();
+        } catch (error) {
+            console.warn('Ошибка обновления размера карты:', error);
+        }
+    });
+}
+// Первоначальное обновление после создания карты
+setTimeout(resizeParkNearMap, 100);
+setTimeout(resizeParkNearMap, 500);
+// Изменение размера окна
+window.addEventListener('resize', resizeParkNearMap);
+window.addEventListener('orientationchange', resizeParkNearMap);
+// Изменение видимой области iOS
+if (window.visualViewport) {
+    window.visualViewport.addEventListener(
+        'resize',
+        resizeParkNearMap
+    );
+}
 clearMapInitError();
 // Убираем сообщение об ошибке после успешного запуска карты.
 if (typeof window.clearParkNearInitError === 'function') {
