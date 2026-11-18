@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <title>ParkNear</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-   <script>
+   
+<script>
 (function () {
     function updateAppHeight() {
-        const height = window.innerHeight;
+        const viewport = window.visualViewport;
+        const height = viewport
+            ? viewport.height
+            : window.innerHeight;
 
         document.documentElement.style.setProperty(
             '--app-height',
@@ -19,12 +23,14 @@
 
     window.addEventListener('resize', updateAppHeight);
     window.addEventListener('orientationchange', updateAppHeight);
+    window.addEventListener('pageshow', updateAppHeight);
 
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', updateAppHeight);
     }
 })();
 </script>
+
      <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#20A895">
     <!-- iOS -->
