@@ -550,7 +550,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             });
         }
     }
-    // 3. Поиск города с корректной поддержкой кириллицы
+    // 3. Поиск города и региона с поддержкой кириллицы
     function createAddressTermRegex(value) {
         const escaped = escapeRegex(value);
         return new RegExp(
@@ -558,21 +558,37 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             'iu'
         );
     }
+    function removeAddressTerm(source, value) {
+        if (!value) return source;
+        const regex = createAddressTermRegex(value);
+        return source
+            .replace(regex, '$1')
+            .replace(/,\s*,+/g, ',')
+            .replace(/^[,\s]+|[,\s]+$/g, '')
+            .trim();
+    }
     let foundCity = '';
     let foundRegion = '';
     const sortedCities = [...cityToRegion.keys()]
         .sort((a, b) => b.length - a.length);
+    // Сначала ищем город
     for (const city of sortedCities) {
         const cityRegex = createAddressTermRegex(city);
         if (cityRegex.test(addr)) {
             foundCity = city;
             foundRegion = cityToRegion.get(city);
-            addr = addr.replace(cityRegex, '$1').trim();
-            addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
             break;
         }
     }
-    // 4. Поиск региона, если город не найден
+    // Удаляем найденный город
+    if (foundCity) {
+        addr = removeAddressTerm(addr, foundCity);
+    }
+    // Если регион определён через город, удаляем его тоже
+    if (foundRegion) {
+        addr = removeAddressTerm(addr, foundRegion);
+    }
+    // Если регион через город не определён, ищем его отдельно
     if (!foundRegion) {
         const sortedRegions = Object.keys(regionsData)
             .sort((a, b) => b.length - a.length);
@@ -580,8 +596,7 @@ function parseAddress(fullAddress, regionsData = window.regionsData) {
             const regionRegex = createAddressTermRegex(region);
             if (regionRegex.test(addr)) {
                 foundRegion = region;
-                addr = addr.replace(regionRegex, '$1').trim();
-                addr = addr.replace(/^,\s*/, '').replace(/\s*,$/, '');
+                addr = removeAddressTerm(addr, region);
                 break;
             }
         }
