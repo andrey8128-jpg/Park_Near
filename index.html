@@ -478,7 +478,7 @@
     </div>
 
 <script src="js/offline-storage.js?v=1"></script>    
-<script src="js/map.js?v=20261118-2"></script>
+<script src="js/map.js?v=20261118-3"></script>
 <script src="js/icons.js?v=1"></script>
 <script src="js/city-selector.js?v=20261118-2"></script>
 <script src="js/app.js?v=20261118-5"></script>
@@ -553,12 +553,6 @@ function tryInitializeMap() {
         if (typeof initMap === 'function' && (typeof map === 'undefined' || !map)) {
             try {
                 initMap();
-
-                if (typeof map !== 'undefined' && map && typeof loadAllParkings === 'function') {
-                    loadAllParkings().catch(error => {
-                        console.warn('Не удалось загрузить парковки:', error);
-                    });
-                }
             } catch (error) {
                 console.error('Ошибка повторной инициализации карты:', error);
             }
