@@ -2686,104 +2686,99 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res
     }
 });
 // Частичное редактирование города и границ парковки
+
 app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
+    const { city, region, coordinates, lat, lng, lastUpdatedAt, lastUpdatedBy } = req.body;
+    const updates = {};
+    if (city !== undefined) {
+        if (typeof city !== 'string' || !city.trim()) {
+            return res.status(400).json({ success: false, error: 'Некорректный город' });
+        }
+        updates.city = city.trim();
+    }
+    if (region !== undefined) {
+        updates.region = String(region || '').trim();
+    }
+    if (coordinates !== undefined) {
+        if (
+            !Array.isArray(coordinates) ||
+            coordinates.length < 3 ||
+            !coordinates.every(point =>
+                Array.isArray(point) &&
+                point.length >= 2 &&
+                Number.isFinite(Number(point[0])) &&
+                Number.isFinite(Number(point[1])) &&
+                Number(point[0]) >= -90 &&
+                Number(point[0]) <= 90 &&
+                Number(point[1]) >= -180 &&
+                Number(point[1]) <= 180
+            )
+        ) {
+            return res.status(400).json({ success: false, error: 'Некорректные координаты парковки' });
+        }
+        updates.coordinates = coordinates;
+    }
+    if (lat !== undefined) {
+        if (!Number.isFinite(Number(lat)) || Number(lat) < -90 || Number(lat) > 90) {
+            return res.status(400).json({ success: false, error: 'Некорректная широта' });
+        }
+        updates.lat = Number(lat);
+    }
+    if (lng !== undefined) {
+        if (!Number.isFinite(Number(lng)) || Number(lng) < -180 || Number(lng) > 180) {
+            return res.status(400).json({ success: false, error: 'Некорректная долгота' });
+        }
+        updates.lng = Number(lng);
+    }
+    if (!Object.keys(updates).length) {
+        return res.status(400).json({ success: false, error: 'Нет данных для обновления' });
+    }
+    updates.lastUpdatedAt = Number(lastUpdatedAt) || Date.now();
+    updates.lastUpdatedBy = String(lastUpdatedBy || '').trim();
+    const client = await pool.connect();
+    let transactionStarted = false;
     try {
-        const { city, region, coordinates, lat, lng, lastUpdatedAt, lastUpdatedBy } = req.body;
-        const result = await pool.query(
-            'SELECT data FROM parkings WHERE id = $1',
+        await client.query('BEGIN');
+        transactionStarted = true;
+        const result = await client.query(
+            'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
             [req.params.id]
         );
         if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Парковка не найдена'
-            });
+            await client.query('ROLLBACK');
+            transactionStarted = false;
+            return res.status(404).json({ success: false, error: 'Парковка не найдена' });
         }
         const parking = result.rows[0].data;
         if (String(parking.authorId) !== String(req.authUser.id)) {
-            return res.status(403).json({
-                success: false,
-                error: 'Редактировать парковку может только её автор'
-            });
+            await client.query('ROLLBACK');
+            transactionStarted = false;
+            return res.status(403).json({ success: false, error: 'Редактировать парковку может только её автор' });
         }
-        const updates = {};
-        if (city !== undefined) {
-            if (typeof city !== 'string' || !city.trim()) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Некорректный город'
-                });
-            }
-            updates.city = city.trim();
-        }
-        if (region !== undefined) {
-            updates.region = String(region || '').trim();
-        }
-        if (coordinates !== undefined) {
-            if (
-                !Array.isArray(coordinates) ||
-                coordinates.length < 3 ||
-                !coordinates.every(point =>
-                    Array.isArray(point) &&
-                    point.length >= 2 &&
-                    Number.isFinite(Number(point[0])) &&
-                    Number.isFinite(Number(point[1])) &&
-                    Number(point[0]) >= -90 &&
-                    Number(point[0]) <= 90 &&
-                    Number(point[1]) >= -180 &&
-                    Number(point[1]) <= 180
-                )
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Некорректные координаты парковки'
-                });
-            }
-            updates.coordinates = coordinates;
-        }
-        if (lat !== undefined) {
-            if (!Number.isFinite(Number(lat)) || Number(lat) < -90 || Number(lat) > 90) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Некорректная широта'
-                });
-            }
-            updates.lat = Number(lat);
-        }
-        if (lng !== undefined) {
-            if (!Number.isFinite(Number(lng)) || Number(lng) < -180 || Number(lng) > 180) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Некорректная долгота'
-                });
-            }
-            updates.lng = Number(lng);
-        }
-        if (!Object.keys(updates).length) {
-            return res.status(400).json({
-                success: false,
-                error: 'Нет данных для обновления'
-            });
-        }
-        updates.lastUpdatedAt = Number(lastUpdatedAt) || Date.now();
-        updates.lastUpdatedBy = String(lastUpdatedBy || '').trim();
-        const updated = await pool.query(
+        const updated = await client.query(
             `UPDATE parkings
              SET data = data || $2::jsonb
              WHERE id = $1
              RETURNING data`,
             [req.params.id, JSON.stringify(updates)]
         );
-        res.json({
+        await client.query('COMMIT');
+        transactionStarted = false;
+        return res.json({
             success: true,
             parking: updated.rows[0].data
         });
     } catch (error) {
+        if (transactionStarted) {
+            await client.query('ROLLBACK').catch(() => {});
+        }
         console.error('Ошибка частичного редактирования парковки:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             error: 'Не удалось обновить парковку'
         });
+    } finally {
+        client.release();
     }
 });
 // ============================================
