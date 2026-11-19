@@ -2966,15 +2966,18 @@ const updatedParking = {
 
         await client.query('COMMIT');
 
+        const responseParking = { ...updatedParking };
+        delete responseParking.history;
+
         return res.json({
             success: true,
             previousOccupied,
             occupiedSpots: newOccupied,
             parking: {
-                ...updatedParking,
-                id: req.params.id
-            }
-        });
+            ...responseParking,
+            id: req.params.id
+    }
+});
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Ошибка изменения занятости:', error);
