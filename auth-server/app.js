@@ -62,6 +62,15 @@ async function initializeDatabase() {
             PRIMARY KEY (parking_id, user_id)
         )
         `,
+         `
+        CREATE TABLE IF NOT EXISTS api_rate_limits (
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            action TEXT NOT NULL,
+            window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            request_count INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, action)
+        )
+        `,
         `
         CREATE TABLE IF NOT EXISTS parking_moderation (
             id TEXT PRIMARY KEY,
@@ -582,6 +591,58 @@ req.authUser = {
         });
     }
 }
+
+function createUserRateLimiter(action, limit, windowMs) {
+    return async (req, res, next) => {
+        try {
+            const result = await pool.query(
+                `INSERT INTO api_rate_limits
+                    (user_id, action, window_started_at, request_count)
+                 VALUES ($1, $2, NOW(), 1)
+                 ON CONFLICT (user_id, action) DO UPDATE SET
+                    window_started_at = CASE
+                        WHEN api_rate_limits.window_started_at <= NOW() - ($3::bigint * INTERVAL '1 millisecond')
+                        THEN NOW()
+                        ELSE api_rate_limits.window_started_at
+                    END,
+                    request_count = CASE
+                        WHEN api_rate_limits.window_started_at <= NOW() - ($3::bigint * INTERVAL '1 millisecond')
+                        THEN 1
+                        ELSE api_rate_limits.request_count + 1
+                    END
+                 RETURNING request_count, window_started_at`,
+                [String(req.authUser.id), action, windowMs]
+            );
+            const row = result.rows[0];
+            if (row.request_count > limit) {
+                const retryAfter = Math.max(
+                    1,
+                    Math.ceil(
+                        (new Date(row.window_started_at).getTime() + windowMs - Date.now()) / 1000
+                    )
+                );
+                res.set('Retry-After', String(retryAfter));
+                return res.status(429).json({
+                    success: false,
+                    error: 'Слишком много запросов. Попробуйте позже.',
+                    retryAfter
+                });
+            }
+            next();
+        } catch (error) {
+            console.error('Ошибка ограничения запросов:', error.message);
+            return res.status(503).json({
+                success: false,
+                error: 'Сервис временно недоступен'
+            });
+        }
+    };
+}
+const confirmRateLimiter = createUserRateLimiter(
+    'parking_confirm',
+    10,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -2079,7 +2140,7 @@ app.post(
 // ============================================
 // ПОДТВЕРЖДЕНИЕ ПАРКОВКИ
 // ============================================
-app.post('/api/parkings/:id/confirm', requireAuth, async (req, res) => {
+app.post('/api/parkings/:id/confirm', requireAuth, confirmRateLimiter, async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
