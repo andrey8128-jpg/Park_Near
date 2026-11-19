@@ -2671,10 +2671,6 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res
             });
         }
         const parking = result.rows[0].data;
-        if (
-            String(parking.authorId) !== String(req.authUser.id) &&
-            req.authUser.role !== 'admin'
-        ) {
             await client.query('ROLLBACK');
             return res.status(403).json({
                 success: false,
@@ -2731,7 +2727,6 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res
     }
 });
 // Частичное редактирование города и границ парковки
-
 app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
     const { city, region, coordinates, lat, lng, lastUpdatedAt, lastUpdatedBy } = req.body;
     const updates = {};
@@ -2849,7 +2844,10 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, 
             });
         }
         const parking = result.rows[0].data;
-        if (String(parking.authorId) !== String(req.authUser.id)) {
+        if (
+            String(parking.authorId) !== String(req.authUser.id) &&
+            req.authUser.role !== 'admin'
+        ) {
             await client.query('ROLLBACK');
 
             return res.status(403).json({
