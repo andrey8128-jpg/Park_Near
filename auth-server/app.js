@@ -1984,44 +1984,52 @@ app.get('/api/parkings/:id/history', async (req, res) => {
             'SELECT data FROM parkings WHERE id = $1',
             [req.params.id]
         );
-
         if (result.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 error: 'Парковка не найдена'
             });
         }
-
         const history = result.rows[0].data?.history || [];
         const entries = Array.isArray(history)
             ? history
             : Object.values(history);
-
         const limit = Math.min(
             100,
             Math.max(1, Number(req.query.limit) || 10)
         );
-
+        // Публичная история: только обезличенные сведения
+        const publicHistory = entries
+            .filter(Boolean)
+            .sort((a, b) =>
+                Number(b.timestamp) - Number(a.timestamp)
+            )
+            .slice(0, limit)
+            .map(entry => ({
+                action: entry.action || 'unknown',
+                timestamp: Number(entry.timestamp) || 0,
+                previousOccupied:
+                    Number.isFinite(Number(entry.previousOccupied))
+                        ? Number(entry.previousOccupied)
+                        : null,
+                newOccupied:
+                    Number.isFinite(Number(entry.newOccupied))
+                        ? Number(entry.newOccupied)
+                        : null
+            }));
         return res.json({
             success: true,
-            total: entries.length,
-            history: entries
-                .filter(Boolean)
-                .sort((a, b) =>
-                    Number(b.timestamp) - Number(a.timestamp)
-                )
-                .slice(0, limit)
+            total: entries.filter(Boolean).length,
+            history: publicHistory
         });
     } catch (error) {
         console.error('Ошибка истории парковки:', error);
-
         return res.status(500).json({
             success: false,
             error: 'Не удалось загрузить историю'
         });
     }
 });
-
 // ============================================
 // УЧЁТ ПРОСМОТРОВ ПАРКОВКИ
 // ============================================
