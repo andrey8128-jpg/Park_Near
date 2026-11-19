@@ -2069,14 +2069,16 @@ app.get('/api/parkings/:id', async (req, res) => {
                 error: 'Парковка не найдена'
             });
         }
+        const publicData = { ...(result.rows[0].data || {}) };
+        delete publicData.history;
 
         return res.json({
             success: true,
             parking: {
-                ...result.rows[0].data,
-                id: result.rows[0].id
-            }
-        });
+            ...publicData,
+            id: result.rows[0].id
+    }
+});
     } catch (error) {
         console.error('Ошибка получения парковки:', error);
 
@@ -2326,12 +2328,14 @@ app.get('/api/parkings', async (req, res) => {
                  ORDER BY id`
             );
         }
-
-        const parkings = result.rows.map(row => ({
-            ...row.data,
-            id: row.id
-        }));
-
+        const parkings = result.rows.map(row => {
+        const publicData = { ...(row.data || {}) };
+        delete publicData.history;
+        return {
+        ...publicData,
+        id: row.id
+    };
+});
         res.json({
             success: true,
             count: parkings.length,
