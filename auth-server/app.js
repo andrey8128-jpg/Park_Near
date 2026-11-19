@@ -54,6 +54,14 @@ async function initializeDatabase() {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
         `,
+         `
+        CREATE TABLE IF NOT EXISTS parking_confirmations (
+            parking_id TEXT NOT NULL,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (parking_id, user_id)
+        )
+        `,
         `
         CREATE TABLE IF NOT EXISTS parking_moderation (
             id TEXT PRIMARY KEY,
@@ -2068,91 +2076,87 @@ app.post(
         }
     }
 );
-
 // ============================================
 // ПОДТВЕРЖДЕНИЕ ПАРКОВКИ
 // ============================================
-app.post(
-    '/api/parkings/:id/confirm',
-    requireAuth,
-    async (req, res) => {
-        const client = await pool.connect();
-
-        try {
-            await client.query('BEGIN');
-
-            const result = await client.query(
-                `SELECT data
-                 FROM parkings
-                 WHERE id = $1
-                 FOR UPDATE`,
-                [req.params.id]
-            );
-
-            if (result.rows.length === 0) {
-                await client.query('ROLLBACK');
-
-                return res.status(404).json({
-                    success: false,
-                    error: 'Парковка не найдена'
-                });
-            }
-
-            const parking = result.rows[0].data || {};
-
-            if (
-                String(parking.authorId) ===
-                String(req.authUser.id)
-            ) {
-                await client.query('ROLLBACK');
-
-                return res.status(400).json({
-                    success: false,
-                    error: 'Нельзя подтверждать собственную парковку'
-                });
-            }
-
-            const updated = await client.query(
-                `UPDATE users
-                 SET data = jsonb_set(
-                     COALESCE(data, '{}'::jsonb),
-                     '{stats}',
-                     COALESCE(data->'stats', '{}'::jsonb) ||
-                     jsonb_build_object(
-                         'confirmations',
-                         COALESCE(
-                             (data #>> '{stats,confirmations}')::integer,
-                             0
-                         ) + 1
-                     ),
-                     true
-                 )
-                 WHERE id = $1`,
-                [parking.authorId]
-            );
-
-            await client.query('COMMIT');
-
-            return res.json({
-                success: true,
-                counted: updated.rowCount > 0
-            });
-
-        } catch (error) {
+app.post('/api/parkings/:id/confirm', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const result = await client.query(
+            'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
+            [req.params.id]
+        );
+        if (result.rows.length === 0) {
             await client.query('ROLLBACK');
-
-            console.error('Ошибка подтверждения парковки:', error);
-
-            return res.status(500).json({
+            return res.status(404).json({
                 success: false,
-                error: 'Не удалось подтвердить парковку'
+                error: 'Парковка не найдена'
             });
-        } finally {
-            client.release();
         }
+        const parking = result.rows[0].data || {};
+        const userId = String(req.authUser.id);
+        if (String(parking.authorId) === userId) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+                success: false,
+                error: 'Нельзя подтверждать собственную парковку'
+            });
+        }
+        const confirmation = await client.query(
+            `INSERT INTO parking_confirmations (parking_id, user_id)
+             VALUES ($1, $2)
+             ON CONFLICT (parking_id, user_id) DO NOTHING`,
+            [req.params.id, userId]
+        );
+        if (confirmation.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                success: false,
+                error: 'Вы уже подтверждали эту парковку'
+            });
+        }
+        const updated = await client.query(
+            `UPDATE users
+             SET data = jsonb_set(
+                 COALESCE(data, '{}'::jsonb),
+                 '{stats}',
+                 COALESCE(data->'stats', '{}'::jsonb) ||
+                 jsonb_build_object(
+                     'confirmations',
+                     COALESCE(
+                         (data #>> '{stats,confirmations}')::integer,
+                         0
+                     ) + 1
+                 ),
+                 true
+             )
+             WHERE id = $1`,
+            [parking.authorId]
+        );
+        if (updated.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({
+                success: false,
+                error: 'Автор парковки не найден'
+            });
+        }
+        await client.query('COMMIT');
+        return res.json({
+            success: true,
+            counted: true
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Ошибка подтверждения парковки:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось подтвердить парковку'
+        });
+    } finally {
+        client.release();
     }
-);
-
+});
 // ============================================
 // ПОЛУЧЕНИЕ ПАРКОВОК ИЗ POSTGRESQL
 // ============================================
