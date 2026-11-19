@@ -1607,6 +1607,32 @@ const deletedParkings = await client.query(
              WHERE data->>'userId' = $1`,
             [userId]
         );
+        const foreignParkings = await client.query(
+    `SELECT id, data
+     FROM parkings
+     WHERE data->>'authorId' <> $1
+       AND data ? 'history'
+     FOR UPDATE`,
+    [userId]
+);
+for (const row of foreignParkings.rows) {
+    const parking = row.data || {};
+    const history = Array.isArray(parking.history)
+        ? parking.history
+        : Object.values(parking.history || {});
+
+    const filteredHistory = history.filter(
+        entry => String(entry.userId) !== userId
+    );
+    if (filteredHistory.length !== history.length) {
+        await client.query(
+            `UPDATE parkings
+             SET data = jsonb_set(data, '{history}', $2::jsonb)
+             WHERE id = $1`,
+            [row.id, JSON.stringify(filteredHistory)]
+        );
+    }
+}
         const deletedUser = await client.query(
             'DELETE FROM users WHERE id = $1 RETURNING id',
             [userId]
