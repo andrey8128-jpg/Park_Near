@@ -2737,6 +2737,17 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res
     const client = await pool.connect();
     try {
         const { name, street, houseNumber, totalSpots, description } = req.body;
+        if (
+            typeof name !== 'string' ||
+            typeof street !== 'string' ||
+            typeof houseNumber !== 'string' ||
+            typeof description !== 'string'
+) {
+    return res.status(400).json({
+        success: false,
+        error: 'Некорректный формат данных парковки'
+    });
+}
         if (!name || !String(name).trim()) {
             return res.status(400).json({
                 success: false,
