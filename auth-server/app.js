@@ -1168,12 +1168,19 @@ app.delete('/api/push/subscriptions', requireAuth, async (req, res) => {
 // ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
 // ============================================
 app.get('/auth/me', requireAuth, (req, res) => {
+    const user = req.authUser;
     res.json({
         success: true,
-        user: req.authUser
+        user: {
+            id: user.id,
+            role: user.role,
+            username: user.username || 'user',
+            firstName: user.firstName || 'Пользователь',
+            photoUrl: user.photoUrl || '',
+            isGuest: Boolean(user.isGuest)
+        }
     });
 });
-
 // ============================================
 // ПОЛУЧЕНИЕ ПРОФИЛЯ ИЗ POSTGRESQL
 // ============================================
