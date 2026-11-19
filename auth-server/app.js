@@ -650,10 +650,6 @@ function createUserRateLimiter(action, limit, windowMs) {
 function createIpRateLimiter(action, limit, windowMs) {
     return async (req, res, next) => {
         try {
-            console.log('[IP CHECK]', {
-    ip: req.ip,
-    proxyCount: req.ips.length
-                        });
             if (!req.ip) {
                 return res.status(503).json({
                     success: false,
