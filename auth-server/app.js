@@ -1389,6 +1389,7 @@ app.get('/api/users/me/favorites', requireAuth, requireRegisteredUser, async (re
             if (row.parking) {
                 const publicData = { ...row.parking };
                 delete publicData.history;
+            
                     parking = {
                     ...publicData,
                     id: row.parkingId
@@ -2101,6 +2102,8 @@ app.get('/api/parkings/:id', async (req, res) => {
         }
         const publicData = { ...(result.rows[0].data || {}) };
         delete publicData.history;
+        delete publicData.authorName;
+        delete publicData.authorUsername;
 
         return res.json({
             success: true,
@@ -2364,6 +2367,8 @@ app.get('/api/parkings', async (req, res) => {
         const parkings = result.rows.map(row => {
         const publicData = { ...(row.data || {}) };
         delete publicData.history;
+        delete publicData.authorName;
+        delete publicData.authorUsername;   
         return {
         ...publicData,
         id: row.id
