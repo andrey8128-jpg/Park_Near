@@ -1581,11 +1581,27 @@ app.delete('/api/users/me/account', requireAuth, async (req, res) => {
                 error: 'Сначала завершите активную парковку'
             });
         }
-        const deletedParkings = await client.query(
-            `DELETE FROM parkings
-             WHERE data->>'authorId' = $1`,
-            [userId]
-        );
+        await client.query(
+    `DELETE FROM favorites
+     WHERE parking_id IN (
+         SELECT id FROM parkings
+         WHERE data->>'authorId' = $1
+     )`,
+    [userId]
+);
+await client.query(
+    `DELETE FROM parking_confirmations
+     WHERE parking_id IN (
+         SELECT id FROM parkings
+         WHERE data->>'authorId' = $1
+     )`,
+    [userId]
+);
+const deletedParkings = await client.query(
+    `DELETE FROM parkings
+     WHERE data->>'authorId' = $1`,
+    [userId]
+);
         await client.query(
             `DELETE FROM parking_sessions
              WHERE data->>'userId' = $1`,
