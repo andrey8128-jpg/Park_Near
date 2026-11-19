@@ -1197,10 +1197,25 @@ app.get('/api/users/me/profile', requireAuth, async (req, res) => {
                 error: 'Пользователь не найден'
             });
         }
-        return res.json({
-            success: true,
-            profile: result.rows[0].data || {}
-        });
+        const profileData = result.rows[0].data || {};
+        const allowedFields = [
+            'nickname',
+             'car',
+            'cityPreferences',
+            'parkingSettings',
+            'homeAddresses'
+];
+        const safeProfile = {};
+
+        for (const field of allowedFields) {
+            if (Object.prototype.hasOwnProperty.call(profileData, field)) {
+                safeProfile[field] = profileData[field];
+    }
+}
+return res.json({
+    success: true,
+    profile: safeProfile
+});
     } catch (error) {
         console.error('Ошибка получения профиля:', error);
         return res.status(500).json({
