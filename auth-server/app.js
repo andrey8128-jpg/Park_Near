@@ -2671,7 +2671,10 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res
             });
         }
         const parking = result.rows[0].data;
-        if (String(parking.authorId) !== String(req.authUser.id)) {
+        if (
+            String(parking.authorId) !== String(req.authUser.id) &&
+            req.authUser.role !== 'admin'
+        ) {
             await client.query('ROLLBACK');
             return res.status(403).json({
                 success: false,
