@@ -2733,8 +2733,12 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, r
     if (!Object.keys(updates).length) {
         return res.status(400).json({ success: false, error: 'Нет данных для обновления' });
     }
-    updates.lastUpdatedAt = Number(lastUpdatedAt) || Date.now();
-    updates.lastUpdatedBy = String(lastUpdatedBy || '').trim();
+    updates.lastUpdatedAt = Date.now();
+    updates.lastUpdatedBy =
+    req.authUser.nickname ||
+    req.authUser.firstName ||
+    req.authUser.username ||
+    'Пользователь';
     const client = await pool.connect();
     let transactionStarted = false;
     try {
