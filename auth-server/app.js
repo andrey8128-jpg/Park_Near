@@ -72,6 +72,15 @@ async function initializeDatabase() {
         )
         `,
         `
+        CREATE TABLE IF NOT EXISTS api_ip_rate_limits (
+            ip_hash TEXT NOT NULL,
+            action TEXT NOT NULL,
+            window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            request_count INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (ip_hash, action)
+        )
+        `,
+        `
         CREATE TABLE IF NOT EXISTS parking_moderation (
             id TEXT PRIMARY KEY,
             parking_id TEXT,
@@ -173,8 +182,8 @@ async function initializeDatabase() {
         client.release();
     }
 }
-
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 // ============================================
 // НАСТРОЙКИ WEB PUSH / VAPID
@@ -591,7 +600,6 @@ req.authUser = {
         });
     }
 }
-
 function createUserRateLimiter(action, limit, windowMs) {
     return async (req, res, next) => {
         try {
@@ -638,6 +646,68 @@ function createUserRateLimiter(action, limit, windowMs) {
         }
     };
 }
+
+function createIpRateLimiter(action, limit, windowMs) {
+    return async (req, res, next) => {
+        try {
+            if (!req.ip) {
+                return res.status(503).json({
+                    success: false,
+                    error: 'Не удалось определить IP-адрес'
+                });
+            }
+            const ipHash = crypto
+                .createHash('sha256')
+                .update(req.ip)
+                .digest('hex');
+            const result = await pool.query(
+                `INSERT INTO api_ip_rate_limits
+                    (ip_hash, action, window_started_at, request_count)
+                 VALUES ($1, $2, NOW(), 1)
+                 ON CONFLICT (ip_hash, action) DO UPDATE SET
+                    window_started_at = CASE
+                        WHEN api_ip_rate_limits.window_started_at <= NOW() - ($3::bigint * INTERVAL '1 millisecond')
+                        THEN NOW()
+                        ELSE api_ip_rate_limits.window_started_at
+                    END,
+                    request_count = CASE
+                        WHEN api_ip_rate_limits.window_started_at <= NOW() - ($3::bigint * INTERVAL '1 millisecond')
+                        THEN 1
+                        ELSE api_ip_rate_limits.request_count + 1
+                    END
+                 RETURNING request_count, window_started_at`,
+                [ipHash, action, windowMs]
+            );
+            const row = result.rows[0];
+            if (row.request_count > limit) {
+                const retryAfter = Math.max(
+                    1,
+                    Math.ceil(
+                        (new Date(row.window_started_at).getTime() + windowMs - Date.now()) / 1000
+                    )
+                );
+                res.set('Retry-After', String(retryAfter));
+                return res.status(429).json({
+                    success: false,
+                    error: 'Слишком много запросов. Попробуйте позже.',
+                    retryAfter
+                });
+            }
+            next();
+        } catch (error) {
+            console.error('Ошибка IP-лимитера:', error.message);
+            return res.status(503).json({
+                success: false,
+                error: 'Сервис временно недоступен'
+            });
+        }
+    };
+}
+const guestRateLimiter = createIpRateLimiter(
+    'guest_session',
+    5,
+    15 * 60 * 1000
+);
 const confirmRateLimiter = createUserRateLimiter(
     'parking_confirm',
     10,
@@ -1532,7 +1602,7 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
 // ============================================
 // СОЗДАНИЕ ГОСТЕВОЙ СЕССИИ
 // ============================================
-app.post('/auth/guest', async (req, res) => {
+app.post('/auth/guest', guestRateLimiter, async (req, res) => {
     const client = await pool.connect();
     try {
         const now = Date.now();
