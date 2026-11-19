@@ -2856,10 +2856,18 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, 
             });
         }
 
-        await client.query(
-            'DELETE FROM parkings WHERE id = $1',
-            [req.params.id]
-        );
+       await client.query(
+        'DELETE FROM favorites WHERE parking_id = $1',
+         [req.params.id]
+    );
+    await client.query(
+        'DELETE FROM parking_confirmations WHERE parking_id = $1',
+        [req.params.id]
+    );
+    await client.query(
+        'DELETE FROM parkings WHERE id = $1',
+        [req.params.id]
+    );
         await client.query('COMMIT');
         return res.json({ success: true });
     } catch (error) {
