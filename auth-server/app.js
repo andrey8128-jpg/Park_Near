@@ -2671,12 +2671,13 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res
             });
         }
         const parking = result.rows[0].data;
+            if (String(parking.authorId) !== String(req.authUser.id)) {
             await client.query('ROLLBACK');
-            return res.status(403).json({
-                success: false,
-                error: 'Редактировать парковку может только её автор'
-            });
-        }
+        return res.status(403).json({
+             success: false,
+            error: 'Редактировать парковку может только её автор'
+        });
+    }
         const updates = {
             name: String(name).trim(),
             street: String(street || '').trim(),
