@@ -2447,7 +2447,34 @@ app.post(
     const lat = Number(parking.lat);
     const lng = Number(parking.lng);
     const coordinates = parking.coordinates;
-
+    if (
+    typeof parking.name !== 'string' ||
+    !parking.name.trim()
+) {
+    return res.status(400).json({
+        success: false,
+        error: 'Введите название парковки'
+    });
+}
+if (
+    typeof parking.street !== 'string' ||
+    !parking.street.trim()
+) {
+    return res.status(400).json({
+        success: false,
+        error: 'Укажите улицу'
+    });
+}
+if (
+    !Number.isInteger(parking.totalSpots) ||
+    typeof parking.lat !== 'number' ||
+    typeof parking.lng !== 'number'
+) {
+    return res.status(400).json({
+        success: false,
+        error: 'Некорректные числовые данные парковки'
+    });
+}
     if (
         !Number.isInteger(totalSpots) ||
         totalSpots < 1 ||
