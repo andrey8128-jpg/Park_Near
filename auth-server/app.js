@@ -3005,9 +3005,17 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, 
 // ИЗМЕНЕНИЕ ЗАНЯТОСТИ ПАРКОВКИ В POSTGRESQL
 // ============================================
 app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, async (req, res) => {
-    const delta = Number(req.body?.delta);
-
-    if (delta !== 1 && delta !== -1) {
+    const delta = req.body?.delta;
+if (
+    typeof delta !== 'number' ||
+    !Number.isInteger(delta) ||
+    (delta !== 1 && delta !== -1)
+) {
+    return res.status(400).json({
+        success: false,
+        error: 'Допустимо изменить занятость только на одно место'
+    });
+}
         return res.status(400).json({
             success: false,
             error: 'Допустимо изменить занятость только на одно место'
