@@ -2849,9 +2849,15 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, r
         }
         updates.city = city.trim();
     }
-    if (region !== undefined) {
-        updates.region = String(region || '').trim();
+   if (region !== undefined) {
+    if (typeof region !== 'string') {
+        return res.status(400).json({
+            success: false,
+            error: 'Некорректный регион'
+        });
     }
+    updates.region = region.trim();
+}
     if (coordinates !== undefined) {
         if (
             !Array.isArray(coordinates) ||
@@ -2859,12 +2865,12 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, r
             !coordinates.every(point =>
                 Array.isArray(point) &&
                 point.length >= 2 &&
-                Number.isFinite(Number(point[0])) &&
-                Number.isFinite(Number(point[1])) &&
-                Number(point[0]) >= -90 &&
-                Number(point[0]) <= 90 &&
-                Number(point[1]) >= -180 &&
-                Number(point[1]) <= 180
+                Number.isFinite(point[0]) &&
+                Number.isFinite(point[1]) &&
+                point[0] >= -90 &&
+                point[0] <= 90 &&
+                point[1] >= -180 &&
+                point[1] <= 180
             )
         ) {
             return res.status(400).json({ success: false, error: 'Некорректные координаты парковки' });
@@ -2872,13 +2878,13 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, r
         updates.coordinates = coordinates;
     }
     if (lat !== undefined) {
-        if (!Number.isFinite(Number(lat)) || Number(lat) < -90 || Number(lat) > 90) {
+        if (typeof lat !== 'number' || !Number.isFinite(lat) || lat < -90 || lat > 90) {
             return res.status(400).json({ success: false, error: 'Некорректная широта' });
         }
         updates.lat = Number(lat);
     }
     if (lng !== undefined) {
-        if (!Number.isFinite(Number(lng)) || Number(lng) < -180 || Number(lng) > 180) {
+        if (typeof lng !== 'number' || !Number.isFinite(lng) || lng < -180 || lng > 180) {
             return res.status(400).json({ success: false, error: 'Некорректная долгота' });
         }
         updates.lng = Number(lng);
