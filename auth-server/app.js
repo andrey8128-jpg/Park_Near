@@ -643,6 +643,11 @@ const confirmRateLimiter = createUserRateLimiter(
     10,
     15 * 60 * 1000
 );
+const parkingCreateRateLimiter = createUserRateLimiter(
+    'parking_create',
+    5,
+    60 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -2268,6 +2273,7 @@ app.post(
     '/api/parkings',
     requireAuth,
     requireRegisteredUser,
+    parkingCreateRateLimiter,
     async (req, res) => {
     const parking = req.body || {};
     const city = String(parking.city || '').trim();
