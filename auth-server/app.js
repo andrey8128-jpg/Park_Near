@@ -2141,7 +2141,10 @@ app.get('/api/users/me/history', requireAuth, async (req, res) => {
                     address: parking.address || '',
                     action: entry.action || 'unknown',
                     timestamp,
-                    car: entry.car || {},
+                    car: {
+                    brand: entry.car?.brand || '',
+                    model: entry.car?.model || ''
+                    },
                     previousOccupied: entry.previousOccupied,
                     newOccupied: entry.newOccupied
                 });
