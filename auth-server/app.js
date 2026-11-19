@@ -2585,12 +2585,44 @@ app.post(
                     .json(savedResponse.body);
             }
         }
-               // Резервируем последовательность ID, чтобы параллельные заявки
-        // на одну улицу не получили одинаковый номер.
-        await client.query(
-            'SELECT pg_advisory_xact_lock(hashtext($1))',
-            [`parking-id:${baseKey}`]
-        );
+// Защита от повторных активных заявок одного пользователя
+await client.query(
+    'SELECT pg_advisory_xact_lock(hashtext($1))',
+    [`parking-duplicate:${user.id}:${baseKey}`]
+);
+const duplicateRequest = await client.query(
+    `SELECT id
+     FROM parking_moderation
+     WHERE user_id = $1
+       AND action = 'create'
+       AND status = 'pending'
+       AND proposed_data->>'city' = $2
+       AND proposed_data->>'street' = $3
+       AND proposed_data->>'houseNumber' = $4
+       AND proposed_data->>'lat' = $5
+       AND proposed_data->>'lng' = $6
+     LIMIT 1`,
+    [
+        user.id,
+        city,
+        street,
+        houseNumber,
+        String(lat),
+        String(lng)
+    ]
+);
+if (duplicateRequest.rowCount > 0) {
+    await client.query('ROLLBACK');
+    return res.status(409).json({
+        success: false,
+        error: 'У вас уже есть активная заявка на эту парковку'
+    });
+}
+// Резервируем последовательность ID
+await client.query(
+    'SELECT pg_advisory_xact_lock(hashtext($1))',
+    [`parking-id:${baseKey}`]
+);
         let parkingId = null;
         for (let number = 1; number <= 50; number++) {
             const candidate = `${baseKey}(${number})`;
