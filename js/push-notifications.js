@@ -1,7 +1,6 @@
 // ============================================
 // PARK NEAR — WEB PUSH
 // ============================================
-
 let isPushSupported = false;
 
 function isPushSupportedBrowser() {
@@ -11,7 +10,6 @@ function isPushSupportedBrowser() {
         'Notification' in window
     );
 }
-
 // ============================================
 // ОБЩАЯ ФУНКЦИЯ ЗАПРОСОВ К API
 // ============================================
@@ -237,18 +235,40 @@ async function unsubscribePush() {
 // ОБРАБОТКА СООБЩЕНИЙ ОТ SERVICE WORKER
 // ============================================
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (event) => {
+    navigator.serviceWorker.addEventListener('message', async (event) => {
         if (
-            event.data?.action === 'focusParking' &&
-            event.data?.parkingId
+            event.data?.action !== 'focusParking' ||
+            !event.data?.parkingId
         ) {
-            const data = parkingDataCache?.[event.data.parkingId];
-            if (data) {
-                openCenterSheet(event.data.parkingId, data);
+            return;
+        }
+        const parkingId = String(event.data.parkingId);
+        let data = parkingDataCache?.[parkingId];
+        if (!data) {
+            try {
+                const response = await fetch(
+                    `${window.PARKNEAR_API_URL}/api/parkings/${encodeURIComponent(parkingId)}`,
+                    { cache: 'no-store' }
+                );
+                const result = await response.json();
+                if (!response.ok || !result.success || !result.parking) {
+                    throw new Error('Парковка не найдена');
+                }
+                data = result.parking;
+                parkingDataCache[parkingId] = data;
+            } catch (error) {
+                console.error('Не удалось загрузить парковку из уведомления:', error);
+                if (typeof showToast === 'function') {
+                    showToast('Не удалось открыть парковку из уведомления');
+                }
+                return;
             }
-            if (typeof closePanel === 'function') {
-                closePanel();
-            }
+        }
+        if (typeof window.openCenterSheet === 'function') {
+            await window.openCenterSheet(parkingId, data);
+        }
+        if (typeof closePanel === 'function') {
+            closePanel();
         }
     });
 }
