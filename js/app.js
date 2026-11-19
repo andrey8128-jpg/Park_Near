@@ -2273,25 +2273,25 @@ async function loadHistoryPreview(parkingId) {
             return;
         }
         list.innerHTML = entries.slice(0, 5).map(entry => {
-    const date = parseHistoryTimestamp(entry.timestamp);
-    const time = date
-        ? date.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    })
-    : 'Дата неизвестна';
+            const date = parseHistoryTimestamp(entry.timestamp);
+            const time = date
+                ? date.toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+                : 'Дата неизвестна';
             const action =
                 entry.action === 'occupied'
-                    ? 'Занял'
+                    ? 'Занято место'
                     : entry.action === 'freed'
-                        ? 'Освободил'
-                        : 'Изменил';
+                        ? 'Освобождено место'
+                        : 'Изменение';
             return `
-                <div style="padding:6px 10px;background:var(--bg-primary);border-radius:8px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between;gap:6px;">
+                <div style="padding:6px 10px;background:var(--bg-primary);border-radius:8px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;">
                     <span>${action}</span>
-                    <span>${escapeHtml(entry.username || '')}</span>
+                    <span>${entry.previousOccupied ?? '—'} → ${entry.newOccupied ?? '—'} мест</span>
                     <span>${time}</span>
                 </div>
             `;
@@ -2316,11 +2316,10 @@ async function loadHistory(parkingId, limit = 10, days = 3) {
             throw new Error(result.error || 'Не удалось загрузить историю');
         }
         const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-        const entries = (result.history || [])
-    .filter(entry => {
-        const date = parseHistoryTimestamp(entry.timestamp);
-        return date && date.getTime() >= cutoff;
-    });
+        const entries = (result.history || []).filter(entry => {
+            const date = parseHistoryTimestamp(entry.timestamp);
+            return date && date.getTime() >= cutoff;
+        });
         if (countEl) {
             countEl.textContent = `(${entries.length})`;
         }
@@ -2331,45 +2330,37 @@ async function loadHistory(parkingId, limit = 10, days = 3) {
             return;
         }
         container.innerHTML = entries.slice(0, limit).map(entry => {
-           const date = parseHistoryTimestamp(entry.timestamp);
+            const date = parseHistoryTimestamp(entry.timestamp);
             const time = date
-            ? date.toLocaleString('ru-RU', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-            : 'Дата неизвестна';
+                ? date.toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+                : 'Дата неизвестна';
             const action =
                 entry.action === 'occupied'
-                    ? 'Занял'
+                    ? 'Занято место'
                     : entry.action === 'freed'
-                        ? 'Освободил'
-                        : 'Изменил';
-            const car = entry.car || {};
-            const carName = [car.brand, car.model]
-                .filter(Boolean)
-                .join(' ') || 'машина не указана';
+                        ? 'Освобождено место'
+                        : 'Изменение';
             return `
                 <div style="padding:8px 12px;background:var(--bg-primary);border-radius:8px;margin-bottom:4px;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;">
-                    <div>${action} (${entry.previousOccupied ?? '—'} → ${entry.newOccupied ?? '—'})</div>
-                    <div style="color:var(--text-secondary);font-size:12px;">${escapeHtml(entry.username || 'Неизвестный')} • ${escapeHtml(carName)}</div>
+                    <div>${action}: ${entry.previousOccupied ?? '—'} → ${entry.newOccupied ?? '—'} мест</div>
                     <div style="color:var(--text-secondary);font-size:11px;">${time}</div>
                 </div>
             `;
         }).join('');
-
         if (loadMoreBtn) {
             loadMoreBtn.style.display =
                 (result.total || 0) > limit ? 'block' : 'none';
-
             loadMoreBtn.onclick = () => {
                 loadHistory(parkingId, 100, days);
                 loadMoreBtn.style.display = 'none';
             };
         }
-
     } catch (error) {
         console.error('Ошибка загрузки истории:', error);
         container.textContent = 'Не удалось загрузить историю';
