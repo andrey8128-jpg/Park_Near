@@ -159,16 +159,13 @@ async function initializeDatabase() {
         ON push_subscriptions (user_id)
         `
     ];
-
     const client = await pool.connect();
-
     try {
         await client.query('BEGIN');
 
         for (const statement of statements) {
             await client.query(statement);
         }
-
         await client.query('COMMIT');
         console.log('Структура PostgreSQL проверена и подготовлена');
     } catch (error) {
