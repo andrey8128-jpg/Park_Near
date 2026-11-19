@@ -325,10 +325,20 @@ async function createYandexPostgresSession(yandexProfile) {
         client.release();
     }
 }
+const yandexStartRateLimiter = createIpRateLimiter(
+    'yandex_start',
+    10,
+    15 * 60 * 1000
+);
+const yandexCompleteRateLimiter = createIpRateLimiter(
+    'yandex_complete',
+    10,
+    15 * 60 * 1000
+);
 // ============================================
 // YANDEX ID — НАЧАЛО АВТОРИЗАЦИИ
 // ============================================
-app.get('/auth/yandex', async (req, res) => {
+app.get('/auth/yandex', yandexStartRateLimiter, async (req, res) => {
     try {
         const clientId = process.env.YANDEX_CLIENT_ID;
         const redirectUri = process.env.YANDEX_REDIRECT_URI;
@@ -493,7 +503,7 @@ app.get('/auth/yandex/callback', async (req, res) => {
 // ============================================
 // YANDEX ID — ОБМЕН ОДНОРАЗОВОГО КОДА НА СЕССИЮ
 // ============================================
-app.post('/auth/yandex/complete', async (req, res) => {
+app.post('/auth/yandex/complete', yandexCompleteRateLimiter, async (req, res) => {
     try {
         const handoffCode = req.body?.code;
         if (
