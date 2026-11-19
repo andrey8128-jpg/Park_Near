@@ -1384,14 +1384,22 @@ app.get('/api/users/me/favorites', requireAuth, requireRegisteredUser, async (re
             [String(req.authUser.id)]
         );
 
-        const favorites = result.rows.map(row => ({
-            parkingId: row.parkingId,
-            savedAt: new Date(row.savedAt).getTime(),
-            parking: row.parking
-                ? { ...row.parking, id: row.parkingId }
-                : null
-        }));
-
+        const favorites = result.rows.map(row => {
+            let parking = null;
+            if (row.parking) {
+                const publicData = { ...row.parking };
+                delete publicData.history;
+                    parking = {
+                    ...publicData,
+                    id: row.parkingId
+        };
+    }
+    return {
+        parkingId: row.parkingId,
+        savedAt: new Date(row.savedAt).getTime(),
+        parking
+    };
+});
         return res.json({
             success: true,
             count: favorites.length,
