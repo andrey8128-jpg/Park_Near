@@ -854,6 +854,11 @@ const favoriteMutationRateLimiter = createUserRateLimiter(
     30,
     15 * 60 * 1000
 );
+const profileUpdateRateLimiter = createUserRateLimiter(
+    'profile_update',
+    20,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -1387,7 +1392,7 @@ return res.json({
 // ============================================
 // ОБНОВЛЕНИЕ ПРОФИЛЯ В POSTGRESQL
 // ============================================
-app.patch('/api/users/me/profile', requireAuth, async (req, res) => {
+app.patch('/api/users/me/profile', requireAuth, profileUpdateRateLimiter, async (req, res) => {
     try {
         const allowedFields = [
             'nickname',
