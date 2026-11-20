@@ -884,6 +884,11 @@ const parkingManagementRateLimiter = createUserRateLimiter(
     20,
     15 * 60 * 1000
 );
+const moderationActionRateLimiter = createUserRateLimiter(
+    'moderation_action',
+    20,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -1003,6 +1008,7 @@ app.post(
     '/api/moderation/:id/approve',
     requireAuth,
     requireRole('moderator', 'admin'),
+    moderationActionRateLimiter,
     async (req, res) => {
         let client;
         try {
@@ -1141,6 +1147,7 @@ app.post(
     '/api/moderation/:id/reject',
     requireAuth,
     requireRole('moderator', 'admin'),
+    moderationActionRateLimiter,
     async (req, res) => {
         let client;
         try {
