@@ -3415,13 +3415,45 @@ app.use((error, req, res, next) => {
     });
 });
 // ============================================
+// ОЧИСТКА УСТАРЕВШИХ ЗАПИСЕЙ RATE LIMITS
+// ============================================
+async function cleanupExpiredRateLimits() {
+    const results = await Promise.all([
+        pool.query(
+            `DELETE FROM api_rate_limits
+             WHERE window_started_at < NOW() - INTERVAL '24 hours'`
+        ),
+        pool.query(
+            `DELETE FROM api_ip_rate_limits
+             WHERE window_started_at < NOW() - INTERVAL '24 hours'`
+        )
+    ]);
+    const deletedCount = results.reduce(
+        (sum, result) => sum + result.rowCount,
+        0
+    );
+    if (deletedCount > 0) {
+        console.log('Удалено устаревших записей лимитов:', deletedCount);
+    }
+}
+// ============================================
 // ЗАПУСК СЕРВЕРА ПОСЛЕ ПРОВЕРКИ POSTGRESQL
 // ============================================
 async function startServer() {
     try {
         await initializeDatabase();
 
-        app.listen(PORT, '0.0.0.0', () => {
+await cleanupExpiredRateLimits();
+
+const rateLimitCleanupTimer = setInterval(() => {
+    cleanupExpiredRateLimits().catch(error => {
+        console.error('Ошибка очистки лимитов:', error.message);
+    });
+}, 6 * 60 * 60 * 1000);
+
+rateLimitCleanupTimer.unref();
+
+app.listen(PORT, '0.0.0.0', () => {
             console.log(
                 `Park Near API запущен на порту ${PORT}`
             );
