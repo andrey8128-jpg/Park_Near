@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const dns = require('dns').promises;
+const net = require('net');
 require('dotenv').config({
     path: require('path').resolve(__dirname, '../.env')
 });
@@ -204,6 +206,76 @@ if (isWebPushConfigured) {
     console.warn('Web Push не настроен: проверь VAPID-переменные окружения');
 }
 // ============================================
+// SSRF: ПРОВЕРКА PUSH-ENDPOINT
+// ============================================
+const blockedPushAddresses = new net.BlockList();
+
+[
+    ['0.0.0.0', 8],
+    ['10.0.0.0', 8],
+    ['100.64.0.0', 10],
+    ['127.0.0.0', 8],
+    ['169.254.0.0', 16],
+    ['172.16.0.0', 12],
+    ['192.0.0.0', 24],
+    ['192.0.2.0', 24],
+    ['192.168.0.0', 16],
+    ['198.18.0.0', 15],
+    ['198.51.100.0', 24],
+    ['203.0.113.0', 24],
+    ['224.0.0.0', 4],
+    ['240.0.0.0', 4]
+].forEach(([address, prefix]) => {
+    blockedPushAddresses.addSubnet(address, prefix, 'ipv4');
+});
+
+[
+    ['::', 128],
+    ['::1', 128],
+    ['fc00::', 7],
+    ['fe80::', 10],
+    ['ff00::', 8],
+    ['2001:db8::', 32]
+].forEach(([address, prefix]) => {
+    blockedPushAddresses.addSubnet(address, prefix, 'ipv6');
+});
+
+async function isSafePushEndpoint(endpoint) {
+    try {
+        const url = new URL(endpoint);
+        if (
+            url.protocol !== 'https:' ||
+            url.port && url.port !== '443' ||
+            url.username ||
+            url.password ||
+            !url.hostname
+        ) return false;
+        const hostname = url.hostname.replace(/^\[|\]$/g, '');
+        if (
+            hostname === 'localhost' ||
+            hostname.endsWith('.localhost') ||
+            hostname.endsWith('.local') ||
+            hostname.endsWith('.internal')
+        ) return false;
+        const addresses = net.isIP(hostname)
+            ? [{ address: hostname, family: net.isIP(hostname) }]
+            : await dns.lookup(hostname, {
+                all: true,
+                verbatim: true
+            });
+        if (!addresses.length) return false;
+        return addresses.every(({ address, family }) =>
+            (family === 4 || family === 6) &&
+            !blockedPushAddresses.check(
+                address,
+                family === 4 ? 'ipv4' : 'ipv6'
+            )
+        );
+    } catch (error) {
+        return false;
+    }
+}
+// ============================================
 // ОТПРАВКА WEB PUSH ПОЛЬЗОВАТЕЛЮ
 // ============================================
 async function sendPushToUser(userId, payload) {
@@ -217,9 +289,13 @@ async function sendPushToUser(userId, payload) {
         );
         for (const row of result.rows) {
             const subscription = row.data?.subscription;
-            if (!subscription?.endpoint) continue;
-            try {
-                await webpush.sendNotification(
+if (!subscription?.endpoint) continue;
+if (!await isSafePushEndpoint(subscription.endpoint)) {
+    console.error('Push отклонён: небезопасный endpoint');
+    continue;
+}
+try {
+    await webpush.sendNotification(
                     subscription,
                     JSON.stringify(payload)
                 );
