@@ -869,6 +869,11 @@ const pushSubscriptionDeleteRateLimiter = createUserRateLimiter(
     10,
     15 * 60 * 1000
 );
+const parkingSessionMutationRateLimiter = createUserRateLimiter(
+    'parking_session_mutation',
+    20,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -1980,9 +1985,10 @@ app.get('/api/parking-sessions/active', requireAuth, async (req, res) => {
 // ============================================
 app.post(
     '/api/parking-sessions',
-    requireAuth,
-    requireRegisteredUser,
-    async (req, res) => {
+     requireAuth,
+     requireRegisteredUser,
+     parkingSessionMutationRateLimiter,
+     async (req, res) => {
     const client = await pool.connect();
     try {
         const parkingId = String(req.body?.parkingId || '');
@@ -2143,8 +2149,9 @@ await client.query(
 // ============================================
 app.delete(
     '/api/parking-sessions/active/:parkingId',
-    requireAuth,
-    requireRegisteredUser,
+       requireAuth,
+       requireRegisteredUser,
+       parkingSessionMutationRateLimiter,
     async (req, res) => {
         const client = await pool.connect();
         try {
