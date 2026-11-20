@@ -2640,42 +2640,50 @@ app.post('/api/parkings/:id/confirm', requireAuth, confirmRateLimiter, async (re
 app.get('/api/parkings', parkingListRateLimiter, async (req, res) => {
     try {
         const city = String(req.query.city || '').trim();
-        let result;
-
-        if (city) {
-            result = await pool.query(
-                `SELECT id, data
-                 FROM parkings
-                 WHERE LOWER(TRIM(data->>'city')) = LOWER($1)
-                 ORDER BY id`,
-                [city]
-            );
-        } else {
-            result = await pool.query(
-                `SELECT id, data
-                 FROM parkings
-                 ORDER BY id`
-            );
-        }
+        const requestedLimit = Number(req.query.limit);
+        const requestedOffset = Number(req.query.offset);
+        const limit = Number.isInteger(requestedLimit) && requestedLimit > 0
+            ? Math.min(requestedLimit, 500)
+            : 500;
+        const offset = Number.isSafeInteger(requestedOffset) && requestedOffset >= 0
+            ? requestedOffset
+            : 0;
+        const countResult = await pool.query(
+            city
+                ? `SELECT COUNT(*)::int AS total FROM parkings WHERE LOWER(TRIM(data->>'city')) = LOWER($1)`
+                : `SELECT COUNT(*)::int AS total FROM parkings`,
+            city ? [city] : []
+        );
+        const result = await pool.query(
+            city
+                ? `SELECT id, data FROM parkings
+                   WHERE LOWER(TRIM(data->>'city')) = LOWER($1)
+                   ORDER BY id LIMIT $2 OFFSET $3`
+                : `SELECT id, data FROM parkings
+                   ORDER BY id LIMIT $1 OFFSET $2`,
+            city ? [city, limit, offset] : [limit, offset]
+        );
         const parkings = result.rows.map(row => {
-        const publicData = { ...(row.data || {}) };
-        delete publicData.history;
-        delete publicData.authorName;
-        delete publicData.authorUsername;   
-        return {
-        ...publicData,
-        id: row.id
-    };
-});
-        res.json({
+            const publicData = { ...(row.data || {}) };
+            delete publicData.history;
+            delete publicData.authorName;
+            delete publicData.authorUsername;
+            return {
+                ...publicData,
+                id: row.id
+            };
+        });
+        return res.json({
             success: true,
             count: parkings.length,
+            total: countResult.rows[0].total,
+            limit,
+            offset,
             parkings
         });
     } catch (error) {
         console.error('Ошибка получения парковок:', error.message);
-
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             error: 'Не удалось загрузить парковки'
         });
