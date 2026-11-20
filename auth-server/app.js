@@ -859,6 +859,16 @@ const profileUpdateRateLimiter = createUserRateLimiter(
     20,
     15 * 60 * 1000
 );
+const accountDeleteRateLimiter = createUserRateLimiter(
+    'account_delete',
+    3,
+    15 * 60 * 1000
+);
+const pushSubscriptionDeleteRateLimiter = createUserRateLimiter(
+    'push_subscription_delete',
+    10,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -1297,7 +1307,7 @@ if (
 // ============================================
 // WEB PUSH: УДАЛЕНИЕ ПОДПИСКИ
 // ============================================
-app.delete('/api/push/subscriptions', requireAuth, async (req, res) => {
+app.delete('/api/push/subscriptions', requireAuth, pushSubscriptionDeleteRateLimiter, async (req, res) => {
     try {
         const endpoint = req.body?.endpoint;
         if (
@@ -1725,7 +1735,7 @@ app.get('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser
         });
     }
 });
-app.delete('/api/users/me/account', requireAuth, async (req, res) => {
+app.delete('/api/users/me/account', requireAuth, accountDeleteRateLimiter, async (req, res) => {
     const client = await pool.connect();
     try {
         const userId = String(req.authUser.id);
