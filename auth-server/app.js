@@ -3082,6 +3082,19 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManageme
             error: 'Редактировать парковку может только её автор'
         });
     }
+        const occupancy = await getParkingOccupancyBreakdown(
+    client,
+    req.params.id,
+    parking
+);
+if (totalSpots < occupancy.totalOccupied) {
+    await client.query('ROLLBACK');
+
+    return res.status(409).json({
+        success: false,
+        error: 'Нельзя уменьшить количество мест ниже текущей занятости'
+    });
+}
         const updates = {
             name: String(name).trim(),
             street: String(street || '').trim(),
