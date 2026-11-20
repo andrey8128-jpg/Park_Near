@@ -2008,6 +2008,29 @@ app.get('/api/parking-sessions/active', requireAuth, async (req, res) => {
     }
 });
 // ============================================
+// РАЗДЕЛЬНЫЙ УЧЁТ ЗАНЯТОСТИ ПАРКОВКИ
+// ============================================
+async function getParkingOccupancyBreakdown(client, parkingId, parking) {
+    const result = await client.query(
+        `SELECT COUNT(*)::int AS count
+         FROM parking_sessions
+         WHERE data->>'parkingId' = $1
+           AND data->>'active' = 'true'`,
+        [String(parkingId)]
+    );
+    const activeSessions = Number(result.rows[0].count) || 0;
+    const occupied = Math.max(0, Number(parking.occupiedSpots) || 0);
+    const manualOccupied = Number.isInteger(parking.manualOccupiedSpots) &&
+        parking.manualOccupiedSpots >= 0
+        ? parking.manualOccupiedSpots
+        : Math.max(0, occupied - activeSessions);
+    return {
+        manualOccupied,
+        activeSessions,
+        totalOccupied: manualOccupied + activeSessions
+    };
+}
+// ============================================
 // НАЧАЛО ПАРКОВОЧНОЙ СЕССИИ
 // ============================================
 app.post(
