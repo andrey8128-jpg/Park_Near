@@ -2257,25 +2257,42 @@ app.delete(
                 });
             }
             const parking = parkingResult.rows[0].data;
-            const username =
-                req.authUser.username ||
-                req.authUser.firstName ||
-                'Пользователь';
-            const previousOccupied = Math.max(
-                0,
-                Number(parking.occupiedSpots) || 0
-            );
-            const newOccupied = Math.max(
-                0,
-                previousOccupied - 1
-            );
-            const totalSpots = Number(parking.totalSpots) || 0;
+const username =
+    req.authUser.username ||
+    req.authUser.firstName ||
+    'Пользователь';
 
+const occupancyBefore = await getParkingOccupancyBreakdown(
+    client,
+    parkingId,
+    parking
+);
+const previousOccupied = occupancyBefore.totalOccupied;
+const updatedSession = {
+    ...session,
+    active: false,
+    endedAt
+};
+// Сначала завершаем сессию, чтобы helper не учитывал её активной.
+await client.query(
+    `UPDATE parking_sessions
+     SET data = $2::jsonb
+     WHERE id = $1`,
+    [
+        sessionRow.id,
+        JSON.stringify(updatedSession)
+    ]
+);
+const occupancyAfter = await getParkingOccupancyBreakdown(
+    client,
+    parkingId,
+    parking
+);
+const newOccupied = occupancyAfter.totalOccupied;
+const totalSpots = Number(parking.totalSpots) || 0;
 let status = 'unknown';
-
 if (totalSpots > 0 && newOccupied > 0) {
     const occupancyRatio = newOccupied / totalSpots;
-
     if (occupancyRatio >= 0.9) {
         status = 'occupied';
     } else if (occupancyRatio >= 0.6) {
@@ -2284,41 +2301,27 @@ if (totalSpots > 0 && newOccupied > 0) {
         status = 'free';
     }
 }
-            const previousHistory = Array.isArray(parking.history)
-                ? parking.history
-                : Object.values(parking.history || {});
-            const historyEntry = {
-                action: 'freed',
-                timestamp: endedAt,
-                userId,
-                username,
-                previousOccupied,
-                newOccupied,
-                car: {}
-            };
-            const updatedParking = {
+const previousHistory = Array.isArray(parking.history)
+    ? parking.history
+    : Object.values(parking.history || {});
+const historyEntry = {
+    action: 'freed',
+    timestamp: endedAt,
+    userId,
+    username,
+    previousOccupied,
+    newOccupied,
+    car: {}
+};
+const updatedParking = {
     ...parking,
+    manualOccupiedSpots: occupancyAfter.manualOccupied,
     occupiedSpots: newOccupied,
     status,
     lastUpdatedAt: endedAt,
     lastUpdatedBy: username,
     history: [...previousHistory, historyEntry]
 };
-            const updatedSession = {
-                ...session,
-                active: false,
-                endedAt
-            };
-            // Обновляем сессию.
-            await client.query(
-                `UPDATE parking_sessions
-                 SET data = $2::jsonb
-                 WHERE id = $1`,
-                [
-                    sessionRow.id,
-                    JSON.stringify(updatedSession)
-                ]
-            );
             // Обновляем количество занятых мест и историю.
             await client.query(
                 `UPDATE parkings
