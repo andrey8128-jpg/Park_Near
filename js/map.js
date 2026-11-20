@@ -942,122 +942,117 @@ if (parkingsLoadPromise) {
         '/api/parkings',
         window.PARKNEAR_API_URL
     );
-    const requestPromise = fetch(url.toString(), {
-        method: 'GET',
-        cache: 'no-store',
-        headers: {
-            'Accept': 'application/json'
-        }
-    })
-        .then(async response => {
-            const responseText = await response.text();
-            let result;
-            try {
-                result = JSON.parse(responseText);
-            } catch (error) {
-                throw new Error(
-                    `Некорректный ответ сервера HTTP ${response.status}: ` +
-                    responseText.slice(0, 300)
-                );
+    const requestPromise = (async () => {
+    const newCache = {};
+    const pageSize = 500;
+    let offset = 0;
+    let total = null;
+    while (total === null || offset < total) {
+        const url = new URL('/api/parkings', window.PARKNEAR_API_URL);
+        url.searchParams.set('limit', String(pageSize));
+        url.searchParams.set('offset', String(offset));
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json'
             }
-            if (!response.ok) {
-                throw new Error(
-                    result.error ||
-                    `Ошибка сервера: ${response.status}`
-                );
-            }
-            if (
-                !result.success ||
-                !Array.isArray(result.parkings)
-            ) {
-                throw new Error(
-                    'Сервер вернул некорректный список парковок'
-                );
-            }
-            const newCache = {};
-            result.parkings.forEach(node => {
-                    if (!node) return;
-                const id = String(node.id || '');
-                    if (!id) return;
-                const lat = Number(node.lat);
-                const lng = Number(node.lng);
-
-                if (
-                    !Number.isFinite(lat) ||
-                    !Number.isFinite(lng) ||
-                    Math.abs(lat) > 90 ||
-                    Math.abs(lng) > 180
-                ) {
-                    console.warn(
-                        'Некорректные координаты парковки:',
-                        id,
-                        node
-                    );
-                    return;
-                }
-                const totalSpots = Math.max(
-                    0,
-                    Number(node.totalSpots) || 0
-                );
-                const occupiedSpots = Math.min(
-                    totalSpots,
-                    Math.max(
-                        0,
-                        Number(node.occupiedSpots) || 0
-                    )
-                );
-                newCache[id] = {
-                    ...node,
-                    id,
-                    lat,
-                    lng,
-                    totalSpots,
-                    occupiedSpots,
-                    _dbPath: null
-                };
-            });
-            // Сохраняем загруженные данные.
-            parkingDataCache = newCache;
-            lastDataRefresh = Date.now();
-            try {
-                localStorage.setItem(
-                    'parkingCache',
-                    JSON.stringify({
-                        city: 'all',
-                        data: newCache,
-                        timestamp: Date.now()
-                    })
-                );
-            } catch (error) {
-                console.warn(
-                    'Не удалось сохранить кэш парковок:',
-                    error
-                );
-            }
-            // Дополнительно сохраняем парковки в IndexedDB.
-            if (window.ParkNearOffline) {
-                window.ParkNearOffline.saveParkings(newCache)
-                    .then(() => {
-                        console.log(
-                            'Парковки сохранены в IndexedDB:',
-                            Object.keys(newCache).length
-                        );
-                    })
-                    .catch(error => {
-                        console.warn(
-                            'Ошибка сохранения парковок в IndexedDB:',
-                            error
-                        );
-                    });
-            }
-            // Пытаемся отобразить маркеры.
-            renderMarkers(newCache);
-            console.log(
-                'Парковки загружены из PostgreSQL:',
-                Object.keys(newCache).length
+        });
+        const responseText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (error) {
+            throw new Error(
+                `Некорректный ответ сервера HTTP ${response.status}: ` +
+                responseText.slice(0, 300)
             );
-            return true;
-        })
+        }
+        if (!response.ok) {
+            throw new Error(
+                result.error || `Ошибка сервера: ${response.status}`
+            );
+        }
+        if (
+            !result.success ||
+            !Array.isArray(result.parkings) ||
+            !Number.isSafeInteger(Number(result.total)) ||
+            Number(result.total) < 0
+        ) {
+            throw new Error('Сервер вернул некорректный список парковок');
+        }
+        if (total === null) {
+            total = Number(result.total);
+        }
+        if (result.parkings.length === 0 && offset < total) {
+            throw new Error('Сервер вернул пустую страницу парковок');
+        }
+        result.parkings.forEach(node => {
+            if (!node) return;
+            const id = String(node.id || '');
+            if (!id) return;
+            const lat = Number(node.lat);
+            const lng = Number(node.lng);
+            if (
+                !Number.isFinite(lat) ||
+                !Number.isFinite(lng) ||
+                Math.abs(lat) > 90 ||
+                Math.abs(lng) > 180
+            ) {
+                console.warn('Некорректные координаты парковки:', id, node);
+                return;
+            }
+            const totalSpots = Math.max(0, Number(node.totalSpots) || 0);
+            const occupiedSpots = Math.min(
+                totalSpots,
+                Math.max(0, Number(node.occupiedSpots) || 0)
+            );
+            newCache[id] = {
+                ...node,
+                id,
+                lat,
+                lng,
+                totalSpots,
+                occupiedSpots,
+                _dbPath: null
+            };
+        });
+        offset += result.parkings.length;
+    }
+    // Сохраняем данные только после загрузки всех страниц.
+    parkingDataCache = newCache;
+    lastDataRefresh = Date.now();
+    try {
+        localStorage.setItem(
+            'parkingCache',
+            JSON.stringify({
+                city: 'all',
+                data: newCache,
+                timestamp: Date.now()
+            })
+        );
+    } catch (error) {
+        console.warn('Не удалось сохранить кэш парковок:', error);
+    }
+    if (window.ParkNearOffline) {
+        window.ParkNearOffline.saveParkings(newCache)
+            .then(() => {
+                console.log(
+                    'Парковки сохранены в IndexedDB:',
+                    Object.keys(newCache).length
+                );
+            })
+            .catch(error => {
+                console.warn('Ошибка сохранения парковок в IndexedDB:', error);
+            });
+    }
+    renderMarkers(newCache);
+    console.log(
+        'Парковки загружены из PostgreSQL:',
+        Object.keys(newCache).length
+    );
+    return true;
+})()
 .catch(async error => {
     console.warn('Не удалось загрузить парковки из PostgreSQL:', error);
     window.isOfflineMode = true;
