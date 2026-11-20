@@ -849,6 +849,11 @@ const userHistoryRateLimiter = createUserRateLimiter(
     30,
     15 * 60 * 1000
 );
+const favoriteMutationRateLimiter = createUserRateLimiter(
+    'favorite_mutation',
+    30,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -1574,7 +1579,7 @@ app.get('/api/users/me/favorites', requireAuth, requireRegisteredUser, async (re
 // ============================================
 // ДОБАВЛЕНИЕ ПАРКОВКИ В ИЗБРАННОЕ
 // ============================================
-app.post('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, async (req, res) => {
+app.post('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, favoriteMutationRateLimiter, async (req, res) => {
     const client = await pool.connect();
 
     try {
@@ -1642,7 +1647,7 @@ app.post('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUse
 // ============================================
 // УДАЛЕНИЕ ПАРКОВКИ ИЗ ИЗБРАННОГО
 // ============================================
-app.delete('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, async (req, res) => {
+app.delete('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, favoriteMutationRateLimiter, async (req, res) => {
     const client = await pool.connect();
     try {
         const userId = String(req.authUser.id);
