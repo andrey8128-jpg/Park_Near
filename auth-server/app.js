@@ -2433,8 +2433,17 @@ app.post(
     requireAuth,
     requireRegisteredUser,
     parkingCreateRateLimiter,
-    async (req, res) => {
     const parking = req.body || {};
+
+    if (
+       (parking.city !== undefined && typeof parking.city !== 'string') ||
+       (parking.houseNumber !== undefined && typeof parking.houseNumber !== 'string')
+    ) {
+    return res.status(400).json({
+        success: false,
+        error: 'Некорректный формат города или номера дома'
+    });
+}
     const city = String(parking.city || '').trim();
     const street = String(parking.street || '').trim();
     const houseNumber = String(parking.houseNumber || '').trim();
