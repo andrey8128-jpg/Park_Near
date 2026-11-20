@@ -2839,6 +2839,7 @@ if (
         lng,
         coordinates,
         totalSpots,
+        manualOccupiedSpots: 0,
         occupiedSpots: 0,
         name: String(parking.name || '').trim(),
         groupId: cityKey,
@@ -3100,6 +3101,8 @@ if (totalSpots < occupancy.totalOccupied) {
             street: String(street || '').trim(),
             houseNumber: String(houseNumber || '').trim(),
             totalSpots,
+            manualOccupiedSpots: occupancy.manualOccupied,
+            occupiedSpots: occupancy.totalOccupied,
             description: String(description || '').trim(),
             address: [
                 String(street || '').trim(),
