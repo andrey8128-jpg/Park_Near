@@ -232,6 +232,7 @@ const blockedPushAddresses = new net.BlockList();
 [
     ['::', 128],
     ['::1', 128],
+    ['::ffff:0:0', 96],
     ['fc00::', 7],
     ['fe80::', 10],
     ['ff00::', 8],
