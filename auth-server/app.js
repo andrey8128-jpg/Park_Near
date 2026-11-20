@@ -2115,12 +2115,6 @@ if (previousOccupied >= totalSpots) {
         error: 'Свободных мест на парковке больше нет'
     });
 }
-    await client.query('ROLLBACK');
-    return res.status(409).json({
-        success: false,
-        error: 'Свободных мест на парковке больше нет'
-    });
-}
 // Создаём парковочную сессию
 const sessionId = require('crypto').randomUUID();
 const updatedSession = {
