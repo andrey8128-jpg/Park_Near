@@ -3323,49 +3323,50 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, occ
                 error: 'Парковка не найдена'
             });
         }
-        const parking = result.rows[0].data || {};
-        const total = Number(parking.totalSpots || 0);
-        const previousOccupied = Number(parking.occupiedSpots || 0);
-        const newOccupied = previousOccupied + delta;
-
-        if (
-            !Number.isInteger(total) ||
-            !Number.isInteger(previousOccupied) ||
-            newOccupied < 0 ||
-            newOccupied > total
-        ) {
-            await client.query('ROLLBACK');
-
-            return res.status(400).json({
-                success: false,
-                error: 'Нельзя изменить занятость: достигнут предел мест'
-            });
-        }
-        const now = Date.now();
-        const username =
-            req.authUser.nickname ||
-            req.authUser.firstName ||
-            req.authUser.username ||
-            'Пользователь';
-        const historyEntry = {
-            action: delta < 0 ? 'freed' : 'occupied',
-            timestamp: now,
-            userId: req.authUser.id,
-            username,
-            previousOccupied,
-            newOccupied
-        };
-        // Поддерживаем историю в формате массива или старого объекта.
-        const previousHistory = Array.isArray(parking.history)
-            ? parking.history
-            : Object.values(parking.history || {});
-// Рассчитываем статус на основании новой занятости.
-const occupancyRatio = newOccupied / total;
+      const parking = result.rows[0].data || {};
+const total = Number(parking.totalSpots || 0);
+const occupancyBefore = await getParkingOccupancyBreakdown(
+    client,
+    req.params.id,
+    parking
+);
+const previousOccupied = occupancyBefore.totalOccupied;
+const newManualOccupied = occupancyBefore.manualOccupied + delta;
+const newOccupied = newManualOccupied + occupancyBefore.activeSessions;
+if (
+    !Number.isInteger(total) ||
+    !Number.isInteger(newManualOccupied) ||
+    newManualOccupied < 0 ||
+    newOccupied < 0 ||
+    newOccupied > total
+) {
+    await client.query('ROLLBACK');
+    return res.status(400).json({
+        success: false,
+        error: 'Нельзя изменить занятость: достигнут предел мест'
+    });
+}
+const now = Date.now();
+const username =
+    req.authUser.nickname ||
+    req.authUser.firstName ||
+    req.authUser.username ||
+    'Пользователь';
+const historyEntry = {
+    action: delta < 0 ? 'freed' : 'occupied',
+    timestamp: now,
+    userId: req.authUser.id,
+    username,
+    previousOccupied,
+    newOccupied
+};
+const previousHistory = Array.isArray(parking.history)
+    ? parking.history
+    : Object.values(parking.history || {});
+const occupancyRatio = total > 0 ? newOccupied / total : 0;
 const freeSpots = total - newOccupied;
-
 let status = 'unknown';
-
-if (newOccupied > 0) {
+    if (newOccupied > 0) {
     if (freeSpots === 0 || occupancyRatio >= 0.9) {
         status = 'occupied';
     } else if (occupancyRatio >= 0.6) {
@@ -3376,6 +3377,7 @@ if (newOccupied > 0) {
 }
 const updatedParking = {
     ...parking,
+    manualOccupiedSpots: newManualOccupied,
     occupiedSpots: newOccupied,
     status,
     lastUpdatedAt: now,
