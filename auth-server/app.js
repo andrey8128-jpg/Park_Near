@@ -448,6 +448,16 @@ const yandexCompleteRateLimiter = createIpRateLimiter(
     10,
     15 * 60 * 1000
 );
+const parkingListRateLimiter = createIpRateLimiter(
+    'parking_list',
+    60,
+    15 * 60 * 1000
+);
+const parkingDetailsRateLimiter = createIpRateLimiter(
+    'parking_details',
+    120,
+    15 * 60 * 1000
+);
 // ============================================
 // YANDEX ID — НАЧАЛО АВТОРИЗАЦИИ
 // ============================================
@@ -2328,7 +2338,7 @@ if (totalSpots > 0 && newOccupied > 0) {
 // ============================================
 // ПОЛУЧЕНИЕ ОДНОЙ ПАРКОВКИ
 // ============================================
-app.get('/api/parkings/:id', async (req, res) => {
+app.get('/api/parkings/:id', parkingDetailsRateLimiter, async (req, res) => {
     try {
         const result = await pool.query(
             'SELECT id, data FROM parkings WHERE id = $1',
@@ -2627,7 +2637,7 @@ app.post('/api/parkings/:id/confirm', requireAuth, confirmRateLimiter, async (re
 // ============================================
 // ПОЛУЧЕНИЕ ПАРКОВОК ИЗ POSTGRESQL
 // ============================================
-app.get('/api/parkings', async (req, res) => {
+app.get('/api/parkings', parkingListRateLimiter, async (req, res) => {
     try {
         const city = String(req.query.city || '').trim();
         let result;
