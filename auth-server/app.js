@@ -2094,62 +2094,23 @@ const username =
     req.authUser.username ||
     req.authUser.firstName ||
     'Пользователь';
-
-const previousOccupied = Math.max(
-    0,
-    Number(parking.occupiedSpots) || 0
+const occupancyBefore = await getParkingOccupancyBreakdown(
+    client,
+    parkingId,
+    parking
 );
-
-const newOccupied = previousOccupied + 1;
+const previousOccupied = occupancyBefore.totalOccupied;
 const totalSpots = Number(parking.totalSpots) || 0;
 
-if (totalSpots > 0 && newOccupied > totalSpots) {
+if (totalSpots > 0 && previousOccupied >= totalSpots) {
     await client.query('ROLLBACK');
     return res.status(409).json({
         success: false,
         error: 'Свободных мест на парковке больше нет'
     });
 }
-
-let status = 'unknown';
-
-if (totalSpots > 0 && newOccupied > 0) {
-    const occupancyRatio = newOccupied / totalSpots;
-
-    if (occupancyRatio >= 0.9) {
-        status = 'occupied';
-    } else if (occupancyRatio >= 0.6) {
-        status = 'limited';
-    } else {
-        status = 'free';
-    }
-}
-const previousHistory = Array.isArray(parking.history)
-    ? parking.history
-    : Object.values(parking.history || {});
-
-const historyEntry = {
-    action: 'occupied',
-    timestamp: startedAt,
-    userId,
-    username,
-    previousOccupied,
-    newOccupied,
-    car: {}
-};
-
-const updatedParking = {
-    ...parking,
-    occupiedSpots: newOccupied,
-    status,
-    lastUpdatedAt: startedAt,
-    lastUpdatedBy: username,
-    history: [...previousHistory, historyEntry]
-};
-
 // Создаём парковочную сессию
 const sessionId = require('crypto').randomUUID();
-
 const updatedSession = {
     userId,
     parkingId,
@@ -2163,7 +2124,44 @@ const sessionRow = await client.query(
      RETURNING id`,
     [sessionId, JSON.stringify(updatedSession)]
 );
-
+const occupancyAfter = await getParkingOccupancyBreakdown(
+    client,
+    parkingId,
+    parking
+);
+const newOccupied = occupancyAfter.totalOccupied;
+let status = 'unknown';
+if (totalSpots > 0 && newOccupied > 0) {
+    const occupancyRatio = newOccupied / totalSpots;
+    if (occupancyRatio >= 0.9) {
+        status = 'occupied';
+    } else if (occupancyRatio >= 0.6) {
+        status = 'limited';
+    } else {
+        status = 'free';
+    }
+}
+const previousHistory = Array.isArray(parking.history)
+    ? parking.history
+    : Object.values(parking.history || {});
+const historyEntry = {
+    action: 'occupied',
+    timestamp: startedAt,
+    userId,
+    username,
+    previousOccupied,
+    newOccupied,
+    car: {}
+};
+const updatedParking = {
+    ...parking,
+    manualOccupiedSpots: occupancyAfter.manualOccupied,
+    occupiedSpots: newOccupied,
+    status,
+    lastUpdatedAt: startedAt,
+    lastUpdatedBy: username,
+    history: [...previousHistory, historyEntry]
+};
 await client.query(
     `UPDATE parkings
      SET data = $2::jsonb
