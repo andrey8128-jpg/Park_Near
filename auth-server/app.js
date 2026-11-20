@@ -879,6 +879,11 @@ const occupancyUpdateRateLimiter = createUserRateLimiter(
     30,
     15 * 60 * 1000
 );
+const parkingManagementRateLimiter = createUserRateLimiter(
+    'parking_management',
+    20,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -2971,7 +2976,7 @@ await client.query(
 // ============================================
 // РЕДАКТИРОВАНИЕ ПАРКОВКИ
 // ============================================
-app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
+app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManagementRateLimiter, async (req, res) => {
     const client = await pool.connect();
     try {
         const { name, street, houseNumber, totalSpots, description } = req.body;
@@ -3078,7 +3083,7 @@ app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res
     }
 });
 // Частичное редактирование города и границ парковки
-app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
+app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManagementRateLimiter, async (req, res) => {
     const { city, region, coordinates, lat, lng, lastUpdatedAt, lastUpdatedBy } = req.body;
     const updates = {};
     if (city !== undefined) {
@@ -3185,7 +3190,7 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, r
 // ============================================
 // УДАЛЕНИЕ ПАРКОВКИ В POSTGRESQL
 // ============================================
-app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, res) => {
+app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManagementRateLimiter, async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
