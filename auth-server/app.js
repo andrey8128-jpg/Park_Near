@@ -844,6 +844,11 @@ const pushSubscriptionRateLimiter = createUserRateLimiter(
     10,
     15 * 60 * 1000
 );
+const userHistoryRateLimiter = createUserRateLimiter(
+    'user_history',
+    30,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -2315,50 +2320,92 @@ app.get('/api/parkings/:id', async (req, res) => {
 });
 
 // История действий текущего пользователя
-app.get('/api/users/me/history', requireAuth, async (req, res) => {
-    try {
-        const userId = String(req.authUser.id);
-        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        const result = await pool.query('SELECT id, data FROM parkings');
-        const entries = [];
-        for (const row of result.rows) {
-            const parking = row.data || {};
-            const history = Array.isArray(parking.history)
-                ? parking.history
-                : Object.values(parking.history || {});
-            for (const entry of history) {
-                if (!entry || String(entry.userId) !== userId) continue;
-                const timestamp = Number(entry.timestamp) || 0;
-                if (timestamp < weekAgo) continue;
-                entries.push({
-                    parkingId: String(row.id),
-                    parkingName: parking.name || 'Без названия',
-                    address: parking.address || '',
-                    action: entry.action || 'unknown',
+app.get(
+    '/api/users/me/history',
+    requireAuth,
+    userHistoryRateLimiter,
+    async (req, res) => {
+        try {
+            const userId = String(req.authUser.id);
+            const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            const result = await pool.query(
+                `WITH parking_rows AS (
+                    SELECT
+                        id,
+                        data,
+                        CASE
+                            WHEN jsonb_typeof(data->'history') = 'array'
+                                THEN data->'history'
+                            WHEN jsonb_typeof(data->'history') = 'object'
+                                THEN COALESCE(
+                                    (
+                                        SELECT jsonb_agg(item.value)
+                                        FROM jsonb_each(data->'history') AS item
+                                    ),
+                                    '[]'::jsonb
+                                )
+                            ELSE '[]'::jsonb
+                        END AS history_items
+                    FROM parkings
+                ),
+                matching_entries AS (
+                    SELECT
+                        p.id,
+                        p.data,
+                        h.entry,
+                        CASE
+                            WHEN COALESCE(h.entry->>'timestamp', '')
+                                ~ '^[0-9]+([.][0-9]+)?$'
+                            THEN (h.entry->>'timestamp')::numeric
+                            ELSE 0
+                        END AS timestamp
+                    FROM parking_rows p
+                    CROSS JOIN LATERAL
+                        jsonb_array_elements(p.history_items) AS h(entry)
+                    WHERE h.entry->>'userId' = $1
+                )
+                SELECT
+                    id,
+                    data->>'name' AS parking_name,
+                    COALESCE(data->>'address', '') AS address,
+                    entry,
                     timestamp,
-                    car: {
-                    brand: entry.car?.brand || '',
-                    model: entry.car?.model || ''
-                    },
-                    previousOccupied: entry.previousOccupied,
-                    newOccupied: entry.newOccupied
-                });
-            }
+                    COUNT(*) OVER() AS total
+                FROM matching_entries
+                WHERE timestamp >= $2
+                ORDER BY timestamp DESC
+                LIMIT 100`,
+                [userId, weekAgo]
+            );
+            const entries = result.rows.map(row => ({
+                parkingId: String(row.id),
+                parkingName: row.parking_name || 'Без названия',
+                address: row.address || '',
+                action: row.entry.action || 'unknown',
+                timestamp: Number(row.timestamp) || 0,
+                car: {
+                    brand: row.entry.car?.brand || '',
+                    model: row.entry.car?.model || ''
+                },
+                previousOccupied: row.entry.previousOccupied,
+                newOccupied: row.entry.newOccupied
+            }));
+            return res.json({
+                success: true,
+                total: result.rows.length
+                    ? Number(result.rows[0].total)
+                    : 0,
+                history: entries
+            });
+        } catch (error) {
+            console.error('Ошибка получения истории пользователя:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось загрузить историю'
+            });
         }
-        entries.sort((a, b) => b.timestamp - a.timestamp);
-        return res.json({
-            success: true,
-            total: entries.length,
-            history: entries.slice(0, 100)
-        });
-    } catch (error) {
-        console.error('Ошибка получения истории пользователя:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Не удалось загрузить историю'
-        });
     }
-});
+);
 // ============================================
 // ПОЛУЧЕНИЕ ИСТОРИИ ПАРКОВКИ
 // ============================================
