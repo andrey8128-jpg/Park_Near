@@ -874,6 +874,11 @@ const parkingSessionMutationRateLimiter = createUserRateLimiter(
     20,
     15 * 60 * 1000
 );
+const occupancyUpdateRateLimiter = createUserRateLimiter(
+    'occupancy_update',
+    30,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -3237,7 +3242,7 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, async (req, 
 // ============================================
 // ИЗМЕНЕНИЕ ЗАНЯТОСТИ ПАРКОВКИ В POSTGRESQL
 // ============================================
-app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, async (req, res) => {
+app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, occupancyUpdateRateLimiter, async (req, res) => {
        const delta = req.body?.delta;
     if (
         typeof delta !== 'number' ||
