@@ -2084,12 +2084,8 @@ app.post(
                 error: 'Парковка не найдена'
             });
         }
-
-
 const parking = parkingResult.rows[0].data;
-
 const startedAt = new Date().toISOString();
-
 const username =
     req.authUser.username ||
     req.authUser.firstName ||
@@ -2100,9 +2096,25 @@ const occupancyBefore = await getParkingOccupancyBreakdown(
     parking
 );
 const previousOccupied = occupancyBefore.totalOccupied;
-const totalSpots = Number(parking.totalSpots) || 0;
-
-if (totalSpots > 0 && previousOccupied >= totalSpots) {
+const totalSpots = Number(parking.totalSpots);
+if (
+    !Number.isInteger(totalSpots) ||
+    totalSpots < 1 ||
+    totalSpots > 500
+) {
+    await client.query('ROLLBACK');
+    return res.status(409).json({
+        success: false,
+        error: 'У парковки некорректно указана вместимость'
+    });
+}
+if (previousOccupied >= totalSpots) {
+    await client.query('ROLLBACK');
+    return res.status(409).json({
+        success: false,
+        error: 'Свободных мест на парковке больше нет'
+    });
+}
     await client.query('ROLLBACK');
     return res.status(409).json({
         success: false,
