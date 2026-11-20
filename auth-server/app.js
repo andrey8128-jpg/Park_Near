@@ -566,7 +566,6 @@ async function requireAuth(req, res, next) {
                 error: 'Требуется авторизация'
             });
         }
-
         const tokenHash = crypto
             .createHash('sha256')
             .update(match[1])
@@ -653,7 +652,6 @@ function createUserRateLimiter(action, limit, windowMs) {
         }
     };
 }
-
 function createIpRateLimiter(action, limit, windowMs) {
     return async (req, res, next) => {
         try {
