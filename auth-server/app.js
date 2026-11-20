@@ -2502,27 +2502,26 @@ if (
         });
     }
     if (
-        !Array.isArray(coordinates) ||
-        coordinates.length < 3 ||
-        !coordinates.every(point =>
-           Array.isArray(point) &&
-           point.length >= 2 &&
-           typeof point[0] === 'number' &&
-           typeof point[1] === 'number' &&
-           Number.isFinite(point[0]) &&
-           Number.isFinite(point[1]) &&
-           point[0] >= -90 &&
-           point[0] <= 90 &&
-           point[1] >= -180 &&
-           point[1] <= 180
-       )
-        )
-    ) {
-        return res.status(400).json({
-            success: false,
-            error: 'Некорректный контур парковки'
-        });
-    }
+    !Array.isArray(coordinates) ||
+    coordinates.length < 3 ||
+    !coordinates.every(point =>
+        Array.isArray(point) &&
+        point.length >= 2 &&
+        typeof point[0] === 'number' &&
+        typeof point[1] === 'number' &&
+        Number.isFinite(point[0]) &&
+        Number.isFinite(point[1]) &&
+        point[0] >= -90 &&
+        point[0] <= 90 &&
+        point[1] >= -180 &&
+        point[1] <= 180
+    )
+) {
+    return res.status(400).json({
+        success: false,
+        error: 'Некорректный контур парковки'
+    });
+}
     const cleanKeyPart = value =>
         String(value || '')
             .trim()
