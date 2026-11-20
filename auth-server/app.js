@@ -2294,7 +2294,8 @@ const occupancyAfter = await getParkingOccupancyBreakdown(
     parkingId,
     parking
 );
-const newOccupied = occupancyAfter.totalOccupied;
+const newOccupied =
+    occupancyBefore.manualOccupied + occupancyAfter.activeSessions;
 const totalSpots = Number(parking.totalSpots) || 0;
 let status = 'unknown';
 if (totalSpots > 0 && newOccupied > 0) {
@@ -2321,7 +2322,7 @@ const historyEntry = {
 };
 const updatedParking = {
     ...parking,
-    manualOccupiedSpots: occupancyAfter.manualOccupied,
+    manualOccupiedSpots: occupancyBefore.manualOccupied,
     occupiedSpots: newOccupied,
     status,
     lastUpdatedAt: endedAt,
