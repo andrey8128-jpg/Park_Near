@@ -204,6 +204,45 @@ if (isWebPushConfigured) {
     console.warn('Web Push не настроен: проверь VAPID-переменные окружения');
 }
 // ============================================
+// ОТПРАВКА WEB PUSH ПОЛЬЗОВАТЕЛЮ
+// ============================================
+async function sendPushToUser(userId, payload) {
+    if (!isWebPushConfigured || !userId) return;
+    try {
+        const result = await pool.query(
+            `SELECT id, data
+             FROM push_subscriptions
+             WHERE user_id = $1`,
+            [userId]
+        );
+        for (const row of result.rows) {
+            const subscription = row.data?.subscription;
+            if (!subscription?.endpoint) continue;
+            try {
+                await webpush.sendNotification(
+                    subscription,
+                    JSON.stringify(payload)
+                );
+            } catch (error) {
+                if (error.statusCode === 404 || error.statusCode === 410) {
+                    await pool.query(
+                        `DELETE FROM push_subscriptions
+                         WHERE id = $1 AND user_id = $2`,
+                        [row.id, userId]
+                    );
+                } else {
+                    console.error(
+                        'Ошибка отправки Web Push:',
+                        error.statusCode || error.message
+                    );
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка получения push-подписок:', error.message);
+    }
+}
+// ============================================
 // НАСТРОЙКИ
 // ============================================
 const ALLOWED_ORIGIN =
@@ -945,6 +984,14 @@ app.post(
                 ]
             );
             await client.query('COMMIT');
+            await sendPushToUser(moderation.user_id, {
+               title: 'Park Near',
+               body: 'Ваша парковка одобрена и опубликована',
+               tag: `moderation-approved-${moderationId}`,
+                 data: {
+               parkingId: moderation.parking_id
+             }
+           });
             return res.json({
                 success: true,
                 message: 'Заявка одобрена, парковка опубликована',
@@ -998,10 +1045,10 @@ app.post(
             client = await pool.connect();
             await client.query('BEGIN');
             const moderationResult = await client.query(
-                `SELECT id, status
-                 FROM parking_moderation
-                 WHERE id = $1
-                 FOR UPDATE`,
+                `SELECT id, status, user_id
+                  FROM parking_moderation
+                  WHERE id = $1
+                  FOR UPDATE`,
                 [moderationId]
             );
             if (moderationResult.rowCount === 0) {
@@ -1032,6 +1079,12 @@ app.post(
                 ]
             );
             await client.query('COMMIT');
+            const moderation = moderationResult.rows[0];
+            await sendPushToUser(moderation.user_id, {
+                  title: 'Park Near',
+                  body: `Ваша заявка отклонена. Причина: ${comment.slice(0, 300)}`,
+                  tag: `moderation-rejected-${moderationId}`
+       });
             return res.json({
                 success: true,
                 message: 'Заявка отклонена',
