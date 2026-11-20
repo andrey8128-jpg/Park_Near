@@ -762,6 +762,11 @@ const parkingCreateRateLimiter = createUserRateLimiter(
     5,
     60 * 60 * 1000
 );
+const pushSubscriptionRateLimiter = createUserRateLimiter(
+    'push_subscription',
+    10,
+    15 * 60 * 1000
+);
 // ============================================
 // ЗАПРЕТ ОПЕРАЦИЙ ДЛЯ ГОСТЕЙ
 // ============================================
@@ -1123,7 +1128,11 @@ app.get('/api/push/vapid-public-key', (req, res) => {
 // ============================================
 // WEB PUSH: СОХРАНЕНИЕ ПОДПИСКИ
 // ============================================
-app.post('/api/push/subscriptions', requireAuth, async (req, res) => {
+app.post(
+    '/api/push/subscriptions',
+    requireAuth,
+    pushSubscriptionRateLimiter,
+    async (req, res) => {
     try {
         if (!isWebPushConfigured) {
             return res.status(503).json({
@@ -1132,13 +1141,29 @@ app.post('/api/push/subscriptions', requireAuth, async (req, res) => {
             });
         }
         const subscription = req.body?.subscription;
-        if (
-            !subscription ||
-            typeof subscription.endpoint !== 'string' ||
-            !subscription.endpoint.startsWith('https://') ||
-            !subscription.keys?.p256dh ||
-            !subscription.keys?.auth
-        ) {
+        const p256dh = subscription?.keys?.p256dh;
+const auth = subscription?.keys?.auth;
+let endpointUrl = null;
+try {
+    endpointUrl = new URL(subscription?.endpoint);
+} catch (error) {
+    endpointUrl = null;
+}
+if (
+    !subscription ||
+    !endpointUrl ||
+    endpointUrl.protocol !== 'https:' ||
+    !endpointUrl.hostname ||
+    endpointUrl.username ||
+    endpointUrl.password ||
+    (endpointUrl.port && endpointUrl.port !== '443') ||
+    typeof p256dh !== 'string' ||
+    !/^[A-Za-z0-9_-]+$/.test(p256dh) ||
+    Buffer.from(p256dh, 'base64url').length !== 65 ||
+    typeof auth !== 'string' ||
+    !/^[A-Za-z0-9_-]+$/.test(auth) ||
+    Buffer.from(auth, 'base64url').length !== 16
+) {
             return res.status(400).json({
                 success: false,
                 error: 'Некорректная push-подписка'
