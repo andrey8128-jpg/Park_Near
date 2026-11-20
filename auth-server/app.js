@@ -2433,6 +2433,7 @@ app.post(
     requireAuth,
     requireRegisteredUser,
     parkingCreateRateLimiter,
+    async (req, res) => {
     const parking = req.body || {};
 
     if (
