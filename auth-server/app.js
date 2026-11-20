@@ -2490,7 +2490,6 @@ if (
             error: 'Количество мест должно быть от 1 до 500'
         });
     }
-
     if (
         !Number.isFinite(lat) ||
         !Number.isFinite(lng) ||
@@ -2502,19 +2501,21 @@ if (
             error: 'Некорректные координаты'
         });
     }
-
     if (
         !Array.isArray(coordinates) ||
         coordinates.length < 3 ||
         !coordinates.every(point =>
-            Array.isArray(point) &&
-            point.length >= 2 &&
-            Number.isFinite(Number(point[0])) &&
-            Number.isFinite(Number(point[1])) &&
-            Number(point[0]) >= -90 &&
-            Number(point[0]) <= 90 &&
-            Number(point[1]) >= -180 &&
-            Number(point[1]) <= 180
+           Array.isArray(point) &&
+           point.length >= 2 &&
+           typeof point[0] === 'number' &&
+           typeof point[1] === 'number' &&
+           Number.isFinite(point[0]) &&
+           Number.isFinite(point[1]) &&
+           point[0] >= -90 &&
+           point[0] <= 90 &&
+           point[1] >= -180 &&
+           point[1] <= 180
+       )
         )
     ) {
         return res.status(400).json({
@@ -2522,7 +2523,6 @@ if (
             error: 'Некорректный контур парковки'
         });
     }
-
     const cleanKeyPart = value =>
         String(value || '')
             .trim()
