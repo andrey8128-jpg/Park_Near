@@ -3289,7 +3289,22 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManag
                 error: 'Удалять парковку может только её автор'
             });
         }
-
+        const activeSessions = await client.query(
+    `SELECT id
+     FROM parking_sessions
+     WHERE data->>'parkingId' = $1
+       AND data->>'active' = 'true'
+     LIMIT 1
+     FOR UPDATE`,
+    [String(req.params.id)]
+);
+if (activeSessions.rowCount > 0) {
+    await client.query('ROLLBACK');
+    return res.status(409).json({
+        success: false,
+        error: 'Нельзя удалить парковку, пока на ней есть активные сессии'
+    });
+}
        await client.query(
         'DELETE FROM favorites WHERE parking_id = $1',
          [req.params.id]
