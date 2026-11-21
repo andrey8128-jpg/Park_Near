@@ -2298,14 +2298,18 @@ const newOccupied =
     occupancyBefore.manualOccupied + occupancyAfter.activeSessions;
 const totalSpots = Number(parking.totalSpots) || 0;
 let status = 'unknown';
-if (totalSpots > 0 && newOccupied > 0) {
-    const occupancyRatio = newOccupied / totalSpots;
-    if (occupancyRatio >= 0.9) {
-        status = 'occupied';
-    } else if (occupancyRatio >= 0.6) {
-        status = 'limited';
-    } else {
+if (totalSpots > 0) {
+    if (newOccupied === 0) {
         status = 'free';
+    } else {
+        const occupancyRatio = newOccupied / totalSpots;
+        if (occupancyRatio >= 0.9) {
+            status = 'occupied';
+        } else if (occupancyRatio >= 0.6) {
+            status = 'limited';
+        } else {
+            status = 'free';
+        }
     }
 }
 const previousHistory = Array.isArray(parking.history)
@@ -2575,7 +2579,7 @@ app.post(
                 counted: result.rowCount > 0
             });
         } catch (error) {
-            console.error('Ошибка учёта просмотра:', error);
+            console.error('Ошибка учёта просмот:', error);
 
             return res.status(500).json({
                 success: false,
@@ -3404,13 +3408,19 @@ const previousHistory = Array.isArray(parking.history)
 const occupancyRatio = total > 0 ? newOccupied / total : 0;
 const freeSpots = total - newOccupied;
 let status = 'unknown';
-    if (newOccupied > 0) {
-    if (freeSpots === 0 || occupancyRatio >= 0.9) {
-        status = 'occupied';
-    } else if (occupancyRatio >= 0.6) {
-        status = 'limited';
-    } else {
+if (total > 0) {
+    if (newOccupied === 0) {
         status = 'free';
+    } else {
+        const occupancyRatio = newOccupied / total;
+        const freeSpots = total - newOccupied;
+        if (freeSpots === 0 || occupancyRatio >= 0.9) {
+            status = 'occupied';
+        } else if (occupancyRatio >= 0.6) {
+            status = 'limited';
+        } else {
+            status = 'free';
+        }
     }
 }
 const updatedParking = {
