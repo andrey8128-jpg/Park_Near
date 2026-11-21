@@ -3278,6 +3278,22 @@ app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManag
             });
         }
         const parking = result.rows[0].data;
+        const activeSessionsResult = await client.query(
+            `SELECT COUNT(*)::int AS count
+             FROM parking_sessions
+             WHERE data->>'parkingId' = $1
+               AND data->>'active' = 'true'`,
+        [String(req.params.id)]
+    );
+if (activeSessionsResult.rows[0].count > 0) {
+    await client.query('ROLLBACK');
+
+    return res.status(409).json({
+        success: false,
+        error: 'Нельзя удалить парковку, пока на ней есть активные сессии'
+    });
+}
+
         if (
             String(parking.authorId) !== String(req.authUser.id) &&
             req.authUser.role !== 'admin'
