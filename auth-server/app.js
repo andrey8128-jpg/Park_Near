@@ -2085,7 +2085,7 @@ app.post(
             });
         }
 const parking = parkingResult.rows[0].data;
-const startedAt = new Date().toISOString();
+const startedAt = Date.now();
 const username =
     req.authUser.username ||
     req.authUser.firstName ||
@@ -2245,7 +2245,7 @@ app.delete(
             }
             const sessionRow = sessionResult.rows[0];
             const session = sessionRow.data;
-            const endedAt = new Date().toISOString();
+            const endedAt = Date.now();
             // Блокируем парковку от параллельного изменения.
             const parkingResult = await client.query(
                 `SELECT id, data
@@ -2541,7 +2541,7 @@ const toTimestampMs = (value) => {
             .filter(Boolean)
             .sort((a, b) =>
                 toTimestampMs(b.timestamp) - toTimestampMs(a.timestamp)
-            )
+    )
             .slice(0, limit)
             .map(entry => ({
                 action: entry.action || 'unknown',
