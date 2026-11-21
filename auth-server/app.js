@@ -1817,8 +1817,8 @@ const deletedParkings = await client.query(
         const foreignParkings = await client.query(
     `SELECT id, data
      FROM parkings
-     WHERE data->>'authorId' <> $1
-       AND data ? 'history'
+     WHERE data->>'authorId' IS DISTINCT FROM $1
+      AND data ? 'history'
      FOR UPDATE`,
     [userId]
 );
