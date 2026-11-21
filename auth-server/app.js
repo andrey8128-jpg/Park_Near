@@ -2444,10 +2444,15 @@ app.get(
                         h.entry,
                         CASE
                             WHEN COALESCE(h.entry->>'timestamp', '')
-                                ~ '^[0-9]+([.][0-9]+)?$'
+                            ~ '^[0-9]+([.][0-9]+)?$'
                             THEN (h.entry->>'timestamp')::numeric
+                            WHEN COALESCE(h.entry->>'timestamp', '')
+                            ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+                                THEN EXTRACT(
+                            EPOCH FROM (h.entry->>'timestamp')::timestamptz
+                            ) * 1000
                             ELSE 0
-                        END AS timestamp
+                    END AS timestamp
                     FROM parking_rows p
                     CROSS JOIN LATERAL
                         jsonb_array_elements(p.history_items) AS h(entry)
@@ -2517,17 +2522,30 @@ app.get('/api/parkings/:id/history', async (req, res) => {
         const limit = Math.min(
             100,
             Math.max(1, Number(req.query.limit) || 10)
-        );
+        );  
+const toTimestampMs = (value) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+    if (typeof value === 'string') {
+        if (/^[0-9]+(\.[0-9]+)?$/.test(value)) {
+            return Number(value);
+        }
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+};
         // Публичная история: только обезличенные сведения
         const publicHistory = entries
             .filter(Boolean)
             .sort((a, b) =>
-                Number(b.timestamp) - Number(a.timestamp)
+                toTimestampMs(b.timestamp) - toTimestampMs(a.timestamp)
             )
             .slice(0, limit)
             .map(entry => ({
                 action: entry.action || 'unknown',
-                timestamp: Number(entry.timestamp) || 0,
+                timestamp: toTimestampMs(entry.timestamp),
                 previousOccupied:
                     Number.isFinite(Number(entry.previousOccupied))
                         ? Number(entry.previousOccupied)
