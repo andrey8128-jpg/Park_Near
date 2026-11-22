@@ -930,13 +930,33 @@ function requireRole(...allowedRoles) {
         next();
     };
 }
+function requireModeratorAccount(req, res, next) {
+    const moderatorId = String(
+        process.env.PARKNEAR_MODERATOR_USER_ID || ''
+    ).trim();
+    const currentUserId = String(
+        req.authUser?.id || ''
+    ).trim();
+    const currentUserRole = req.authUser?.role;
+    if (
+        !moderatorId ||
+        currentUserId !== moderatorId ||
+        !['moderator', 'admin'].includes(currentUserRole)
+    ) {
+        return res.status(403).json({
+            success: false,
+            error: 'Недостаточно прав для выполнения операции'
+        });
+    }
+    next();
+}
  // ============================================
  // ПОЛУЧЕНИЕ ОЧЕРЕДИ РУЧНОЙ МОДЕРАЦИИ
  // ============================================
 app.get(
     '/api/moderation/queue',
     requireAuth,
-    requireRole('moderator', 'admin'),
+    requireModeratorAccount,
     async (req, res) => {
         try {
             const requestedLimit = Number.parseInt(
@@ -1017,7 +1037,7 @@ app.get(
 app.post(
     '/api/moderation/:id/approve',
     requireAuth,
-    requireRole('moderator', 'admin'),
+    requireModeratorAccount,
     moderationActionRateLimiter,
     async (req, res) => {
         let client;
@@ -1156,7 +1176,7 @@ app.post(
 app.post(
     '/api/moderation/:id/reject',
     requireAuth,
-    requireRole('moderator', 'admin'),
+    requireModeratorAccount,
     moderationActionRateLimiter,
     async (req, res) => {
         let client;
