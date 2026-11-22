@@ -228,25 +228,25 @@
     <div class="car-editor-box">
         <h3>🚗 Мой автомобиль</h3>
         <div class="form-group">
-            <label>Марка</label>
+            <label for="carBrandSelect">Марка</label>
             <select id="carBrandSelect" class="input-field" onchange="updateCarModelSelect()">
                 <option value="">Выберите марку</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Модель</label>
+            <label for="carModelSelect">Модель</label>
             <select id="carModelSelect" class="input-field">
                 <option value="">Сначала выберите марку</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Цвет</label>
+            <label for="carColorSelect">Цвет</label>
             <select id="carColorSelect" class="input-field">
                 <option value="">Выберите цвет</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Госномер</label>
+            <label for="carPlateInput">Госномер</label>
             <input type="text" id="carPlateInput" class="input-field" placeholder="А123БВ 177" maxlength="12">
         </div>
         <button type="button" class="btn-primary" onclick="saveCarData()">💾 Сохранить</button>
@@ -359,13 +359,13 @@
         <div style="background:var(--bg-secondary); border-radius:16px; padding:24px; width:90%; max-width:360px; box-shadow:0 20px 40px rgba(0,0,0,0.3);">
             <h3 style="margin-top:0; text-align:center; font-weight:600;">Выберите город</h3>
             <div class="form-group">
-                <label>Регион</label>
+                <label for="cityPickerRegion">Регион</label>
                 <select id="cityPickerRegion" class="input-field" onchange="updateCityPickerCities()">
                     <option value="">Выберите регион</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Город</label>
+                <label for="cityPickerCity">Город</label>
                 <select id="cityPickerCity" class="input-field">
                     <option value="">Выберите город</option>
                 </select>
