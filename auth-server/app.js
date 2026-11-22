@@ -1789,9 +1789,21 @@ app.get('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser
 });
 app.delete('/api/users/me/account', requireAuth, accountDeleteRateLimiter, async (req, res) => {
     const client = await pool.connect();
-    try {
+    try {     
         const userId = String(req.authUser.id);
-        await client.query('BEGIN');
+        const protectedModeratorId = String(
+    process.env.PARKNEAR_MODERATOR_USER_ID || ''
+).trim();
+if (
+    protectedModeratorId &&
+    userId === protectedModeratorId
+) {
+    return res.status(409).json({
+        success: false,
+        error: 'Нельзя удалить основной аккаунт модератора. Сначала назначьте другой аккаунт модератором.'
+    });
+}
+await client.query('BEGIN');
         const activeSession = await client.query(
             `SELECT id
              FROM parking_sessions
