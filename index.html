@@ -198,7 +198,7 @@
     <div class="car-editor-box">
         <h3>✏️ Редактировать адрес</h3>
         <div class="form-group">
-            <label>Метка</label>
+            <label for="editAddrLabel">Метка</label>
             <select id="editAddrLabel" class="input-field">
                 <option value="Дом">🏠 Дом</option>
                 <option value="Работа">💼 Работа</option>
@@ -207,15 +207,15 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Город</label>
+            <label for="editAddrCity">Город</label>
             <input type="text" id="editAddrCity" class="input-field" placeholder="Москва">
         </div>
         <div class="form-group">
-            <label>Улица</label>
+            <label for="editAddrStreet">Улица</label>
             <input type="text" id="editAddrStreet" class="input-field" placeholder="ул. Тверская">
         </div>
         <div class="form-group">
-            <label>Номер дома</label>
+            <label for="editAddrHouse">Номер дома</label>
             <input type="text" id="editAddrHouse" class="input-field" placeholder="15">
         </div>
         <input type="hidden" id="editAddrId">
@@ -279,7 +279,11 @@
         <button class="route-close" onclick="closeRoute()">✕</button>
         <div id="routeInfo"></div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; padding:0 4px;">
-            <select id="routeTypeSelect"aria-label="Тип маршрута"style="flex:1; padding:6px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:14px;">
+           <select
+                id="routeTypeSelect"
+                aria-label="Тип маршрута"
+                style="flex:1; padding:6px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:14px;"
+        >
                 <option value="driving">🚗 Автомобиль</option>
                 <option value="walking">🚶 Пешком</option>
                 <option value="transit">🚌 Общественный транспорт</option>
