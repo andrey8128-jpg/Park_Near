@@ -3,7 +3,6 @@
     margin: 0;
     padding: 0;
 }
-
 :root {
     color-scheme: light;
 
@@ -19,9 +18,9 @@
     --text-tertiary: #5B6F7B;
 
     /* Фирменный Arctic Blue */
-    --accent: #6299B3;
-    --accent-rgb: 98, 153, 179;
-    --accent-hover: #477F99;
+    --accent: #456F84;
+    --accent-rgb: 69, 111, 132;
+    --accent-hover: #35596B;
     --brand: #456F80;
     --brand-soft: #E4EEF1;
 
@@ -107,7 +106,6 @@
     --status-full: #C64F52;
     --status-unknown: #82939B;
 }
-
 body.dark-theme {
     color-scheme: dark;
 
@@ -201,9 +199,7 @@ body.dark-theme {
     --status-full: #F0787C;
     --status-unknown: #A5B4BC;
 }
-
 /* ===== ЕДИНЫЙ VIEWPORT PARK NEAR ===== */
-
 html {
     width: 100%;
     height: var(--app-height, 100dvh);
@@ -212,7 +208,6 @@ html {
     overflow: hidden;
     overscroll-behavior: none;
 }
-
 body {
     position: fixed;
     inset: 0;
@@ -239,9 +234,7 @@ body {
 
     transition: background 0.3s ease, color 0.3s ease;
 }
-
 /* ===== КАРТА НА ВЕСЬ ЭКРАН ===== */
-
 #map {
     position: fixed;
 
