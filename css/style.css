@@ -16,7 +16,7 @@
     /* Текст */
     --text-primary: #243440;
     --text-secondary: #647987;
-    --text-tertiary: #82939B;
+    --text-tertiary: #5B6F7B;
 
     /* Фирменный Arctic Blue */
     --accent: #6299B3;
@@ -2562,5 +2562,16 @@ body.dark-theme #donateBtn {
     .parking-status-badge {
         max-width: 125px;
         font-size: 10px;
+    }
+}
+/* Доступность: системная настройка уменьшения анимации */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }
