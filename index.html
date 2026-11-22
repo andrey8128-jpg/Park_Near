@@ -2,7 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ParkNear</title>
+    <title>ParkNear — поиск и управление парковками</title>
+<meta
+    name="description"
+    content="ParkNear — приложение для поиска и управления парковками."
+/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
    
 <script>
@@ -275,7 +279,7 @@
         <button class="route-close" onclick="closeRoute()">✕</button>
         <div id="routeInfo"></div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; padding:0 4px;">
-            <select id="routeTypeSelect" style="flex:1; padding:6px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:14px;">
+            <select id="routeTypeSelect"aria-label="Тип маршрута"style="flex:1; padding:6px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:14px;">
                 <option value="driving">🚗 Автомобиль</option>
                 <option value="walking">🚶 Пешком</option>
                 <option value="transit">🚌 Общественный транспорт</option>
