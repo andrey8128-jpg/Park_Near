@@ -350,7 +350,12 @@
     <div id="settingsOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg-primary); z-index:4500; flex-direction:column;">
         <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:0.5px solid var(--border-color); background:var(--bg-secondary);">
             <div style="font-size:17px; font-weight:600;">⚙️ Настройки</div>
-            <button onclick="closeSettings()" style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;">✕</button>
+            <button
+    type="button"
+    aria-label="Закрыть настройки"
+    onclick="closeSettings()"
+    style="background:none; border:none; font-size:24px; color:var(--accent); cursor:pointer;"
+>✕</button>
         </div>
         <div style="flex:1; overflow-y:auto; padding:20px;" id="settingsContent"></div>
     </div>
