@@ -29,8 +29,8 @@ function renderProfile(content) {
 const canModerate =
     !isGuest &&
     !window.isOfflineSession &&
+    String(currentUser.id) === 'ya_607486351' &&
     ['moderator', 'admin'].includes(currentUser.role);
- 
 const loadProfileData = async () => {
     if (isGuest) {
         return { profileData: {}, favorites: [] };
