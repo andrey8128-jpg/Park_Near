@@ -439,7 +439,8 @@
     position: absolute;
     inset: 0;
     background: var(--overlay-bg);
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
 }
 .center-sheet-box {
     position: relative;
@@ -1110,16 +1111,40 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .16);
 }
-
+/* Кнопка закрытия карточки парковки */
 .parking-card-compact .parking-card-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     color: var(--text-secondary);
     background: var(--bg-secondary);
-    border-color: var(--border-color);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 1;
+    visibility: visible;
+    z-index: 30;
+    pointer-events: auto;
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease;
 }
-
+/* Нажатие */
 .parking-card-compact .parking-card-close:active {
     background: var(--brand-soft);
+    transform: scale(0.92);
 }
+/* Остальные кнопки карточки */
 .parking-card-compact .parking-card-button,
 .parking-card-compact .primary-button {
     background: var(--btn-primary-bg);
