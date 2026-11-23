@@ -649,10 +649,10 @@ function addMarkerToMap(id, data) {
              polygon: polygon,
              iconContent: markerContent
         },
-        {
-            preset: 'islands#blueIcon',
-            iconColor: color
-        }
+          {
+             preset: 'islands#blueCircleIcon',
+             iconColor: color
+         }
     );
     // Обработка нажатия на маркер.
     placemark.events.add('click', function() {
