@@ -276,7 +276,12 @@
     </div>
     <!-- Route Card -->
     <div class="route-card" id="routeCard">
-        <button class="route-close" onclick="closeRoute()">✕</button>
+      <button
+    type="button"
+    class="route-close"
+    aria-label="Закрыть маршрут"
+    onclick="closeRoute()"
+>✕</button>
         <div id="routeInfo"></div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center; padding:0 4px;">
            <select
@@ -410,6 +415,7 @@
         <button
             type="button"
             onclick="closeAuthScreen()"
+            aria-label="Закрыть авторизацию"
             style="
                 position: absolute;
                 top: 12px;
@@ -482,7 +488,7 @@
             <div id="onboardingSlide" style="min-height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center;"></div>
             <div style="display:flex; justify-content:center; gap:8px; margin-top:16px;" id="onboardingDots"></div>
             <div style="display:flex; gap:8px; margin-top:16px; align-items:center; justify-content:space-between;">
-                <button id="onboardingPrev" style="background:none; border:none; color:var(--accent); font-size:18px; cursor:pointer; padding:8px 12px; visibility:hidden;">←</button>
+                <button id="onboardingPrev" aria-label="Предыдущий шаг обучения" style="background:none; border:none; color:var(--accent); font-size:18px; cursor:pointer; padding:8px 12px; visibility:hidden;">←</button>
                 <button class="btn-primary" id="onboardingNext" style="flex:1; margin:0; padding:12px;">Далее →</button>
                 <button id="onboardingSkip" aria-label="Пропустить обучение" style="background:none; border:none; color:var(--text-secondary); font-size:18px; cursor:pointer; padding:8px 12px;">✕</button>
             </div>
