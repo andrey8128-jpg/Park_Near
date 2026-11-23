@@ -432,7 +432,12 @@ body.dark-theme .layer-switcher {
 #addBtn {
     width: 58px; /* ширина кнопки */
     height: 58px; /* высота кнопки */
-    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab)); /* положение над нижним меню */
+    bottom: calc(
+    var(--tab-bar-height) +
+    var(--tab-bar-bottom) +
+    var(--button-offset-from-tab) +
+    env(safe-area-inset-bottom, 0px)
+);
     border-radius: 18px; /* квадратная форма со скруглёнными углами */
     background: var(--btn-primary-bg); /* основной акцентный цвет */
     color: #FFFFFF; /* цвет плюса */
@@ -448,7 +453,13 @@ body.dark-theme .layer-switcher {
 #geoBtn {
     width: 46px; /* ширина кнопки */
     height: 46px; /* высота кнопки */
-    bottom: calc(var(--tab-bar-height) + var(--tab-bar-bottom) + var(--button-offset-from-tab) + var(--button-gap)); /* положение выше кнопки добавления */
+    bottom: calc(
+    var(--tab-bar-height) +
+    var(--tab-bar-bottom) +
+    var(--button-offset-from-tab) +
+    var(--button-gap) +
+    env(safe-area-inset-bottom, 0px)
+);
     border-radius: 50%; /* круглая кнопка */
     background: rgba(255,255,255,0.88); /* полупрозрачный светлый фон */
     color: var(--text-primary); /* цвет иконки */
@@ -2368,13 +2379,15 @@ body.dark-theme .pn-profile-stats>div{box-shadow:0 4px 18px rgba(0,0,0,.12)}
 #donateBtn {
     position: fixed;
     right: 20px;
+
     /* Расположение над кнопкой геолокации */
     bottom: calc(
         var(--tab-bar-height) +
         var(--tab-bar-bottom) +
         var(--button-offset-from-tab) +
         var(--button-gap) +
-        58px
+        58px +
+        env(safe-area-inset-bottom, 0px)
     );
     width: 46px;
     height: 46px;
@@ -2410,7 +2423,6 @@ body.dark-theme #donateBtn {
     background: var(--btn-primary-bg);
     color: var(--btn-primary-text);
 }
-
 /* ==========================================
    ГРУППЫ ПАРКОВОК НА ГЛАВНОЙ
    ========================================== */
