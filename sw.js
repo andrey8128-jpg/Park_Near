@@ -1,4 +1,4 @@
-const CACHE_NAME = 'parknear-shell-v36';
+const CACHE_NAME = 'parknear-shell-v37';
 const BASE_PATH = new URL('.', self.location.href).pathname;
 const DEFAULT_ICON = `${BASE_PATH}assets/images/logo.png`;
 
