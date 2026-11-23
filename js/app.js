@@ -256,6 +256,65 @@ window.getParkingOccupancyStatus = function(parking) {
         ageMinutes
     };
 };
+
+window.getParkingLastUpdateText = function(timestamp) {
+    if (
+        timestamp === null ||
+        timestamp === undefined ||
+        timestamp === '' ||
+        !Number.isFinite(Number(timestamp))
+    ) {
+        return 'время обновления неизвестно';
+    }
+
+    function plural(number, one, two, five) {
+        const n = Math.abs(number) % 100;
+        const last = n % 10;
+
+        if (n >= 11 && n <= 19) return five;
+        if (last === 1) return one;
+        if (last >= 2 && last <= 4) return two;
+        return five;
+    }
+
+    let updatedAt = Number(timestamp);
+
+    if (updatedAt > 0 && updatedAt < 1e12) {
+        updatedAt *= 1000;
+    }
+
+    if (!Number.isFinite(updatedAt) || updatedAt <= 0) {
+        return 'время обновления неизвестно';
+    }
+
+    const diffMinutes = Math.max(
+        0,
+        Math.floor((Date.now() - updatedAt) / 60000)
+    );
+
+    if (diffMinutes < 1) {
+        return 'только что';
+    }
+
+    if (diffMinutes < 60) {
+        return `было ${diffMinutes} ${plural(
+            diffMinutes, 'минуту', 'минуты', 'минут'
+        )} назад`;
+    }
+
+    const hours = Math.floor(diffMinutes / 60);
+
+    if (hours < 24) {
+        return `было ${hours} ${plural(
+            hours, 'час', 'часа', 'часов'
+        )} назад`;
+    }
+    const days = Math.floor(diffMinutes / 1440);
+
+    return `было ${days} ${plural(
+        days, 'день', 'дня', 'дней'
+    )} назад`;
+};
 function getOccupancyDotColor(free, total) {
     const freeCount = Number(free) || 0;
     const totalCount = Number(total) || 0;
@@ -1412,13 +1471,19 @@ let statusIcon = '❔';
 
 if (hasOccupancy) {
     const occupancy = occupiedSpots / totalSpots;
-
-    if (freeSpots === 0 || occupancy >= 0.9) {
-        status = 'occupied';
-        statusTitle = 'Занято';
-        statusDescription =
-            `Свободных мест нет · ${lastUpdateText}`;
-        statusIcon = '✕';
+if (freeSpots === 0) {
+    status = 'occupied';
+    statusTitle = 'Занято';
+    statusDescription =
+        `Свободных мест нет · ${lastUpdateText}`;
+    statusIcon = '✕';
+} else if (occupancy >= 0.9) {
+    status = 'occupied';
+    statusTitle = 'Почти заполнена';
+    statusDescription =
+        `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`;
+    statusIcon = '⚠';
+}
     } else if (occupancy >= 0.6) {
         status = 'limited';
         statusTitle = 'Частично занято';
@@ -2143,8 +2208,11 @@ let currentStatus = 'Неизвестно';
 if (hasOccupancy) {
     const occupancy = occupiedSpots / totalSpots;
 
-    if (freeSpots === 0 || occupancy >= 0.9) {
-        currentStatus = 'Занято';
+    if (freeSpots === 0) {
+    currentStatus = 'Занято';
+} else if (occupancy >= 0.9) {
+    currentStatus = 'Почти заполнена';
+}
     } else if (occupancy >= 0.6) {
         currentStatus = 'Частично занято';
     } else {
