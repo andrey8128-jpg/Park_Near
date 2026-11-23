@@ -1531,6 +1531,15 @@ window.openCenterSheet = async function(parkingId, data) {
     // ===================== HTML КАРТОЧКИ =====================
     content.innerHTML = `
         <div class="parking-card-compact pn-card">
+
+            <button
+                type="button"
+                class="parking-card-close"
+                aria-label="Закрыть карточку парковки"
+                title="Закрыть карточку"
+                onclick="closeCenterSheet()"
+            >×</button>
+
             <div class="parking-card-handle"></div>
 
             <!-- Название, избранное и редактирование -->
