@@ -3592,16 +3592,3 @@ app.listen(PORT, '0.0.0.0', () => {
     }
 }
 startServer();
-async function startServer() {
-    try {
-        await initializeDatabase();
-        await cleanupExpiredRateLimits();
-        // Запуск сервера
-    } catch (error) {
-        console.error(
-            'Сервер не запущен: PostgreSQL недоступен:',
-            error.message
-        );
-        process.exit(1);
-    }
-}
