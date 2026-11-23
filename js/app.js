@@ -1469,21 +1469,22 @@ let statusTitle = 'Неизвестно';
 let statusDescription = 'Состояние ещё не определено';
 let statusIcon = '❔';
 
+
 if (hasOccupancy) {
     const occupancy = occupiedSpots / totalSpots;
-if (freeSpots === 0) {
-    status = 'occupied';
-    statusTitle = 'Занято';
-    statusDescription =
-        `Свободных мест нет · ${lastUpdateText}`;
-    statusIcon = '✕';
-} else if (occupancy >= 0.9) {
-    status = 'occupied';
-    statusTitle = 'Почти заполнена';
-    statusDescription =
-        `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`;
-    statusIcon = '⚠';
-}
+
+    if (freeSpots === 0) {
+        status = 'occupied';
+        statusTitle = 'Занято';
+        statusDescription =
+            `Свободных мест нет · ${lastUpdateText}`;
+        statusIcon = '✕';
+    } else if (occupancy >= 0.9) {
+        status = 'occupied';
+        statusTitle = 'Почти заполнена';
+        statusDescription =
+            `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`;
+        statusIcon = '⚠';
     } else if (occupancy >= 0.6) {
         status = 'limited';
         statusTitle = 'Частично занято';
@@ -2205,14 +2206,15 @@ const lastUpdateText =
 
 let currentStatus = 'Неизвестно';
 
+let currentStatus = 'Неизвестно';
+
 if (hasOccupancy) {
     const occupancy = occupiedSpots / totalSpots;
 
     if (freeSpots === 0) {
-    currentStatus = 'Занято';
-} else if (occupancy >= 0.9) {
-    currentStatus = 'Почти заполнена';
-}
+        currentStatus = 'Занято';
+    } else if (occupancy >= 0.9) {
+        currentStatus = 'Почти заполнена';
     } else if (occupancy >= 0.6) {
         currentStatus = 'Частично занято';
     } else {
