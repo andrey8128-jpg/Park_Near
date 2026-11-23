@@ -4802,21 +4802,18 @@ function closeAuthScreen() {
             console.warn('Окно доната: не найдены необходимые элементы');
             return;
         }
-
         function openDonatePopup() {
             popup.hidden = false;
             donateBtn.setAttribute('aria-expanded', 'true');
+            closeBtn.focus();
         }
-
         function closeDonatePopup() {
             popup.hidden = true;
             donateBtn.setAttribute('aria-expanded', 'false');
         }
-
         donateBtn.addEventListener('click', function(event) {
             event.preventDefault();
             event.stopPropagation();
-
             if (popup.hidden) {
                 openDonatePopup();
             } else {
@@ -4824,19 +4821,25 @@ function closeAuthScreen() {
             }
         });
         closeBtn.addEventListener('click', function(event) {
+            event.preventDefault();
             event.stopPropagation();
             closeDonatePopup();
+            donateBtn.focus();
         });
-        // Закрытие при нажатии за пределами окна
-        document.addEventListener('click', function(event) {
-            if (
-                !popup.hidden &&
-                !popup.contains(event.target) &&
-                !donateBtn.contains(event.target)
-            ) {
+        // Закрытие при нажатии на затемнённую область
+        popup.addEventListener('click', function(event) {
+            if (event.target === popup) {
                 closeDonatePopup();
+                donateBtn.focus();
             }
         });
+        // Клики внутри карточки не закрывают окно
+        const popupCard = popup.querySelector('.donate-popup-card');
+        if (popupCard) {
+            popupCard.addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+        }
         // Закрытие клавишей Escape
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape' && !popup.hidden) {
@@ -4846,10 +4849,7 @@ function closeAuthScreen() {
         });
     }
     if (document.readyState === 'loading') {
-        document.addEventListener(
-            'DOMContentLoaded',
-            setupDonatePopup
-        );
+        document.addEventListener('DOMContentLoaded', setupDonatePopup);
     } else {
         setupDonatePopup();
     }
