@@ -2206,8 +2206,6 @@ const lastUpdateText =
 
 let currentStatus = 'Неизвестно';
 
-let currentStatus = 'Неизвестно';
-
 if (hasOccupancy) {
     const occupancy = occupiedSpots / totalSpots;
 
