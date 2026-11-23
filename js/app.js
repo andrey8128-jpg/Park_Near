@@ -199,6 +199,7 @@ window.getParkingOccupancyStatus = function(parking) {
         0,
         Math.floor(Number(parking?.totalSpots) || 0)
     );
+
     const occupied = Math.max(
         0,
         Math.min(
@@ -206,18 +207,14 @@ window.getParkingOccupancyStatus = function(parking) {
             Math.floor(Number(parking?.occupiedSpots) || 0)
         )
     );
-       const free = Math.max(0, total - occupied);
-    if (total <= 0 || occupied <= 0) {
-        return {
-            status: 'unknown',
-            totalSpots: total,
-            occupiedSpots: occupied,
-            freeSpots: free
-        };
-    }
+
+    const free = Math.max(0, total - occupied);
+
     const rawUpdatedAt =
-        parking.lastUpdatedAt ?? parking.timestamp ?? null;
-      let updatedAt = 0;
+        parking?.lastUpdatedAt ?? parking?.timestamp ?? null;
+
+    let updatedAt = 0;
+
     if (typeof rawUpdatedAt === 'number') {
         updatedAt = rawUpdatedAt;
     } else if (typeof rawUpdatedAt === 'string') {
@@ -226,22 +223,28 @@ window.getParkingOccupancyStatus = function(parking) {
             ? numericDate
             : Date.parse(rawUpdatedAt);
     }
+
     if (updatedAt > 0 && updatedAt < 1e12) {
         updatedAt *= 1000;
     }
-    const ageMinutes = updatedAt > 0
-        ? Math.max(0, (Date.now() - updatedAt) / 60000)
-        : null;
-    if (ageMinutes === null || ageMinutes > 30) {
+
+    const ageMinutes =
+        Number.isFinite(updatedAt) && updatedAt > 0
+            ? Math.max(0, Math.floor((Date.now() - updatedAt) / 60000))
+            : null;
+
+    if (total <= 0) {
         return {
-            status: 'stale',
+            status: 'unknown',
             totalSpots: total,
             occupiedSpots: occupied,
-            freeSpots: free
+            freeSpots: free,
+            updatedAt: updatedAt || null,
+            ageMinutes
         };
     }
     const ratio = occupied / total;
-      let status = 'free';
+    let status = 'free';
     if (free === 0 || ratio >= 0.9) {
         status = 'occupied';
     } else if (ratio >= 0.6) {
@@ -251,7 +254,9 @@ window.getParkingOccupancyStatus = function(parking) {
         status,
         totalSpots: total,
         occupiedSpots: occupied,
-        freeSpots: free
+        freeSpots: free,
+        updatedAt: updatedAt || null,
+        ageMinutes
     };
 };
 function getOccupancyDotColor(free, total) {
@@ -275,14 +280,15 @@ function renderParkingItem(parking, userCoords) {
 const occupancy = window.getParkingOccupancyStatus(parking);
 const status = occupancy.status;
 const statusLabels = {
-    free: 'Есть места',
-    limited: 'Мало мест',
-    occupied: 'Мест нет',
-    unknown: 'Нет актуальных данных',
-    stale: 'Нет актуальных данных'
+    free: 'Свободно',
+    limited: 'Частично занято',
+    occupied: 'Занято',
+    unknown: 'Нет данных'
 };
 const badgeClass = status;
-const badgeText = statusLabels[status] || 'Нет актуальных данных';
+const badgeText = status === 'unknown'
+    ? 'Нет данных'
+    : `${statusLabels[status]} · ${window.getParkingLastUpdateText(occupancy.updatedAt)}`;
     let distanceHtml = '';
     const lat = Number(parking.lat);
     const lng = Number(parking.lng);
@@ -1397,40 +1403,39 @@ window.openCenterSheet = async function(parkingId, data) {
         Number.isFinite(updatedAt) && updatedAt > 0
             ? Math.max(0, Math.floor((now - updatedAt) / 60000))
             : null;
-    const hasFreshOccupancy =
-        totalSpots > 0 &&
-        ageMinutes !== null &&
-        ageMinutes <= 30;
+    
+const hasOccupancy = totalSpots > 0;
+const lastUpdateText =
+    window.getParkingLastUpdateText(updatedAt);
 
-    let status = 'unknown';
-    let statusTitle = 'Неизвестно';
-    let statusDescription = 'Состояние ещё не определено';
-    let statusIcon = '❔';
+let status = 'unknown';
+let statusTitle = 'Неизвестно';
+let statusDescription = 'Состояние ещё не определено';
+let statusIcon = '❔';
 
-    if (hasFreshOccupancy) {
-     const occupancy = occupiedSpots / totalSpots;
-        if (freeSpots === 0 || occupancy >= 0.9) {
-            status = 'occupied';
-            statusTitle = 'Занято';
-            statusDescription = 'Свободных мест нет';
-            statusIcon = '✕';
-        } else if (occupancy >= 0.6) {
-            status = 'limited';
-            statusTitle = 'Частично занято';
-            statusDescription = 'Есть свободные и занятые места';
-            statusIcon = '🚘';
-        } else {
-            status = 'free';
-            statusTitle = 'Свободно';
-            statusDescription = 'Есть свободные места';
-            statusIcon = '✓';
-        }
-    } else if (totalSpots > 0 && ageMinutes !== null) {
-        status = 'stale';
-        statusTitle = 'Нет актуальных данных';
-        statusDescription = 'Информация устарела';
-        statusIcon = '◷';
+if (hasOccupancy) {
+    const occupancy = occupiedSpots / totalSpots;
+
+    if (freeSpots === 0 || occupancy >= 0.9) {
+        status = 'occupied';
+        statusTitle = 'Занято';
+        statusDescription =
+            `Свободных мест нет · ${lastUpdateText}`;
+        statusIcon = '✕';
+    } else if (occupancy >= 0.6) {
+        status = 'limited';
+        statusTitle = 'Частично занято';
+        statusDescription =
+            `Есть свободные и занятые места · ${lastUpdateText}`;
+        statusIcon = '🚘';
+    } else {
+        status = 'free';
+        statusTitle = 'Свободно';
+        statusDescription =
+            `Есть свободные места · ${lastUpdateText}`;
+        statusIcon = '✓';
     }
+}
     // ===================== АДРЕС И НАЗВАНИЕ =====================
     const address = escapeHtml(
         data.address ||
@@ -1519,7 +1524,7 @@ window.openCenterSheet = async function(parkingId, data) {
     // ===================== КОЛИЧЕСТВО СВОБОДНЫХ МЕСТ =====================
     const placesHtml = `
         <div class="pn-card-stat pn-card-stat-primary">
-            <strong>${hasFreshOccupancy ? freeSpots : '—'}</strong>
+            <strong>${hasOccupancy ? freeSpots : '—'}</strong>
             <span>Свободно</span>
         </div>
 
@@ -2132,12 +2137,13 @@ const ageMinutes =
     Number.isFinite(lastUpdatedAt) && lastUpdatedAt > 0
         ? Math.max(0, (Date.now() - lastUpdatedAt) / 60000)
         : null;
-const hasFreshOccupancy =
-    totalSpots > 0 &&
-    ageMinutes !== null &&
-    ageMinutes <= 30;
-    let currentStatus = 'Нет актуальных данных';
-if (hasFreshOccupancy) {
+const hasOccupancy = totalSpots > 0;
+const lastUpdateText =
+    window.getParkingLastUpdateText(lastUpdatedAt);
+
+let currentStatus = 'Неизвестно';
+
+if (hasOccupancy) {
     const occupancy = occupiedSpots / totalSpots;
 
     if (freeSpots === 0 || occupancy >= 0.9) {
@@ -2147,8 +2153,6 @@ if (hasFreshOccupancy) {
     } else {
         currentStatus = 'Свободно';
     }
-} else if (totalSpots <= 0) {
-    currentStatus = 'Неизвестно';
 }
     const isAuthor = !!currentUser && currentUser.id != null && data.authorId != null && String(currentUser.id) === String(data.authorId);
     const safeVal = value => String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -2174,11 +2178,11 @@ if (hasFreshOccupancy) {
                 <div class="pn-manage-summary-item">
         <span>Статус</span>
         <strong>${safeVal(currentStatus)}</strong>
-        <small>
-           ${hasFreshOccupancy
-            ? `Свободно ${freeSpots} из ${totalSpots} мест`
-            : 'Информация устарела или отсутствует'}
-    </small>
+       <small>
+    ${hasOccupancy
+        ? `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`
+        : 'Вместимость парковки не указана'}
+</small>
 </div>
             </div>
             <div class="pn-manage-section">
