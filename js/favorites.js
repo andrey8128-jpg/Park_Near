@@ -275,9 +275,11 @@ const status = statusLabels[occupancy.status]
     || 'Нет актуальных данных';
 const cls = statusClasses[occupancy.status]
     || 'status-unknown';
-const showFreeCount =
-    occupancy.status !== 'unknown' &&
-    occupancy.status !== 'stale';
+const showFreeCount = occupancy.status !== 'unknown';
+
+const lastUpdateText = window.getParkingLastUpdateText
+    ? window.getParkingLastUpdateText(occupancy.updatedAt)
+    : 'время обновления неизвестно';
                      return `<div class="favorite-parking-item" data-parking-id="${escapeHtml(id)}">
                     <div class="favorite-parking-info"
                          onclick="openFavoriteParking('${escapeHtml(id)}')">
@@ -289,7 +291,7 @@ const showFreeCount =
                         </div>
                         <div class="favorite-parking-status ${cls}">
                             <span class="favorite-status-dot"></span>
-                            <span>${status}</span>
+                            <span>${status} · ${lastUpdateText}</span>
                             ${showFreeCount
                                ? `<span class="favorite-free-count">${free} свободно</span>`
                                : ''}
