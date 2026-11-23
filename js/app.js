@@ -207,12 +207,9 @@ window.getParkingOccupancyStatus = function(parking) {
             Math.floor(Number(parking?.occupiedSpots) || 0)
         )
     );
-
     const free = Math.max(0, total - occupied);
-
     const rawUpdatedAt =
         parking?.lastUpdatedAt ?? parking?.timestamp ?? null;
-
     let updatedAt = 0;
 
     if (typeof rawUpdatedAt === 'number') {
