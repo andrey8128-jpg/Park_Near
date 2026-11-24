@@ -2936,37 +2936,45 @@ function setAddressPickerCoords(coords) {
                 saveBtn.disabled = false;
             });
     }
-
-  async function selectLabel(label) {
+    async function selectLabel(label) {
     if (!pendingAddressData || !currentUser) return;
+
     const data = pendingAddressData;
+
     try {
         const addresses = await getHomeAddresses();
+
         if (Object.keys(addresses).length >= 3) {
             alert('Максимум 3 адреса');
             cancelLabelPicker();
             return;
         }
+
         const addressId = (
             typeof crypto !== 'undefined' &&
             typeof crypto.randomUUID === 'function'
         )
             ? crypto.randomUUID()
             : `address_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
         addresses[addressId] = {
+            name: label,
+            label: label,
             address: data.address,
-            lat: data.lat ?? null,
-            lng: data.lng ?? null,
-            label,
+            lat: Number(data.lat),
+            lng: Number(data.lng),
             city: data.city || '',
             street: data.street || '',
             houseNumber: data.houseNumber || '',
             timestamp: Date.now()
         };
+
         await saveHomeAddresses(addresses);
+
         cancelLabelPicker();
         alert('Адрес сохранён!');
         showPanel('favorites');
+
     } catch (error) {
         console.error('Ошибка сохранения адреса:', error);
         alert('Ошибка сохранения: ' + error.message);
@@ -4678,37 +4686,61 @@ function filterHomeParkings() {
     }
     renderGroupedParkingList(container, filtered, userLocationForSearch);
 }
-async function goHome() {
+  async function goHome() {
     if (!currentUser) {
         alert('Войдите, чтобы использовать домашний адрес');
         return;
     }
+
     try {
         const profile = await requestUserProfile('GET');
         const addresses = profile.homeAddresses || {};
+
         const addressList = Array.isArray(addresses)
             ? addresses
             : Object.values(addresses);
-        const home = addressList.find(address => address.label === 'Дом');
+
+        const home = addressList.find(address =>
+            String(address?.label || address?.name || '')
+                .trim()
+                .toLowerCase() === 'дом'
+        );
+
         if (!home) {
-            alert('Домашний адрес не найден. Добавьте его в избранном.');
+            alert('Домашний адрес не найден. Откройте «Избранное» → «Мои адреса» и добавьте адрес с меткой «Дом».');
             return;
         }
+
         if (home.lat == null || home.lng == null) {
-            alert('У домашнего адреса нет координат. Добавьте адрес через карту.');
+            alert('У домашнего адреса нет координат. Откройте «Мои адреса» и выберите адрес на карте.');
             return;
         }
+
         const coords = {
             lat: Number(home.lat),
             lng: Number(home.lng)
         };
-        if (!Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) {
+
+        if (
+            !Number.isFinite(coords.lat) ||
+            !Number.isFinite(coords.lng) ||
+            coords.lat < -90 ||
+            coords.lat > 90 ||
+            coords.lng < -180 ||
+            coords.lng > 180
+        ) {
             alert('Координаты домашнего адреса некорректны.');
             return;
         }
+
         if (map) {
-            map.setCenter([coords.lat, coords.lng], 16, { duration: 500 });
+            map.setCenter(
+                [coords.lat, coords.lng],
+                16,
+                { duration: 500 }
+            );
         }
+
         userLocationForSearch = coords;
         const container = document.getElementById('homeParkingList');
         if (container) {
