@@ -205,33 +205,32 @@ map.events.add('zoomchange', function() {
                 clusterDisableClickZoom: false,
                 clusterOpenBalloonOnClick: false,
             
-            clusterIconLayout:
-             ymaps.templateLayoutFactory.createClass(
+            
+clusterIconLayout:
+    ymaps.templateLayoutFactory.createClass(
         '<div style="' +
-            'position:relative;' +
-            'width:68px;' +
-            'height:68px;' +
+            'width:$[properties.clusterSize]px;' +
+            'height:$[properties.clusterSize]px;' +
             'box-sizing:border-box;' +
             'border-radius:50%;' +
-            'background-color:$[properties.clusterColor];' +
-            'border:3px solid #ffffff;' +
+            'background:linear-gradient(145deg,$[properties.clusterColor],$[properties.clusterColorDark]);' +
+            'border:2px solid rgba(255,255,255,0.85);' +
             'display:flex;' +
-            'flex-direction:column;' +
             'align-items:center;' +
             'justify-content:center;' +
-            'box-shadow:0 3px 10px rgba(0,0,0,0.35);' +
+            'flex-direction:column;' +
             'color:#ffffff;' +
-            'font-weight:700;' +
+            'font-family:Arial,sans-serif;' +
+            'font-weight:800;' +
+            'box-shadow:0 4px 14px $[properties.clusterGlow],inset 0 1px 2px rgba(255,255,255,0.3);' +
             'text-align:center;' +
+            'transform:translateZ(0);' +
         '">' +
-            '<div style="font-size:19px;line-height:22px;">' +
+            '<div style="font-size:21px;line-height:24px;">' +
                 '$[properties.parkingCount]' +
             '</div>' +
-            '<div style="font-size:10px;line-height:13px;">' +
-                'Свободно: $[properties.freeSpots]' +
-            '</div>' +
-            '<div style="font-size:9px;line-height:12px;opacity:0.9;">' +
-                'Без данных: $[properties.unknownParkingCount]' +
+            '<div style="font-size:9px;line-height:12px;font-weight:600;opacity:0.9;">' +
+                'ПАРКОВОК' +
             '</div>' +
         '</div>'
     ),
@@ -313,19 +312,49 @@ clusterer.events.add('clusterize', function(e) {
             'unknownParkingCount',
             unknownParkingCount
         );
-        let clusterColor = '#808080';
-        if (validParkingCount > 0 && totalSpots > 0) {
-            const occupiedPercent =
-                (totalSpots - freeSpots) / totalSpots * 100;
-            if (occupiedPercent >= 90) {
-                clusterColor = '#E53935';
-            } else if (occupiedPercent >= 60) {
-                clusterColor = '#F59E0B';
-            } else {
-                clusterColor = '#22A447';
-            }
-        }
-        cluster.properties.set('clusterColor', clusterColor);
+        
+// Цвет и размер зависят от количества парковок.
+const parkingCount = geoObjects.length;
+
+let clusterColor;
+let clusterColorDark;
+let clusterGlow;
+let clusterSize;
+
+if (parkingCount < 10) {
+    // Маленький кластер
+    clusterColor = '#20C982';
+    clusterColorDark = '#087F59';
+    clusterGlow = 'rgba(32,201,130,0.35)';
+    clusterSize = 46;
+
+} else if (parkingCount < 30) {
+    // Средний кластер
+    clusterColor = '#F5CE45';
+    clusterColorDark = '#C18B16';
+    clusterGlow = 'rgba(245,206,69,0.35)';
+    clusterSize = 52;
+
+} else if (parkingCount < 50) {
+    // Большой кластер
+    clusterColor = '#FF923D';
+    clusterColorDark = '#DB541F';
+    clusterGlow = 'rgba(255,146,61,0.4)';
+    clusterSize = 60;
+
+} else {
+    // Очень большой кластер
+    clusterColor = '#A879FF';
+    clusterColorDark = '#6941C6';
+    clusterGlow = 'rgba(168,121,255,0.45)';
+    clusterSize = 70;
+}
+
+cluster.properties.set('parkingCount', parkingCount);
+cluster.properties.set('clusterColor', clusterColor);
+cluster.properties.set('clusterColorDark', clusterColorDark);
+cluster.properties.set('clusterGlow', clusterGlow);
+cluster.properties.set('clusterSize', clusterSize);
     });
 });
             // Добавляем кластеризатор на карту
