@@ -3606,46 +3606,82 @@ if (filterRegion) {
     }
     var html = '';
     if (parkings.length === 0) {
-        html = '<div class="empty-state"><p>Ничего не найдено' + (filterCity ? ' в ' + filterCity : '') + '</p>' +
-               (filterCity ? '<p style="font-size:13px; margin-top:8px;">Попробуйте изменить город в настройках</p>' : '') +
-               '</div>';
+        html = '<div class="empty-state"><p>Ничего не найдено' +
+            (filterCity ? ' в ' + escapeHtml(filterCity) : '') +
+            '</p>' +
+            (filterCity
+                ? '<p style="font-size:13px; margin-top:8px;">Попробуйте изменить город в настройках</p>'
+                : '') +
+            '</div>';
     } else {
         var grouped = {};
         parkings.forEach(function(p) {
-            var key = (p.street || p.name || 'Без названия').trim();
+            var key = String(p.street || p.name || 'Без названия').trim();
             if (!grouped[key]) grouped[key] = [];
             grouped[key].push(p);
         });
         html = '<div class="list-container">';
         for (var street in grouped) {
-            if (grouped.hasOwnProperty(street)) {
+            if (Object.prototype.hasOwnProperty.call(grouped, street)) {
                 var items = grouped[street];
                 html += '<div class="group-header" onclick="toggleGroup(this)">' +
-                        '<span class="group-icon">▼</span>' +
-                        '<span>' + street + ' (' + items.length + ')</span>' +
-                        '</div>';
+                    '<span class="group-icon">▼</span>' +
+                    '<span>' + escapeHtml(street) + ' (' + items.length + ')</span>' +
+                    '</div>';
                 html += '<div class="group-items">';
                 items.forEach(function(p) {
-                    var free = p.totalSpots - (p.occupiedSpots || 0);
-                    var isAuthor = currentUser && currentUser.id === p.authorId;
+                    var free = Number(p.totalSpots) -
+                        (Number(p.occupiedSpots) || 0);
+                    var isAuthor = currentUser &&
+                        String(currentUser.id) === String(p.authorId);
                     var subtitle = '';
-                    if (userLocationForSearch && p.lat && p.lng) {
-                        var dist = getDistanceInMeters(userLocationForSearch.lat, userLocationForSearch.lng, p.lat, p.lng);
-                        subtitle = (dist < 1000) ? Math.round(dist) + ' м от вас' : (dist/1000).toFixed(1) + ' км от вас';
+                    if (
+                        userLocationForSearch &&
+                        Number.isFinite(Number(p.lat)) &&
+                        Number.isFinite(Number(p.lng))
+                    ) {
+                        var dist = getDistanceInMeters(
+                            userLocationForSearch.lat,
+                            userLocationForSearch.lng,
+                            Number(p.lat),
+                            Number(p.lng)
+                        );
+                        subtitle = dist < 1000
+                            ? Math.round(dist) + ' м от вас'
+                            : (dist / 1000).toFixed(1) + ' км от вас';
                     } else {
-                        subtitle = p.address || (p.lat ? p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) : '');
+                        subtitle = p.address ||
+                            (p.lat ? p.lat + ', ' + p.lng : '');
                     }
-                    subtitle += ' · Свободно: ' + free + '/' + p.totalSpots;
+                    subtitle += ' · Свободно: ' +
+                        free + '/' + p.totalSpots;
+                    var parkingId = String(p.id ?? '');
+                    var lat = Number(p.lat);
+                    var lng = Number(p.lng);
+
                     html += '<div class="swipe-container">' +
-                            '<div class="swipe-item" onclick="focusMap(' + p.lat + ', ' + p.lng + ', \'' + p.id + '\')">' +
-                            '<span class="occupancy-dot" style="background: ' + getOccupancyDotColor(free, p.totalSpots) + ';"></span>' +
-                            '<div class="list-info">' +
-                            '<div class="list-title">' + (p.name || 'Без названия') + '</div>' +
-                            '<div class="list-subtitle">' + subtitle + '</div>' +
-                            '</div>' +
-                            '</div>' +
-                            (isAuthor ? '<div class="swipe-delete" onclick="deleteParking(\'' + p.id + '\')">Удалить</div>' : '') +
-                            '</div>';
+                        '<div class="swipe-item" ' +
+                        'data-action="focus-parking" ' +
+                        'data-parking-id="' + escapeHtml(parkingId) + '" ' +
+                        'data-lat="' + (Number.isFinite(lat) ? lat : '') + '" ' +
+                        'data-lng="' + (Number.isFinite(lng) ? lng : '') + '">' +
+                        '<span class="occupancy-dot" style="background: ' +
+                        getOccupancyDotColor(free, p.totalSpots) + ';"></span>' +
+                        '<div class="list-info">' +
+                        '<div class="list-title">' +
+                        escapeHtml(p.name || 'Без названия') +
+                        '</div>' +
+                        '<div class="list-subtitle">' +
+                        escapeHtml(subtitle) +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        (isAuthor
+                            ? '<div class="swipe-delete" data-action="delete-parking" data-parking-id="' +
+                                escapeHtml(parkingId) +
+                                '">Удалить</div>'
+                            : '') +
+                        '</div>';
                 });
                 html += '</div>';
             }
@@ -3653,6 +3689,32 @@ if (filterRegion) {
         html += '</div>';
     }
     resultsContainer.innerHTML = html;
+    resultsContainer.querySelectorAll(
+        '[data-action="focus-parking"]'
+    ).forEach(function(element) {
+        element.addEventListener('click', function() {
+            var lat = Number(this.dataset.lat);
+            var lng = Number(this.dataset.lng);
+            var id = this.dataset.parkingId;
+            if (
+                id &&
+                Number.isFinite(lat) &&
+                Number.isFinite(lng)
+            ) {
+                focusMap(lat, lng, id);
+            }
+        });
+    });
+    resultsContainer.querySelectorAll(
+        '[data-action="delete-parking"]'
+    ).forEach(function(element) {
+        element.addEventListener('click', function(event) {
+            event.stopPropagation();
+
+            var id = this.dataset.parkingId;
+            if (id) deleteParking(id);
+        });
+    });
     attachSwipeToContainers(resultsContainer);
 }
 function focusMap(lat, lng, parkingId) {
