@@ -720,13 +720,11 @@
     background: var(--bg-primary);
     border-color: var(--border-color);
 }
-
 .edit-parking input::placeholder,
 .edit-parking textarea::placeholder {
     color: var(--text-tertiary);
     opacity: 1;
 }
-
 .edit-parking input:focus,
 .edit-parking textarea:focus,
 .edit-parking select:focus {
@@ -734,34 +732,120 @@
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .16);
     outline: none;
 }
-
 .edit-parking button {
     -webkit-tap-highlight-color: transparent;
 }
-
 .edit-parking button:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
 }
-
 .edit-parking .primary-button,
 .edit-parking button[type="submit"] {
     background: var(--btn-primary-bg);
     color: var(--btn-primary-text);
     border-color: var(--btn-primary-bg);
 }
-
 .edit-parking .secondary-button {
     background: var(--bg-secondary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
-
 .edit-parking .edit-parking-header {
     color: var(--text-primary);
 }
-
 .edit-parking .edit-parking-header small,
 .edit-parking .edit-parking-header p {
     color: var(--text-secondary);
+}
+/* ==========================================================
+   PARK NEAR — RESPONSIVE EDIT PARK
+   Дополнительная адаптация мобильных экранов
+   ========================================================== */
+/* Предотвращаем переполнение полей и внутренних блоков */
+.edit-parking,
+.edit-parking *,
+.pn-manage,
+.pn-manage * {
+    box-sizing: border-box;
+}
+.edit-parking,
+.pn-manage {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+/* Поля ввода */
+.pn-manage-form input,
+.pn-manage-form textarea {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+/* Сводные показатели */
+.pn-manage-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pn-manage-summary-item {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+/* Заголовки и текст */
+.pn-manage-heading-text,
+.pn-manage-section,
+.pn-manage-section-title,
+.pn-manage-form {
+    min-width: 0;
+    max-width: 100%;
+}
+.pn-manage-heading-text h2,
+.pn-manage-section-title strong,
+.pn-manage-action,
+.pn-manage-favorite {
+    overflow-wrap: anywhere;
+}
+/* Кнопки формы управления */
+.pn-manage-form-actions {
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.pn-manage-save,
+.pn-manage-cancel {
+    min-width: 0;
+    min-height: 44px;
+    touch-action: manipulation;
+}
+/* Узкие экраны */
+@media (max-width: 360px) {
+    .pn-manage {
+        gap: 10px;
+        padding: 10px;
+    }
+    .pn-manage-heading {
+        gap: 9px;
+        padding: 12px;
+    }
+    .pn-manage-summary {
+        gap: 7px;
+    }
+    .pn-manage-summary-item {
+        padding: 10px;
+    }
+    .pn-manage-section {
+        padding: 12px;
+    }
+    .pn-manage-form-actions {
+        gap: 7px;
+    }
+}
+/* Сенсорные устройства */
+@media (hover: none) and (pointer: coarse) {
+    .pn-manage-action,
+    .pn-manage-favorite,
+    .pn-manage-save,
+    .pn-manage-cancel {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
 }
