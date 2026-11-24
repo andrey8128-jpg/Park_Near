@@ -332,45 +332,117 @@ function getDistanceInMeters(lat1, lng1, lat2, lng2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
-function renderParkingItem(parking, userCoords) {
-const occupancy = window.getParkingOccupancyStatus(parking);
-const status = occupancy.status;
-const statusLabels = {
-    free: 'Свободно',
-    limited: 'Частично занято',
-    occupied: 'Занято',
-    unknown: 'Нет данных'
-};
-const badgeClass = status;
-const badgeText = status === 'unknown'
-    ? 'Нет данных'
-    : `${statusLabels[status]} · ${window.getParkingLastUpdateText(occupancy.updatedAt)}`;
-    let distanceHtml = '';
+function renderParkingItem(parking, userCoords, compactHome = false) {
+    const occupancy = window.getParkingOccupancyStatus(parking);
+    const status = occupancy.status;
+
+    const statusLabels = {
+        free: 'Есть места',
+        limited: 'Мало мест',
+        occupied: 'Мест нет',
+        unknown: 'Нет данных'
+    };
     const lat = Number(parking.lat);
     const lng = Number(parking.lng);
-    if (userCoords && Number.isFinite(lat) && Number.isFinite(lng)) {
-        const dist = getDistanceInMeters(userCoords.lat, userCoords.lng, lat, lng);
-        const distStr = dist < 1000 ? `${Math.round(dist)} м` : `${(dist / 1000).toFixed(1)} км`;
+
+    let distanceHtml = '';
+
+    if (
+        userCoords &&
+        Number.isFinite(lat) &&
+        Number.isFinite(lng)
+    ) {
+        const dist = getDistanceInMeters(
+            userCoords.lat,
+            userCoords.lng,
+            lat,
+            lng
+        );
+
+        const distStr = dist < 1000
+            ? `${Math.round(dist)} м`
+            : `${(dist / 1000).toFixed(1)} км`;
+
         const time = Math.max(1, Math.round(dist / 500));
         const timeStr = dist < 500 ? '<1 мин' : `${time} мин`;
-        distanceHtml = `<div class="meta-row"><span>${escapeHtml(distStr)}</span><span class="dot">·</span><span>${escapeHtml(timeStr)}</span></div>`;
+
+        distanceHtml = `
+            <div class="meta-row">
+                <span>${escapeHtml(distStr)}</span>
+                <span class="dot">·</span>
+                <span>${escapeHtml(timeStr)}</span>
+            </div>
+        `;
     }
-    const safeName = escapeHtml(parking.name || 'Без названия');
-    const safeBadge = escapeHtml(String(badgeText));
+
+    const safeName = escapeHtml(
+        parking.name || 'Без названия'
+    );
+
     const parkingId = escapeHtml(parking.id || '');
+    // Компактный вид только для вкладки Главная
+    if (compactHome) {
+        const hasCount =
+            occupancy.status !== 'unknown' &&
+            occupancy.totalSpots > 0;
+        const countText = hasCount
+            ? `~${occupancy.freeSpots} мест`
+            : statusLabels[status] || 'Нет данных';
+        const updateText = window.getParkingLastUpdateText(
+            occupancy.updatedAt
+        );
+        return `
+            <div class="parking-item pn-home-parking-item"
+                 onclick="focusMap(${lat}, ${lng}, '${parkingId}')">
+
+                <div class="info">
+
+                    <div class="pn-home-parking-row">
+                        <div class="name">${safeName}</div>
+
+                        <div class="pn-home-parking-status ${status}">
+                            <span class="pn-home-parking-dot"></span>
+                            <span>${escapeHtml(countText)}</span>
+                        </div>
+                    </div>
+
+                    <div class="pn-home-parking-details">
+                        ${distanceHtml}
+
+                        <span class="pn-home-parking-update">
+                            ${escapeHtml(updateText)}
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+        `;
+    }
+    // Старое отображение для остальных разделов
+    const badgeText = status === 'unknown'
+        ? 'Нет данных'
+        : `${statusLabels[status] || 'Нет данных'} · ${
+            window.getParkingLastUpdateText(occupancy.updatedAt)
+        }`;
+
     return `
-        <div class="parking-item" onclick="focusMap(${lat}, ${lng}, '${parkingId}')">
+        <div class="parking-item"
+             onclick="focusMap(${lat}, ${lng}, '${parkingId}')">
+
             <div class="info">
                 <div class="parking-item-header">
                     <div class="name">${safeName}</div>
-                    <span class="parking-status-badge ${badgeClass}">${safeBadge}</span>
+
+                    <span class="parking-status-badge ${status}">
+                        ${escapeHtml(badgeText)}
+                    </span>
                 </div>
+
                 ${distanceHtml}
             </div>
         </div>
     `;
 }
-
 function getParkingAddressParts(parking) {
     const parsed = typeof parseAddress === 'function'
         ? (parseAddress(parking.address || '') || {})
@@ -493,7 +565,11 @@ function renderGroupedParkingList(container, parkings, userCoords) {
                 </button>
                 <div id="${groupId}" hidden>
                     ${group.parkings.map(function(parking) {
-                        return renderParkingItem(parking, userCoords);
+                        return renderParkingItem(
+                             parking,
+                             userCoords,
+                             container.id === 'homeParkingList'
+                         );
                     }).join('')}
                 </div>
             </section>
