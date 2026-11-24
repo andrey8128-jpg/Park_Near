@@ -4543,12 +4543,26 @@ function renderHomeContent(content, coords) {
             <div class="home-title">Парковка без забот</div>
             <div class="home-subtitle">найдите свободное место рядом с домом</div>
         </div>
-        <div class="home-search">
-            <input type="text" id="homeSearchInput" placeholder="куда вы направляетесь?" oninput="filterHomeParkings()">
-        </div>
-        <div class="home-actions">
-            <button class="btn-home btn-home-primary" onclick="goHome()">🏠 Еду домой</button>
-            <button class="btn-home btn-home-secondary" onclick="searchNearMe()">📍 Рядом со мной</button>
+                <div class="home-search">
+            <input
+                type="text"
+                id="homeSearchInput"
+                placeholder="куда вы направляетесь?"
+                oninput="filterHomeParkings()"
+            >
+
+            <button
+                type="button"
+                class="home-address-shortcut"
+                onclick="goHome()"
+            >
+                <span class="home-address-icon">⌂</span>
+                <span class="home-address-text">
+                    <strong>Домой</strong>
+                    <small>Сохранённый домашний адрес</small>
+                </span>
+                <span class="home-address-arrow">›</span>
+            </button>
         </div>
         <div class="section-header">
             <span>Рядом с вами</span>
