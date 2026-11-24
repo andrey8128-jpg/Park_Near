@@ -2148,27 +2148,6 @@ body.dark-theme .theme-slider:before {
     margin-left: 12px;
     flex-shrink: 0;
 }
-.parking-item .free-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    font-weight: 700;
-    font-size: 16px;
-    color: #E2E2E0;
-    background: var(--green);
-    flex-shrink: 0;
-    margin-left: 8px;
-    transition: background 0.3s;
-}
-.parking-item .free-badge.low {
-    background: var(--orange);
-}
-.parking-item .free-badge.critical {
-    background: var(--red);
-}
 .parking-item .meta-row {
     display: flex;
     gap: 8px;
