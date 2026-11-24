@@ -575,11 +575,6 @@
     .parking-item .name {
         font-size: 13px;
     }
-    .free-badge {
-        min-width: 42px;
-        height: 42px;
-        font-size: 15px;
-    }
 }
 /* Для устройств с сенсорным экраном увеличиваем только интерактивную область. */
 @media (hover: none) and (pointer: coarse) {
