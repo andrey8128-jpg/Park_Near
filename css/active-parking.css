@@ -143,7 +143,7 @@ body.dark-theme .active-parking-banner {
         width: calc(100% - 16px);
         gap: 7px;
         padding: 9px;
-        margin-top: 28px;
+        margin-top: 0;
     }
     .active-parking-info {
         gap: 8px;
