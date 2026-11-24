@@ -69,6 +69,8 @@ async function patchParkingInPostgres(parkingId, updates) {
     let activePolygon = null; 
     let isDrawingMode = false;
     let currentParkingId = null;
+    // Вкладка, из которой открыта карточка парковки
+    let parkingCardReturnPanel = null;
     let currentParkingData = null;
     // Защита от повторного запуска парковочной сессии
     let isStartingParkingSession = false;
@@ -1677,11 +1679,11 @@ if (hasOccupancy) {
         <div class="parking-card-compact pn-card">
 
             <button
-                type="button"
-                class="parking-card-close"
-                aria-label="Закрыть карточку парковки"
-                title="Закрыть карточку"
-                onclick="closeCenterSheet()"
+                 type="button"
+                 class="parking-card-close"
+                 aria-label="Вернуться назад"
+                 title="Назад"
+                 onclick="closeParkingCardAndReturn()"
             >×</button>
 
             <div class="parking-card-handle"></div>
@@ -2120,6 +2122,17 @@ function closeCenterSheet() {
         previousZoom = null;
     } else if (map) {
         map.setZoom(16, { duration: 300 });
+    }
+}
+function closeParkingCardAndReturn() {
+    const returnPanel = parkingCardReturnPanel;
+
+    parkingCardReturnPanel = null;
+
+    closeCenterSheet();
+
+    if (returnPanel) {
+        showPanel(returnPanel);
     }
 }
 function buildRouteFromCenter() {
@@ -3635,18 +3648,54 @@ if (filterRegion) {
     attachSwipeToContainers(resultsContainer);
 }
 function focusMap(lat, lng, parkingId) {
+
+    // Запоминаем вкладку, с которой открывается парковка
+    const panel = document.getElementById('panel');
+    const panelTitle = document.getElementById('panelTitle');
+
+    if (panel && panel.classList.contains('active')) {
+        const title = panelTitle?.textContent;
+
+        const returnTabs = {
+            'Главная': 'home',
+            'Профиль': 'profile',
+            'Избранное': 'favorites',
+            'Поиск': 'search',
+            'Моя машина': 'mycar'
+        };
+
+        parkingCardReturnPanel = returnTabs[title] || 'home';
+
+        // Закрываем боковую панель, но сохраняем вкладку для возврата
+        panel.classList.remove('active');
+
+        const donateBtn = document.getElementById('donateBtn');
+        if (donateBtn) donateBtn.style.display = 'flex';
+
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('active');
+        });
+    } else {
+        parkingCardReturnPanel = null;
+    }
+
     closeCenterSheet();
+
     setTimeout(function() {
         if (!map) return;
+
         const data = parkingDataCache[parkingId];
         const marker = mapMarkers[parkingId];
+
         if (marker) {
             const polygon = marker.properties.get('polygon');
+
             if (activePolygon && activePolygon !== polygon) {
                 activePolygon.options.set('visible', false);
             }
             if (polygon) {
                 activePolygon = polygon;
+
                 polygon.options.set({
                     visible: true,
                     zIndex: 1000
@@ -3973,17 +4022,31 @@ async function loadUserData(type, content) {
             }
         });
     }
+
 function showPanel(type, keepFilter = false) {
-       // Скрываем кнопку доната при открытии любой панели
+    // При переходе на другую вкладку закрываем карточку
+    const sheet = document.getElementById('centerSheet');
+
+    if (sheet && sheet.classList.contains('active')) {
+        closeCenterSheet();
+    }
+
+    parkingCardReturnPanel = null;
+
     const donateBtn = document.getElementById('donateBtn');
+
     if (donateBtn) {
         donateBtn.style.display = 'none';
     }
+
     if (type === 'search' && !keepFilter) {
         nearbySearchFilter = null;
     }
+
     document.getElementById('panel').classList.add('active');
+
     const content = document.getElementById('panelContent');
+
     const titles = {
         profile: 'Профиль',
         favorites: 'Избранное',
@@ -3991,15 +4054,18 @@ function showPanel(type, keepFilter = false) {
         home: 'Главная',
         mycar: 'Моя машина'
     };
-    document.getElementById('panelTitle').textContent = titles[type] || 'Главная';
-    // Рендерим нужный контент
+
+    document.getElementById('panelTitle').textContent =
+        titles[type] || 'Главная';
+
     switch (type) {
         case 'profile':
             renderProfile(content);
             break;
+
         case 'favorites':
-         renderFavorites(content);
-         break;
+            renderFavorites(content);
+            break;
         case 'search':
             renderSearchPanel(content);
             break;
@@ -4007,18 +4073,31 @@ function showPanel(type, keepFilter = false) {
             if (typeof renderMyCarPanel === 'function') {
                 renderMyCarPanel(content);
             } else {
-                content.innerHTML = '<div class="empty-state"><p>Функция "Моя машина" ещё не добавлена</p></div>';
+                content.innerHTML =
+                    '<div class="empty-state"><p>Функция "Моя машина" ещё не добавлена</p></div>';
             }
             break;
-        default: // home
+
+        default:
             renderHomePanel(content);
     }
-    // Обновляем активную вкладку в нижнем меню
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    const tabIndex = { home: 0, search: 1, favorites: 2, profile: 3, mycar: 1 };
-    const idx = tabIndex[type] !== undefined ? tabIndex[type] : 0;
+    document.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active');
+    });
+    const tabIndex = {
+        home: 0,
+        search: 1,
+        favorites: 2,
+        profile: 3,
+        mycar: 1
+    };
+    const idx = tabIndex[type] !== undefined
+        ? tabIndex[type]
+        : 0;
     const tabs = document.querySelectorAll('.tab');
-    if (tabs[idx]) tabs[idx].classList.add('active');
+    if (tabs[idx]) {
+        tabs[idx].classList.add('active');
+    }
 }
     function toggleGroup(header) {
         const items = header.nextElementSibling;
