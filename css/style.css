@@ -283,48 +283,6 @@ body {
     font-size: 12px;
     color: var(--text-secondary);
 }
-/* === ВЕРХНЯЯ ПАНЕЛЬ (не используется, но оставлено) === */
-.app-header {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: 0;
-    right: 0;
-    height: 44px;
-    background: rgba(226, 226, 224, 0.08);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-    padding-top: env(safe-area-inset-top);
-    transition: background 0.3s ease;
-}
-.app-header {
-    background: rgba(255, 255, 255, 0.72);
-    border-bottom: 1px solid var(--card-border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-}
-
-body.dark-theme .app-header {
-    background: rgba(21, 26, 27, 0.78);
-    border-bottom-color: var(--card-border);
-}
-
-.app-title {
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    color: var(--text-primary);
-    text-shadow: none;
-}
-
-.app-title span {
-    color: var(--accent);
-}
-
 /* === ТЁМНАЯ ТЕМА ДЛЯ КАРТЫ (фильтр) === */
 body.dark-theme #map {
     filter: invert(0.82) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.85);
