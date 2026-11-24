@@ -120,24 +120,28 @@ function resizeParkNearMap() {
 setTimeout(resizeParkNearMap, 100);
 setTimeout(resizeParkNearMap, 500);
 setTimeout(resizeParkNearMap, 1000);
-
-// Изменение размеров окна
-window.addEventListener('resize', resizeParkNearMap);
-window.addEventListener('orientationchange', resizeParkNearMap);
-
-// Изменение viewport на iOS
-if (window.visualViewport) {
-    window.visualViewport.addEventListener(
-        'resize',
-        resizeParkNearMap
-    );
-}
-// Контроль фактического размера контейнера карты
+/* ===== ОБРАБОТКА ИЗМЕНЕНИЯ РАЗМЕРОВ КАРТЫ ===== */
 if (window.ResizeObserver) {
-    const mapResizeObserver = new ResizeObserver(() => {
+    // Основной механизм для современных мобильных браузеров.
+    const mapResizeObserver = new window.ResizeObserver(() => {
         resizeParkNearMap();
     });
     mapResizeObserver.observe(mapContainer);
+} else {
+    // Резерв для браузеров без ResizeObserver.
+    window.addEventListener('resize', resizeParkNearMap, {
+        passive: true
+    });
+    window.addEventListener('orientationchange', resizeParkNearMap, {
+        passive: true
+    });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener(
+            'resize',
+            resizeParkNearMap,
+            { passive: true }
+        );
+    }
 }
 // После возвращения приложения на экран
 document.addEventListener('visibilitychange', () => {
