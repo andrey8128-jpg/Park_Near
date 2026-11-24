@@ -1188,3 +1188,90 @@
     outline: 2px solid var(--accent);
     outline-offset: 3px;
 }
+
+/* ==========================================
+   PARK NEAR — КОМПАКТНЫЕ КАРТОЧКИ ГЛАВНОЙ
+========================================== */
+
+#homeParkingList .parking-address-group .pn-home-parking-item {
+    margin-top: 8px;
+    padding: 11px 12px;
+
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+
+    box-shadow: none;
+}
+
+#homeParkingList .pn-home-parking-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+#homeParkingList .pn-home-parking-row .name {
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+#homeParkingList .pn-home-parking-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#homeParkingList .pn-home-parking-dot {
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+#homeParkingList .pn-home-parking-status.free
+.pn-home-parking-dot {
+    background: var(--green);
+}
+
+#homeParkingList .pn-home-parking-status.limited
+.pn-home-parking-dot {
+    background: var(--orange);
+}
+
+#homeParkingList .pn-home-parking-status.occupied
+.pn-home-parking-dot {
+    background: var(--red);
+}
+
+#homeParkingList .pn-home-parking-status.unknown
+.pn-home-parking-dot {
+    background: var(--gray);
+}
+
+#homeParkingList .pn-home-parking-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 7px;
+}
+
+#homeParkingList .pn-home-parking-details .meta-row {
+    font-size: 11px;
+}
+
+#homeParkingList .pn-home-parking-update {
+    color: var(--text-secondary);
+    font-size: 10px;
+}
