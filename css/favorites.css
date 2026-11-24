@@ -33,45 +33,6 @@
     color: var(--brand);
     font-size: 23px;
 }
-.pn-fav-city{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:13px 15px;
-    margin-bottom:12px;
-    border:1px solid var(--border-color);
-    background:var(--bg-secondary);
-    border-radius:17px;
-    box-shadow:var(--card-shadow);
-}
-.pn-fav-city-icon{
-    width:40px;
-    height:40px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:12px;
-    background:var(--bg-primary);
-    font-size:19px;
-}
-.pn-fav-city div{
-    min-width:0;
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-}
-.pn-fav-city small{
-    color:var(--text-secondary);
-    font-size:11px;
-}
-.pn-fav-city strong{
-    color:var(--text-primary);
-    font-size:15px;
-    font-weight:700;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
 .pn-fav-search{
     position:relative;
     display:flex;
@@ -451,8 +412,7 @@
     overflow: hidden;
 }
 .pn-fav-card-title,
-.pn-fav-card-address,
-.pn-fav-card-city {
+.pn-fav-card-address {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -463,49 +423,6 @@
     min-width: 48px;
     min-height: 48px;
     box-sizing: border-box;
-}
-/* Блок сортировки. */
-.pn-fav-sort {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: 6px;
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-    margin: 12px 0;
-}
-.pn-fav-sort button {
-    flex: 1 1 0;
-    min-width: 0;
-    min-height: 44px;
-    padding: 9px 6px;
-    box-sizing: border-box;
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    font: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.25;
-    text-align: center;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition:
-        background .2s ease,
-        color .2s ease,
-        border-color .2s ease,
-        transform .15s ease;
-}
-.pn-fav-sort button.active {
-    background: var(--btn-primary-bg);
-    color: var(--btn-primary-text);
-    border-color: var(--btn-primary-bg);
-    font-weight: 600;
 }
 /* Пустое состояние. */
 .pn-fav-empty {
@@ -521,7 +438,6 @@
 }
 /* Фокус с клавиатуры. */
 .pn-fav-filter:focus-visible,
-.pn-fav-sort button:focus-visible,
 .pn-fav-remove:focus-visible,
 .pn-fav-card-main:focus-visible,
 .pn-fav-empty button:focus-visible,
@@ -532,7 +448,6 @@
 /* Устройства с сенсорным управлением. */
 @media (hover: none) and (pointer: coarse) {
     .pn-fav-filter,
-    .pn-fav-sort button,
     .pn-fav-remove,
     .pn-fav-empty button,
     .pn-fav-search button {
