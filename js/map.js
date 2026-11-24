@@ -121,27 +121,30 @@ setTimeout(resizeParkNearMap, 100);
 setTimeout(resizeParkNearMap, 500);
 setTimeout(resizeParkNearMap, 1000);
 /* ===== ОБРАБОТКА ИЗМЕНЕНИЯ РАЗМЕРОВ КАРТЫ ===== */
+
+// Резервное обновление при изменении окна.
+window.addEventListener('resize', resizeParkNearMap, {
+    passive: true
+});
+window.addEventListener('orientationchange', function () {
+    setTimeout(resizeParkNearMap, 150);
+}, {
+    passive: true
+});
+// Отслеживание динамической видимой области браузера.
+if (window.visualViewport) {
+    window.visualViewport.addEventListener(
+        'resize',
+        resizeParkNearMap,
+        { passive: true }
+    );
+}
+// Основной механизм контроля фактического размера контейнера карты.
 if (window.ResizeObserver) {
-    // Основной механизм для современных мобильных браузеров.
-    const mapResizeObserver = new window.ResizeObserver(() => {
+    const mapResizeObserver = new window.ResizeObserver(function () {
         resizeParkNearMap();
     });
     mapResizeObserver.observe(mapContainer);
-} else {
-    // Резерв для браузеров без ResizeObserver.
-    window.addEventListener('resize', resizeParkNearMap, {
-        passive: true
-    });
-    window.addEventListener('orientationchange', resizeParkNearMap, {
-        passive: true
-    });
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener(
-            'resize',
-            resizeParkNearMap,
-            { passive: true }
-        );
-    }
 }
 // После возвращения приложения на экран
 document.addEventListener('visibilitychange', () => {
