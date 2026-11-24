@@ -333,3 +333,151 @@
         min-height: 210px;
     }
 }
+
+/* ==========================================
+   КОМПАКТНЫЕ ИЗБРАННЫЕ ПАРКОВКИ В ПРОФИЛЕ
+   Стиль Park Near Home
+========================================== */
+
+#profileSectionFavoritesContent {
+    padding: 8px;
+}
+
+#favoritesListContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    width: 100%;
+}
+
+.pn-profile-favorite {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+
+    overflow: hidden;
+}
+
+.pn-profile-favorite-info {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 12px;
+    cursor: pointer;
+}
+
+.pn-profile-favorite-title {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pn-profile-favorite-address {
+    margin-top: 3px;
+    color: var(--text-secondary);
+    font-size: 12px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pn-profile-favorite-bottom {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 8px;
+}
+
+.pn-profile-favorite-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pn-profile-favorite-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--gray);
+}
+
+.pn-profile-favorite-status.free {
+    color: var(--green);
+}
+
+.pn-profile-favorite-status.free .pn-profile-favorite-dot {
+    background: var(--green);
+}
+
+.pn-profile-favorite-status.limited {
+    color: var(--orange);
+}
+
+.pn-profile-favorite-status.limited .pn-profile-favorite-dot {
+    background: var(--orange);
+}
+
+.pn-profile-favorite-status.occupied {
+    color: var(--red);
+}
+
+.pn-profile-favorite-status.occupied .pn-profile-favorite-dot {
+    background: var(--red);
+}
+
+.pn-profile-favorite-status.unknown {
+    color: var(--text-secondary);
+}
+
+.pn-profile-favorite-count {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pn-profile-favorite-update {
+    margin-top: 5px;
+    color: var(--text-secondary);
+    font-size: 10px;
+}
+
+.pn-profile-favorite-remove {
+    align-self: stretch;
+    flex-shrink: 0;
+    width: 42px;
+
+    border: 0;
+    border-left: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--accent);
+    font-size: 18px;
+    cursor: pointer;
+}
+.pn-profile-favorite-remove:active {
+    background: var(--bg-secondary);
+}
+@media (max-width: 360px) {
+    .pn-profile-favorite-info {
+        padding: 10px 9px;
+    }
+    .pn-profile-favorite-title {
+        font-size: 13px;
+    }
+    .pn-profile-favorite-remove {
+        width: 36px;
+    }
+}
