@@ -211,40 +211,41 @@ map.events.add('zoomchange', function() {
                 maxZoom: 18,
                 clusterDisableClickZoom: false,
                 clusterOpenBalloonOnClick: false,
-            
-            
-clusterIconLayout:
-    ymaps.templateLayoutFactory.createClass(
-        '<div style="' +
-            'width:$[properties.clusterSize]px;' +
-            'height:$[properties.clusterSize]px;' +
-            'box-sizing:border-box;' +
-            'border-radius:50%;' +
-            'background:linear-gradient(145deg,$[properties.clusterColor],$[properties.clusterColorDark]);' +
-            'border:2px solid rgba(255,255,255,0.85);' +
-            'display:flex;' +
-            'align-items:center;' +
-            'justify-content:center;' +
-            'flex-direction:column;' +
-            'color:#ffffff;' +
-            'font-family:Arial,sans-serif;' +
-            'font-weight:800;' +
-            'box-shadow:0 4px 14px $[properties.clusterGlow],inset 0 1px 2px rgba(255,255,255,0.3);' +
-            'text-align:center;' +
-            'transform:translateZ(0);' +
-        '">' +
-            '<div style="font-size:21px;line-height:24px;">' +
-                '$[properties.parkingCount]' +
-            '</div>' +
-            '<div style="font-size:9px;line-height:12px;font-weight:600;opacity:0.9;">' +
-                'ПАРКОВОК' +
-            '</div>' +
-        '</div>'
-    ),
-    clusterIconShape: {
+
+// Фиксированный шаблон кластера парковок
+clusterIconLayout: ymaps.templateLayoutFactory.createClass(
+    '<div style="' +
+        'width:56px;' +
+        'height:56px;' +
+        'box-sizing:border-box;' +
+        'border-radius:50%;' +
+        'background:linear-gradient(145deg,#20C982,#087F59);' +
+        'border:2px solid rgba(255,255,255,0.95);' +
+        'display:flex;' +
+        'align-items:center;' +
+        'justify-content:center;' +
+        'flex-direction:column;' +
+        'color:#ffffff;' +
+        'font-family:Arial,sans-serif;' +
+        'font-weight:800;' +
+        'box-shadow:0 4px 14px rgba(32,201,130,0.35),inset 0 1px 2px rgba(255,255,255,0.3);' +
+        'text-align:center;' +
+        'line-height:1;' +
+        'transform:translateZ(0);' +
+    '">' +
+        '<div style="font-size:21px;line-height:24px;">' +
+            '$[properties.geoObjects.length]' +
+        '</div>' +
+        '<div style="font-size:8px;line-height:10px;font-weight:700;opacity:0.95;">' +
+            'ПАРКОВОК' +
+        '</div>' +
+    '</div>'
+),
+
+clusterIconShape: {
     type: 'Circle',
     coordinates: [0, 0],
-    radius: 36
+    radius: 28
 },
                 clusterBalloonContentLayout:
                     ymaps.templateLayoutFactory.createClass(
