@@ -349,11 +349,16 @@ container.innerHTML = favorites.map(item => {
 }
 async function openFavoriteParking(parkingId) {
     if (!parkingId) return;
+
     const id = String(parkingId);
+
     try {
         let data = parkingDataCache?.[id] || null;
+
         if (!data && window.ParkNearOffline) {
-            const cachedParkings = await ParkNearOffline.getParkings();
+            const cachedParkings =
+                await ParkNearOffline.getParkings();
+
             data = cachedParkings?.[id] || null;
         }
         if (!data && navigator.onLine) {
@@ -362,14 +367,23 @@ async function openFavoriteParking(parkingId) {
                 { cache: 'no-store' }
             );
             const result = await response.json();
+
             if (!response.ok || !result.success) {
-                throw new Error(result.error || 'Парковка не найдена');
+                throw new Error(
+                    result.error || 'Парковка не найдена'
+                );
             }
             data = result.parking;
+
             if (data && window.ParkNearOffline) {
-                const cachedParkings = await ParkNearOffline.getParkings();
+                const cachedParkings =
+                    await ParkNearOffline.getParkings();
+
                 cachedParkings[id] = data;
-                await ParkNearOffline.saveParkings(cachedParkings);
+
+                await ParkNearOffline.saveParkings(
+                    cachedParkings
+                );
             }
         }
         if (!data) {
@@ -379,21 +393,25 @@ async function openFavoriteParking(parkingId) {
                     : 'Эта парковка не сохранена на устройстве'
             );
         }
-        currentParkingId = id;
-        currentParkingData = data;
-        if (data.lat != null && data.lng != null && map) {
-            map.setCenter(
-                [Number(data.lat), Number(data.lng)],
-                17,
-                { duration: 300 }
-            );
+        parkingDataCache[id] = data;
+
+        if (data.lat == null || data.lng == null) {
+            throw new Error('У парковки отсутствуют координаты');
         }
-        if (typeof openCenterSheet === 'function') {
-            openCenterSheet(id, data);
-        }
+        // Открываем карту и карточку выбранной парковки
+        focusMap(
+            Number(data.lat),
+            Number(data.lng),
+            id
+        );
     } catch (error) {
-        console.error('Ошибка открытия избранной парковки:', error);
-        showToast(error.message || 'Не удалось открыть парковку');
+        console.error(
+            'Ошибка открытия избранной парковки:',
+            error
+        );
+        showToast(
+            error.message || 'Не удалось открыть парковку'
+        );
     }
 }
 async function removeFromFavorites(parkingId) {
