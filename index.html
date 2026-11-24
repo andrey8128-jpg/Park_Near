@@ -8,25 +8,43 @@
     content="ParkNear — приложение для поиска и управления парковками."
 />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-   
 <script>
 (function () {
+    const root = document.documentElement;
+    let resizeFrame = 0;
     function updateAppHeight() {
-        const height = window.innerHeight;
-
-        document.documentElement.style.setProperty(
-            '--app-height',
-            height + 'px'
-        );
+        if (resizeFrame) {
+            cancelAnimationFrame(resizeFrame);
+        }
+        resizeFrame = requestAnimationFrame(function () {
+            resizeFrame = 0;
+            const viewport = window.visualViewport;
+            const height = viewport && viewport.height > 0
+                ? viewport.height
+                : window.innerHeight;
+            root.style.setProperty(
+                '--app-height',
+                Math.round(height * 100) / 100 + 'px'
+            );
+        });
     }
-
     updateAppHeight();
-
-    window.addEventListener('resize', updateAppHeight);
+    window.addEventListener('resize', updateAppHeight, {
+        passive: true
+    });
     window.addEventListener('orientationchange', function () {
         setTimeout(updateAppHeight, 150);
+    }, {
+        passive: true
     });
     window.addEventListener('pageshow', updateAppHeight);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener(
+            'resize',
+            updateAppHeight,
+            { passive: true }
+        );
+    }
 })();
 </script>
 
