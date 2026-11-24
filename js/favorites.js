@@ -251,57 +251,91 @@ async function loadFavoritesInline(force = false) {
             await refreshProfileFavoritesCount(0);
             return;
         }
-        container.innerHTML = favorites.map(item => {
-            const data = item.parking || {};
-            const id = String(item.parkingId);
-const occupancy = window.getParkingOccupancyStatus(data);
-const total = occupancy.totalSpots;
-const free = occupancy.freeSpots;
-const statusLabels = {
-    free: 'Есть места',
-    limited: 'Мало мест',
-    occupied: 'Мест нет',
-    unknown: 'Нет актуальных данных',
-    stale: 'Нет актуальных данных'
-};
-const statusClasses = {
-    free: 'status-free',
-    limited: 'status-limited',
-    occupied: 'status-occupied',
-    unknown: 'status-unknown',
-    stale: 'status-unknown'
-};
-const status = statusLabels[occupancy.status]
-    || 'Нет актуальных данных';
-const cls = statusClasses[occupancy.status]
-    || 'status-unknown';
-const showFreeCount = occupancy.status !== 'unknown';
+        
+container.innerHTML = favorites.map(item => {
+    const data = item.parking || {};
+    const id = String(item.parkingId);
 
-const lastUpdateText = window.getParkingLastUpdateText
-    ? window.getParkingLastUpdateText(occupancy.updatedAt)
-    : 'время обновления неизвестно';
-                     return `<div class="favorite-parking-item" data-parking-id="${escapeHtml(id)}">
-                    <div class="favorite-parking-info"
-                         onclick="openFavoriteParking('${escapeHtml(id)}')">
-                        <div class="favorite-parking-title">
-                            ${escapeHtml(data.name || 'Парковка')}
-                        </div>
-                        <div class="favorite-parking-address">
-                            ${escapeHtml(data.address || data.street || '')}
-                        </div>
-                        <div class="favorite-parking-status ${cls}">
-                            <span class="favorite-status-dot"></span>
-                            <span>${status} · ${lastUpdateText}</span>
-                            ${showFreeCount
-                               ? `<span class="favorite-free-count">${free} свободно</span>`
-                               : ''}
-                        </div>
-                    </div>
-                    <button class="favorite-remove-btn"
-                            onclick="removeFromFavorites('${escapeHtml(id)}')">♥</button>
+    const occupancy = window.getParkingOccupancyStatus(data);
+    const free = Number(occupancy.freeSpots);
+
+    const statusLabels = {
+        free: 'Есть места',
+        limited: 'Мало мест',
+        occupied: 'Мест нет',
+        unknown: 'Нет актуальных данных',
+        stale: 'Нет актуальных данных'
+    };
+
+    const statusClasses = {
+        free: 'free',
+        limited: 'limited',
+        occupied: 'occupied',
+        unknown: 'unknown',
+        stale: 'unknown'
+    };
+
+    const status = statusLabels[occupancy.status]
+        || 'Нет актуальных данных';
+
+    const cls = statusClasses[occupancy.status]
+        || 'unknown';
+
+    const showFreeCount =
+        ['free', 'limited', 'occupied'].includes(occupancy.status)
+        && Number.isFinite(free);
+
+    const lastUpdateText = window.getParkingLastUpdateText
+        ? window.getParkingLastUpdateText(occupancy.updatedAt)
+        : 'Время обновления неизвестно';
+
+    return `
+        <article class="pn-profile-favorite"
+                 data-parking-id="${escapeHtml(id)}">
+
+            <div class="pn-profile-favorite-info"
+                 onclick="openFavoriteParking('${escapeHtml(id)}')">
+
+                <div class="pn-profile-favorite-title">
+                    ${escapeHtml(data.name || 'Парковка')}
                 </div>
-            `;
-        }).join('');
+
+                <div class="pn-profile-favorite-address">
+                    ${escapeHtml(data.address || data.street || '')}
+                </div>
+
+                <div class="pn-profile-favorite-bottom">
+
+                    <div class="pn-profile-favorite-status ${cls}">
+                        <span class="pn-profile-favorite-dot"></span>
+                        ${status}
+                    </div>
+
+                    ${showFreeCount ? `
+                        <span class="pn-profile-favorite-count">
+                            ${free} мест
+                        </span>
+                    ` : ''}
+
+                </div>
+
+                <div class="pn-profile-favorite-update">
+                    ${escapeHtml(lastUpdateText)}
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="pn-profile-favorite-remove"
+                onclick="removeFromFavorites('${escapeHtml(id)}')"
+                aria-label="Удалить из избранного">
+                ♥
+            </button>
+
+        </article>
+    `;
+}).join('');
         await refreshProfileFavoritesCount(favorites.length);
     } catch (error) {
         console.error('Ошибка загрузки избранного:', error);
