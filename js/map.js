@@ -234,6 +234,11 @@ clusterIconLayout:
             '</div>' +
         '</div>'
     ),
+    clusterIconShape: {
+    type: 'Circle',
+    coordinates: [0, 0],
+    radius: 36
+},
                 clusterBalloonContentLayout:
                     ymaps.templateLayoutFactory.createClass(
                         '<div style="' +
