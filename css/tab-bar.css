@@ -148,14 +148,15 @@
         padding-left: 5px;
         padding-right: 5px;
     }
+    /* Единый размер иконок */
     .tab .icon {
-        width: 26px;
-        height: 26px;
-        flex-basis: 26px;
+        width: 28px;
+        height: 28px;
+        flex-basis: 28px;
     }
     .tab .icon svg {
-        width: 23px;
-        height: 23px;
+        width: 24px;
+        height: 24px;
     }
 }
 /* Фокус клавиатуры */
