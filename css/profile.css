@@ -219,11 +219,13 @@
 .pn-address-picker-overlay.active {
     display: flex;
 }
+
 .pn-address-picker-dialog {
     display: flex;
     flex-direction: column;
     gap: 12px;
     width: 100%;
+    max-width: 520px;
     max-height: 90vh;
     max-height: 90dvh;
     padding: 16px;
