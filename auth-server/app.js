@@ -179,24 +179,40 @@ async function initializeDatabase() {
         ON push_subscriptions (user_id)
         `
     ];
-    const client = await pool.connect();
+       let client;
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
-
         for (const statement of statements) {
             await client.query(statement);
         }
         await client.query('COMMIT');
         console.log('Структура PostgreSQL проверена и подготовлена');
-    } catch (error) {
-        await client.query('ROLLBACK');
+       } catch (error) {
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката подготовки PostgreSQL:',
+                    rollbackError
+                );
+            }
+        }
         console.error(
             'Ошибка подготовки PostgreSQL:',
             error.message
         );
         throw error;
-    } finally {
-        client.release();
+        console.error(
+            'Ошибка подготовки PostgreSQL:',
+            error.message
+        );
+        throw error;
+        } finally {
+        if (client) {
+            client.release();
+        }
     }
 }
 const app = express();
@@ -411,8 +427,9 @@ async function createYandexPostgresSession(yandexProfile) {
         favorites: 0,
         activeDates: [new Date().toISOString().split('T')[0]]
     };
-    const client = await pool.connect();
+        let client;
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
         await client.query(
             `INSERT INTO users (id, data)
@@ -449,11 +466,22 @@ async function createYandexPostgresSession(yandexProfile) {
             user,
             expiresAt: expiresAt.toISOString()
         };
-    } catch (error) {
-        await client.query('ROLLBACK');
+       } catch (error) {
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката создания пользователя:',
+                    rollbackError
+                );
+            }
+        }
         throw error;
-    } finally {
-        client.release();
+        } finally {
+        if (client) {
+            client.release();
+        }
     }
 }
 const yandexStartRateLimiter = createIpRateLimiter(
@@ -3211,10 +3239,9 @@ if (
             username: user.username || ''
         }]
     };
-
-    const client = await pool.connect();
-
+      let client;
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
         // Защита от одновременного повторного запроса
         if (operationId) {
@@ -3354,24 +3381,42 @@ await client.query(
         }
         await client.query('COMMIT');
         return res.status(201).json(responseBody);
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('Ошибка создания парковки:', error.message);
-
+       } catch (error) {
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката создания парковки:',
+                    rollbackError
+                );
+            }
+        }
+        console.error(
+            'Ошибка создания парковки:',
+            error.message
+        );
         return res.status(500).json({
             success: false,
             error: 'Не удалось сохранить парковку'
         });
-    } finally {
-        client.release();
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось сохранить парковку'
+        });
+       } finally {
+        if (client) {
+            client.release();
+        }
     }
 });
 // ============================================
 // РЕДАКТИРОВАНИЕ ПАРКОВКИ
 // ============================================
 app.put('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManagementRateLimiter, async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const { name, street, houseNumber, totalSpots, description } = req.body;
         if (
             typeof name !== 'string' ||
@@ -3479,15 +3524,29 @@ if (totalSpots < occupancy.totalOccupied) {
             success: true,
             parking: updated.rows[0].data
         });
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('Ошибка редактирования парковки:', error);
-        res.status(500).json({
+       } catch (error) {
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката редактирования парковки:',
+                    rollbackError
+                );
+            }
+        }
+        console.error(
+            'Ошибка редактирования парковки:',
+            error
+        );
+        return res.status(500).json({
             success: false,
             error: 'Не удалось обновить парковку'
         });
-    } finally {
-        client.release();
+       } finally {
+        if (client) {
+            client.release();
+        }
     }
 });
 // Частичное редактирование города и границ парковки
@@ -3549,9 +3608,11 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManage
     req.authUser.firstName ||
     req.authUser.username ||
     'Пользователь';
-    const client = await pool.connect();
+       let client;
     let transactionStarted = false;
+
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
         transactionStarted = true;
         const result = await client.query(
@@ -3582,17 +3643,33 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManage
             success: true,
             parking: updated.rows[0].data
         });
-    } catch (error) {
-        if (transactionStarted) {
-            await client.query('ROLLBACK').catch(() => {});
+       } catch (error) {
+        if (client && transactionStarted) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката частичного редактирования парковки:',
+                    rollbackError
+                );
+            }
         }
-        console.error('Ошибка частичного редактирования парковки:', error);
+        console.error(
+            'Ошибка частичного редактирования парковки:',
+            error
+        );
         return res.status(500).json({
             success: false,
             error: 'Не удалось обновить парковку'
         });
-    } finally {
-        client.release();
+        return res.status(500).json({
+            success: false,
+            error: 'Не удалось обновить парковку'
+        });
+       } finally {
+        if (client) {
+            client.release();
+        }
     }
 });
 // ============================================
