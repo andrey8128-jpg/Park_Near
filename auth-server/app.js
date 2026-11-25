@@ -3599,8 +3599,9 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManage
 // УДАЛЕНИЕ ПАРКОВКИ В POSTGRESQL
 // ============================================
 app.delete('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManagementRateLimiter, async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
         const result = await client.query(
             'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
@@ -3656,15 +3657,25 @@ if (activeSessions.rowCount > 0) {
         await client.query('COMMIT');
         return res.json({ success: true });
     } catch (error) {
-        await client.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката удаления парковки:',
+                    rollbackError
+                );
+            }
+        }
         console.error('Ошибка удаления парковки:', error);
-
         return res.status(500).json({
             success: false,
             error: 'Не удалось удалить парковку'
         });
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 });
 // ============================================
