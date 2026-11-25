@@ -2467,8 +2467,9 @@ app.delete(
        requireRegisteredUser,
        parkingSessionMutationRateLimiter,
     async (req, res) => {
-        const client = await pool.connect();
+        let client;
         try {
+            client = await pool.connect();
             const parkingId = String(req.params.parkingId || '');
             const userId = String(req.authUser.id);
 
@@ -2616,7 +2617,16 @@ const updatedParking = {
                 }
             });
         } catch (error) {
-            await client.query('ROLLBACK');
+            if (client) {
+                try {
+                    await client.query('ROLLBACK');
+                } catch (rollbackError) {
+                    console.error(
+                        'Ошибка отката завершения парковочной сессии:',
+                        rollbackError
+                    );
+                }
+            }
             console.error(
                 'Ошибка завершения парковочной сессии:',
                 error
@@ -2626,7 +2636,9 @@ const updatedParking = {
                 error: 'Не удалось завершить парковочную сессию'
             });
         } finally {
-            client.release();
+            if (client) {
+                client.release();
+            }
         }
     }
 );
