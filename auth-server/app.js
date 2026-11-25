@@ -2863,16 +2863,42 @@ app.get('/api/parkings', parkingListRateLimiter, async (req, res) => {
                    ORDER BY id LIMIT $1 OFFSET $2`,
             city ? [city, limit, offset] : [limit, offset]
         );
-        const parkings = result.rows.map(row => {
-            const publicData = { ...(row.data || {}) };
-            delete publicData.history;
-            delete publicData.authorName;
-            delete publicData.authorUsername;
-            return {
-                ...publicData,
-                id: row.id
-            };
-        });
+        const PUBLIC_PARKING_FIELDS = [
+    'name',
+    'address',
+    'city',
+    'region',
+    'street',
+    'addressStreet',
+    'houseNumber',
+    'house',
+    'lat',
+    'lng',
+    'latitude',
+    'longitude',
+    'coords',
+    'coordinates',
+    'totalSpots',
+    'occupiedSpots',
+    'isPaid',
+    'status',
+    'lastUpdatedAt',
+    'timestamp',
+    'authorId'
+];
+const parkings = result.rows.map(row => {
+    const source = row.data || {};
+    const publicData = {};
+    for (const field of PUBLIC_PARKING_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(source, field)) {
+            publicData[field] = source[field];
+        }
+    }
+    return {
+        ...publicData,
+        id: row.id
+    };
+});
         return res.json({
             success: true,
             count: parkings.length,
