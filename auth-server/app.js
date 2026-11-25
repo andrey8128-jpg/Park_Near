@@ -1890,8 +1890,9 @@ app.get('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser
     }
 });
 app.delete('/api/users/me/account', requireAuth, accountDeleteRateLimiter, async (req, res) => {
-    const client = await pool.connect();
-    try {     
+    let client;
+    try {
+        client = await pool.connect();
         const userId = String(req.authUser.id);
         const protectedModeratorId = String(
     process.env.PARKNEAR_MODERATOR_USER_ID || ''
@@ -1991,14 +1992,25 @@ for (const row of foreignParkings.rows) {
             deletedParkings: deletedParkings.rowCount
         });
     } catch (error) {
-        await client.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката удаления аккаунта:',
+                    rollbackError
+                );
+            }
+        }
         console.error('Ошибка удаления аккаунта:', error);
         return res.status(500).json({
             success: false,
             error: 'Не удалось удалить аккаунт'
         });
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 });
 // ============================================
