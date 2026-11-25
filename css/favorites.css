@@ -464,3 +464,81 @@
         transition-duration: .01ms !important;
     }
 }
+/* ==========================================
+   КАРТОЧКА «МОИ АДРЕСА» В ИЗБРАННОМ
+   ========================================== */
+.pn-favorites .pn-address-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 82px;
+    margin: 0 0 12px;
+    padding: 11px 13px;
+    box-sizing: border-box;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 17px;
+    box-shadow: var(--card-shadow);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+/* Синяя плитка с иконкой */
+.pn-favorites .pn-address-entry-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    color: #ffffff;
+    background: linear-gradient(145deg, #347de7, #174b9d);
+    border: 1px solid rgba(139, 181, 245, .45);
+    border-radius: 14px;
+}
+.pn-favorites .pn-address-entry-icon svg {
+    display: block;
+    width: 25px;
+    height: 25px;
+}
+/* Название и подпись */
+.pn-favorites .pn-address-entry-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 4px;
+}
+.pn-favorites .pn-address-entry-info strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.pn-favorites .pn-address-entry-info small {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.35;
+}
+/* Стрелка */
+.pn-favorites .pn-address-entry-arrow {
+    flex: 0 0 auto;
+    margin-left: 4px;
+    color: var(--text-secondary);
+    font-size: 26px;
+    line-height: 1;
+}
+/* Нажатие */
+.pn-favorites .pn-address-entry:active {
+    transform: scale(.985);
+    background: var(--brand-soft);
+}
+.pn-favorites .pn-address-entry:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
