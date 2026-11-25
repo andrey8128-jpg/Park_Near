@@ -290,52 +290,51 @@ container.innerHTML = favorites.map(item => {
         : 'Время обновления неизвестно';
 
     return `
-        <article class="pn-profile-favorite"
-                 data-parking-id="${escapeHtml(id)}">
+    <article class="pn-profile-favorite"
+             data-parking-id="${escapeHtml(id)}">
 
-            <div class="pn-profile-favorite-info"
-                 onclick="openFavoriteParking('${escapeHtml(id)}')">
+        <div class="pn-profile-favorite-info"
+             data-open-favorite="true">
 
-                <div class="pn-profile-favorite-title">
-                    ${escapeHtml(data.name || 'Парковка')}
+            <div class="pn-profile-favorite-title">
+                ${escapeHtml(data.name || 'Парковка')}
+            </div>
+
+            <div class="pn-profile-favorite-address">
+                ${escapeHtml(data.address || data.street || '')}
+            </div>
+
+            <div class="pn-profile-favorite-bottom">
+
+                <div class="pn-profile-favorite-status ${cls}">
+                    <span class="pn-profile-favorite-dot"></span>
+                    ${status}
                 </div>
 
-                <div class="pn-profile-favorite-address">
-                    ${escapeHtml(data.address || data.street || '')}
-                </div>
-
-                <div class="pn-profile-favorite-bottom">
-
-                    <div class="pn-profile-favorite-status ${cls}">
-                        <span class="pn-profile-favorite-dot"></span>
-                        ${status}
-                    </div>
-
-                    ${showFreeCount ? `
-                        <span class="pn-profile-favorite-count">
-                            ${free} мест
-                        </span>
-                    ` : ''}
-
-                </div>
-
-                <div class="pn-profile-favorite-update">
-                    ${escapeHtml(lastUpdateText)}
-                </div>
+                ${showFreeCount ? `
+                    <span class="pn-profile-favorite-count">
+                        ${free} мест
+                    </span>
+                ` : ''}
 
             </div>
 
-            <button
-                type="button"
-                class="pn-profile-favorite-remove"
-                onclick="removeFromFavorites('${escapeHtml(id)}')"
-                aria-label="Удалить из избранного">
-                ♥
-            </button>
+            <div class="pn-profile-favorite-update">
+                ${escapeHtml(lastUpdateText)}
+            </div>
 
-        </article>
-    `;
-}).join('');
+        </div>
+
+        <button
+            type="button"
+            class="pn-profile-favorite-remove"
+            data-remove-favorite="true"
+            aria-label="Удалить из избранного">
+            ♥
+        </button>
+
+    </article>
+`;
         await refreshProfileFavoritesCount(favorites.length);
     } catch (error) {
         console.error('Ошибка загрузки избранного:', error);
@@ -621,7 +620,35 @@ function renderList() {
                 </button>
                 <button class="pn-fav-remove" data-remove-id="${escapeHtml(String(id))}">♥</button>
             </article>`;
-        }).join('');
+                }).join('');
+
+        // Открытие парковки
+        list.querySelectorAll('.pn-fav-card-main')
+            .forEach(button => {
+                button.addEventListener('click', () => {
+                    const id = button
+                        .closest('[data-parking-id]')
+                        ?.dataset.parkingId;
+
+                    if (id) {
+                        openFavoriteParking(id);
+                    }
+                });
+            });
+
+        // Удаление из избранного
+        list.querySelectorAll('.pn-fav-remove')
+            .forEach(button => {
+                button.addEventListener('click', event => {
+                    event.stopPropagation();
+
+                    const id = button.dataset.removeId;
+
+                    if (id) {
+                        removeFromFavorites(id);
+                    }
+                });
+            });
         list.querySelectorAll('.pn-fav-card-main').forEach(b => b.addEventListener('click', function () {
             const id = this.closest('.pn-fav-card')?.dataset?.parkingId;
             if (id) highlightAndShowParking(id);
