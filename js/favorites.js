@@ -532,14 +532,17 @@ function renderFavorites(content) {
     content.innerHTML = `
         <div class="pn-favorites">
             <div class="pn-fav-header"><div><h2>Избранное</h2><p id="pnFavSubtitle">Загрузка...</p></div><div class="pn-fav-header-icon">♥</div></div>
-            <button type="button" class="pn-address-entry" onclick="openMyAddresses()">
-    <span class="pn-address-entry-icon">📍</span>
+<button type="button" class="pn-address-entry" onclick="openMyAddresses()">
+    <span class="pn-address-entry-icon">
+        ${window.pnIcon('mapPin', { size: 23 })}
+    </span>
     <span class="pn-address-entry-info">
         <strong>Мои адреса</strong>
         <small>Дом, работа и парковки рядом</small>
     </span>
     <span class="pn-address-entry-arrow">›</span>
 </button>
+
             <div class="pn-fav-search"><span>⌕</span><input id="pnFavSearch" type="search" placeholder="Поиск парковки..." autocomplete="off"><button id="pnFavClearSearch" type="button">×</button></div>
             <div class="pn-fav-filters">
                 <button class="pn-fav-filter active" data-sort="recent">Недавние</button>
