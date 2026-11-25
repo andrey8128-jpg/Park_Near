@@ -126,6 +126,24 @@ async function initializeDatabase() {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
         `,
+        
+        `
+        CREATE TABLE IF NOT EXISTS xp_events (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL
+                REFERENCES users(id) ON DELETE CASCADE,
+            event_key TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            xp INTEGER NOT NULL CHECK (xp > 0),
+            parking_id TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE (user_id, event_key)
+        )
+        `,
+        `
+        CREATE INDEX IF NOT EXISTS idx_xp_events_user
+        ON xp_events (user_id, created_at DESC)
+        `,
         `
         CREATE TABLE IF NOT EXISTS favorites (
             user_id TEXT NOT NULL
@@ -2172,6 +2190,63 @@ const sessionRow = await client.query(
      RETURNING id`,
     [sessionId, JSON.stringify(updatedSession)]
 );
+
+// ============================================
+// НАЧИСЛЕНИЕ XP ЗА ПАРКОВОЧНУЮ СЕССИЮ
+// +5 XP один раз за парковку в сутки
+// ============================================
+
+const parkingDay = new Date().toISOString().slice(0, 10);
+
+const xpEventKey = `parking-session:${parkingId}:${parkingDay}`;
+
+const xpEventResult = await client.query(
+    `INSERT INTO xp_events (
+        id,
+        user_id,
+        event_key,
+        event_type,
+        xp,
+        parking_id
+    )
+    VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (user_id, event_key) DO NOTHING
+    RETURNING id`,
+    [
+        crypto.randomUUID(),
+        userId,
+        xpEventKey,
+        'parking_session',
+        5,
+        parkingId
+    ]
+);
+
+const parkingXpAwarded = xpEventResult.rows.length > 0;
+
+if (parkingXpAwarded) {
+    await client.query(
+        `UPDATE users
+         SET data = jsonb_set(
+             COALESCE(data, '{}'::jsonb),
+             '{stats}',
+             COALESCE(data->'stats', '{}'::jsonb)
+             || jsonb_build_object(
+                 'parkingSessionsCompleted',
+                 COALESCE(
+                     NULLIF(
+                         data #>> '{stats,parkingSessionsCompleted}',
+                         ''
+                     )::integer,
+                     0
+                 ) + 1
+             ),
+             true
+         )
+         WHERE id = $1`,
+        [userId]
+    );
+}
 const occupancyAfter = await getParkingOccupancyBreakdown(
     client,
     parkingId,
@@ -2223,10 +2298,17 @@ await client.query(
                 id: sessionRow.rows[0].id,
                 ...updatedSession
             },
-                parking: {
-                    ...updatedParking,
-                    id: parkingId
-                }
+                
+parking: {
+    ...updatedParking,
+    id: parkingId
+},
+xp: {
+    awarded: parkingXpAwarded,
+    amount: parkingXpAwarded ? 5 : 0,
+    reason: 'parking_session'
+}
+
             });
         } catch (error) {
             await client.query('ROLLBACK');
