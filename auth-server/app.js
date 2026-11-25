@@ -1638,16 +1638,52 @@ app.get('/api/users/me/favorites', requireAuth, requireRegisteredUser, async (re
              ORDER BY f.created_at DESC`,
             [String(req.authUser.id)]
         );
+const PUBLIC_PARKING_FIELDS = [
+    'name',
+    'description',
+    'address',
+    'city',
+    'addressCity',
+    'regionCity',
+    'region',
+    'street',
+    'addressStreet',
+    'houseNumber',
+    'house',
+    'lat',
+    'lng',
+    'latitude',
+    'longitude',
+    'coords',
+    'coordinates',
+    'totalSpots',
+    'occupiedSpots',
+    'isPaid',
+    'status',
+    'lastUpdatedAt',
+    'timestamp',
+    'authorId'
+];
+const favorites = result.rows.map(row => {
+    let parking = null;
 
-        const favorites = result.rows.map(row => {
-            let parking = null;
-            if (row.parking) {
-                const publicData = { ...row.parking };
-                delete publicData.history;
-            
-                    parking = {
-                    ...publicData,
-                    id: row.parkingId
+    if (row.parking) {
+        const publicData = {};
+
+        for (const field of PUBLIC_PARKING_FIELDS) {
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    row.parking,
+                    field
+                )
+            ) {
+                publicData[field] = row.parking[field];
+            }
+        }
+
+        parking = {
+            ...publicData,
+            id: row.parkingId
         };
     }
     return {
