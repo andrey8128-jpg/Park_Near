@@ -2865,6 +2865,7 @@ app.get('/api/parkings', parkingListRateLimiter, async (req, res) => {
         );
         const PUBLIC_PARKING_FIELDS = [
     'name',
+    'description',
     'address',
     'city',
     'region',
