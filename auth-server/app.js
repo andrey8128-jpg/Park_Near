@@ -2033,6 +2033,29 @@ app.get('/health', (req, res) => {
     });
 });
 // ============================================
+// ПРОВЕРКА ГОТОВНОСТИ POSTGRESQL
+// ============================================
+app.get('/ready', async (req, res) => {
+    try {
+        await pool.query('SELECT 1');
+        return res.status(200).json({
+            status: 'ready',
+            service: 'Park Near Auth Server',
+            database: 'connected'
+        });
+    } catch (error) {
+        console.error(
+            'Проверка готовности PostgreSQL не пройдена:',
+            error.message
+        );
+        return res.status(503).json({
+            status: 'not_ready',
+            service: 'Park Near Auth Server',
+            database: 'unavailable'
+        });
+    }
+});
+// ============================================
 // АКТИВНАЯ ПАРКОВОЧНАЯ СЕССИЯ: ПОЛУЧЕНИЕ
 // ============================================
 app.get('/api/parking-sessions/active', requireAuth, async (req, res) => {
