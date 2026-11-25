@@ -78,129 +78,344 @@
         transform: none;
     }
 }
+
 /* =========================================================
-   СОХРАНЁННЫЕ АДРЕСА
+   PARK NEAR — PREMIUM SAVED ADDRESSES
+   Dark Glass × Arctic Blue
    ========================================================= */
-.pn-address-entry {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    padding: 15px;
-    margin: 18px 0;
+
+.pn-addresses {
+    position: relative;
+    padding: 18px 16px 28px;
     color: var(--text-primary);
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    text-align: left;
+}
+
+/* Заголовок */
+
+.pn-addresses-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.pn-addresses-header h2 {
+    margin: 0;
+    font-size: 27px;
+    font-weight: 750;
+    letter-spacing: -.7px;
+    color: #f1f7ff;
+}
+
+.pn-addresses-header p {
+    margin: 9px 0 0;
+    color: #9fb4c8;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.pn-addresses-header button {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    color: #8bbaff;
+    background: transparent;
+    border: 0;
     cursor: pointer;
 }
-.pn-address-entry-icon {
+
+/* Кнопка добавления */
+
+.pn-address-add {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 46px;
-    height: 46px;
-    flex-shrink: 0;
-    border-radius: 14px;
-    background: var(--brand-soft);
-    color: var(--brand);
-    font-size: 23px;
-}
-.pn-address-entry-info {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 4px;
-}
-.pn-address-entry-info strong {
-    color: var(--text-primary);
-    font-size: 16px;
-}
-.pn-address-entry-info small {
-    color: var(--text-secondary);
-    font-size: 12px;
-}
-.pn-address-entry-arrow {
-    color: var(--text-secondary);
-    font-size: 25px;
-}
-.pn-addresses {
-    padding: 16px;
-    color: var(--text-primary);
-}
-.pn-addresses-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-.pn-addresses-header h2 {
-    margin: 0;
-    color: var(--text-primary);
-}
-.pn-addresses-header button,
-.pn-address-delete {
-    color: var(--accent);
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-}
-.pn-address-add,
-.pn-address-nearby {
+    gap: 12px;
     width: 100%;
-    padding: 14px;
-    color: var(--text-primary);
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    cursor: pointer;
-}
-.pn-address-add {
-    margin-bottom: 18px;
-    color: var(--accent);
-    font-weight: 600;
-}
-.pn-address-card {
+    min-height: 66px;
+    margin-bottom: 22px;
     padding: 16px;
-    margin-bottom: 14px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #347de7, #174b9d);
+    border: 1px solid rgba(113, 174, 255, .8);
+    border-radius: 20px;
+    box-shadow:
+        0 8px 26px rgba(24, 105, 220, .28),
+        inset 0 1px 0 rgba(255,255,255,.2);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .2s ease, filter .2s ease;
 }
+
+.pn-address-add svg {
+    flex-shrink: 0;
+}
+
+.pn-address-add:active {
+    transform: scale(.98);
+    filter: brightness(1.12);
+}
+
+/* Карточка адреса */
+
+.pn-address-card {
+    position: relative;
+    overflow: hidden;
+    padding: 18px;
+    margin-bottom: 18px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(35, 62, 88, .82),
+            rgba(15, 29, 44, .94)
+        );
+    border: 1px solid rgba(104, 161, 215, .34);
+    border-radius: 25px;
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, .18),
+        inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.pn-address-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(111, 176, 255, .75),
+        transparent
+    );
+}
+
 .pn-address-card-head {
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 14px;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
 }
-.pn-address-card-head p,
-.pn-address-parking small {
+
+.pn-address-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 62px;
+    width: 62px;
+    height: 62px;
+    color: #d9eaff;
+    background: linear-gradient(145deg, #286bc1, #173c70);
+    border: 1px solid rgba(126, 183, 255, .45);
+    border-radius: 19px;
+    box-shadow:
+        0 5px 18px rgba(25, 106, 210, .28),
+        inset 0 1px 0 rgba(255,255,255,.15);
+}
+
+.pn-address-icon svg {
     display: block;
-    margin: 5px 0 0;
-    color: var(--text-secondary);
+}
+
+.pn-address-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pn-address-card-info strong {
+    display: block;
+    color: #f1f7ff;
+    font-size: 19px;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+.pn-address-card-head p {
+    margin: 6px 0 0;
+    color: #a8bdcf;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+/* Удаление */
+
+.pn-address-delete {
+    display: grid;
+    place-items: center;
+    flex: 0 0 43px;
+    width: 43px;
+    height: 43px;
+    padding: 0;
+    color: #b8cce0;
+    background: rgba(120, 157, 190, .10);
+    border: 1px solid rgba(133, 174, 212, .2);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease;
+}
+
+.pn-address-delete:active {
+    color: #ff8585;
+    background: rgba(255, 75, 75, .14);
+}
+
+/* Разделитель */
+
+.pn-address-divider {
+    height: 1px;
+    margin: 17px 0;
+    background: rgba(139, 180, 217, .18);
+}
+
+/* Поиск парковок рядом */
+
+.pn-address-nearby {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: 67px;
+    padding: 12px;
+    color: #e9f3ff;
+    background: rgba(63, 103, 143, .16);
+    border: 1px solid rgba(116, 169, 218, .28);
+    border-radius: 19px;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease;
+}
+
+.pn-address-nearby:active {
+    background: rgba(75, 133, 195, .26);
+    transform: scale(.985);
+}
+
+.pn-address-nearby-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    color: #82b6ff;
+}
+
+.pn-address-nearby-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.pn-address-nearby-distance {
+    color: #8bbaff;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pn-address-nearby-arrow {
+    color: #8bbaff;
+    font-size: 27px;
+    line-height: 1;
+}
+
+/* Результаты поиска */
+
+.pn-address-results {
+    margin-top: 12px;
+    color: #c5d5e5;
+}
+
+.pn-address-results p {
+    margin: 10px 2px;
+    color: #a8bdcf;
     font-size: 13px;
 }
+
 .pn-address-parking {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     width: 100%;
-    padding: 12px 4px;
-    color: var(--text-primary);
+    padding: 14px 8px;
+    color: #edf5ff;
     background: transparent;
     border: 0;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(139, 180, 217, .16);
     text-align: left;
     cursor: pointer;
 }
+
+.pn-address-parking strong {
+    font-size: 14px;
+}
+
+.pn-address-parking small {
+    display: block;
+    margin-top: 5px;
+    color: #9fb4c8;
+    font-size: 12px;
+}
+
+/* Пустой список */
+
 .pn-address-empty {
-    padding: 20px;
-    color: var(--text-secondary);
+    padding: 28px 18px;
+    color: #a8bdcf;
+    background: rgba(34, 58, 81, .55);
+    border: 1px solid rgba(116, 169, 218, .2);
+    border-radius: 20px;
+    font-size: 14px;
+    line-height: 1.6;
     text-align: center;
 }
-.pn-address-results {
-    margin-top: 12px;
+
+/* Адаптация */
+
+@media (max-width: 380px) {
+    .pn-addresses {
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+
+    .pn-address-card {
+        padding: 14px;
+    }
+
+    .pn-address-icon {
+        flex-basis: 52px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .pn-address-card-info strong {
+        font-size: 17px;
+    }
+
+    .pn-address-nearby {
+        gap: 7px;
+        padding: 10px;
+    }
+
+    .pn-address-nearby-title {
+        font-size: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pn-address-add,
+    .pn-address-delete,
+    .pn-address-nearby {
+        transition: none;
+    }
 }
 /* =========================================================
    ВЫБОР АДРЕСА НА КАРТЕ
