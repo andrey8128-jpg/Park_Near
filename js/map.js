@@ -1129,7 +1129,6 @@ if (parkingsLoadPromise) {
         throw error;
     }
 });
-});
     parkingsLoadPromise = requestPromise.finally(() => {
         parkingsLoadPromise = null;
     });
