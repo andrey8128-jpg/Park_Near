@@ -104,13 +104,15 @@ const loadProfileData = async () => {
         const views = Number(stats.views || 0);
         const favoritesCount = favorites.length;
         const activeDates = Array.isArray(stats.activeDates) ? stats.activeDates : [];
-        const score =
-            created * 25 +
-            updated * 5 +
-            confirmations * 5 +
-            Math.floor(views / 5) +
-            favoritesCount * 5 +
-            activeDates.length * 5;
+        const parkingSessionsCompleted = Number(stats.parkingSessionsCompleted || 0);
+           const score =
+    created * 25 +
+    updated * 5 +
+    confirmations * 5 +
+    Math.floor(views / 5) +
+    favoritesCount * 5 +
+    activeDates.length * 5 +
+    parkingSessionsCompleted * 5;
         const levels = [
             {xp:0,name:'Пешеход',emoji:'👣'},
             {xp:1000,name:'Водитель-любитель',emoji:'🚗'},
