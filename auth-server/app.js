@@ -2039,8 +2039,9 @@ app.post('/auth/logout', requireAuth, async (req, res) => {
 // СОЗДАНИЕ ГОСТЕВОЙ СЕССИИ
 // ============================================
 app.post('/auth/guest', guestRateLimiter, async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const now = Date.now();
         // ID и токен создаются сервером.
         const guestId =
@@ -2096,7 +2097,16 @@ app.post('/auth/guest', guestRateLimiter, async (req, res) => {
             user
         });
     } catch (error) {
-        await client.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката создания гостевой сессии:',
+                    rollbackError
+                );
+            }
+        }
         console.error(
             'Ошибка создания гостевой сессии:',
             error.message
@@ -2105,8 +2115,11 @@ app.post('/auth/guest', guestRateLimiter, async (req, res) => {
             success: false,
             error: 'Не удалось создать гостевую сессию'
         });
+    
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 });
 // ============================================
