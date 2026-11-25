@@ -2221,8 +2221,9 @@ app.post(
      requireRegisteredUser,
      parkingSessionMutationRateLimiter,
      async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const parkingId = String(req.body?.parkingId || '');
         const userId = String(req.authUser.id);
         if (!parkingId) {
@@ -2430,17 +2431,30 @@ xp: {
     amount: parkingXpAwarded ? 5 : 0,
     reason: 'parking_session'
 }
-
             });
         } catch (error) {
-            await client.query('ROLLBACK');
-            console.error('Ошибка завершения парковки:', error);
+            if (client) {
+                try {
+                    await client.query('ROLLBACK');
+                } catch (rollbackError) {
+                    console.error(
+                        'Ошибка отката начала парковочной сессии:',
+                        rollbackError
+                    );
+                }
+            }
+            console.error(
+                'Ошибка начала парковочной сессии:',
+                error
+            );
             return res.status(500).json({
                 success: false,
-                error: 'Не удалось завершить парковочную сессию'
+                error: 'Не удалось начать парковочную сессию'
             });
         } finally {
-            client.release();
+            if (client) {
+                client.release();
+            }
         }
     }
 );
