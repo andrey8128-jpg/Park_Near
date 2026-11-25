@@ -206,9 +206,9 @@ map.events.add('zoomchange', function() {
         // ===== СОЗДАЁМ КЛАСТЕРИЗАТОР =====
         if (ENABLE_PARKING_CLUSTERS) {
             clusterer = new ymaps.Clusterer({
-                gridSize: 64,
+                gridSize: 120,
                 minClusterSize: 2,
-                maxZoom: 18,
+                maxZoom: 19,
                 clusterDisableClickZoom: false,
                 clusterOpenBalloonOnClick: false,
 // Динамический шаблон кластера парковок
