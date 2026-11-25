@@ -212,7 +212,8 @@ map.events.add('zoomchange', function() {
                 clusterDisableClickZoom: false,
                 clusterOpenBalloonOnClick: false,
 
-                // Видимый круглый маркер кластера парковок
+                
+                // Кластер показывает суммарное количество свободных мест
                 clusterIconLayout: ymaps.templateLayoutFactory.createClass(
                     '<div style="' +
                         'width:64px;' +
@@ -230,14 +231,13 @@ map.events.add('zoomchange', function() {
                         'font-weight:800;' +
                         'text-align:center;' +
                         'line-height:1;' +
-                        'box-shadow:0 4px 14px rgba(0,0,0,0.45);' +
-                        'position:relative;' +
+                        'box-shadow:0 4px 14px rgba(0,0,0,0.4);' +
                     '">' +
-                        '<div style="font-size:23px;line-height:26px;">' +
-                            '$[properties.geoObjects.length]' +
-                        '</div>' +
-                        '<div style="font-size:9px;line-height:11px;font-weight:800;white-space:nowrap;">' +
-                            'ПАРКОВОК' +
+                        '<div style="font-size:25px;line-height:28px;font-weight:800;">' +
+                             '$[properties.freeSpots]' +
+                           '</div>' +
+                        '<div style="font-size:6px;line-height:8px;font-weight:700;white-space:nowrap;">' +
+                            'СВОБОДНО' +
                         '</div>' +
                     '</div>'
                 ),
