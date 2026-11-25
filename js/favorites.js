@@ -367,8 +367,6 @@ container.querySelectorAll('[data-remove-favorite]')
             }
         });
     });
-
-await refreshProfileFavoritesCount(favorites.length);
         await refreshProfileFavoritesCount(favorites.length);
     } catch (error) {
         console.error('Ошибка загрузки избранного:', error);
