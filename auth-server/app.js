@@ -204,11 +204,6 @@ async function initializeDatabase() {
             error.message
         );
         throw error;
-        console.error(
-            'Ошибка подготовки PostgreSQL:',
-            error.message
-        );
-        throw error;
         } finally {
         if (client) {
             client.release();
@@ -3400,10 +3395,6 @@ await client.query(
             success: false,
             error: 'Не удалось сохранить парковку'
         });
-        return res.status(500).json({
-            success: false,
-            error: 'Не удалось сохранить парковку'
-        });
        } finally {
         if (client) {
             client.release();
@@ -3662,10 +3653,6 @@ app.patch('/api/parkings/:id', requireAuth, requireRegisteredUser, parkingManage
             success: false,
             error: 'Не удалось обновить парковку'
         });
-        return res.status(500).json({
-            success: false,
-            error: 'Не удалось обновить парковку'
-        });
        } finally {
         if (client) {
             client.release();
@@ -3770,8 +3757,10 @@ app.patch('/api/parkings/:id/occupancy', requireAuth, requireRegisteredUser, occ
             error: 'Допустимо изменить занятость только на одно место'
         });
     }
-    const client = await pool.connect();
+       let client;
+
     try {
+        client = await pool.connect();
         await client.query('BEGIN');
         const result = await client.query(
             'SELECT data FROM parkings WHERE id = $1 FOR UPDATE',
@@ -3872,15 +3861,25 @@ const updatedParking = {
     }
 });
     } catch (error) {
-        await client.query('ROLLBACK');
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката изменения занятости:',
+                    rollbackError
+                );
+            }
+        }
         console.error('Ошибка изменения занятости:', error);
-
         return res.status(500).json({
             success: false,
             error: 'Не удалось изменить занятость парковки'
         });
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 });
 // ============================================
