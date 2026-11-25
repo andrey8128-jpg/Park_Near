@@ -1779,13 +1779,21 @@ app.post('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUse
             added: inserted.rowCount > 0
         });
     } catch (error) {
-        await client.query('ROLLBACK');
-         console.error('Ошибка добавления избранного:', error);
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката добавления избранного:',
+                    rollbackError
+                );
+            }
+        }
+        console.error('Ошибка добавления избранного:', error);
         return res.status(500).json({
             success: false,
             error: 'Не удалось добавить парковку в избранное'
         });
-
     } finally {
         if (client) {
             client.release();
@@ -1834,8 +1842,17 @@ app.delete('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredU
             removed: deleted.rowCount > 0
         });
     } catch (error) {
-        await client.query('ROLLBACK');
-          console.error('Ошибка удаления избранного:', error);
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error(
+                    'Ошибка отката удаления избранного:',
+                    rollbackError
+                );
+            }
+        }
+        console.error('Ошибка удаления избранного:', error);
         return res.status(500).json({
             success: false,
             error: 'Не удалось удалить парковку из избранного'
