@@ -79,15 +79,35 @@ let addressGeocodeRequest = 0;
             content.innerHTML = '<div class="pn-fav-empty"><h3>Войдите в аккаунт</h3><p>Сохранение адресов доступно зарегистрированным пользователям.</p></div>';
             return;
         }
-        content.innerHTML = `
-            <div class="pn-addresses">
-                <div class="pn-addresses-header">
-                    <h2>Мои адреса</h2>
-                    <button type="button" onclick="renderProfile(document.getElementById('panelContent'))">Закрыть</button>
-                </div>
-                <button type="button" class="pn-address-add" id="pnAddressAdd">＋ Добавить адрес</button>
-                <div id="pnAddressesList">Загрузка адресов...</div>
-            </div>`;
+        
+content.innerHTML = `
+    <div class="pn-addresses">
+
+        <div class="pn-addresses-header">
+            <div>
+                <h2>Мои адреса</h2>
+                <p>Быстрый доступ к парковкам рядом с важными местами</p>
+            </div>
+
+            <button type="button"
+                onclick="renderProfile(document.getElementById('panelContent'))"
+                aria-label="Закрыть">
+                ${window.pnIcon('close', {size: 25})}
+            </button>
+        </div>
+
+        <button type="button"
+            class="pn-address-add"
+            id="pnAddressAdd">
+            ${window.pnIcon('plus', {size: 24})}
+            <span>Добавить адрес</span>
+        </button>
+
+        <div id="pnAddressesList">
+            Загрузка адресов...
+        </div>
+
+    </div>`;
         document.getElementById('pnAddressAdd').onclick = openAddressPicker;
         document.getElementById('pnAddressPickerClose').onclick = closeAddressPicker;
         document.getElementById('pnAddressPickerCancel').onclick = closeAddressPicker;
@@ -262,19 +282,66 @@ function closeAddressPicker() {
                 container.innerHTML = '<div class="pn-address-empty">Пока нет сохранённых адресов. Добавьте дом, работу или другое место.</div>';
                 return;
             }
-            container.innerHTML = addresses.map(address => `
-                <section class="pn-address-card" data-address-id="${escape(address.id)}">
-                    <div class="pn-address-card-head">
-                        <div>
-                            <strong>${escape(address.name)}</strong>
-                            <p>${escape(address.address)}</p>
-                        </div>
-                        <button type="button" class="pn-address-delete" data-delete="${escape(address.id)}">Удалить</button>
-                    </div>
-                    <button type="button" class="pn-address-nearby" data-nearby="${escape(address.id)}">Показать парковки в радиусе 300 м</button>
-                    <div class="pn-address-results" id="pnAddressResults_${escape(address.id)}"></div>
-                </section>
-            `).join('');
+            
+container.innerHTML = addresses.map(address => `
+    <section class="pn-address-card"
+             data-address-id="${escape(address.id)}">
+
+        <div class="pn-address-card-head">
+
+            <div class="pn-address-icon">
+                ${window.pnIcon(
+                    /дом|home/i.test(address.name || '')
+                        ? 'home'
+                        : 'mapPin',
+                    {size: 34}
+                )}
+            </div>
+
+            <div class="pn-address-card-info">
+                <strong>${escape(address.name)}</strong>
+                <p>${escape(address.address)}</p>
+            </div>
+
+            <button
+                type="button"
+                class="pn-address-delete"
+                data-delete="${escape(address.id)}"
+                aria-label="Удалить адрес">
+                ${window.pnIcon('trash', {size: 21})}
+            </button>
+
+        </div>
+
+        <div class="pn-address-divider"></div>
+
+        <button
+            type="button"
+            class="pn-address-nearby"
+            data-nearby="${escape(address.id)}">
+
+            <span class="pn-address-nearby-icon">
+                ${window.pnIcon('route', {size: 27})}
+            </span>
+
+            <span class="pn-address-nearby-title">
+                Парковки рядом
+            </span>
+
+            <span class="pn-address-nearby-distance">
+                300 м
+            </span>
+
+            <span class="pn-address-nearby-arrow">›</span>
+
+        </button>
+
+        <div class="pn-address-results"
+             id="pnAddressResults_${escape(address.id)}">
+        </div>
+
+    </section>
+`).join('');
             container.querySelectorAll('[data-delete]').forEach(button => {
                 button.addEventListener('click', () => deleteAddress(button.dataset.delete));
             });
