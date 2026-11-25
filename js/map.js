@@ -211,7 +211,6 @@ map.events.add('zoomchange', function() {
                 maxZoom: 19,
                 clusterDisableClickZoom: false,
                 clusterOpenBalloonOnClick: false,
-
                 
                 // Кластер показывает суммарное количество свободных мест
                 clusterIconLayout: ymaps.templateLayoutFactory.createClass(
@@ -233,10 +232,10 @@ map.events.add('zoomchange', function() {
                         'line-height:1;' +
                         'box-shadow:0 4px 14px rgba(0,0,0,0.4);' +
                     '">' +
-                        '<div style="font-size:25px;line-height:28px;font-weight:800;">' +
-                             '$[properties.freeSpots]' +
-                           '</div>' +
-                        '<div style="font-size:6px;line-height:8px;font-weight:700;white-space:nowrap;">' +
+                        '<div style="font-size:25px;line-height:28px;font-weight:800;color:#ffffff;">' +
+                            '$[properties.freeSpots]' +
+                        '</div>' +
+                        '<div style="font-size:6px;line-height:8px;font-weight:700;color:#ffffff;white-space:nowrap;">' +
                             'СВОБОДНО' +
                         '</div>' +
                     '</div>'
