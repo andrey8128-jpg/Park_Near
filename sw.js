@@ -1,4 +1,4 @@
-const CACHE_NAME = 'parknear-shell-v59';
+const CACHE_NAME = 'parknear-shell-v60';
 const BASE_PATH = new URL('.', self.location.href).pathname;
 const DEFAULT_ICON = `${BASE_PATH}assets/images/logo.png`;
 
@@ -31,7 +31,7 @@ const APP_FILES = [
     './js/parking-creator.js?v=20261116-3',
     './js/profile.js?v=20261118-3',
     './js/my-addresses.js?v=20261116-5',
-    './js/favorites.js?v=20261124-2',
+    './js/favorites.js?v=20261124-3',
     './js/settings.js',
     './js/onboarding.js'
 ];
