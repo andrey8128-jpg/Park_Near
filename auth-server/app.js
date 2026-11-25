@@ -575,10 +575,20 @@ app.get('/auth/yandex/callback', async (req, res) => {
             }
         );
         const tokenData = await tokenResponse.json();
-        if (!tokenResponse.ok || !tokenData.access_token) {
-            console.error('Ошибка обмена кода Яндекс:', tokenData);
-            throw new Error('Яндекс не выдал токен авторизации');
-        }
+
+if (!tokenResponse.ok || !tokenData.access_token) {
+    console.error('Ошибка обмена кода Яндекс:', {
+        httpStatus: tokenResponse.status,
+        error: typeof tokenData.error === 'string'
+            ? tokenData.error
+            : 'unknown',
+        errorDescription:
+            typeof tokenData.error_description === 'string'
+                ? tokenData.error_description
+                : ''
+    });
+    throw new Error('Яндекс не выдал токен авторизации');
+}
         // Получаем подтверждённый профиль пользователя.
         const profileResponse = await fetch(
             'https://login.yandex.ru/info?format=json',
