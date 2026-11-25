@@ -444,7 +444,9 @@ function renderHistoryEntry(entry) {
     const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const actionText = entry.action === 'occupied' ? 'Занял' : 'Освободил';
     const actionColor = entry.action === 'occupied' ? 'var(--history-occupied)' : 'var(--history-freed)';
-    const carStr = entry.car.brand ? `${entry.car.brand} ${entry.car.model || ''}` : 'без авто';
+    const carStr = entry.car?.brand
+    ? `${escapeHtml(entry.car.brand)} ${escapeHtml(entry.car.model || '')}`
+    : 'без авто';
     return `
         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border-color); font-size: 14px;">
             <div>
@@ -526,24 +528,42 @@ async function loadModerationQueue() {
                     <small>Автор: ${safeAuthor}</small>
 
                     <div class="pn-car-actions">
-                        <button
-                            type="button"
-                            onclick="moderateParkingRequest('${safeId}', 'approve')"
-                        >
-                            Одобрить
+                       <button
+                           type="button"
+                           data-moderation-id="${safeId}"
+                           data-moderation-action="approve"
+                             >
+                             Одобрить
                         </button>
 
                         <button
-                            type="button"
-                            class="danger"
-                            onclick="moderateParkingRequest('${safeId}', 'reject')"
-                        >
-                            Отклонить
-                        </button>
+                          type="button"
+                             class="danger"
+                               data-moderation-id="${safeId}"
+                                 data-moderation-action="reject"
+                             >
+                               Отклонить
+                         </button>
                     </div>
                 </div>
             `;
         }).join('');
+        container.querySelectorAll('[data-moderation-action]')
+    .forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.dataset.moderationId;
+            const action = button.dataset.moderationAction;
+
+            if (
+                !id ||
+                !['approve', 'reject'].includes(action)
+            ) {
+                return;
+            }
+
+            moderateParkingRequest(id, action);
+        });
+    });
     } catch (error) {
         console.error('Ошибка очереди модерации:', error);
         container.textContent = error.message ||
