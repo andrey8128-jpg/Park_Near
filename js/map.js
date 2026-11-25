@@ -1054,6 +1054,7 @@ if (parkingsLoadPromise) {
     // Сохраняем данные только после загрузки всех страниц.
     parkingDataCache = newCache;
     lastDataRefresh = Date.now();
+    window.isOfflineMode = false;
     try {
         localStorage.setItem(
             'parkingCache',
@@ -1087,6 +1088,13 @@ if (parkingsLoadPromise) {
 })()
 .catch(async error => {
     console.warn('Не удалось загрузить парковки из PostgreSQL:', error);
+    const browserReportsOffline =
+        typeof navigator !== 'undefined' &&
+        navigator.onLine === false;
+    if (!browserReportsOffline) {
+        window.isOfflineMode = false;
+        throw error;
+    }
     window.isOfflineMode = true;
     try {
         let cachedParkings = {};
@@ -1120,6 +1128,7 @@ if (parkingsLoadPromise) {
         console.warn('Не удалось восстановить парковки:', cacheError);
         throw error;
     }
+});
 });
     parkingsLoadPromise = requestPromise.finally(() => {
         parkingsLoadPromise = null;
