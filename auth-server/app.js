@@ -1609,9 +1609,24 @@ app.patch('/api/users/me/profile', requireAuth, profileUpdateRateLimiter, async 
                 error: 'Пользователь не найден'
             });
         }
+       
+        const savedProfile = result.rows[0].data || {};
+        const safeProfile = {};
+
+        for (const field of allowedFields) {
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    savedProfile,
+                    field
+                )
+            ) {
+                safeProfile[field] = savedProfile[field];
+            }
+        }
+
         return res.json({
             success: true,
-            profile: result.rows[0].data
+            profile: safeProfile
         });
     } catch (error) {
         console.error('Ошибка сохранения профиля:', error);
