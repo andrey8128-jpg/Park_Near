@@ -252,6 +252,7 @@ async function loadFavoritesInline(force = false) {
             return;
         }
         
+
 container.innerHTML = favorites.map(item => {
     const data = item.parking || {};
     const id = String(item.parkingId);
@@ -290,51 +291,84 @@ container.innerHTML = favorites.map(item => {
         : 'Время обновления неизвестно';
 
     return `
-    <article class="pn-profile-favorite"
-             data-parking-id="${escapeHtml(id)}">
+        <article class="pn-profile-favorite"
+                 data-parking-id="${escapeHtml(id)}">
 
-        <div class="pn-profile-favorite-info"
-             data-open-favorite="true">
+            <div class="pn-profile-favorite-info"
+                 data-open-favorite="true">
 
-            <div class="pn-profile-favorite-title">
-                ${escapeHtml(data.name || 'Парковка')}
-            </div>
-
-            <div class="pn-profile-favorite-address">
-                ${escapeHtml(data.address || data.street || '')}
-            </div>
-
-            <div class="pn-profile-favorite-bottom">
-
-                <div class="pn-profile-favorite-status ${cls}">
-                    <span class="pn-profile-favorite-dot"></span>
-                    ${status}
+                <div class="pn-profile-favorite-title">
+                    ${escapeHtml(data.name || 'Парковка')}
                 </div>
 
-                ${showFreeCount ? `
-                    <span class="pn-profile-favorite-count">
-                        ${free} мест
-                    </span>
-                ` : ''}
+                <div class="pn-profile-favorite-address">
+                    ${escapeHtml(data.address || data.street || '')}
+                </div>
+
+                <div class="pn-profile-favorite-bottom">
+
+                    <div class="pn-profile-favorite-status ${cls}">
+                        <span class="pn-profile-favorite-dot"></span>
+                        ${status}
+                    </div>
+
+                    ${showFreeCount ? `
+                        <span class="pn-profile-favorite-count">
+                            ${free} мест
+                        </span>
+                    ` : ''}
+
+                </div>
+
+                <div class="pn-profile-favorite-update">
+                    ${escapeHtml(lastUpdateText)}
+                </div>
 
             </div>
 
-            <div class="pn-profile-favorite-update">
-                ${escapeHtml(lastUpdateText)}
-            </div>
+            <button
+                type="button"
+                class="pn-profile-favorite-remove"
+                data-remove-favorite="true"
+                aria-label="Удалить из избранного">
+                ♥
+            </button>
 
-        </div>
+        </article>
+    `;
+}).join('');
 
-        <button
-            type="button"
-            class="pn-profile-favorite-remove"
-            data-remove-favorite="true"
-            aria-label="Удалить из избранного">
-            ♥
-        </button>
+// Открытие парковки
+container.querySelectorAll('[data-open-favorite]')
+    .forEach(element => {
+        element.addEventListener('click', () => {
+            const id = element
+                .closest('[data-parking-id]')
+                ?.dataset.parkingId;
 
-    </article>
-`;
+            if (id) {
+                openFavoriteParking(id);
+            }
+        });
+    });
+
+// Удаление парковки
+container.querySelectorAll('[data-remove-favorite]')
+    .forEach(button => {
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+
+            const id = button
+                .closest('[data-parking-id]')
+                ?.dataset.parkingId;
+
+            if (id) {
+                removeFromFavorites(id);
+            }
+        });
+    });
+
+await refreshProfileFavoritesCount(favorites.length);
         await refreshProfileFavoritesCount(favorites.length);
     } catch (error) {
         console.error('Ошибка загрузки избранного:', error);
