@@ -2868,6 +2868,8 @@ app.get('/api/parkings', parkingListRateLimiter, async (req, res) => {
     'description',
     'address',
     'city',
+    'addressCity',
+    'regionCity',
     'region',
     'street',
     'addressStreet',
