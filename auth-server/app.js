@@ -1726,14 +1726,13 @@ const favorites = result.rows.map(row => {
 // ДОБАВЛЕНИЕ ПАРКОВКИ В ИЗБРАННОЕ
 // ============================================
 app.post('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, favoriteMutationRateLimiter, async (req, res) => {
-    const client = await pool.connect();
+    let client;
 
     try {
+        client = await pool.connect();
         const userId = String(req.authUser.id);
         const parkingId = String(req.params.parkingId);
-
         await client.query('BEGIN');
-
         const parking = await client.query(
             'SELECT id FROM parkings WHERE id = $1',
             [parkingId]
@@ -1786,16 +1785,21 @@ app.post('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUse
             success: false,
             error: 'Не удалось добавить парковку в избранное'
         });
+
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
+
 });
 // ============================================
 // УДАЛЕНИЕ ПАРКОВКИ ИЗ ИЗБРАННОГО
 // ============================================
 app.delete('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredUser, favoriteMutationRateLimiter, async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+        client = await pool.connect();
         const userId = String(req.authUser.id);
         const parkingId = String(req.params.parkingId);
           await client.query('BEGIN');
@@ -1837,7 +1841,9 @@ app.delete('/api/users/me/favorites/:parkingId', requireAuth, requireRegisteredU
             error: 'Не удалось удалить парковку из избранного'
         });
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 });
 // ============================================
