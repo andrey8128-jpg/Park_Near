@@ -213,14 +213,15 @@ map.events.add('zoomchange', function() {
                 clusterOpenBalloonOnClick: false,
                 
                 // Кластер показывает суммарное количество свободных мест
-                clusterIconLayout: ymaps.templateLayoutFactory.createClass(
+               clusterIconLayout: ymaps.templateLayoutFactory.createClass(
     '<div style="' +
         'width:42px;' +
         'height:42px;' +
         'box-sizing:border-box;' +
         'border-radius:50%;' +
-        'background-color:#1877E8;' +
-        'border:3px solid #FFFFFF;' +
+        'background-color:#7B8492;' +
+        'background-image:linear-gradient(145deg,$[properties.clusterColor],$[properties.clusterColorDark]);' +
+        'border:2px solid rgba(255,255,255,0.95);' +
         'display:flex;' +
         'align-items:center;' +
         'justify-content:center;' +
@@ -228,10 +229,10 @@ map.events.add('zoomchange', function() {
         'font-family:Arial,sans-serif;' +
         'font-size:18px;' +
         'font-weight:800;' +
-        'line-height:1;' +
         'text-align:center;' +
+        'line-height:1;' +
         'opacity:1;' +
-        'box-shadow:0 3px 10px rgba(0,0,0,0.55);' +
+        'box-shadow:0 3px 9px rgba(0,0,0,0.55);' +
         'text-shadow:0 1px 2px rgba(0,0,0,0.35);' +
     '">' +
         '$[properties.parkingCount]' +
