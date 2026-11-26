@@ -1478,16 +1478,18 @@ function checkPolygonSize(coordinates) {
     function renderContent(distKm, driveTime) {
         var html = '';
         html += '<h3>' + data.name + '</h3>';
-        html += '<p>📍 ' + addr + '</p>';
+        html += '<p>' + window.pnIcon('mapPin', {size:16}) + ' ' + addr + '</p>';
         if (distKm !== undefined) {
-            html += '<p>📏 ' + distKm + ' км от вас</p>';
-            html += '<p>🚗 На авто: ' + driveTime + ' мин</p>';
-        } else {
-            html += '<p>📏 Расстояние неизвестно</p>';
-        }
-        html += '<p>🅿️ Свободно: ' + free + ' / ' + data.totalSpots + '</p>';
-        html += '<button class="btn-secondary" onclick="openOccupancyPanel(\'' + parkingId + '\')" style="margin-top:12px;">✏️ Редактировать</button>';
-        html += '<button class="btn-secondary" onclick="buildRouteToParking(\'' + parkingId + '\')" style="margin-top:8px;">🧭 Построить маршрут</button>';
+    html += '<p>' + window.pnIcon('route', {size:16}) + ' ' + distKm + ' км от вас</p>';
+    html += '<p>' + window.pnIcon('car', {size:16}) + ' На авто: ' + driveTime + ' мин</p>';
+} else {
+    html += '<p>' + window.pnIcon('route', {size:16}) + ' Расстояние неизвестно</p>';
+}
+html += '<p>' + window.pnIcon('parking', {size:16}) + ' Свободно: ' + free + ' / ' + data.totalSpots + '</p>';
+html += '<button class="btn-secondary" onclick="openOccupancyPanel(\'' + parkingId + '\')" style="margin-top:12px;">' +
+    window.pnIcon('edit', {size:16}) + ' Редактировать</button>';
+html += '<button class="btn-secondary" onclick="buildRouteToParking(\'' + parkingId + '\')" style="margin-top:8px;">' +
+    window.pnIcon('compass', {size:16}) + ' Построить маршрут</button>';
         content.innerHTML = html;
         sheet.classList.add('active');
     }
@@ -1552,37 +1554,33 @@ const lastUpdateText =
 let status = 'unknown';
 let statusTitle = 'Неизвестно';
 let statusDescription = 'Состояние ещё не определено';
-let statusIcon = '❔';
+let statusIcon = window.pnIcon('info', {size:20});
 
-
-if (hasOccupancy) {
-    const occupancy = occupiedSpots / totalSpots;
-
-    if (freeSpots === 0) {
-        status = 'occupied';
-        statusTitle = 'Занято';
-        statusDescription =
-            `Свободных мест нет · ${lastUpdateText}`;
-        statusIcon = '✕';
-    } else if (occupancy >= 0.9) {
-        status = 'occupied';
-        statusTitle = 'Почти заполнена';
-        statusDescription =
-            `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`;
-        statusIcon = '⚠';
-    } else if (occupancy >= 0.6) {
-        status = 'limited';
-        statusTitle = 'Частично занято';
-        statusDescription =
-            `Есть свободные и занятые места · ${lastUpdateText}`;
-        statusIcon = '🚘';
-    } else {
-        status = 'free';
-        statusTitle = 'Свободно';
-        statusDescription =
-            `Есть свободные места · ${lastUpdateText}`;
-        statusIcon = '✓';
-    }
+if (freeSpots === 0) {
+    status = 'occupied';
+    statusTitle = 'Занято';
+    statusDescription =
+        `Свободных мест нет · ${lastUpdateText}`;
+    statusIcon = window.pnIcon('close', {size:20});
+} else if (occupancy >= 0.9) {
+    status = 'occupied';
+    statusTitle = 'Почти заполнена';
+    statusDescription =
+        `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`;
+    statusIcon = window.pnIcon('alert', {size:20});
+} else if (occupancy >= 0.6) {
+    status = 'limited';
+    statusTitle = 'Частично занято';
+    statusDescription =
+        `Есть свободные и занятые места · ${lastUpdateText}`;
+    statusIcon = window.pnIcon('car', {size:20});
+} else {
+    status = 'free';
+    statusTitle = 'Свободно';
+    statusDescription =
+        `Есть свободные места · ${lastUpdateText}`;
+    statusIcon = window.pnIcon('check', {size:20});
+  }
 }
     // ===================== АДРЕС И НАЗВАНИЕ =====================
     const address = escapeHtml(
@@ -1655,7 +1653,7 @@ if (hasOccupancy) {
                 onclick="endParkingSession('${safeId}')"
                 title="Завершить парковочную сессию"
             >
-                🚗 Я уехал
+                ${window.pnIcon('car', {size:18})} Я уехал
             </button>
         `;
     } else if (currentUser?.id) {
@@ -1665,7 +1663,7 @@ if (hasOccupancy) {
                 onclick="startParkingSession('${safeId}')"
                 title="Начать парковочную сессию"
             >
-                🅿️ Припарковаться
+                ${window.pnIcon('parking', {size:18})} Припарковаться
             </button>
         `;
     }
@@ -2324,10 +2322,15 @@ if (hasOccupancy) {
     content.innerHTML = `
         <div class="pn-manage">
             <div class="pn-manage-heading">
-                <div class="pn-manage-heading-icon">🅿️</div>
+                <div class="pn-manage-heading-icon">
+                  ${window.pnIcon('parking', {size:24})}
+                </div>
                 <div class="pn-manage-heading-text">
                     <h2>${safeVal(data.name || 'Парковка')}</h2>
-                    <p>📍 ${safeVal(address || 'Адрес не указан')}</p>
+                    <p>
+                    ${window.pnIcon('mapPin', {size:16})}
+                        ${safeVal(address || 'Адрес не указан')}
+                    </p>
                 </div>
             </div>
             <div class="pn-manage-summary">
@@ -2348,12 +2351,15 @@ if (hasOccupancy) {
             </div>
             <div class="pn-manage-section">
                 <div class="pn-manage-section-title">
-                    <span>⚙️</span>
+                    <span>${window.pnIcon('settings', {size:18})}</span>
                     <div><strong>Основные данные</strong><small>Название, адрес и вместимость</small></div>
                 </div>
                 ${isAuthor ? `
                     <button type="button" class="pn-manage-action" onclick="window.toggleParkingEditor()">
-                        <span>✏️ Редактировать данные</span>
+                        <span>
+                        ${window.pnIcon('edit', {size:16})}
+                        Редактировать данные
+                        </span>
                         <span>›</span>
                     </button>
                     <div id="parkingEditorForm" class="pn-manage-form" style="display:none">
@@ -2379,16 +2385,17 @@ if (hasOccupancy) {
             </div>
             <div class="pn-manage-section">
                 <div class="pn-manage-section-title">
-                    <span>⭐</span>
+                    <span>${window.pnIcon('star', {size:18})}</span>
                     <div><strong>Избранное</strong><small>Сохрани парковку для быстрого доступа</small></div>
                 </div>
                 <button type="button" class="pn-manage-favorite" onclick="toggleFavorite('${safeVal(parkingId)}')">
-                    ${isFavorite ? '★ Убрать из избранного' : '☆ Добавить в избранное'}
+                    ${window.pnIcon('heart', {size:18})}
+                    ${isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
                 </button>
             </div>
             <div class="pn-manage-section">
                 <div class="pn-manage-section-title">
-                    <span>🕘</span>
+                    <span>${window.pnIcon('clock', {size:18})}</span>
                     <div><strong>История изменений</strong><small>Изменения информации о парковке</small></div>
                 </div>
                 <div id="parkingHistoryPreview" class="pn-manage-history">
@@ -3200,7 +3207,10 @@ function setAddressPickerCoords(coords) {
         <input type="text" id="searchInput" placeholder="Улица, дом..." oninput="filterParkings()" value="${searchQuery}">
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px;">
-        <button class="btn-secondary" style="flex:1;" onclick="searchNearMe()">📍 Рядом со мной</button>
+        <button class="btn-secondary" style="flex:1;" onclick="searchNearMe()">
+            ${window.pnIcon('mapPin', {size:18})}
+            Рядом со мной
+        </button>
         <button class="btn-outline" style="flex:1;" onclick="clearFilters()">↺ Сбросить</button>
     </div>
     <div style="position: relative; margin: 12px 0;">
@@ -4414,7 +4424,9 @@ function createAuthScreenFallback() {
     overlay.innerHTML = `
         <div style="background: var(--bg-secondary, #fff); border-radius: 24px; padding: 30px 20px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative;">
             <button onclick="closeAuthScreen()" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:24px; color:var(--text-secondary, #888); cursor:pointer; line-height:1; padding:4px; z-index:10;">✕</button>
-            <div style="font-size:48px; margin-bottom:12px;">🚗</div>
+           <div style="margin-bottom:12px;">
+                ${window.pnIcon('car', {size:48})}
+            </div>
             <h2 style="margin:0 0 8px; font-size:22px; font-weight:700;">Добро пожаловать в ParkNear</h2>
            <p style="color:var(--text-secondary, #666); margin-bottom:20px; font-size:15px;">
             Войдите через Яндекс или продолжите как гость,
@@ -4543,7 +4555,7 @@ if (!parkingLoader) {
                 renderHomeContent(content, null);
                 const list = document.getElementById('homeParkingList');
                 if (list) {
-                    list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;">🔄 Обновление данных...</div>');
+                    list.insertAdjacentHTML('beforeend', '<div class="loading-indicator" style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:8px;"> Обновление данных...</div>');
                 }
             } else {
                 localStorage.removeItem('parkingCache');
