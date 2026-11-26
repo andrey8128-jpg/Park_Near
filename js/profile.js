@@ -5,7 +5,9 @@ function renderProfile(content) {
     if (!currentUser) {
         content.innerHTML = `
             <div class="pn-profile-login">
-                <div class="pn-profile-login-icon">👤</div>
+               <div class="pn-profile-login-icon">
+                 ${window.pnIcon('user', {size:28})}
+                   </div>
                 <h2>Добро пожаловать</h2>
                 <p>Войдите, чтобы сохранять парковки, город и настройки.</p>
                 <button type="button" onclick="startYandexLogin()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#FCE000;color:#111;font-weight:600;cursor:pointer;">
@@ -113,20 +115,20 @@ const loadProfileData = async () => {
     favoritesCount * 5 +
     activeDates.length * 5 +
     parkingSessionsCompleted * 5;
-        const levels = [
-            {xp:0,name:'Пешеход',emoji:'👣'},
-            {xp:1000,name:'Водитель-любитель',emoji:'🚗'},
-            {xp:3000,name:'Начинающий парковщик',emoji:'🅿️'},
-            {xp:5000,name:'Городской водитель',emoji:'🏙️'},
-            {xp:10000,name:'Наблюдатель',emoji:'🔭'},
-            {xp:20000,name:'Помощник района',emoji:'🤝'},
-            {xp:40000,name:'Картограф',emoji:'🗺️'},
-            {xp:70000,name:'Инспектор',emoji:'👮'},
-            {xp:110000,name:'Ветеран дорог',emoji:'🏅'},
-            {xp:150000,name:'Страж парковки',emoji:'⚖️'},
-            {xp:250000,name:'Архитектор города',emoji:'🏗️'},
-            {xp:500000,name:'Легенда ParkNear',emoji:'💎'}
-        ];
+       const levels = [
+         {xp:0,name:'Пешеход',icon:'walking'},
+         {xp:1000,name:'Водитель-любитель',icon:'car'},
+         {xp:3000,name:'Начинающий парковщик',icon:'parking'},
+         {xp:5000,name:'Городской водитель',icon:'map'},
+         {xp:10000,name:'Наблюдатель',icon:'compass'},
+         {xp:20000,name:'Помощник района',icon:'people'},
+         {xp:40000,name:'Картограф',icon:'map'},
+         {xp:70000,name:'Инспектор',icon:'shield'},
+         {xp:110000,name:'Ветеран дорог',icon:'trophy'},
+         {xp:150000,name:'Страж парковки',icon:'shield'},
+         {xp:250000,name:'Архитектор города',icon:'briefcase'},
+         {xp:500000,name:'Легенда ParkNear',icon:'star'}
+];
         let currentLevel = levels[0];
         let nextLevel = levels[1];
         for (let i = levels.length - 1; i >= 0; i--) {
@@ -145,8 +147,8 @@ const loadProfileData = async () => {
         const region = escapeHtml(prefs.region || '');
         const carName = car.brand ? `${escapeHtml(car.brand)} ${escapeHtml(car.model || '')}`.trim() : 'Автомобиль не добавлен';
        const avatar = currentUser.photoUrl
-       ? `<img src="${escapeHtml(currentUser.photoUrl)}" alt="Аватар" onerror="this.style.display='none'; this.parentElement.innerHTML='👤';">`
-       : '👤';
+       ? `<img src="${escapeHtml(currentUser.photoUrl)}" alt="Аватар" onerror="this.style.display='none'; this.parentElement.innerHTML=window.pnIcon('user', {size:28});">`
+       : window.pnIcon('user', {size:28});
         content.innerHTML = `
             <div class="pn-profile">
                 <section class="pn-profile-hero">
@@ -155,14 +157,16 @@ const loadProfileData = async () => {
                         <div class="pn-profile-name">${firstName}</div>
                         ${username ? `<div class="pn-profile-username">@${username}</div>` : ''}
                         <div class="pn-profile-level">
-                            <span>${currentLevel.emoji}</span>
+                            <span>${window.pnIcon(currentLevel.icon, {size:24})}</span>
                             <span>${currentLevel.name}</span>
                         </div>
                     </div>
                     ${isGuest ? '<span class="pn-profile-guest">Гость</span>' : ''}
                 </section>
                 <section class="pn-profile-city" onclick="openCityPicker()">
-                    <div class="pn-profile-city-icon">📍</div>
+                    <div class="pn-profile-city-icon">
+                     ${window.pnIcon('mapPin', {size:18})}
+                     </div>
                     <div class="pn-profile-city-info">
                         <div class="pn-profile-label">Мой город</div>
                         <div class="pn-profile-city-name">${city}</div>
@@ -187,7 +191,9 @@ const loadProfileData = async () => {
                 <div class="pn-profile-section-title">Мой ParkNear</div>
                 <section class="pn-profile-menu">
                     <button class="pn-profile-row" onclick="toggleProfileSection('car')">
-                        <span class="pn-profile-row-icon">🚗</span>
+                       <span class="pn-profile-row-icon">
+                       ${window.pnIcon('car', {size:20})}
+                         </span>
                         <span class="pn-profile-row-content">
                             <strong>Мой автомобиль</strong>
                             <small>${car.brand ? carName : 'Добавьте автомобиль для быстрой отметки парковки'}</small>
@@ -195,7 +201,9 @@ const loadProfileData = async () => {
                         <span class="pn-profile-row-arrow">›</span>
                     </button>
                     <button class="pn-profile-row" onclick="openMyAddresses()">
-    <span class="pn-profile-row-icon">📍</span>
+                     <span class="pn-profile-row-icon">
+                     ${window.pnIcon('mapPin', {size:20})}
+                    </span>
     <span class="pn-profile-row-content">
         <strong>Мои адреса</strong>
         <small>Сохранённые места и парковки поблизости</small>
@@ -203,7 +211,9 @@ const loadProfileData = async () => {
     <span class="pn-profile-row-arrow">›</span>
 </button>
                     <button class="pn-profile-row" onclick="toggleProfileSection('history')">
-                        <span class="pn-profile-row-icon">🕘</span>
+                        <span class="pn-profile-row-icon">
+                         ${window.pnIcon('clock', {size:20})}
+                         </span>
                         <span class="pn-profile-row-content">
                             <strong>История</strong>
                             <small>Ваши действия с парковками</small>
@@ -211,7 +221,9 @@ const loadProfileData = async () => {
                         <span class="pn-profile-row-arrow">›</span>
                     </button>
                     <button class="pn-profile-row" onclick="toggleProfileSection('favorites')">
-                        <span class="pn-profile-row-icon">❤️</span>
+                        <span class="pn-profile-row-icon">
+                         ${window.pnIcon('heart', {size:20})}
+                          </span>
                         <span class="pn-profile-row-content">
                             <strong>Избранные парковки</strong>
                             <small>${favoritesCount} ${favoritesCount === 1 ? 'парковка' : 'парковок'}</small>
@@ -224,8 +236,9 @@ const loadProfileData = async () => {
                           class="pn-profile-row"
                             onclick="resetOnboarding()"
                            >
-                        <span class="pn-profile-row-icon">🎓</span>
-
+                       <span class="pn-profile-row-icon">
+                       ${window.pnIcon('book', {size:20})}
+                       </span>
     <span class="pn-profile-row-content">
         <strong>Обучение ParkNear</strong>
         <small>Как пользоваться приложением</small>
@@ -247,7 +260,9 @@ const loadProfileData = async () => {
                         </div>
                     ` : `
                         <div class="pn-empty-card">
-                            <span>🚗</span>
+                            <span>
+                            ${window.pnIcon('car', {size:18})}
+                             </span>
                             <div>
                                 <strong>Автомобиль не добавлен</strong>
                                 <small>Добавьте его, чтобы использовать данные при парковке.</small>
@@ -265,7 +280,9 @@ const loadProfileData = async () => {
                 <div class="pn-profile-section-title">Настройки</div>
                 <section class="pn-profile-menu">
                     <button class="pn-profile-row" onclick="toggleProfileSection('settings')">
-                        <span class="pn-profile-row-icon">⚙️</span>
+                        <span class="pn-profile-row-icon">
+                        ${window.pnIcon('settings', {size:20})}
+                          </span>
                         <span class="pn-profile-row-content">
                             <strong>Настройки приложения</strong>
                             <small>Тема, уведомления и другие параметры</small>
@@ -285,7 +302,9 @@ ${canModerate ? `
             class="pn-profile-row"
             onclick="toggleProfileSection('moderation')"
         >
-            <span class="pn-profile-row-icon">🛡️</span>
+            <span class="pn-profile-row-icon">
+              ${window.pnIcon('shield', {size:20})}
+             </span>
             <span class="pn-profile-row-content">
                 <strong>Модерация парковок</strong>
                 <small>Проверка новых заявок пользователей</small>
