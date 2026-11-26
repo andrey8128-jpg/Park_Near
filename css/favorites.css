@@ -261,20 +261,40 @@
     font-size:26px;
     font-weight:300;
 }
-.pn-fav-remove{
-    width:46px;
-    min-width:46px;
-    align-self:stretch;
-    border:0;
-    border-left:1px solid var(--border-color);
-    background:transparent;
-    color:var(--red);
-    font-size:18px;
-    cursor:pointer;
-    transition:background .15s;
+.pn-fav-remove {
+    flex: 0 0 52px;
+    width: 52px;
+    min-width: 52px;
+    min-height: 68px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    color: var(--red);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background .2s ease,
+        color .2s ease;
 }
-.pn-fav-remove:active{
-    background:rgba(211,47,47,.1);
+.pn-fav-remove svg {
+    width: 19px;
+    height: 19px;
+    display: block;
+    flex: 0 0 auto;
+    pointer-events: none;
+}
+.pn-fav-remove:active {
+    background: rgba(211, 47, 47, .10);
+}
+.pn-fav-remove:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -4px;
+    border-radius: 12px;
 }
 .pn-fav-loading{
     display:flex;
