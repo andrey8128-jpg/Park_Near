@@ -1556,31 +1556,37 @@ let statusTitle = 'Неизвестно';
 let statusDescription = 'Состояние ещё не определено';
 let statusIcon = window.pnIcon('info', {size:20});
 
-if (freeSpots === 0) {
-    status = 'occupied';
-    statusTitle = 'Занято';
-    statusDescription =
-        `Свободных мест нет · ${lastUpdateText}`;
-    statusIcon = window.pnIcon('close', {size:20});
-} else if (occupancy >= 0.9) {
-    status = 'occupied';
-    statusTitle = 'Почти заполнена';
-    statusDescription =
-        `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`;
-    statusIcon = window.pnIcon('alert', {size:20});
-} else if (occupancy >= 0.6) {
-    status = 'limited';
-    statusTitle = 'Частично занято';
-    statusDescription =
-        `Есть свободные и занятые места · ${lastUpdateText}`;
-    statusIcon = window.pnIcon('car', {size:20});
-} else {
-    status = 'free';
-    statusTitle = 'Свободно';
-    statusDescription =
-        `Есть свободные места · ${lastUpdateText}`;
-    statusIcon = window.pnIcon('check', {size:20});
-  }
+if (hasOccupancy) {
+    const occupancy = occupiedSpots / totalSpots;
+
+    if (freeSpots === 0) {
+        status = 'occupied';
+        statusTitle = 'Занято';
+        statusDescription =
+            `Свободных мест нет · ${lastUpdateText}`;
+        statusIcon = window.pnIcon('close', {size:20});
+
+    } else if (occupancy >= 0.9) {
+        status = 'occupied';
+        statusTitle = 'Почти заполнена';
+        statusDescription =
+            `Свободно ${freeSpots} из ${totalSpots} мест · ${lastUpdateText}`;
+        statusIcon = window.pnIcon('alert', {size:20});
+
+    } else if (occupancy >= 0.6) {
+        status = 'limited';
+        statusTitle = 'Частично занято';
+        statusDescription =
+            `Есть свободные и занятые места · ${lastUpdateText}`;
+        statusIcon = window.pnIcon('car', {size:20});
+
+    } else {
+        status = 'free';
+        statusTitle = 'Свободно';
+        statusDescription =
+            `Есть свободные места · ${lastUpdateText}`;
+        statusIcon = window.pnIcon('check', {size:20});
+    }
 }
     // ===================== АДРЕС И НАЗВАНИЕ =====================
     const address = escapeHtml(
