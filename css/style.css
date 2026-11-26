@@ -210,7 +210,7 @@ body.dark-theme {
 }
 html {
     width: 100%;
-    height: var(--app-height, var(--pn-viewport-height));
+    height: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -220,7 +220,7 @@ body {
     position: fixed;
     inset: 0;
     width: 100%;
-    height: var(--app-height, var(--pn-viewport-height));
+    height: auto;
     min-height: 0;
     margin: 0;
     padding: 0;
@@ -239,12 +239,10 @@ body {
 /* ===== КАРТА НА ВЕСЬ ЭКРАН ===== */
 #map {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     width: 100%;
-    height: var(--app-height, var(--pn-viewport-height));
+    height: auto;
+    min-height: 100%;
     margin: 0;
     padding: 0;
     border: 0;
