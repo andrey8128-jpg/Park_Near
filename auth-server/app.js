@@ -1209,14 +1209,22 @@ app.post(
             });
         } catch (error) {
             if (client) {
-                await client.query('ROLLBACK').catch(() => {});
+                try {
+                    await client.query('ROLLBACK');
+                } catch (rollbackError) {
+                    console.error(
+                        'Ошибка отката одобрения заявки:',
+                        rollbackError
+                    );
+                }
             }
             console.error('Ошибка одобрения заявки:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Не удалось одобрить заявку'
             });
-        } finally {
+        }
+                } finally {
             if (client) client.release();
         }
     }
@@ -1302,14 +1310,22 @@ app.post(
             });
         } catch (error) {
             if (client) {
-                await client.query('ROLLBACK').catch(() => {});
+                try {
+                    await client.query('ROLLBACK');
+                } catch (rollbackError) {
+                    console.error(
+                        'Ошибка отката отклонения заявки:',
+                        rollbackError
+                    );
+                }
             }
             console.error('Ошибка отклонения заявки:', error);
             return res.status(500).json({
                 success: false,
                 error: 'Не удалось отклонить заявку'
             });
-        } finally {
+        }
+                } finally {
             if (client) client.release();
         }
     }
