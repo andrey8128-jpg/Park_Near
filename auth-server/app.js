@@ -1223,7 +1223,6 @@ app.post(
                 success: false,
                 error: 'Не удалось одобрить заявку'
             });
-        }
                 } finally {
             if (client) client.release();
         }
@@ -1324,7 +1323,6 @@ app.post(
                 success: false,
                 error: 'Не удалось отклонить заявку'
             });
-        }
                 } finally {
             if (client) client.release();
         }
