@@ -1,4 +1,4 @@
-const CACHE_NAME = 'parknear-shell-v64';
+const CACHE_NAME = 'parknear-shell-v65';
 const BASE_PATH = new URL('.', self.location.href).pathname;
 const DEFAULT_ICON = `${BASE_PATH}assets/images/logo.png`;
 
@@ -9,7 +9,7 @@ const APP_FILES = [
     './assets/images/logo.png',
 
     // CSS
-    './css/style.css?v=20261126-4',
+    './css/style.css?v=20261126-5',
     './css/splash.css?v=20261126-4',
     './css/edit.park.css?v=20261124-4',
     './css/park.card.css?v=20261124-4',
@@ -33,7 +33,7 @@ const APP_FILES = [
     './js/my-addresses.js?v=20261116-5',
     './js/favorites.js?v=20261124-3',
     './js/settings.js',
-    './js/onboarding.js'
+    './js/onboarding.js?v=20261124-3',
 ];
 
 self.addEventListener('install', event => {
