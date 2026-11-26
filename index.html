@@ -104,11 +104,22 @@
     <span class="city-selector-arrow">▼</span>
 </div>
    <!-- Слои -->
-<div class="layer-switcher" id="layerSwitcher" role="button" aria-label="Выбор типа карты">🗺️</div>
+<div class="layer-switcher" id="layerSwitcher" role="button" aria-label="Выбор типа карты">
+    <span data-pn-icon="map" data-size="20"></span>
+</div>
+
 <div class="layer-menu" id="layerMenu">
-    <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">🗺️ Схема</div>
-    <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">🛰️ Спутник</div>
-    <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">🌍 Гибрид</div>
+    <div class="layer-option selected" data-type="yandex#map" onclick="setMapType(this)">
+        <span data-pn-icon="map" data-size="18"></span> Схема
+    </div>
+
+    <div class="layer-option" data-type="yandex#satellite" onclick="setMapType(this)">
+        <span data-pn-icon="satellite" data-size="18"></span> Спутник
+    </div>
+
+    <div class="layer-option" data-type="yandex#hybrid" onclick="setMapType(this)">
+        <span data-pn-icon="layers" data-size="18"></span> Гибрид
+    </div>
 </div>
 <!-- SVG-градиенты -->
 <svg width="0" height="0" aria-hidden="true">
@@ -125,7 +136,9 @@
     </defs>
 </svg>
 <!-- Плавающие кнопки -->
-<button id="geoBtn" type="button" title="Моё местоположение" aria-label="Моё местоположение">📍</button>
+<button id="geoBtn" type="button" title="Моё местоположение" aria-label="Моё местоположение">
+    <span data-pn-icon="mapPin" data-size="22"></span>
+</button>
 <button id="addBtn" type="button" title="Добавить парковку" aria-label="Добавить парковку">+</button>
 <button
     id="donateBtn"
@@ -134,7 +147,9 @@
     aria-label="Поддержать Park Near"
     aria-expanded="false"
     aria-controls="donatePopup"
->♥</button>
+>
+    <span data-pn-icon="heart" data-size="20"></span>
+</button>
 
 <div
     id="donatePopup"
@@ -151,7 +166,9 @@
             id="donatePopupClose"
             aria-label="Закрыть окно"
         >×</button>
-        <div class="donate-popup-icon">♥</div>
+        <div class="donate-popup-icon">
+    <span data-pn-icon="heart" data-size="28"></span>
+</div>
         <h3 id="donatePopupTitle">Поддержите Park Near</h3>
         <p>
             Ваши пожертвования помогают развивать проект,
@@ -212,14 +229,20 @@
         </div>
         <div id="addressPickerMap"></div>
         <div class="address-picker-footer">
-            <button type="button" class="btn-primary" onclick="saveAddressFromPicker()">💾 Сохранить адрес</button>
+            <button type="button" class="btn-primary" onclick="saveAddressFromPicker()">
+    <span data-pn-icon="save" data-size="18"></span>
+    Сохранить адрес
+</button>
         </div>
     </div>
 </div>
 <!-- Address Editor -->
 <div class="address-editor-overlay" id="addressEditorOverlay">
     <div class="car-editor-box">
-        <h3>✏️ Редактировать адрес</h3>
+        <h3>
+    <span data-pn-icon="edit" data-size="20"></span>
+    Редактировать адрес
+</h3>
         <div class="form-group">
             <label for="editAddrLabel">Метка</label>
             <select id="editAddrLabel" class="input-field">
@@ -249,7 +272,10 @@
 <!-- Car Editor -->
 <div class="car-editor-overlay" id="carEditorOverlay">
     <div class="car-editor-box">
-        <h3>🚗 Мой автомобиль</h3>
+       <h3>
+    <span data-pn-icon="car" data-size="22"></span>
+    Мой автомобиль
+</h3>
         <div class="form-group">
             <label for="carBrandSelect">Марка</label>
             <select id="carBrandSelect" class="input-field" onchange="updateCarModelSelect()">
@@ -279,13 +305,27 @@
     <!-- Label Picker -->
     <div class="label-picker-overlay" id="labelPickerOverlay">
         <div class="label-picker-box">
-            <h3>🏷️ Выберите метку</h3>
-            <div class="label-options">
-                <button class="btn-secondary" onclick="selectLabel('Дом')">🏠 Дом</button>
-                <button class="btn-secondary" onclick="selectLabel('Работа')">💼 Работа</button>
-                <button class="btn-secondary" onclick="selectLabel('Родственники')">👨‍👩‍👦 Родственники</button>
-                <button class="btn-secondary" onclick="selectLabel('Другое')">✏️ Другое</button>
-            </div>
+            <h3>
+    <span data-pn-icon="mapPin" data-size="22"></span>
+    Выберите метку
+</h3>
+<div class="label-options">
+    <button class="btn-secondary" onclick="selectLabel('Дом')">
+        <span data-pn-icon="home" data-size="18"></span> Дом
+    </button>
+
+    <button class="btn-secondary" onclick="selectLabel('Работа')">
+        <span data-pn-icon="briefcase" data-size="18"></span> Работа
+    </button>
+
+    <button class="btn-secondary" onclick="selectLabel('Родственники')">
+        <span data-pn-icon="people" data-size="18"></span> Родственники
+    </button>
+
+    <button class="btn-secondary" onclick="selectLabel('Другое')">
+        <span data-pn-icon="edit" data-size="18"></span> Другое
+    </button>
+</div>
             <button class="btn-secondary" style="margin-top:12px;" onclick="cancelLabelPicker()">Отмена</button>
         </div>
     </div>
@@ -312,20 +352,25 @@
                 aria-label="Тип маршрута"
                 style="flex:1; padding:6px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:14px;"
         >
-                <option value="driving">🚗 Автомобиль</option>
-                <option value="walking">🚶 Пешком</option>
-                <option value="transit">🚌 Общественный транспорт</option>
+                <option value="driving">Автомобиль</option>
+                <option value="walking">Пешком</option>
+                <option value="transit">Общественный транспорт</option>
             </select>
         </div>
         <div class="route-actions">
             <button class="btn-primary" onclick="startNavigation()">▶ Начать</button>
-            <button class="btn-secondary" onclick="rebuildRoute()">🔄 Перестроить</button>
+            <button class="btn-secondary" onclick="rebuildRoute()">
+    <span data-pn-icon="refresh" data-size="18"></span>
+    Перестроить
+</button>
         </div>
     </div>
 <!-- Активная стоянка -->
 <div id="activeParkingBanner" class="active-parking-banner" hidden>
     <div class="active-parking-info">
-        <div class="active-parking-icon">🚗</div>
+        <div class="active-parking-icon">
+    <span data-pn-icon="car" data-size="28"></span>
+</div>
         <div class="active-parking-text">
             <div class="active-parking-title">
                 Вы припарковались
@@ -519,9 +564,9 @@
         </div>
     </div>
 
-<script src="js/offline-storage.js?v=1"></script>    
-<script src="js/map.js?v=20261124-9"></script>
-<script src="js/icons.js?v=1"></script>
+<script src="js/offline-storage.js?v=1"></script>
+<script src="js/icons.js?v=20261126-1"></script>
+<script src="js/map.js?v=20261126-6"></script>
 <script src="js/city-selector.js?v=20261118-2"></script>
 <script src="js/app.js?v=20261124-5"></script>
 <script src="js/push-notifications.js"></script>
@@ -615,6 +660,16 @@ window.addEventListener('online', () => {
 
 window.addEventListener('offline', () => {
     console.log('Интернет отсутствует.');
+});
+</script>
+    <script>
+document.querySelectorAll('[data-pn-icon]').forEach(function (element) {
+    if (typeof window.pnIcon !== 'function') return;
+
+    element.innerHTML = window.pnIcon(
+        element.dataset.pnIcon,
+        { size: Number(element.dataset.size) || 20 }
+    );
 });
 </script>
 </body>
