@@ -2628,74 +2628,59 @@ body.dark-theme #donateBtn {
     text-align: center;
     animation: donatePopupAppear 0.2s ease-out;
 }
-
 .donate-popup-close {
     position: absolute;
     top: 10px;
     right: 12px;
-
     width: 38px;
     height: 38px;
     border: 0;
     border-radius: 50%;
-
     background: var(--surface-soft);
     color: var(--text-primary);
-
     font-size: 28px;
     line-height: 1;
     cursor: pointer;
 }
-
 .donate-popup-icon {
     margin-bottom: 14px;
     color: var(--btn-primary-bg);
     font-size: 42px;
     line-height: 1;
 }
-
 .donate-popup-card h3 {
     margin: 0 24px 14px;
     color: var(--text-primary);
     font-size: 22px;
     line-height: 1.25;
 }
-
 .donate-popup-card p {
     margin: 0 0 24px;
     color: var(--text-secondary);
     font-size: 15px;
     line-height: 1.55;
 }
-
 .donate-popup-help {
     display: flex;
     align-items: center;
     justify-content: center;
-
     min-height: 48px;
     width: 100%;
     padding: 12px 18px;
     border-radius: 14px;
-
     background: var(--btn-primary-bg);
     color: var(--btn-primary-text);
-
     font-size: 16px;
     font-weight: 600;
     text-decoration: none;
-
     transition: background 0.2s ease, transform 0.15s ease;
 }
-
 .donate-popup-help:hover {
     background: var(--btn-primary-active);
 }
-
 .donate-popup-help:active {
     transform: scale(0.98);
 }
-
 @keyframes donatePopupAppear {
     from {
         opacity: 0;
@@ -2706,17 +2691,14 @@ body.dark-theme #donateBtn {
         transform: translateY(0) scale(1);
     }
 }
-
 @media (max-width: 380px) {
     .donate-popup-card {
         padding: 32px 20px 22px;
         border-radius: 20px;
     }
-
     .donate-popup-card h3 {
         font-size: 20px;
     }
-
     .donate-popup-card p {
         font-size: 14px;
     }
@@ -2732,15 +2714,224 @@ body.dark-theme #donateBtn {
     stroke-linecap: round;
     stroke-linejoin: round;
 }
-
 .onboarding-svg-icon {
     width: 54px;
     height: 54px;
 }
-
 .pn-profile-row-icon .pn-icon,
 .pn-profile-login-icon .pn-icon,
 .pn-profile-city-icon .pn-icon {
     width: 22px;
     height: 22px;
+}
+/* ========================================
+   PARKNEAR ONBOARDING
+======================================== */
+.onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(5, 12, 18, .76);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    pointer-events: auto;
+}
+.onboarding-card {
+    width: 100%;
+    max-width: 380px;
+    box-sizing: border-box;
+    padding: 22px 20px 17px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 25px;
+    text-align: center;
+    box-shadow:
+        0 24px 65px rgba(0, 0, 0, .38),
+        0 4px 16px rgba(0, 0, 0, .15);
+    animation: onboardingAppear .25s ease-out;
+}
+@keyframes onboardingAppear {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+/* Прогресс */
+.onboarding-progress {
+    width: 100%;
+    height: 4px;
+    margin-bottom: 22px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--bg-primary);
+}
+.onboarding-progress #onboardingProgressFill {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width .3s ease;
+}
+/* Контент */
+.onboarding-slide {
+    min-height: 195px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+/* Иконка */
+.onboarding-icon {
+    width: 76px;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 17px;
+    border-radius: 23px;
+    background: var(--bg-primary);
+    color: var(--accent);
+}
+.onboarding-svg-icon {
+    width: 43px;
+    height: 43px;
+}
+/* Заголовок */
+.onboarding-title {
+    margin-bottom: 9px;
+    color: var(--text-primary);
+    font-size: 21px;
+    font-weight: 750;
+    line-height: 1.25;
+    letter-spacing: -.4px;
+}
+/* Описание */
+.onboarding-text {
+    max-width: 310px;
+    padding: 0 4px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.55;
+}
+/* Индикаторы */
+.onboarding-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 18px;
+}
+.onboarding-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-color);
+    transition:
+        width .25s ease,
+        background .25s ease;
+}
+.onboarding-dot.active {
+    width: 25px;
+    border-radius: 10px;
+    background: var(--accent);
+}
+/* Кнопки */
+.onboarding-actions {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    margin-top: 21px;
+}
+.onboarding-prev {
+    width: 40px;
+    height: 44px;
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-size: 21px;
+    cursor: pointer;
+}
+.onboarding-next {
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 14px;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(var(--accent-rgb), .20);
+    transition: transform .15s ease, filter .15s ease;
+}
+.onboarding-next:active {
+    transform: scale(.97);
+    filter: brightness(.96);
+}
+.onboarding-skip {
+    min-height: 44px;
+    padding: 0 5px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 550;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.onboarding-skip:active {
+    color: var(--text-primary);
+}
+/* Подсказка */
+.onboarding-hint {
+    margin-top: 10px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    opacity: .65;
+}
+/* Маленькие экраны */
+@media (max-width: 360px) {
+    .onboarding-card {
+        padding: 19px 15px 15px;
+    }
+    .onboarding-title {
+        font-size: 19px;
+    }
+    .onboarding-text {
+        font-size: 13px;
+    }
+    .onboarding-actions {
+        gap: 5px;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+    }
+    .onboarding-prev {
+        width: 34px;
+    }
+    .onboarding-skip {
+        font-size: 12px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .onboarding-card {
+        animation: none;
+    }
+    .onboarding-next,
+    .onboarding-dot,
+    .onboarding-progress #onboardingProgressFill {
+        transition: none;
+    }
 }
