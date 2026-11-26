@@ -214,28 +214,29 @@ map.events.add('zoomchange', function() {
                 
                 // Кластер показывает суммарное количество свободных мест
                 clusterIconLayout: ymaps.templateLayoutFactory.createClass(
-                    '<div style="' +
-                        'width:42px;' +
-                        'height:42px;' +
-                        'box-sizing:border-box;' +
-                        'border-radius:50%;' +
-                        'background:linear-gradient(145deg,$[properties.clusterColor],$[properties.clusterColorDark]);' +
-                        'border:2px solid rgba(255,255,255,0.95);' +
-                        'display:flex;' +
-                        'align-items:center;' +
-                        'justify-content:center;' +
-                        'color:#ffffff;' +
-                        'font-family:Arial,sans-serif;' +
-                        'font-size:18px;' +
-                        'font-weight:800;' +
-                        'text-align:center;' +
-                        'line-height:1;' +
-                        'box-shadow:0 2px 8px rgba(0,0,0,0.35);' +
-                    '">' +
-                        '$[properties.parkingCount]' +
-                    '</div>'
-                ),
-
+    '<div style="' +
+        'width:42px;' +
+        'height:42px;' +
+        'box-sizing:border-box;' +
+        'border-radius:50%;' +
+        'background-color:#1877E8;' +
+        'border:3px solid #FFFFFF;' +
+        'display:flex;' +
+        'align-items:center;' +
+        'justify-content:center;' +
+        'color:#FFFFFF;' +
+        'font-family:Arial,sans-serif;' +
+        'font-size:18px;' +
+        'font-weight:800;' +
+        'line-height:1;' +
+        'text-align:center;' +
+        'opacity:1;' +
+        'box-shadow:0 3px 10px rgba(0,0,0,0.55);' +
+        'text-shadow:0 1px 2px rgba(0,0,0,0.35);' +
+    '">' +
+        '$[properties.parkingCount]' +
+    '</div>'
+),
                 clusterIconShape: {
                     type: 'Circle',
                     coordinates: [0, 0],
