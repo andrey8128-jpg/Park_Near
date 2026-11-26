@@ -526,7 +526,11 @@ async function refreshProfileFavoritesCount(count = null) {
 function renderFavorites(content) {
     if (!content) return;
     if (!currentUser) {
-        content.innerHTML = '<div class="pn-fav-empty"><div class="pn-fav-empty-icon">🔒</div><h3>Войдите в аккаунт</h3><p>После входа здесь будут сохранённые парковки.</p></div>';
+        content.innerHTML = '<div class="pn-fav-empty">
+            <div class="pn-fav-locked-icon">
+                ${window.pnIcon('lock', {size:32})}
+            </div>
+            <h3>Войдите в аккаунт</h3><p>После входа здесь будут сохранённые парковки.</p></div>';
         return;
     }
     content.innerHTML = `
@@ -632,7 +636,10 @@ function renderList() {
         });
         if (subtitle) subtitle.textContent = `${filtered.length} ${filtered.length === 1 ? 'парковка' : filtered.length < 5 ? 'парковки' : 'парковок'}`;
         if (!filtered.length) {
-            list.innerHTML = `<div class="pn-fav-empty"><div class="pn-fav-empty-icon">${query ? '🔎' : '♡'}</div><h3>${query ? 'Ничего не найдено' : 'Избранное пусто'}</h3><p>${query ? 'Попробуйте изменить запрос.' : 'Добавляйте парковки в избранное.'}</p>${!query ? '<button type="button" id="pnFavShowMap">Найти парковку</button>' : ''}</div>`;
+            list.innerHTML = `<div class="pn-fav-empty"><div class="pn-fav-empty-icon">
+            ${window.pnIcon('search', {size:30})}
+            </div>
+            <h3>${query ? 'Ничего не найдено' : 'Избранное пусто'}</h3><p>${query ? 'Попробуйте изменить запрос.' : 'Добавляйте парковки в избранное.'}</p>${!query ? '<button type="button" id="pnFavShowMap">Найти парковку</button>' : ''}</div>`;
             list.querySelector('#pnFavShowMap')?.addEventListener('click', showMap);
             return;
         }
@@ -653,7 +660,7 @@ function renderList() {
                     </div>
                     <span class="pn-fav-card-arrow">›</span>
                 </button>
-                <button class="pn-fav-remove" data-remove-id="${escapeHtml(String(id))}">♥</button>
+                <button class="pn-fav-remove" data-remove-id="${escapeHtml(String(id))}">♡</button>
             </article>`;
                 }).join('');
 
