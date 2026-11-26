@@ -235,7 +235,7 @@ map.events.add('zoomchange', function() {
         'box-shadow:0 3px 9px rgba(0,0,0,0.55);' +
         'text-shadow:0 1px 2px rgba(0,0,0,0.35);' +
     '">' +
-        '$[properties.parkingCount]' +
+        '$[properties.clusterDisplayCount]' +
     '</div>'
 ),
                 clusterIconShape: {
@@ -312,8 +312,10 @@ clusterer.events.add('clusterize', function(e) {
             geoObjects.length - validParkingCount;
 
         cluster.properties.set('totalSpots', totalSpots);
-        cluster.properties.set('freeSpots', freeSpots);
-        cluster.properties.set('parkingCount', geoObjects.length);
+        cluster.properties.set(
+        'clusterDisplayCount',
+        validParkingCount > 0 ? freeSpots : '–'
+    );
         cluster.properties.set(
             'validParkingCount',
             validParkingCount
