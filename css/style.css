@@ -242,12 +242,10 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    bottom: auto;
+    /* Выходим за нижнюю безопасную зону */
+    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
     width: 100%;
-    /* Резервная высота */
-    height: 100vh;
-    /* Полная динамическая высота iPhone */
-    height: 100dvh;
+    height: auto;
     min-height: 0;
     margin: 0;
     padding: 0;
