@@ -218,6 +218,20 @@ const loadProfileData = async () => {
                         </span>
                         <span class="pn-profile-row-arrow">›</span>
                     </button>
+                    
+                <button
+                       type="button"
+                          class="pn-profile-row"
+                            onclick="resetOnboarding()"
+                           >
+                        <span class="pn-profile-row-icon">🎓</span>
+
+    <span class="pn-profile-row-content">
+        <strong>Обучение ParkNear</strong>
+        <small>Как пользоваться приложением</small>
+    </span>
+    <span class="pn-profile-row-arrow">›</span>
+</button>
                 </section>
                 <div id="profileSectionCarContent" class="pn-profile-expand">
                     ${car.brand ? `
