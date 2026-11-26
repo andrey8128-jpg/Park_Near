@@ -147,7 +147,87 @@
         compass: `
             <circle cx="12" cy="12" r="9"/>
             <path d="m15.5 8.5-2 5-5 2 2-5z"/>
+        `,
+        
+        parking: `
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M10 17V7h4a3 3 0 0 1 0 6h-4"/>
+        `,
+
+        navigation: `
+            <path d="m3 11 18-8-8 18-2-8-8-2Z"/>
+        `,
+
+        walking: `
+            <circle cx="13" cy="5" r="2"/>
+            <path d="m10 22 2-7-3-3 2-5 4 3 3 1"/>
+            <path d="m12 15-5 3-2 4"/>
+            <path d="m14 11 3 5 3 2"/>
+        `,
+
+        support: `
+            <path d="M12 21s-8-4.5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.5-8 11-8 11Z"/>
+        `,
+
+        notification: `
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+            <path d="M10 21h4"/>
+        `,
+
+        refresh: `
+            <path d="M20 7v5h-5"/>
+            <path d="M4 17v-5h5"/>
+            <path d="M5.6 9a7 7 0 0 1 11.6-2L20 12"/>
+            <path d="M18.4 15a7 7 0 0 1-11.6 2L4 12"/>
+        `,
+
+        filter: `
+            <path d="M4 7h16M7 12h10m-7 5h4"/>
+        `,
+
+        history: `
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M12 7v5l3 2"/>
+        `,
+
+        book: `
+            <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22Z"/>
+            <path d="M4 4.5v17M8 6h8"/>
+        `,
+
+        shield: `
+            <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/>
+            <path d="m9 12 2 2 4-4"/>
+        `,
+
+        trophy: `
+            <path d="M8 21h8M12 17v4"/>
+            <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/>
+            <path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/>
+        `,
+
+        briefcase: `
+            <rect x="3" y="7" width="18" height="14" rx="2"/>
+            <path d="M8 7V4h8v3M3 12h18M10 12v2h4v-2"/>
+        `,
+
+        people: `
+            <circle cx="9" cy="8" r="3"/>
+            <circle cx="17" cy="9" r="2"/>
+            <path d="M3 20v-2a6 6 0 0 1 12 0v2M16 15a4 4 0 0 1 5 4v1"/>
+        `,
+
+        alert: `
+            <path d="m12 3 10 18H2L12 3Z"/>
+            <path d="M12 9v5m0 3h.01"/>
+        `,
+
+        parkingCircle: `
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M10 17V7h4a3 3 0 0 1 0 6h-4"/>
         `
+
     };
 
     function escapeAttribute(value) {
