@@ -115,14 +115,31 @@ function buildRouteToParking(parkingId) {
             var free = routeParkingData.totalSpots - routeParkingData.occupiedSpots;
             document.getElementById('routeInfo').innerHTML = `
             <div style="margin-bottom:8px;">
-                <div style="font-weight:600; font-size:18px;">🚗 До парковки</div>
-                <div>📏 Расстояние: <b>${distKm}</b> км</div>
-                <div>⏱ Время в пути: <b>${timeMin}</b> мин</div>
-                <div>🅿️ Свободных мест: <b>${free}</b> / ${routeParkingData.totalSpots}</div>
+                <div style="font-weight:600; font-size:18px;">
+                 ${window.pnIcon('car', {size:20})} До парковки
+                 </div>
+
+                 <div>
+                 ${window.pnIcon('route', {size:16})}
+                 Расстояние: <b>${distKm}</b> км
+                 </div>
+
+                 <div>
+                 ${window.pnIcon('clock', {size:16})}
+                 Время в пути: <b>${timeMin}</b> мин
+                </div>
+
+                 <div>
+                 ${window.pnIcon('parking', {size:16})}
+                 Свободных мест: <b>${free}</b> / ${routeParkingData.totalSpots}
+                </div>
                 <div style="font-size:12px; color:var(--text-secondary);">Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
             </div>
             <div style="margin-top:8px; border-top:0.5px solid var(--border-color); padding-top:8px; max-height:120px; overflow-y:auto;">
-                <div style="font-size:13px; font-weight:500;">📋 Основные точки маршрута:</div>
+                <div style="font-size:13px; font-weight:500;">
+                ${window.pnIcon('map', {size:16})}
+                Основные точки маршрута:
+                 </div>
                 ${stepsHtml || '<div style="font-size:12px; color:var(--text-secondary);">Инструкции не доступны</div>'}
             </div>
         `;
@@ -157,21 +174,47 @@ function buildRouteToParking(parkingId) {
         const distance = activeRoute.properties.get('distance');
         const duration = activeRoute.properties.get('duration');
         document.getElementById('routeInfo').innerHTML = `
-            <div>🚗 До парковки</div>
-            <div>📍 ${distance.text}</div>
-            <div>⏱ ${duration.text}</div>
-            <div>Свободных мест: ${free}</div>
-            <div>🔄 Обновлено: ${formatDateTime(routeParkingData.timestamp)}</div>
-        `;
+    <div>
+        ${window.pnIcon('car', {size:20})}
+        До парковки
+    </div>
 
+    <div>
+        ${window.pnIcon('mapPin', {size:16})}
+        ${distance.text}
+    </div>
+
+    <div>
+        ${window.pnIcon('clock', {size:16})}
+        ${duration.text}
+    </div>
+
+    <div>
+        ${window.pnIcon('parking', {size:16})}
+        Свободных мест: ${free}
+    </div>
+
+    <div>
+        ${window.pnIcon('refresh', {size:15})}
+        Обновлено: ${formatDateTime(routeParkingData.timestamp)}
+    </div>
+`;
         document.getElementById('routeCard').classList.add('active');
     });
     currentRoute.model.events.add('requestfail', function() {
         document.getElementById('routeInfo').innerHTML = `
-            <div>❌ Не удалось построить маршрут</div>
-            <div>Проверьте подключение к интернету</div>
-            <div>Свободных мест: ${free}</div>
-        `;
+    <div>
+        ${window.pnIcon('alert', {size:18})}
+        Не удалось построить маршрут
+    </div>
+
+    <div>Проверьте подключение к интернету</div>
+
+    <div>
+        ${window.pnIcon('parking', {size:16})}
+        Свободных мест: ${free}
+    </div>
+`;
     });
 }
 function startNavigation() {
