@@ -175,10 +175,6 @@ function renderSettingsInline() {
                     <button class="settings-edit-btn" onclick="event.stopPropagation(); editNickname()">✏️</button>
                 </span>
             </div>
-            <div class="settings-row" onclick="resetOnboarding()">
-                <span class="settings-label">Обучение</span>
-                <span class="settings-value">Показать ещё раз <span class="settings-arrow">›</span></span>
-            </div>
         </div>`;
             html += `<div class="settings-section">
             <button class="btn-danger-text" onclick="deleteAccount()">Удалить аккаунт</button>
