@@ -2721,3 +2721,26 @@ body.dark-theme #donateBtn {
         font-size: 14px;
     }
 }
+/* Единый стиль SVG-иконок ParkNear */
+.pn-icon {
+    display: inline-block;
+    flex: 0 0 auto;
+    vertical-align: middle;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.onboarding-svg-icon {
+    width: 54px;
+    height: 54px;
+}
+
+.pn-profile-row-icon .pn-icon,
+.pn-profile-login-icon .pn-icon,
+.pn-profile-city-icon .pn-icon {
+    width: 22px;
+    height: 22px;
+}
