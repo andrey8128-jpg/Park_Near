@@ -2337,11 +2337,14 @@ if (previousOccupied >= totalSpots) {
 }
 // Создаём парковочную сессию
 const sessionId = require('crypto').randomUUID();
+
 const updatedSession = {
     userId,
     parkingId,
     active: true,
-    startedAt
+    startedAt,
+    lastActivityAt: startedAt,
+    lastReminderAt: null
 };
 
 const sessionRow = await client.query(
