@@ -74,10 +74,11 @@ async function updateFavoriteCenterButton() {
 
     const favorite = await isFavorite(currentParkingId);
 
-    btn.innerHTML = favorite
-    ? '<span>♥</span>'
-    : '<span>♡</span>';
+   btn.innerHTML = window.pnIcon('heart', {
+    size: 20
+});
 
+btn.classList.toggle('is-favorite', favorite);
     btn.classList.toggle('is-favorite', favorite);
 }
 
@@ -653,7 +654,9 @@ function renderList() {
             const dist = getDistance(p);
             return `<article class="pn-fav-card" data-parking-id="${escapeHtml(String(id))}">
                 <button class="pn-fav-card-main" type="button">
-                    <div class="pn-fav-card-icon">🅿️</div>
+                    <div class="pn-fav-card-icon">
+                    ${window.pnIcon('parking', {size:24})}
+                    </div>
                     <div class="pn-fav-card-info">
                         <div class="pn-fav-card-title">${escapeHtml(p.name || 'Без названия')}</div>
                         ${p.address ? `<div class="pn-fav-card-address">${escapeHtml(p.address)}</div>` : ''}
@@ -664,7 +667,11 @@ function renderList() {
                     </div>
                     <span class="pn-fav-card-arrow">›</span>
                 </button>
-                <button class="pn-fav-remove" data-remove-id="${escapeHtml(String(id))}">♡</button>
+                <button class="pn-fav-remove"
+                    data-remove-id="${escapeHtml(String(id))}"
+                    aria-label="Удалить из избранного">
+                    ${window.pnIcon('heart', {size:18})}
+                </button>
             </article>`;
                 }).join('');
 
