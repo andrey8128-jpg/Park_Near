@@ -199,10 +199,12 @@ body.dark-theme {
     --status-full: #F0787C;
     --status-unknown: #A5B4BC;
 }
-/* ===== ЕДИНЫЙ VIEWPORT PARK NEAR ===== */
+
+/* ===== ЕДИНЫЙ ПОЛНОЭКРАННЫЙ VIEWPORT PARK NEAR ===== */
 :root {
     --pn-viewport-height: 100vh;
 }
+
 @supports (height: 100dvh) {
     :root {
         --pn-viewport-height: 100dvh;
@@ -217,11 +219,10 @@ html {
     overscroll-behavior: none;
 }
 body {
-    position: fixed;
-    inset: 0;
+    position: relative;
     width: 100%;
-    height: auto;
-    min-height: 0;
+    height: var(--pn-viewport-height);
+    min-height: var(--pn-viewport-height);
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -235,17 +236,14 @@ body {
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
     transition: background 0.3s ease, color 0.3s ease;
+    box-sizing: border-box;
 }
-/* ===== КАРТА НА ВЕСЬ ЭКРАН ===== */
+/* ===== КАРТА НА ВСЮ ВЫСОТУ ЭКРАНА ===== */
 #map {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    /* Выходим за нижнюю безопасную зону */
-    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+    position: absolute;
+    inset: 0;
     width: 100%;
-    height: auto;
+    height: 100%;
     min-height: 0;
     margin: 0;
     padding: 0;
