@@ -215,29 +215,24 @@ map.events.add('zoomchange', function() {
                 // Кластер показывает суммарное количество свободных мест
                 clusterIconLayout: ymaps.templateLayoutFactory.createClass(
                     '<div style="' +
-                        'width:64px;' +
-                        'height:64px;' +
+                        'width:42px;' +
+                        'height:42px;' +
                         'box-sizing:border-box;' +
                         'border-radius:50%;' +
-                        'background:linear-gradient(145deg,#27D995,#087F59);' +
-                        'border:3px solid rgba(255,255,255,0.98);' +
+                        'background:linear-gradient(145deg,$[properties.clusterColor],$[properties.clusterColorDark]);' +
+                        'border:2px solid rgba(255,255,255,0.95);' +
                         'display:flex;' +
                         'align-items:center;' +
                         'justify-content:center;' +
-                        'flex-direction:column;' +
                         'color:#ffffff;' +
                         'font-family:Arial,sans-serif;' +
+                        'font-size:18px;' +
                         'font-weight:800;' +
                         'text-align:center;' +
                         'line-height:1;' +
-                        'box-shadow:0 4px 14px rgba(0,0,0,0.4);' +
+                        'box-shadow:0 2px 8px rgba(0,0,0,0.35);' +
                     '">' +
-                        '<div style="font-size:25px;line-height:28px;font-weight:800;color:#ffffff;">' +
-                            '$[properties.freeSpots]' +
-                        '</div>' +
-                        '<div style="font-size:6px;line-height:8px;font-weight:700;color:#ffffff;white-space:nowrap;">' +
-                            'СВОБОДНО' +
-                        '</div>' +
+                        '$[properties.parkingCount]' +
                     '</div>'
                 ),
 
