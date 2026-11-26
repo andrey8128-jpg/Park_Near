@@ -56,7 +56,10 @@ function renderSettingsInline() {
 
         html += `
             <div class="settings-row">
-                <span class="settings-label">🔔 Уведомления о парковках</span>
+                <span class="settings-label">
+                ${window.pnIcon('bell', {size:18})}
+                Уведомления о парковках
+                </span>
                 <label class="theme-switch" style="width: 51px; height: 31px;">
                     <input
                         type="checkbox"
@@ -162,7 +165,9 @@ function renderSettingsInline() {
                 <span class="settings-label">Моё авто</span>
                 <span class="settings-value">
                     ${(car.brand || car.model) ? `${car.brand || ''} ${car.model || ''}` : 'Не указан'}
-                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editCarDataFromSettings()">✏️</button>
+                   <button class="settings-edit-btn" onclick="event.stopPropagation(); editCarDataFromSettings()">
+                    ${window.pnIcon('edit', {size:16})}
+                   </button>
                 </span>
             </div>
         </div>`;
@@ -172,7 +177,9 @@ function renderSettingsInline() {
                 <span class="settings-label">Никнейм</span>
                 <span class="settings-value">
                     ${currentUser.nickname || 'Не указан'}
-                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editNickname()">✏️</button>
+                    <button class="settings-edit-btn" onclick="event.stopPropagation(); editNickname()">
+                    ${window.pnIcon('edit', {size:16})}
+                    </button>
                 </span>
             </div>
         </div>`;
