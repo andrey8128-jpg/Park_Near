@@ -19,21 +19,21 @@ const APP_FILES = [
     './css/profile.css?v=20261125-2',
 
     // JavaScript
-    './js/offline-storage.js?v=1',
-    './js/map.js?v=20261124-9',
+    './js/offline-storage.js?v=20261126-1',
+    './js/map.js?v=20261126-6',
     './js/app.js?v=20261124-5',
     './js/push-notifications.js',
-    './js/navigation.js',
+    './js/navigation.js?v=20261124-5',
     './js/city-selector.js?v=20261118-2',
     './js/icons.js?v=1',
     './js/car-selector.js',
     './js/active-parking.js?v=20261116-4',
     './js/parking-creator.js?v=20261116-3',
-    './js/profile.js?v=20261118-3',
+    './js/profile.js?v=20261124-5',
     './js/my-addresses.js?v=20261116-5',
-    './js/favorites.js?v=20261124-3',
-    './js/settings.js',
-    './js/onboarding.js?v=20261124-3',
+    './js/favorites.js?v=20261126-1',
+    './js/settings.js?v=20261124-1',
+    './js/onboarding.js?v=20261126-3',
 ];
 
 self.addEventListener('install', event => {
