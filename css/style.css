@@ -1180,8 +1180,22 @@ body.dark-theme .theme-slider:before {
 }
 
 .onboarding-icon {
-    font-size: 64px;
-    margin-bottom: 12px;
+    font-size: 52px;
+    margin-bottom: 10px;
+}
+.onboarding-title {
+    font-size: 21px;
+    font-weight: 750;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.onboarding-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: 0 6px;
 }
 .onboarding-title {
     font-size: 21px;
