@@ -2,14 +2,13 @@
    PARK NEAR — SPLASH SCREEN
    Dark Titanium Glass × Arctic Blue
    ========================================================= */
-/* ===== SPLASH НА ВЕСЬ ЭКРАН IPHONE ===== */
+/* ===== ПОЛНОЭКРАННАЯ ЗАСТАВКА ===== */
 #splashScreen {
     position: fixed;
-    /* Растягиваем фон от верхнего до нижнего края */
     top: 0;
-    right: 0;
-    bottom: 0;
     left: 0;
+    right: 0;
+    bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
     width: 100%;
     height: auto;
     min-height: 0;
