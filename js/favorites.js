@@ -526,11 +526,15 @@ async function refreshProfileFavoritesCount(count = null) {
 function renderFavorites(content) {
     if (!content) return;
     if (!currentUser) {
-        content.innerHTML = '<div class="pn-fav-empty">
-            <div class="pn-fav-locked-icon">
-                ${window.pnIcon('lock', {size:32})}
-            </div>
-            <h3>Войдите в аккаунт</h3><p>После входа здесь будут сохранённые парковки.</p></div>';
+        content.innerHTML = `
+    <div class="pn-fav-empty">
+        <div class="pn-fav-locked-icon">
+            ${window.pnIcon('lock', {size:32})}
+        </div>
+        <h3>Войдите в аккаунт</h3>
+        <p>После входа здесь будут сохранённые парковки.</p>
+    </div>
+`;
         return;
     }
     content.innerHTML = `
