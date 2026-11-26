@@ -1057,14 +1057,21 @@ async function initAuth() {
     // Сначала проверяем серверную сессию в PostgreSQL.
     const restored = await restorePostgresSession();
     if (restored) {
-        hideAuthScreen();
-        const panel = document.getElementById('panel');
-        if (panel && !panel.classList.contains('active')) {
-            showPanel('home');
-        }
-        console.log('Авторизация PostgreSQL восстановлена');
-        return true;
+    hideAuthScreen();
+
+    const panel = document.getElementById('panel');
+
+    if (panel && !panel.classList.contains('active')) {
+        showPanel('home');
     }
+
+    // Показываем новую версию обучения,
+    // если пользователь ещё её не проходил.
+    showOnboarding();
+
+    console.log('Авторизация PostgreSQL восстановлена');
+    return true;
+}
     // Нет действующей серверной сессии.
     currentUser = null;
     window.currentUser = null;
@@ -4904,6 +4911,7 @@ async function completeYandexLogin() {
         if (typeof hideAuthScreen === 'function') {
             hideAuthScreen();
         }
+        showOnboarding();
         console.log('Вход через Яндекс выполнен:', profile.id);
         if (typeof showToast === 'function') {
             showToast('Вы успешно вошли через Яндекс!', 3000);
@@ -5085,10 +5093,11 @@ function closeAuthScreen() {
             saveNickname(newNick.trim());
         }
     }
-    function resetOnboarding() {
-        localStorage.removeItem('onboardingSeen');
-        showOnboarding();
-    }
+function resetOnboarding() {
+    window.showOnboarding({
+        force: true
+    });
+}
     // Заполняем цвета для редактора автомобиля
     (function initCarColors() {
         const colorSelect = document.getElementById('carColorSelect');
