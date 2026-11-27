@@ -18,10 +18,7 @@
         }
         resizeFrame = requestAnimationFrame(function () {
             resizeFrame = 0;
-            const viewport = window.visualViewport;
-            const height = viewport && viewport.height > 0
-                ? viewport.height
-                : window.innerHeight;
+            const height = window.innerHeight;
             root.style.setProperty(
                 '--app-height',
                 Math.round(height * 100) / 100 + 'px'
@@ -29,6 +26,7 @@
         });
     }
     updateAppHeight();
+
     window.addEventListener('resize', updateAppHeight, {
         passive: true
     });
@@ -38,16 +36,8 @@
         passive: true
     });
     window.addEventListener('pageshow', updateAppHeight);
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener(
-            'resize',
-            updateAppHeight,
-            { passive: true }
-        );
-    }
 })();
 </script>
-
      <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#20A895">
     <!-- iOS -->
