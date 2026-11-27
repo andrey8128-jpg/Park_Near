@@ -324,35 +324,57 @@ clusterer.events.add('clusterize', function(e) {
             'unknownParkingCount',
             unknownParkingCount
         );
-// Цвет и размер зависят от количества парковок.
+// Цвет зависит от загруженности парковок,
+// размер зависит от количества парковок.
 const parkingCount = geoObjects.length;
+
 let clusterColor;
 let clusterColorDark;
 let clusterGlow;
 let clusterSize;
 
-if (parkingCount < 10) {
+// Рассчитываем процент занятых мест
+const occupancyPercent = totalSpots > 0
+    ? ((totalSpots - freeSpots) / totalSpots) * 100
+    : null;
+
+// Цвет кластера по загруженности
+if (occupancyPercent === null) {
+    // Нет актуальных данных
+    clusterColor = '#64748B';
+    clusterColorDark = '#475569';
+    clusterGlow = 'rgba(100,116,139,0.30)';
+} else if (occupancyPercent < 35) {
+    // Низкая загруженность
     clusterColor = '#20C982';
     clusterColorDark = '#087F59';
     clusterGlow = 'rgba(32,201,130,0.30)';
-    clusterSize = 38;
-} else if (parkingCount < 30) {
+} else if (occupancyPercent < 70) {
+    // Средняя загруженность
     clusterColor = '#F5CE45';
     clusterColorDark = '#C18B16';
     clusterGlow = 'rgba(245,206,69,0.30)';
+} else {
+    // Высокая загруженность
+    clusterColor = '#FF554F';
+    clusterColorDark = '#C62828';
+    clusterGlow = 'rgba(255,85,79,0.30)';
+}
+
+// Размер кластера по количеству парковок
+if (parkingCount < 10) {
+    clusterSize = 38;
+} else if (parkingCount < 30) {
     clusterSize = 42;
 } else if (parkingCount < 50) {
-    clusterColor = '#FF923D';
-    clusterColorDark = '#DB541F';
-    clusterGlow = 'rgba(255,146,61,0.30)';
     clusterSize = 46;
 } else {
-    clusterColor = '#A879FF';
-    clusterColorDark = '#6941C6';
-    clusterGlow = 'rgba(168,121,255,0.35)';
     clusterSize = 52;
 }
+
+// Сохраняем свойства кластера
 cluster.properties.set('parkingCount', parkingCount);
+cluster.properties.set('occupancyPercent', occupancyPercent);
 cluster.properties.set('clusterColor', clusterColor);
 cluster.properties.set('clusterColorDark', clusterColorDark);
 cluster.properties.set('clusterGlow', clusterGlow);
