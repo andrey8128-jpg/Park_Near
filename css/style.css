@@ -202,12 +202,11 @@ body.dark-theme {
 
 /* ===== ЕДИНЫЙ ПОЛНОЭКРАННЫЙ VIEWPORT PARK NEAR ===== */
 :root {
-    --pn-viewport-height: 100vh;
+    --pn-viewport-height: var(--app-height, 100vh);
 }
-
 @supports (height: 100dvh) {
     :root {
-        --pn-viewport-height: 100dvh;
+        --pn-viewport-height: var(--app-height, 100dvh);
     }
 }
 html {
@@ -240,7 +239,7 @@ body {
 }
 /* ===== КАРТА НА ВСЮ ВЫСОТУ ЭКРАНА ===== */
 #map {
-    position: absolute;
+    position: fixed;
     inset: 0;
     width: 100%;
     height: 100%;
