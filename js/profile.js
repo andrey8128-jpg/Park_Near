@@ -703,6 +703,60 @@ async function editModerationRequest(item) {
         );
         return;
     }
+    const latInput = prompt(
+        'Широта парковки:',
+        String(data.lat ?? '')
+    );
+    if (latInput === null) return;
+    const lngInput = prompt(
+        'Долгота парковки:',
+        String(data.lng ?? '')
+    );
+    if (lngInput === null) return;
+    const lat = Number(latInput);
+    const lng = Number(lngInput);
+    if (
+        latInput.trim() === '' ||
+        lngInput.trim() === '' ||
+        !Number.isFinite(lat) ||
+        lat < -90 ||
+        lat > 90 ||
+        !Number.isFinite(lng) ||
+        lng < -180 ||
+        lng > 180
+    ) {
+        alert('Указаны некорректные координаты.');
+        return;
+    }
+    const coordinatesInput = prompt(
+        'Координаты границ парковки в формате JSON:',
+        JSON.stringify(data.coordinates || [])
+    );
+    if (coordinatesInput === null) return;
+    let coordinates;
+    try {
+        coordinates = JSON.parse(coordinatesInput);
+    } catch {
+        alert('Ошибка формата координат. Проверь JSON.');
+        return;
+    }
+    if (
+        !Array.isArray(coordinates) ||
+        coordinates.length < 3 ||
+        !coordinates.every(point =>
+            Array.isArray(point) &&
+            point.length >= 2 &&
+            Number.isFinite(point[0]) &&
+            Number.isFinite(point[1]) &&
+            point[0] >= -90 &&
+            point[0] <= 90 &&
+            point[1] >= -180 &&
+            point[1] <= 180
+        )
+    ) {
+        alert('Некорректные границы парковки.');
+        return;
+    }
     if (!confirm('Сохранить исправления заявки?')) {
         return;
     }
@@ -725,7 +779,10 @@ async function editModerationRequest(item) {
                     city: city.trim(),
                     street: street.trim(),
                     houseNumber: houseNumber.trim(),
-                    totalSpots
+                    totalSpots,
+                    lat,
+                    lng,
+                    coordinates
                 })
             }
         );
