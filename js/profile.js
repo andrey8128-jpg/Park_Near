@@ -553,49 +553,68 @@ async function loadModerationQueue() {
                         <strong>${safeName}</strong>
                         <small>Новая заявка</small>
                     </div>
-
                     <p>${safeAddress}</p>
-
                     <p>
                         Мест: ${Number(data.totalSpots) || 0}
                     </p>
-
                     <small>Автор: ${safeAuthor}</small>
-
-                    <div class="pn-car-actions">
-                       <button
-                           type="button"
-                           data-moderation-id="${safeId}"
-                           data-moderation-action="approve"
-                             >
-                             Одобрить
-                        </button>
-
-                        <button
-                          type="button"
-                             class="danger"
-                               data-moderation-id="${safeId}"
-                                 data-moderation-action="reject"
-                             >
-                               Отклонить
-                         </button>
-                    </div>
+                   <div class="pn-car-actions">
+    <button
+        type="button"
+        data-moderation-id="${safeId}"
+        data-moderation-action="view"
+    >
+        Посмотреть
+    </button>
+    <button
+        type="button"
+        data-moderation-id="${safeId}"
+        data-moderation-action="edit"
+    >
+        Исправить
+    </button>
+    <button
+        type="button"
+        data-moderation-id="${safeId}"
+        data-moderation-action="approve"
+    >
+        Одобрить
+    </button>
+    <button
+        type="button"
+        class="danger"
+        data-moderation-id="${safeId}"
+        data-moderation-action="reject"
+    >
+        Отклонить
+    </button>
+</div>
                 </div>
             `;
         }).join('');
-        container.querySelectorAll('[data-moderation-action]')
+       container.querySelectorAll('[data-moderation-action]')
     .forEach(button => {
         button.addEventListener('click', () => {
             const id = button.dataset.moderationId;
             const action = button.dataset.moderationAction;
-
+            if (!id) return;
+            const item = items.find(
+                entry => String(entry.id) === String(id)
+            );
+            if (!item) return;
+            if (action === 'view') {
+                viewModerationRequest(item);
+                return;
+            }
+            if (action === 'edit') {
+                editModerationRequest(item);
+                return;
+            }
             if (
-                !id ||
                 !['approve', 'reject'].includes(action)
             ) {
                 return;
             }
-
             moderateParkingRequest(id, action);
         });
     });
@@ -603,6 +622,129 @@ async function loadModerationQueue() {
         console.error('Ошибка очереди модерации:', error);
         container.textContent = error.message ||
             'Не удалось загрузить заявки.';
+    }
+}
+// ============================================
+// ПРОСМОТР ЗАЯВКИ МОДЕРАТОРОМ
+// ============================================
+function viewModerationRequest(item) {
+    const data = item.proposedData || {};
+    const author = item.author || {};
+    const address = [
+        data.city,
+        data.region,
+        data.street,
+        data.houseNumber
+    ].filter(Boolean).join(', ');
+    const details = [
+        `Название: ${data.name || 'Не указано'}`,
+        `Адрес: ${address || data.address || 'Не указан'}`,
+        `Количество мест: ${data.totalSpots ?? 'Не указано'}`,
+        `Занято: ${data.occupiedSpots ?? 0}`,
+        `Широта: ${data.lat ?? 'Не указана'}`,
+        `Долгота: ${data.lng ?? 'Не указана'}`,
+        `Автор: ${author.firstName || author.username || 'Неизвестен'}`,
+        `ID заявки: ${item.id}`
+    ];
+    alert(details.join('\n\n'));
+}
+// ============================================
+// РЕДАКТИРОВАНИЕ ЗАЯВКИ МОДЕРАТОРОМ
+// ============================================
+async function editModerationRequest(item) {
+    const data = item.proposedData || {};
+    const name = prompt(
+        'Название парковки:',
+        data.name || ''
+    );
+    if (name === null) return;
+    const city = prompt(
+        'Город:',
+        data.city || ''
+    );
+    if (city === null) return;
+    const street = prompt(
+        'Улица:',
+        data.street || ''
+    );
+    if (street === null) return;
+    const houseNumber = prompt(
+        'Номер дома:',
+        data.houseNumber || ''
+    );
+    if (houseNumber === null) return;
+    const totalSpotsInput = prompt(
+        'Общее количество парковочных мест:',
+        String(data.totalSpots ?? 1)
+    );
+    if (totalSpotsInput === null) return;
+    const totalSpots = Number(totalSpotsInput);
+    if (
+        !Number.isInteger(totalSpots) ||
+        totalSpots < 1 ||
+        totalSpots > 500
+    ) {
+        alert('Количество мест должно быть от 1 до 500.');
+        return;
+    }
+    if (
+        !name.trim() ||
+        !city.trim() ||
+        !street.trim()
+    ) {
+        alert('Название, город и улица обязательны.');
+        return;
+    }
+    if (
+        totalSpots < (Number(data.occupiedSpots) || 0)
+    ) {
+        alert(
+            'Количество мест не может быть меньше количества занятых мест.'
+        );
+        return;
+    }
+    if (!confirm('Сохранить исправления заявки?')) {
+        return;
+    }
+    const token = localStorage.getItem('parkNearSessionToken');
+    if (!token || window.isOfflineSession) {
+        alert('Необходима активная авторизация.');
+        return;
+    }
+    try {
+        const response = await fetch(
+            `${window.PARKNEAR_API_URL}/api/moderation/${encodeURIComponent(item.id)}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name.trim(),
+                    city: city.trim(),
+                    street: street.trim(),
+                    houseNumber: houseNumber.trim(),
+                    totalSpots
+                })
+            }
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || 'Не удалось сохранить изменения'
+            );
+        }
+        alert('Исправления успешно сохранены.');
+        await loadModerationQueue();
+    } catch (error) {
+        console.error(
+            'Ошибка редактирования заявки:',
+            error
+        );
+        alert(
+            error.message || 'Ошибка сохранения изменений.'
+        );
     }
 }
 // ============================================
