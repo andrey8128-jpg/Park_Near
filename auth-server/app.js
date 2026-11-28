@@ -1082,6 +1082,263 @@ app.get(
         }
     }
 );
+// ============================================
+// РЕДАКТИРОВАНИЕ ЗАЯВКИ МОДЕРАТОРОМ
+// ============================================
+app.patch(
+    '/api/moderation/:id',
+    requireAuth,
+    requireModeratorAccount,
+    moderationActionRateLimiter,
+    async (req, res) => {
+        let client;
+        try {
+            const moderationId = String(req.params.id || '').trim();
+            const body = req.body;
+            if (
+                !moderationId ||
+                !body ||
+                typeof body !== 'object' ||
+                Array.isArray(body)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Некорректные данные заявки'
+                });
+            }
+            const allowedFields = [
+                'name',
+                'city',
+                'region',
+                'street',
+                'houseNumber',
+                'totalSpots',
+                'lat',
+                'lng',
+                'coordinates'
+            ];
+            const unknownFields = Object.keys(body).filter(
+                key => !allowedFields.includes(key)
+            );
+            if (unknownFields.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Переданы недопустимые поля'
+                });
+            }
+            const updates = {};
+            for (const field of [
+                'name',
+                'city',
+                'region',
+                'street',
+                'houseNumber'
+            ]) {
+                if (body[field] === undefined) continue;
+                if (
+                    typeof body[field] !== 'string' ||
+                    body[field].length > 250
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Некорректное поле: ${field}`
+                    });
+                }
+                updates[field] = body[field].trim();
+            }
+            if (body.totalSpots !== undefined) {
+                if (
+                    !Number.isInteger(body.totalSpots) ||
+                    body.totalSpots < 1 ||
+                    body.totalSpots > 500
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Количество мест должно быть от 1 до 500'
+                    });
+                }
+                updates.totalSpots = body.totalSpots;
+            }
+            if (body.lat !== undefined) {
+                if (
+                    typeof body.lat !== 'number' ||
+                    !Number.isFinite(body.lat) ||
+                    body.lat < -90 ||
+                    body.lat > 90
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Некорректная широта'
+                    });
+                }
+                updates.lat = body.lat;
+            }
+            if (body.lng !== undefined) {
+                if (
+                    typeof body.lng !== 'number' ||
+                    !Number.isFinite(body.lng) ||
+                    body.lng < -180 ||
+                    body.lng > 180
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Некорректная долгота'
+                    });
+                }
+                updates.lng = body.lng;
+            }
+            if (body.coordinates !== undefined) {
+                const coordinates = body.coordinates;
+                if (
+                    !Array.isArray(coordinates) ||
+                    coordinates.length < 3 ||
+                    !coordinates.every(point =>
+                        Array.isArray(point) &&
+                        point.length >= 2 &&
+                        Number.isFinite(point[0]) &&
+                        Number.isFinite(point[1]) &&
+                        point[0] >= -90 &&
+                        point[0] <= 90 &&
+                        point[1] >= -180 &&
+                        point[1] <= 180
+                    )
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Некорректные границы парковки'
+                    });
+                }
+                updates.coordinates = coordinates;
+            }
+            if (Object.keys(updates).length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Нет данных для изменения'
+                });
+            }
+            client = await pool.connect();
+            await client.query('BEGIN');
+            const result = await client.query(
+                `SELECT id, action, proposed_data, status
+                 FROM parking_moderation
+                 WHERE id = $1
+                 FOR UPDATE`,
+                [moderationId]
+            );
+            if (result.rowCount === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    error: 'Заявка не найдена'
+                });
+            }
+            const moderation = result.rows[0];
+            if (
+                moderation.status !== 'pending' ||
+                moderation.action !== 'create'
+            ) {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    success: false,
+                    error: 'Можно изменять только новые заявки на модерации'
+                });
+            }
+            const currentData = moderation.proposed_data || {};
+            const proposedData = {
+                ...currentData,
+                ...updates
+            };
+            if (
+                !proposedData.name ||
+                !proposedData.city ||
+                !proposedData.street ||
+                !Number.isInteger(proposedData.totalSpots) ||
+                proposedData.totalSpots < 1 ||
+                !Number.isFinite(proposedData.lat) ||
+                !Number.isFinite(proposedData.lng) ||
+                !Array.isArray(proposedData.coordinates) ||
+                proposedData.coordinates.length < 3
+            ) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({
+                    success: false,
+                    error: 'После изменений заполнены не все обязательные данные'
+                });
+            }
+            const cleanKeyPart = value =>
+                String(value || '')
+                    .trim()
+                    .replace(/[.#$\/\[\]]/g, '')
+                    .replace(/\s+/g, '_')
+                    .replace(/_+/g, '_')
+                    .replace(/^_|_$/g, '');
+            proposedData.groupId =
+                cleanKeyPart(proposedData.city) ||
+                'Неизвестный_город';
+            proposedData.address = [
+                proposedData.city,
+                proposedData.street,
+                proposedData.houseNumber
+            ].filter(Boolean).join(', ');
+            const now = Date.now();
+            proposedData.lastUpdatedAt = now;
+            proposedData.lastUpdatedBy =
+                req.authUser.nickname ||
+                req.authUser.firstName ||
+                req.authUser.username ||
+                'Модератор';
+            proposedData.history = [
+                ...(Array.isArray(currentData.history)
+                    ? currentData.history
+                    : []),
+                {
+                    action: 'moderator_edited',
+                    timestamp: now,
+                    userId: req.authUser.id,
+                    username: req.authUser.username || ''
+                }
+            ];
+            await client.query(
+                `UPDATE parking_moderation
+                 SET proposed_data = $2::jsonb
+                 WHERE id = $1`,
+                [
+                    moderationId,
+                    JSON.stringify(proposedData)
+                ]
+            );
+            await client.query('COMMIT');
+            return res.json({
+                success: true,
+                message: 'Данные заявки успешно исправлены',
+                proposedData
+            });
+        } catch (error) {
+            if (client) {
+                try {
+                    await client.query('ROLLBACK');
+                } catch (rollbackError) {
+                    console.error(
+                        'Ошибка отката редактирования заявки:',
+                        rollbackError
+                    );
+                }
+            }
+            console.error(
+                'Ошибка редактирования заявки модератором:',
+                error
+            );
+            return res.status(500).json({
+                success: false,
+                error: 'Не удалось исправить заявку'
+            });
+        } finally {
+            if (client) {
+                client.release();
+            }
+        }
+    }
+);
  // ============================================
  // ОДОБРЕНИЕ ЗАЯВКИ НА СОЗДАНИЕ ПАРКОВКИ
  // ============================================
